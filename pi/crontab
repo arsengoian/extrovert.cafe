@@ -1,0 +1,3 @@
+# crontab -l на pi. РЕКОНСТРУКЦІЯ — звірити з пристроєм.
+# Раз на 5 хвилин: якщо Chromium зник — перезапустити кіоск.
+*/5 * * * * pgrep -f chromium-browse >/dev/null || /home/pi/kiosk.sh >/dev/null 2>&1 &

@@ -1,0 +1,4 @@
+# /etc/systemd/system.conf — апаратний watchdog BCM2835.
+# У systemd 232 (Stretch) параметр зветься ShutdownWatchdogSec, а не RebootWatchdogSec.
+RuntimeWatchdogUSec=14s
+ShutdownWatchdogSec=2min

@@ -1,0 +1,115 @@
+{
+  "updated": "2026-08-09T14:37:01Z",
+  "theme": "dark",
+  "refreshSec": 60,
+  "reloadSec": 3600,
+  "brand": {
+    "name": "EXTROVERT",
+    "suffix": ".CAFE",
+    "tagline": "більше, ніж кава"
+  },
+  "drinks": [
+    {
+      "name": "Американо",
+      "vol": "250 мл",
+      "price": 40,
+      "color": "#60361c",
+      "foam": false
+    },
+    {
+      "name": "Капучино",
+      "vol": "250 мл",
+      "price": 50,
+      "color": "#9e7044",
+      "foam": true
+    },
+    {
+      "name": "Американо з молоком",
+      "vol": "250 мл",
+      "price": 45,
+      "color": "#7e522e",
+      "foam": true
+    },
+    {
+      "name": "Лате",
+      "vol": "300 мл",
+      "price": 50,
+      "color": "#b08458",
+      "foam": true
+    },
+    {
+      "name": "Флет вайт",
+      "vol": "250 мл",
+      "price": 50,
+      "color": "#96683e",
+      "foam": true
+    },
+    {
+      "name": "Еспресо",
+      "vol": "60 мл",
+      "price": 35,
+      "color": "#402212",
+      "foam": false
+    },
+    {
+      "name": "Еспресо з молоком",
+      "vol": "80 мл",
+      "price": 40,
+      "color": "#784e2c",
+      "foam": true
+    },
+    {
+      "name": "Мокачино",
+      "vol": "300 мл",
+      "price": 55,
+      "color": "#70462c",
+      "foam": true
+    },
+    {
+      "name": "Гарячий шоколад",
+      "vol": "300 мл",
+      "price": 50,
+      "color": "#563422",
+      "foam": true
+    },
+    {
+      "name": "Айріш-кава",
+      "vol": "250 мл",
+      "price": 55,
+      "color": "#8c6038",
+      "foam": true
+    },
+    {
+      "name": "Чай лимонний",
+      "vol": "300 мл",
+      "price": 30,
+      "color": "#ce9e4a",
+      "foam": false
+    },
+    {
+      "name": "Американо з бонусами",
+      "vol": "250 мл",
+      "price": 80,
+      "color": "#c0392b",
+      "foam": false
+    }
+  ],
+  "steps": [
+    "Постав стакан",
+    "Обери напій",
+    "Приклади картку"
+  ],
+  "payments": [
+    "VISA",
+    "Mastercard",
+    "Apple Pay",
+    "Google Pay"
+  ],
+  "cashNote": "Готівка — монетоприймач",
+  "qr": {
+    "url": "https://extrovert.cafe",
+    "line1": "Вирости",
+    "line2": "кавенятко",
+    "line3": "extrovert.cafe"
+  }
+}

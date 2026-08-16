@@ -1,0 +1,90 @@
+# Бекенд самокав'ярень. Фронтенди тут не крутяться — вони на Cloudflare Workers.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-extrovert}
+      POSTGRES_USER: ${POSTGRES_USER:-extrovert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задай у .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-extrovert}"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes: [redisdata:/data]
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: { context: ., dockerfile: docker/node.Dockerfile, args: { SVC: api } }
+    env_file: [.env]
+    environment: { PORT: 3001 }
+    ports: ["3001:3001"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  ws:
+    build: { context: ., dockerfile: docker/node.Dockerfile, args: { SVC: ws } }
+    env_file: [.env]
+    environment: { PORT: 3002 }
+    ports: ["3002:3002"]
+    depends_on:
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  checkbox:
+    build: { context: ., dockerfile: docker/node.Dockerfile, args: { SVC: checkbox } }
+    env_file: [.env]
+    environment: { PORT: 3003 }
+    ports: ["3003:3003"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  overseer:
+    build: { context: ., dockerfile: docker/node.Dockerfile, args: { SVC: overseer } }
+    env_file: [.env]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  # Збір помилок з усіх сервісів. Свій, щоб не платити за Sentry.
+  glitchtip:
+    image: glitchtip/glitchtip:latest
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+      PORT: 8000
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:latest
+    command: ./bin/run-celery-with-beat.sh
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+    depends_on: [glitchtip]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

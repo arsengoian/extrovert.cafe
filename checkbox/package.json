@@ -1,0 +1,12 @@
+{
+  "name": "@extrovert/checkbox",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "приймач вебхуків ПРРО Checkbox",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {"fastify":"^5.0.0","pg":"^8.13.0","ioredis":"^5.4.1","@sentry/node":"^8.0.0"}
+}

@@ -1,0 +1,14 @@
+name = "extrovert-pos"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[[r2_buckets]]
+binding = "PRICES"
+bucket_name = "extrovert-pos"
+
+[observability]
+enabled = true

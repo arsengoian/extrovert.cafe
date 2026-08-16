@@ -1,0 +1,12 @@
+{
+  "name": "extrovert-pos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Меню-кіоск EXTROVERT.CAFE — статична сторінка + ціни з R2",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "prices:push": "node scripts/push-prices.mjs"
+  },
+  "devDependencies": { "wrangler": "^3.90.0" }
+}

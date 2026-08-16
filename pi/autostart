@@ -1,0 +1,4 @@
+# ~/.config/lxsession/LXDE-pi/autostart
+# РЕКОНСТРУКЦІЯ — звірити з пристроєм.
+@/home/pi/scripts/start.sh
+@/home/pi/kiosk.sh
