@@ -13,11 +13,22 @@
 ```
 public/            статика, яку віддає Worker
   index.html         каркас: сцена 1920×1080, лого вбудоване SVG (версія Б, 997×200)
+                     лого сидить між маркерами <!-- logo:start --> / <!-- logo:end -->
   style.css          без CSS-змінних і grid; шрифти base64
   app.js             ES5: без стрілок, шаблонних рядків, const/let і fetch
 src/index.js       Worker: роутинг точок + меню з R2
 data/prices.json   вихідний файл меню
-scripts/push-prices.mjs  заливка в R2 (AWS SigV4 вручну, без залежностей)
+scripts/push-prices.mjs  заливка меню в R2 (AWS SigV4 вручну, без залежностей)
+scripts/embed-logo.mjs   вставка лого з design/ між маркерами в index.html
+```
+
+**Ці файли ніхто не генерує.** До серпня 2026 `design/logo/mk_menu2.py`
+переписував `index.html` і `style.css` цілком — і одна команда з
+`design/README.md` зносила все, що тут наживо. Тепер генератор робить лише
+текстуру для 3D-макета, а кіоск правиться руками. Лого оновлюється точково:
+
+```bash
+node scripts/embed-logo.mjs ../../design/logo/versions/B/logo.svg
 ```
 
 **Чому ES5.** Кіоск може крутитися на Raspberry Pi 1 з Chromium 2019 року.
