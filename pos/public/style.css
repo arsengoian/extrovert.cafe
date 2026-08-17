@@ -9,13 +9,19 @@ body{font-family:'Extro400',-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 #stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;
        background:#0C0E11;color:#F2EFE6}
 #head{position:absolute;left:52px;top:40px}
-#logo{width:560px;height:150px;display:block}
+#logo{width:640px;height:128px;display:block}   /* версія Б: 997×200 */
 #brand{display:none}
 #tagline{display:none}   /* слоган — частина обведеного лого, текстом не дублюємо */
 #grid{position:absolute;left:52px;top:232px;width:1224px;
       display:-webkit-box;display:-webkit-flex;display:flex;-webkit-flex-wrap:wrap;flex-wrap:wrap}
 .card{position:relative;width:290px;height:248px;margin:0 16px 18px 0;
       border-radius:16px;background:#171A1F;border:1px solid rgba(255,255,255,.07);overflow:hidden}
+/* Градієнтна крайка зверху картки. Статичний градієнт нічого не коштує під час
+   анімації: він малюється в шар один раз і далі лише композиториться. */
+.card:after{content:"";position:absolute;left:0;top:0;width:290px;height:3px;
+      background:#FE810B;
+      background:-webkit-linear-gradient(left,#FE810B,#FF2D6F);
+      background:linear-gradient(to right,#FE810B,#FF2D6F);opacity:.55}
 .badge{position:absolute;right:12px;top:12px;width:62px;height:62px;border-radius:31px;
        background:#FE810B;
        background:-webkit-linear-gradient(top,#FE810B,#FF2D6F);
@@ -68,3 +74,109 @@ body.light .pay,body.light #qrtext .mut{color:#6E747C}
 body.light .pay{border-color:rgba(0,0,0,.15)}
 body.light #qr{box-shadow:0 0 0 1px rgba(0,0,0,.08)}
 body.light #logo path[fill="#F2EFE6"]{fill:#15181C}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   АНІМАЦІЇ ЧАШОК
+
+   Правило одне і воно не обговорюється: рухаємо ТІЛЬКИ transform і opacity.
+   На Pi 1 композитинг іде процесором на 700 МГц, тож будь-яка анімація
+   width/height/top/left/box-shadow/filter означає перемальовування шару
+   щокадру. Статичні градієнти — навпаки, безпечні: вони малюються один раз.
+
+   Рівень вмикається класом на body (app.js, параметр ?anim=N):
+     anim1 — поява карток, одноразова
+     anim2 — + чашка дихає            (12 елементів)
+     anim3 — + пара                    (+36 елементів)
+     anim4 — + блиск і пульс цінника   (+24 елементи)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── рівень 1: поява ── */
+@-webkit-keyframes cardIn{from{opacity:0;-webkit-transform:translateY(14px)}
+                          to{opacity:1;-webkit-transform:translateY(0)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}
+                  to{opacity:1;transform:translateY(0)}}
+body.anim1 .card,body.anim2 .card,body.anim3 .card,body.anim4 .card{
+  -webkit-animation:cardIn .42s ease-out both;animation:cardIn .42s ease-out both}
+.card:nth-child(1){-webkit-animation-delay:.00s;animation-delay:.00s}
+.card:nth-child(2){-webkit-animation-delay:.04s;animation-delay:.04s}
+.card:nth-child(3){-webkit-animation-delay:.08s;animation-delay:.08s}
+.card:nth-child(4){-webkit-animation-delay:.12s;animation-delay:.12s}
+.card:nth-child(5){-webkit-animation-delay:.16s;animation-delay:.16s}
+.card:nth-child(6){-webkit-animation-delay:.20s;animation-delay:.20s}
+.card:nth-child(7){-webkit-animation-delay:.24s;animation-delay:.24s}
+.card:nth-child(8){-webkit-animation-delay:.28s;animation-delay:.28s}
+.card:nth-child(9){-webkit-animation-delay:.32s;animation-delay:.32s}
+.card:nth-child(10){-webkit-animation-delay:.36s;animation-delay:.36s}
+.card:nth-child(11){-webkit-animation-delay:.40s;animation-delay:.40s}
+.card:nth-child(12){-webkit-animation-delay:.44s;animation-delay:.44s}
+
+/* ── рівень 2: чашка дихає ── */
+@-webkit-keyframes cupFloat{0%,100%{-webkit-transform:translateY(0)}
+                            50%{-webkit-transform:translateY(-4px)}}
+@keyframes cupFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+body.anim2 .cup,body.anim3 .cup,body.anim4 .cup{
+  -webkit-animation:cupFloat 3.2s ease-in-out infinite;
+  animation:cupFloat 3.2s ease-in-out infinite}
+/* розбіг, щоб дванадцять чашок не гойдалися строєм */
+.card:nth-child(3n+1) .cup{-webkit-animation-delay:0s;animation-delay:0s}
+.card:nth-child(3n+2) .cup{-webkit-animation-delay:-1.1s;animation-delay:-1.1s}
+.card:nth-child(3n)   .cup{-webkit-animation-delay:-2.2s;animation-delay:-2.2s}
+
+/* ── рівень 3: пара ── */
+.steam{position:absolute;left:50%;top:-1px;width:16px;height:20px;margin-left:-8px;
+       border-radius:50%;background:#F2EFE6;opacity:0;display:none}
+.steam.s2{margin-left:-24px}
+.steam.s3{margin-left:12px}
+@-webkit-keyframes steamUp{
+  0%{opacity:0;-webkit-transform:translateY(6px) scale(.35)}
+  20%{opacity:.34}
+  60%{opacity:.18}
+  100%{opacity:0;-webkit-transform:translateY(-22px) scale(1.5)}}
+@keyframes steamUp{
+  0%{opacity:0;transform:translateY(6px) scale(.35)}
+  20%{opacity:.34}
+  60%{opacity:.18}
+  100%{opacity:0;transform:translateY(-22px) scale(1.5)}}
+body.anim3 .steam,body.anim4 .steam{display:block;
+  -webkit-animation:steamUp 2.8s ease-out infinite;animation:steamUp 2.8s ease-out infinite}
+body.anim3 .steam.s2,body.anim4 .steam.s2{-webkit-animation-delay:-.9s;animation-delay:-.9s}
+body.anim3 .steam.s3,body.anim4 .steam.s3{-webkit-animation-delay:-1.8s;animation-delay:-1.8s}
+
+/* ── рівень 4: блиск по рідині + пульс цінника ── */
+.liq{overflow:hidden}
+.shine{position:absolute;left:-45%;top:0;width:38%;height:100%;display:none;
+  background:-webkit-linear-gradient(left,rgba(255,255,255,0),rgba(255,255,255,.20),rgba(255,255,255,0));
+  background:linear-gradient(to right,rgba(255,255,255,0),rgba(255,255,255,.20),rgba(255,255,255,0))}
+@-webkit-keyframes shineGo{0%{-webkit-transform:translateX(0)}
+                           60%,100%{-webkit-transform:translateX(400%)}}
+@keyframes shineGo{0%{transform:translateX(0)}60%,100%{transform:translateX(400%)}}
+body.anim4 .shine{display:block;
+  -webkit-animation:shineGo 4.6s ease-in-out infinite;animation:shineGo 4.6s ease-in-out infinite}
+.card:nth-child(2n) .shine{-webkit-animation-delay:-2.3s;animation-delay:-2.3s}
+
+@-webkit-keyframes badgePulse{0%,100%{-webkit-transform:scale(1)}50%{-webkit-transform:scale(1.05)}}
+@keyframes badgePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+body.anim4 .badge{-webkit-animation:badgePulse 2.9s ease-in-out infinite;
+                  animation:badgePulse 2.9s ease-in-out infinite}
+
+/* ── примусове винесення в окремі шари (?gpu=1) ──
+   На Pi 1 це палиця з двома кінцями: менше перемальовування, але більше
+   памʼяті під шари, а її всього 384 МБ. Саме тому це окремий перемикач —
+   щоб виміряти, а не вгадувати. */
+body.gpu .cup,body.gpu .steam,body.gpu .shine,body.gpu .badge{
+  -webkit-backface-visibility:hidden;backface-visibility:hidden;
+  will-change:transform,opacity}
+
+/* ── лічильник кадрів (?hud=1) ── */
+#hud{position:absolute;right:22px;top:22px;display:none;padding:12px 16px;border-radius:12px;
+     background:rgba(0,0,0,.74);border:1px solid rgba(255,255,255,.16);
+     font-family:'Extro600',monospace;font-size:21px;line-height:31px;
+     color:#F2EFE6;text-align:left;white-space:nowrap}
+body.hud #hud{display:block}
+#hud b{color:#FE810B;font-family:'Extro900'}
+#hud .bad{color:#FF2D6F}
+
+/* світла тема для доданого */
+body.light .steam{background:#3a3027}
+body.light #hud{background:rgba(255,255,255,.9);border-color:rgba(0,0,0,.12);color:#15181C}
