@@ -6,4 +6,8 @@ node_modules/
 .wrangler/
 dist/
 build/
+!pos-native/build/
 __pycache__/
+
+# pos-native: тримаємо джерела, не бінарники
+pos-native/bin/
