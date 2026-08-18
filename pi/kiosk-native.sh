@@ -21,6 +21,13 @@ LOG=/home/pi/kiosk-native.log
 exec >> "$LOG" 2>&1
 echo "=== старт $(date) · URL=$URL ASSETS=$ASSETS BIN=$BIN ==="
 
+# Раніше це запускала LXDE autostart (~/scripts/start.sh) поряд з
+# kiosk-chromium.sh. Без X ніхто інший цей файл не викличе, тож перенесено
+# сюди: гасить світлодіоди на корпусі. Скрипт лишається на місці —
+# необов'язковий (`|| true`), щоб відсутність llctl на іншому пристрої не
+# зупиняла кіоск.
+[ -x "$HOME/scripts/start.sh" ] && "$HOME/scripts/start.sh" 2>&1 || true
+
 # Чекаємо мережу лише для продової адреси — так само, як у kiosk-chromium.sh:
 # для локального тестового сервера цей цикл лише додав би чорний екран.
 case "$URL" in

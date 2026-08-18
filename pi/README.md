@@ -1,13 +1,19 @@
 # Raspberry Pi — кіоск точки
 
-Стан пристрою, звірено з живою малиною 17.08.2026: Raspberry Pi 1 Model B rev 2
-(ARMv6), Raspbian 9 Stretch, **ядро 4.14.79**, Chromium 65, LXDE.
-`ssh pi@192.168.5.45`.
+Стан пристрою, звірено з живою малиною 18.08.2026: Raspberry Pi 1 Model B rev 2
+(ARMv6), Raspbian 9 Stretch, **ядро 4.14.79**. `ssh pi@192.168.5.45`.
 
-Памʼять: усього **433 МБ** доступно системі. `gpu_mem` у `/boot/config.txt` не
-заданий узагалі, тобто діє дефолт **64 МБ**, а не 128, як тут раніше стояло.
-Кіоск у спокої займає ~150 МБ, вільно лишається ~215 МБ; з `LEAN=1` —
-~350 МБ вільних.
+**Кіоск за замовчанням — `pos-native`, без X.** LXDE/lightdm вимкнені
+(`systemctl set-default multi-user.target`), автозапуск — `pos-native.service`
+(systemd, `WantedBy=multi-user.target`). Chromium-варіант (`archive/kiosk-chromium.sh`)
+лишається робочим fallback'ом — розділ «Відкат на Chromium-кіоск» нижче.
+
+Памʼять: `gpu_mem=128` у `/boot/config.txt` (виправлено 18.08.2026 — до того не
+був заданий узагалі, тобто діяв дефолт 64 МБ, і `pos-native`'у бракувало
+GPU-памʼяті під власну поверхню виводу — саме це, а не баг рендера, викликало
+білий екран одразу після першого перемикання; постмортем у `../docs/roadmap.md`).
+Не занижувати назад без причини — `vcgencmd get_mem malloc` мав 8 МБ вільних
+при 64, притому що один 1080p RGBA-буфер важить ~8 МБ сам по собі.
 
 ⚠️ **Файли в цій теці — реконструкція з робочої сесії, а не дамп із пристрою.**
 Перед тим як накочувати, звірити з тим, що реально лежить на Pi.
@@ -23,39 +29,34 @@
 
 ## Що вже зроблено на пристрої
 
-- [x] автозапуск Chromium у кіоск-режимі (LXDE autostart)
+- [x] автозапуск `pos-native` через systemd (`pos-native.service`), без X/LXDE
 - [x] апаратний watchdog BCM2835, `RuntimeWatchdogUSec=14s`
-- [x] сторожовий крон раз на 5 хвилин
+- [x] сторожовий крон раз на 5 хвилин (перевіряє процес, `systemctl restart` при потребі)
 - [x] 1080p замість 720p (`hdmi_group=1`, `hdmi_mode=16`)
 - [x] повний діапазон RGB (`hdmi_pixel_encoding=2`)
 - [x] прибрано запит пароля PolicyKit (з `start.sh` викинуто `service ssh start`)
 - [ ] overlay FS (read-only корінь) — після тижня стабільної роботи
 - [ ] 5 тестів раптового знеструмлення
-- [ ] **URL оновити на `/p/kyiv-01`** — зараз у kiosk.sh старий корінь
 
 ## Скрипти в цій теці
 
 | Файл | Де запускати | Що робить |
 |---|---|---|
 | `fix-clock.sh` | ПК | синхронізує годинник Pi з цією машиною + `fake-hwclock save` |
-| `deploy.sh` | ПК | копіює `pos/public` на Pi, піднімає локальний сервер і перезапускає кіоск (Chromium) |
+| `deploy.sh` | ПК | копіює `pos/public` на Pi, піднімає локальний сервер і перезапускає **Chromium**-варіант (fallback, не прод) |
 | `cam-sim.sh` | ПК | емулятор камери C100: RTSP 1080p15 @ 0,76 Мбіт/с |
 | `rec-test.sh` | Pi | костиль запису `-c copy` у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV |
-| `kiosk-native.sh` | Pi | запускає бінарник `pos-native` замість Chromium (не задеплоєно, див. нижче) |
-| `archive/kiosk-chromium.sh` | — | попередній `kiosk.sh`, збережений як робочий fallback |
+| `kiosk-native.sh` | Pi | **поточний прод**: запускає й перезапускає бінарник `pos-native`, керується `pos-native.service` |
+| `pos-native.service` | Pi | systemd-юніт автозапуску `kiosk-native.sh` (`WantedBy=multi-user.target`) |
+| `archive/kiosk-chromium.sh` | — | попередній `kiosk.sh` — робочий fallback, дивись відкат нижче |
 
-`kiosk-chromium.sh` (раніше `kiosk.sh`) підхоплює `~/kiosk.env` (пише
-`deploy.sh`), тож URL і режим економії міняються без правки самого скрипта.
-Стерти `kiosk.env` — повернеться прод-адреса.
-
-### Спайк: нативний рендерер (`pos-native`) замість Chromium
+### Прод: нативний рендерер (`pos-native`), без X — з 18.08.2026
 
 `../pos-native/` — Cairo+GLES2 замінник браузера: малює ту саму сторінку
-без zygote/GPU-процесів Chromium. Архітектура й статус — `../docs/roadmap.md`
-(«Спайк — нативний рендерер», «Перший запуск на реальному Pi 1»).
+без zygote/GPU-процесів Chromium, прямо в dispmanx-шар, без X/LXDE. Архітектура
+й вимір — `../docs/roadmap.md` («Перший запуск на реальному Pi 1», «Перемикання
+проду»). **60 fps (vsync), ~19,5 % CPU, `GL_RENDERER=VideoCore IV HW`.**
 
-**Коротко: на залізі працює, без X, 60 fps (vsync), ~19,5 % CPU, GPU
-реальний (`VideoCore IV HW`), 137 с без пропуску кадру на проді.**
 Збирається нативно НА малині (`cd pos-native && make pi`, ~80 с), не
 крос-компіляцією — на пристрої вже є gcc 6.3/glibc 2.24, під які інакше
 довелось би підганяти sysroot. Одноразово перед першою збіркою:
@@ -71,17 +72,34 @@ Broadcom-ові `/opt/vc/lib/libbrcm{EGL,GLESv2}.so`, інакше `eglInitializ
 намагається піднятись як X11-клієнт і падає; деталі в коментарі над
 `PKGS_BASE` у `pos-native/Makefile`.)
 
-**Граблі, які легко наступити знову:** зупиняти вже запущений X
-(`systemctl stop lightdm` на живій сесії) перед запуском `pos-native` —
-кладе `bcm_host_init()` у стан, який не знімає навіть `SIGKILL`, лікується
-тільки перезавантаженням. Якщо X ВЗАГАЛІ не стартував за це завантаження
-(`systemctl disable lightdm` + `set-default multi-user.target` +
-перезавантаження) — усе працює миттєво й чисто. Тобто: вимикати X **тільки
-через reboot**, не `stop` на льоту. Подробиці й повний лог — `../docs/roadmap.md`.
+Автозапуск: `systemctl status pos-native` / `journalctl -u pos-native -f`.
+Живий лог самого кіоска (не юніта) — `~/kiosk-native.log`. Конфігурація та
+сама, що й у старого `kiosk.sh`: `~/kiosk.env` (точка, `POINT=`) і
+`~/kiosk.extra` (руками, переживає перезапис).
 
-`kiosk-native.sh` технічно готовий і перевірений, але в автозапуск ще не
-вкочений — перемикання проду з Chromium на нативний рендер лишається
-окремим рішенням, не автоматичним наслідком цього тесту.
+**Граблі, які легко наступити знову:** зупиняти вже запущений X
+(`systemctl stop lightdm` на живій сесії) кладе `bcm_host_init()` у стан,
+який не знімає навіть `SIGKILL` — лікується тільки перезавантаженням. Якщо X
+взагалі не стартував за це завантаження — усе працює миттєво й чисто. Тобто
+будь-яке вимикання/увімкнення X **тільки через reboot**, не `stop`/`start`
+на льоту. Подробиці — `../docs/roadmap.md`.
+
+### Відкат на Chromium-кіоск
+
+Якщо `pos-native` підвів на місці, а часу розбиратись немає:
+
+```bash
+ssh pi@192.168.5.45
+sudo systemctl disable --now pos-native
+sudo systemctl enable lightdm
+sudo systemctl set-default graphical.target
+crontab -l   # звірити watchdog-рядок нижче, замінити на chromium-варіант
+sudo reboot
+```
+
+Watchdog-рядок на Chromium — у коментарі всередині `pi/crontab` (реконструкція,
+секція «Стара версія»). `archive/kiosk-chromium.sh` і `deploy.sh` лишаються
+робочими без змін — саме для цього сценарію.
 
 ## Годинник
 

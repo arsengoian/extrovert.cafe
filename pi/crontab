@@ -1,3 +1,11 @@
 # crontab -l на pi. РЕКОНСТРУКЦІЯ — звірити з пристроєм.
-# Раз на 5 хвилин: якщо Chromium зник — перезапустити кіоск.
-*/5 * * * * pgrep -f chromium-browse >/dev/null || /home/pi/kiosk.sh >/dev/null 2>&1 &
+#
+# З переходом на pos-native (18.08.2026) перезапуск кладе на systemd
+# (pos-native.service, Restart=always) — цей рядок ловить інший випадок:
+# коли systemd сам здався (вичерпав StartLimitBurst після серії швидких
+# падінь) і більше не перезапускає. `systemctl restart` у такому стані
+# скидає лічильник спроб.
+*/5 * * * * pgrep -f pos-native-pi >/dev/null || sudo systemctl restart pos-native >/dev/null 2>&1  # kiosk-watch
+#
+# Стара версія (Chromium) — на випадок відкату:
+# */5 * * * * pgrep -f "chromium-browser --kiosk" >/dev/null || DISPLAY=:0 /home/pi/kiosk.sh >/dev/null 2>&1 &  # kiosk-watch
