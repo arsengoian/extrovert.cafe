@@ -51,6 +51,24 @@ static void parse_drink(cJSON *item, drink_t *d) {
         d->foam = cJSON_IsTrue(j);
 }
 
+const cup_tier_t *menu_find_cup(const menu_t *m, const char *key) {
+    if (!key) return NULL;
+    for (int i = 0; i < m->cup_count; i++)
+        if (strcmp(m->cups[i].key, key) == 0) return &m->cups[i];
+    return NULL;
+}
+
+static void parse_string_array(cJSON *arr, char (*out)[MENU_STR], int *count, int max) {
+    *count = 0;
+    if (!arr || !cJSON_IsArray(arr)) return;
+    cJSON *it;
+    cJSON_ArrayForEach(it, arr) {
+        if (*count >= max) break;
+        if (cJSON_IsString(it)) snprintf(out[*count], MENU_STR, "%s", it->valuestring);
+        (*count)++;
+    }
+}
+
 bool menu_poll(const char *url, menu_t *out) {
     struct buf b = {0};
     CURL *c = curl_easy_init();
@@ -110,6 +128,45 @@ bool menu_poll(const char *url, menu_t *out) {
             parse_drink(it, &next.drinks[next.drink_count++]);
         }
     }
+
+    /* d.cups — обʼєкт {"S":{...},"M":{...}}, не масив, тож ітеруємо ключі */
+    cJSON *cups = cJSON_GetObjectItemCaseSensitive(root, "cups");
+    if (cups) {
+        cJSON *tier;
+        cJSON_ArrayForEach(tier, cups) {
+            if (next.cup_count >= MENU_MAX_CUPS) break;
+            cup_tier_t *t = &next.cups[next.cup_count];
+            snprintf(t->key, sizeof(t->key), "%s", tier->string ? tier->string : "");
+            cJSON *j;
+            if ((j = cJSON_GetObjectItemCaseSensitive(tier, "short")) && cJSON_IsString(j))
+                snprintf(t->short_label, sizeof(t->short_label), "%s", j->valuestring);
+            else
+                snprintf(t->short_label, sizeof(t->short_label), "%s", t->key);
+            if ((j = cJSON_GetObjectItemCaseSensitive(tier, "where")) && cJSON_IsString(j))
+                t->organizer = strcmp(j->valuestring, "organizer") == 0;
+            next.cup_count++;
+        }
+    }
+
+    parse_string_array(cJSON_GetObjectItemCaseSensitive(root, "steps"),
+                        next.steps, &next.step_count, MENU_MAX_STEPS);
+    parse_string_array(cJSON_GetObjectItemCaseSensitive(root, "payments"),
+                        next.payments, &next.payment_count, MENU_MAX_PAYMENTS);
+
+    cJSON *j;
+    if ((j = cJSON_GetObjectItemCaseSensitive(root, "cashNote")) && cJSON_IsString(j))
+        snprintf(next.cash_note, MENU_STR, "%s", j->valuestring);
+
+    cJSON *qr = cJSON_GetObjectItemCaseSensitive(root, "qr");
+    if (qr) {
+        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line1")) && cJSON_IsString(j))
+            snprintf(next.qr_line1, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line2")) && cJSON_IsString(j))
+            snprintf(next.qr_line2, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line3")) && cJSON_IsString(j))
+            snprintf(next.qr_line3, MENU_STR, "%s", j->valuestring);
+    }
+
     cJSON_Delete(root);
 
     next.hash = h;
