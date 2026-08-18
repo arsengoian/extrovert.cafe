@@ -1,25 +1,44 @@
 #!/bin/bash
-# Кіоск: чекає мережу, чистить ознаки «браузер впав», тримає Chromium у циклі.
-# РЕКОНСТРУКЦІЯ з сесії — звірити з ~/kiosk.sh на пристрої.
-
-# Налаштування, які змінює deploy.sh, лежать окремо, щоб не правити цей файл
-# на кожен експеримент. Формат — рядки VAR=value.
-[ -f "$HOME/kiosk.env" ] && . "$HOME/kiosk.env"
+# EXTROVERT.CAFE — кіоск меню. Chromium 65 на Raspberry Pi 1.
+#
+# Налаштування лежать поза скриптом, щоб експерименти не правили сам скрипт:
+#   ~/kiosk.env    — пише deploy.sh (URL, LEAN). Стерти → повернеться прод.
+#   ~/kiosk.extra  — руками (EXTRA=...), переживає перезапис kiosk.env.
+[ -f "$HOME/kiosk.env" ]   && . "$HOME/kiosk.env"
+[ -f "$HOME/kiosk.extra" ] && . "$HOME/kiosk.extra"
 
 POINT="${POINT:-kyiv-01}"
+# Роут за замовчанням несе ІДЕНТИФІКАТОР ТОЧКИ. Без нього сторінка
+# відкривається, але POINT у app.js падає на дефолт — тобто друга точка
+# показувала б ціни першої, і помітили б це вже на місці.
 URL="${URL:-https://pos.extrovert.cafe/p/$POINT}"
-PROFILE="$HOME/.config/chromium"
-LEAN="${LEAN:-0}"      # 1 — режим економії памʼяті для Pi 1, див. нижче
+LEAN="${LEAN:-0}"
+EXTRA="${EXTRA:-}"
+LOG=/home/pi/kiosk.log
 
-# мережа може піднятися пізніше за десктоп
-for i in $(seq 1 30); do
-  ping -c1 -W2 1.1.1.1 >/dev/null 2>&1 && break
-  sleep 2
-done
+exec >> "$LOG" 2>&1
+echo "=== старт $(date) · URL=$URL LEAN=$LEAN EXTRA=$EXTRA ==="
 
-# Прапорці економії. На Pi 1 з 384 МБ найбільше дає --single-process:
-# зникають окремі процеси zygote і GPU, це десятки мегабайтів.
-# Ціна — падіння рендерера кладе весь браузер, але його все одно піднімає цикл.
+# екран не гасне
+xset s off; xset -dpms; xset s noblank
+
+# курсор геть
+unclutter -idle 0.1 -root &
+xdotool mousemove 5000 5000 2>/dev/null || true
+
+# Чекаємо мережу тільки якщо сторінка справді в мережі. Для локального
+# http://localhost:8080 цей цикл коштував би до двох хвилин чорного екрана.
+case "$URL" in
+  https://*|http://pos.*)
+    for i in $(seq 1 30); do
+      curl -sf --max-time 5 -o /dev/null https://pos.extrovert.cafe/healthz && break
+      echo "мережі ще нема, спроба $i"; sleep 4
+    done ;;
+esac
+
+# Прапорці економії. На Pi 1 найбільше дає --single-process: зникають окремі
+# процеси zygote і GPU, це десятки мегабайтів. Ціна — падіння рендерера кладе
+# весь браузер, але його все одно піднімає цикл нижче.
 LEAN_FLAGS=""
 if [ "$LEAN" = "1" ]; then
   LEAN_FLAGS="--single-process --disable-dev-shm-usage --disable-extensions
@@ -27,22 +46,24 @@ if [ "$LEAN" = "1" ]; then
               --disable-component-update --renderer-process-limit=1"
 fi
 
+P="$HOME/.config/chromium"
 while true; do
-  # інакше Chromium показує «Відновити сторінки?» після кожного знеструмлення
-  sed -i 's/"exited_cleanly":false/"exited_cleanly":true/' \
-      "$PROFILE/Default/Preferences" 2>/dev/null
-  sed -i 's/"exit_type":"Crashed"/"exit_type":"Normal"/' \
-      "$PROFILE/Default/Preferences" 2>/dev/null
+  # прибрати плашку "Chromium некоректно завершив роботу" після зникнення живлення
+  sed -i "s/\"exited_cleanly\":false/\"exited_cleanly\":true/" "$P/Local State" 2>/dev/null
+  sed -i "s/\"exited_cleanly\":false/\"exited_cleanly\":true/; s/\"exit_type\":\"[^\"]*\"/\"exit_type\":\"Normal\"/" \
+      "$P/Default/Preferences" 2>/dev/null
 
+  echo "--- запуск chromium $(date) ---"
   chromium-browser \
-    --kiosk --incognito \
-    --password-store=basic \
-    --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
-    --disable-translate --disable-features=Translate \
-    --check-for-update-interval=31536000 \
+    --kiosk --incognito --password-store=basic --noerrdialogs --disable-infobars \
+    --disable-session-crashed-bubble --disable-translate \
+    --no-first-run --fast --fast-start \
     --disable-pinch --overscroll-history-navigation=0 \
-    $LEAN_FLAGS \
+    --check-for-update-interval=31536000 \
+    --disable-features=TranslateUI \
+    --window-position=0,0 \
+    $LEAN_FLAGS $EXTRA \
     "$URL"
-
-  sleep 5     # впав — піднімаємо
+  echo "chromium вийшов, код $? — рестарт через 5 c"
+  sleep 5
 done

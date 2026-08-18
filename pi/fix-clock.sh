@@ -11,7 +11,11 @@
 # Використання:  ./fix-clock.sh [pi@192.168.5.45]
 set -euo pipefail
 HOST="${1:-pi@192.168.5.45}"
-TZ_NAME="${TZ_NAME:-Europe/Kyiv}"
+# ⚠️ На Raspbian 9 tzdata знає лише Europe/Kiev — алias Europe/Kyiv зʼявився аж
+# у tzdata 2022b. Якщо передати Kyiv, `timedatectl` відмовиться, а `ln -sf`
+# мовчки зробить БИТИЙ симлінк, і малина поїде на UTC. Тому нижче — перевірка
+# наявності зони, а не сподівання.
+TZ_NAME="${TZ_NAME:-Europe/Kiev}"
 
 echo "== було на малині =="
 ssh "$HOST" 'date; echo "timedatectl:"; timedatectl 2>/dev/null | head -4 || true'
@@ -19,8 +23,15 @@ ssh "$HOST" 'date; echo "timedatectl:"; timedatectl 2>/dev/null | head -4 || tru
 NOW_UTC="$(date -u '+%Y-%m-%d %H:%M:%S')"
 echo "== ставимо UTC $NOW_UTC =="
 ssh -t "$HOST" "
-  sudo timedatectl set-timezone '$TZ_NAME' 2>/dev/null || \
-    sudo ln -sf /usr/share/zoneinfo/$TZ_NAME /etc/localtime
+  TZ='$TZ_NAME'
+  # старий tzdata: Kyiv → Kiev. Міняємо тільки якщо файлу зони справді немає.
+  [ -f \"/usr/share/zoneinfo/\$TZ\" ] || TZ=\"\${TZ/Kyiv/Kiev}\"
+  if [ -f \"/usr/share/zoneinfo/\$TZ\" ]; then
+    sudo timedatectl set-timezone \"\$TZ\" 2>/dev/null || \
+      sudo ln -sf \"/usr/share/zoneinfo/\$TZ\" /etc/localtime
+  else
+    echo \"!! зони '$TZ_NAME' немає в tzdata, лишаю як є\" >&2
+  fi
   sudo date -u -s '$NOW_UTC'
   # закріпити, щоб наступний холодний старт піднявся з правильним часом
   sudo fake-hwclock save 2>/dev/null || true

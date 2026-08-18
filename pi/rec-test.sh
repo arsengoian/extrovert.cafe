@@ -14,8 +14,15 @@ LOG="${LOG:-/home/pi/rec-test.csv}"
 mkdir -p "$BUF"
 echo "== пишу з $CAM у $BUF, $MIN хв, метрики → $LOG =="
 
+# -rtsp_transport існує лише для протоколу rtsp. Якщо підсунути його, скажімо,
+# tcp:// чи файлу, ffmpeg не попереджає, а падає з «Option rtsp_transport not
+# found» — і замір мовчки закінчується нулем сегментів. Тому прапорець
+# додається тільки тоді, коли джерело справді RTSP.
+TRANSPORT=""
+case "$CAM" in rtsp://*) TRANSPORT="-rtsp_transport tcp" ;; esac
+
 ffmpeg -nostdin -loglevel warning \
-  -rtsp_transport tcp -use_wallclock_as_timestamps 1 \
+  $TRANSPORT -use_wallclock_as_timestamps 1 \
   -i "$CAM" -c copy \
   -f segment -segment_time 60 -reset_timestamps 1 -segment_format mpegts \
   -strftime 1 "$BUF/%Y%m%dT%H%M%S.ts" &
