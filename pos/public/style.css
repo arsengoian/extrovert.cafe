@@ -30,6 +30,10 @@ body{font-family:'Extro400',-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
 .name{position:absolute;left:18px;bottom:40px;font-family:'Extro700';font-size:22px;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:252px}
 .vol{position:absolute;left:18px;bottom:12px;font-size:19px;color:#8B94A3}
+/* Позначка рівня стакана. Клієнт бере стакан ДО вибору напою, тож це
+   службова, але критична підказка: M/L — роздавачі, S — органайзер. */
+.cupTag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;font-size:14px;font-weight:700;line-height:1.5;color:#15181C;background:#AFEA3A;vertical-align:2px}
+.cupTag.org{background:#FE810B;color:#fff}
 .cup{position:absolute;left:50%;top:24px;margin-left:-52px;width:104px;height:120px}
 .body{position:absolute;left:0;top:8px;width:104px;height:104px;background:#F7F1E6;
       border-radius:4px 4px 26px 26px}
@@ -167,6 +171,47 @@ body.anim4 .badge{-webkit-animation:badgePulse 2.9s ease-in-out infinite;
 body.gpu .cup,body.gpu .steam,body.gpu .shine,body.gpu .badge{
   -webkit-backface-visibility:hidden;backface-visibility:hidden;
   will-change:transform,opacity}
+
+/* ── попап (?popup=1) ──────────────────────────────────────────────────
+   Окремий режим, не рівень анімацій. Сенс: стартова поява карток міряється
+   погано — вона відіграє швидше, ніж встигаєш зняти fps, і на Pi 1 тоне в
+   двох хвилинах осідання сторінки. Попап натомість можна ввімкнути будь-коли
+   й ПОДИВИТИСЬ на нього очима.
+
+   Рухаються тільки transform і opacity, і рівно ОДИН елемент, а не дванадцять
+   — саме в кількості одночасно анімованих вузлів і був обрив на anim=2.
+   Анімація скінченна: показали, сховали, шар звільнився. */
+#popup{position:absolute;left:50%;top:50%;z-index:20;width:760px;margin:-150px 0 0 -380px;
+  padding:44px 52px;border-radius:28px;
+  background:rgba(18,16,15,.94);border:1px solid rgba(255,255,255,.18);
+  color:#F2EFE6;text-align:center;
+  opacity:0;visibility:hidden;
+  -webkit-transform:translateY(24px) scale(.94);transform:translateY(24px) scale(.94)}
+#popup .pTitle{font-family:'Extro600',sans-serif;font-size:54px;line-height:64px}
+#popup .pText{font-family:'Extro400',sans-serif;font-size:30px;line-height:42px;
+  margin-top:14px;color:rgba(242,239,230,.72)}
+
+/* Показ і приховування — дві скінченні анімації, а не нескінченний цикл.
+   `both` тримає кінцевий кадр, тож після появи нічого не перемальовується. */
+@-webkit-keyframes popIn{from{opacity:0;-webkit-transform:translateY(24px) scale(.94)}
+                         to{opacity:1;-webkit-transform:translateY(0) scale(1)}}
+@keyframes popIn{from{opacity:0;transform:translateY(24px) scale(.94)}
+                 to{opacity:1;transform:translateY(0) scale(1)}}
+@-webkit-keyframes popOut{from{opacity:1;-webkit-transform:translateY(0) scale(1)}
+                          to{opacity:0;-webkit-transform:translateY(18px) scale(.96)}}
+@keyframes popOut{from{opacity:1;transform:translateY(0) scale(1)}
+                  to{opacity:0;transform:translateY(18px) scale(.96)}}
+/* Кінцевий стан заданий ЯВНО, а не через animation-fill-mode:both.
+   На Chromium 65 анімація застосовувалась (animationName=popIn), але лишалась
+   на початковому кадрі — попап був у DOM, «видимий», і з opacity 0. Тобто
+   покладатися тут на fill-mode не можна; анімація лише малює перехід, а
+   кінцевий вигляд тримають звичайні правила. */
+#popup.show{visibility:visible;opacity:1;
+  -webkit-transform:translateY(0) scale(1);transform:translateY(0) scale(1);
+  -webkit-animation:popIn .34s ease-out;animation:popIn .34s ease-out}
+#popup.hide{visibility:visible;opacity:0;
+  -webkit-transform:translateY(18px) scale(.96);transform:translateY(18px) scale(.96);
+  -webkit-animation:popOut .28s ease-in;animation:popOut .28s ease-in}
 
 /* ── лічильник кадрів (?hud=1) ── */
 #hud{position:absolute;right:22px;top:22px;display:none;padding:12px 16px;border-radius:12px;
