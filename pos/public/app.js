@@ -16,8 +16,14 @@
   /* Режими для замірів на слабкому залізі. Усе через URL, щоб на точці
      нічого не перезбирати: ?anim=0..4 · ?hud=1 · ?gpu=1
        anim 0 нічого · 1 поява · 2 +дихання · 3 +пара · 4 +блиск і пульс
-     DEFAULT_ANIM — те, що поїде в прод. Піднімати тільки після заміру на Pi. */
-  var DEFAULT_ANIM = 2;
+     DEFAULT_ANIM — те, що поїде в прод. Піднімати тільки після заміру на Pi.
+
+     Замір 17.08.2026 на живому Pi 1 (див. docs/roadmap.md, крок 1): рівень 2 —
+     це обрив, а не наступна сходинка. anim=1 дає 52 fps, anim=2 — 0,5 fps і
+     100 % CPU назавжди, бо `cupFloat` крутиться вічно на 12 чашках, а
+     композитити нічим: Raspbian на ARMv6 примусово додає
+     --disable-gpu-compositing. transform/opacity тут НЕ безкоштовні. */
+  var DEFAULT_ANIM = 1;
   function qs(name, dflt) {
     var m = String(location.search).match(new RegExp("[?&]" + name + "=([^&]*)"));
     return m ? m[1] : dflt;
@@ -27,6 +33,10 @@
   if (ANIM > 4) ANIM = 4;
   var HUD = qs("hud", "0") === "1";
   var GPU = qs("gpu", "0") === "1";
+  /* ?popup=1 — окремий режим для ока, не рівень анімацій. Стартову появу
+     карток надійно не зміряєш: вона коротша за час, який Pi 1 витрачає на
+     осідання сторінки. Попап можна викликати будь-коли й подивитись. */
+  var POPUP = qs("popup", "0") === "1";
 
   /* Класи режимів тримаємо окремо від теми: render() перезаписує className
      цілком, і без цього анімації злітали б на кожному оновленні цін. */
@@ -121,7 +131,19 @@
       }
       c.appendChild(cup);
       c.appendChild(el("div", "name", esc(it.name)));
-      c.appendChild(el("div", "vol", esc(it.vol || "")));
+      /* Стакан треба взяти ДО натискання напою, а їх у стійці три різні:
+         два роздавачі + еспресо в органайзері. Тому підпис рівня стоїть
+         на картці, поруч з об'ємом, а не тільки в наших нотатках. */
+      var meta = el("div", "vol", esc(it.vol || ""));
+      var tier = (d.cups || {})[it.cup];
+      if (tier) {
+        var tag = el("span", "cupTag", esc(tier.short || it.cup));
+        tag.title = tier.label || "";
+        if (tier.where === "organizer") tag.className += " org";
+        meta.appendChild(document.createTextNode(" "));
+        meta.appendChild(tag);
+      }
+      c.appendChild(meta);
       g.appendChild(c);
     }
 
@@ -208,10 +230,42 @@
     raf(loop);
   }
 
+  /* ---------- попап ----------
+     Показати: popupShow("Заголовок", "текст"). Сховати: popupHide().
+     Обидві анімації скінченні — після них елемент не перемальовується.
+     `visibility:hidden` наприкінці прибирає шар зовсім, інакше він лишався б
+     у композиторі й коштував памʼяті, якої на Pi 1 і так обмаль. */
+  var popTimer = null;
+  function popupShow(title, text, ms) {
+    var el = document.getElementById("popup");
+    if (!el) return;
+    el.getElementsByClassName("pTitle")[0].innerHTML = esc(title || "");
+    el.getElementsByClassName("pText")[0].innerHTML = esc(text || "");
+    el.className = "show";
+    if (popTimer) { clearTimeout(popTimer); popTimer = null; }
+    if (ms !== 0) popTimer = setTimeout(popupHide, ms || 3200);
+  }
+  function popupHide() {
+    var el = document.getElementById("popup");
+    if (!el || el.className.indexOf("show") < 0) return;
+    el.className = "hide";
+    setTimeout(function () { if (el.className === "hide") el.className = ""; }, 300);
+  }
+  /* Назовні — щоб можна було смикати з консолі й з майбутнього коду замовлення */
+  window.popupShow = popupShow;
+  window.popupHide = popupHide;
+
   window.onresize = fit;
   paintBody();
   fit();
   if (HUD) startHud();
+  /* Демо-цикл: у режимі ?popup=1 сам показує й ховає, щоб було що дивитись */
+  if (POPUP) {
+    setTimeout(function tick() {
+      popupShow("Готуємо", "Постав стакан під кран");
+      setTimeout(function () { setTimeout(tick, 2600); }, 3200);
+    }, 1200);
+  }
   tick();
   setInterval(tick, refreshSec * 1000);
   setTimeout(function () { location.reload(true); }, reloadSec * 1000);
