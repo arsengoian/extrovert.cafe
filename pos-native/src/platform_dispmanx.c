@@ -13,6 +13,7 @@
 #include <GLES2/gl2.h>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <cairo/cairo.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -96,9 +97,56 @@ void platform_swap(platform_t *p) {
     eglSwapBuffers(p->display, p->surface);   /* тут і є vsync — головна відмінність від desktop */
 }
 
+/* Знімок того, що РЕАЛЬНО на HDMI (dispmanx snapshot API, а не /dev/fb0 —
+ * останній не бачить GL-шарів). Не для проду, лише для налагодження, коли
+ * "дивимось на реальний екран" неможливо (пристрій не перед очима) —
+ * та сама причина, з якої на десктопі є DEBUG_CAIRO_PNG. */
 bool platform_dump_png(platform_t *p, const char *path) {
-    (void)p; (void)path;
-    return false;   /* на малині не потрібно — дивимось на реальний екран */
+    uint32_t w = 0, h = 0;
+    if (graphics_get_display_size(0, &w, &h) < 0) {
+        fprintf(stderr, "dump: graphics_get_display_size провалився\n"); return false;
+    }
+
+    uint32_t vc_image_ptr;
+    DISPMANX_RESOURCE_HANDLE_T res =
+        vc_dispmanx_resource_create(VC_IMAGE_RGBA32, w, h, &vc_image_ptr);
+    if (!res) { fprintf(stderr, "dump: resource_create провалився\n"); return false; }
+
+    /* Той самий display-хендл, що вже відкритий у platform_init — окремий
+     * vc_dispmanx_display_open(0) тут іноді повертає 0 (уже зайнято цим-таки
+     * процесом), тож перевикористовуємо p->dispman_display замість другого open. */
+    DISPMANX_DISPLAY_HANDLE_T disp = p->dispman_display;
+    int snap_rc = vc_dispmanx_snapshot(disp, res, 0);
+    bool ok = (snap_rc == 0);
+    if (!ok) fprintf(stderr, "dump: vc_dispmanx_snapshot=%d (display=%u)\n", snap_rc, disp);
+
+    if (ok) {
+        VC_RECT_T rect = { 0, 0, (int)w, (int)h };
+        unsigned char *buf = malloc((size_t)w * h * 4);
+        int read_rc = buf ? vc_dispmanx_resource_read_data(res, &rect, buf, w * 4) : -1;
+        ok = (read_rc == 0);
+        if (!ok) fprintf(stderr, "dump: resource_read_data=%d (buf=%p)\n", read_rc, (void*)buf);
+        if (ok) {
+            /* VC_IMAGE_RGBA32 лежить у пам'яті як R,G,B,A; CAIRO_FORMAT_ARGB32
+             * на little-endian очікує B,G,R,A (як текстури з Cairo в gl.c,
+             * тільки в інший бік) — без цього свопу помаранчевий/рожевий
+             * бренду виходить синім. */
+            for (size_t i = 0; i < (size_t)w * h; i++) {
+                unsigned char t = buf[i * 4 + 0];
+                buf[i * 4 + 0] = buf[i * 4 + 2];
+                buf[i * 4 + 2] = t;
+            }
+            cairo_surface_t *surf = cairo_image_surface_create_for_data(
+                buf, CAIRO_FORMAT_ARGB32, (int)w, (int)h, (int)(w * 4));
+            cairo_status_t st = cairo_surface_write_to_png(surf, path);
+            ok = (st == CAIRO_STATUS_SUCCESS);
+            if (!ok) fprintf(stderr, "dump: write_to_png=%s\n", cairo_status_to_string(st));
+            cairo_surface_destroy(surf);
+        }
+        free(buf);
+    }
+    vc_dispmanx_resource_delete(res);
+    return ok;
 }
 
 void platform_destroy(platform_t *p) {
