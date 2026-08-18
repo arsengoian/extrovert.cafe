@@ -78,8 +78,11 @@ int main(int argc, char **argv) {
     signal(SIGINT, on_sigterm);
     signal(SIGUSR1, on_sigusr1);
 
+    fprintf(stderr, "main: старт, url=%s\n", url); fflush(stderr);
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    fprintf(stderr, "main: curl_global_init ok, вантажу шрифти...\n"); fflush(stderr);
     load_fonts(assets_dir);
+    fprintf(stderr, "main: шрифти ok, platform_init...\n"); fflush(stderr);
 
     platform_t *plat = platform_init(STAGE_W, STAGE_H);
     if (!plat) { fprintf(stderr, "main: platform_init провалився\n"); return 1; }

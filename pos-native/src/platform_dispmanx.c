@@ -27,7 +27,9 @@ struct platform {
 
 platform_t *platform_init(int width, int height) {
     platform_t *p = calloc(1, sizeof(*p));
+    fprintf(stderr, "dispmanx: bcm_host_init...\n"); fflush(stderr);
     bcm_host_init();
+    fprintf(stderr, "dispmanx: bcm_host_init ok\n"); fflush(stderr);
 
     static const EGLint attr[] = {
         EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8,
@@ -37,16 +39,21 @@ platform_t *platform_init(int width, int height) {
     static const EGLint ctx_attr[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
     EGLConfig config; EGLint num_config;
 
+    fprintf(stderr, "dispmanx: eglGetDisplay...\n"); fflush(stderr);
     p->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (p->display == EGL_NO_DISPLAY) { fprintf(stderr, "dispmanx: eglGetDisplay\n"); goto fail; }
+    fprintf(stderr, "dispmanx: eglInitialize...\n"); fflush(stderr);
     if (!eglInitialize(p->display, NULL, NULL)) { fprintf(stderr, "dispmanx: eglInitialize\n"); goto fail; }
+    fprintf(stderr, "dispmanx: eglChooseConfig...\n"); fflush(stderr);
     if (!eglChooseConfig(p->display, attr, &config, 1, &num_config)) {
         fprintf(stderr, "dispmanx: eglChooseConfig\n"); goto fail;
     }
     if (!eglBindAPI(EGL_OPENGL_ES_API)) { fprintf(stderr, "dispmanx: eglBindAPI\n"); goto fail; }
+    fprintf(stderr, "dispmanx: eglCreateContext...\n"); fflush(stderr);
     p->context = eglCreateContext(p->display, config, EGL_NO_CONTEXT, ctx_attr);
     if (p->context == EGL_NO_CONTEXT) { fprintf(stderr, "dispmanx: eglCreateContext\n"); goto fail; }
 
+    fprintf(stderr, "dispmanx: graphics_get_display_size...\n"); fflush(stderr);
     if (graphics_get_display_size(0, &p->screen_w, &p->screen_h) < 0) {
         fprintf(stderr, "dispmanx: graphics_get_display_size\n"); goto fail;
     }

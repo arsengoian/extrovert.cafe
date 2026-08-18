@@ -1,6 +1,6 @@
 #include "menu.h"
 #include <curl/curl.h>
-#include <cjson/cJSON.h>
+#include <cJSON.h>       /* вендорено в third_party/cjson/ — див. Makefile */
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
