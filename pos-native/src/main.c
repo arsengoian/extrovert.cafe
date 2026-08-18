@@ -25,9 +25,11 @@
 
 static volatile sig_atomic_t g_running = 1;
 static volatile sig_atomic_t g_popup_toggle = 0;
+static volatile sig_atomic_t g_dump_requested = 0;
 
 static void on_sigterm(int sig) { (void)sig; g_running = 0; }
 static void on_sigusr1(int sig) { (void)sig; g_popup_toggle = 1; }  /* демо-тригер попапу */
+static void on_sigusr2(int sig) { (void)sig; g_dump_requested = 1; }  /* знімок живого кадру на вимогу */
 
 static double now_s(void) {
     struct timespec ts;
@@ -72,11 +74,16 @@ int main(int argc, char **argv) {
     const char *sock_path = getenv("TELEMETRY_SOCK");
     if (!sock_path) sock_path = "/tmp/pos-native.sock";
     int desktop_frames = getenv("DESKTOP_FRAMES") ? atoi(getenv("DESKTOP_FRAMES")) : 0;
+    /* POPUP=1 — те саме, що ?popup=1 в app.js: попап сам зʼявляється й
+     * ховається по колу, щоб було на що дивитись без ручного тригера
+     * (SIGUSR1 лишається для разового ручного показу). */
+    bool popup_demo = getenv("POPUP") && strcmp(getenv("POPUP"), "1") == 0;
     (void)argc; (void)argv;
 
     signal(SIGTERM, on_sigterm);
     signal(SIGINT, on_sigterm);
     signal(SIGUSR1, on_sigusr1);
+    signal(SIGUSR2, on_sigusr2);
 
     fprintf(stderr, "main: старт, url=%s\n", url); fflush(stderr);
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -126,6 +133,13 @@ int main(int argc, char **argv) {
     double sim_t = 0;
     long frame_no = 0;
 
+    /* Той самий цикл, що в app.js: показати через 1.2с, тримати 3.2с,
+     * сховати, почекати 2.6с, повторити. Використовує той самий
+     * g_popup_toggle, що й SIGUSR1 — просто дзвонить сам собі за часом
+     * замість чекати сигнал ззовні. */
+    double demo_next_t = 1.2;
+    int demo_phase = 0;   /* 0 = наступний тригер показує, 1 = ховає */
+
     while (g_running) {
         double t_now = now_s();
         sim_t = t_now - t_start;
@@ -149,6 +163,12 @@ int main(int argc, char **argv) {
                 cup_count = menu.drink_count;
                 fprintf(stderr, "main: меню оновлено, %d напоїв\n", cup_count);
             }
+        }
+
+        if (popup_demo && sim_t >= demo_next_t) {
+            g_popup_toggle = 1;
+            if (demo_phase == 0) { demo_next_t = sim_t + 3.2; demo_phase = 1; }
+            else                 { demo_next_t = sim_t + 2.6; demo_phase = 0; }
         }
 
         if (g_popup_toggle) {
@@ -199,6 +219,14 @@ int main(int argc, char **argv) {
         telemetry_frame(&tel);
         telemetry_poll(&tel);
         frame_no++;
+
+        if (g_dump_requested) {
+            g_dump_requested = 0;
+            const char *dump_path = getenv("DUMP_PNG");
+            if (!dump_path) dump_path = "/tmp/pos-native-frame.png";
+            bool ok = platform_dump_png(plat, dump_path);
+            fprintf(stderr, "main: SIGUSR2 -> знімок %s: %s\n", dump_path, ok ? "ok" : "провалився");
+        }
 
         if (desktop_frames > 0 && frame_no == desktop_frames / 2) {
             /* середина прогону — демо попапу без керування ззовні */

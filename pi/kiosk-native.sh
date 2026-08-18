@@ -15,6 +15,9 @@ POINT="${POINT:-kyiv-01}"
 export URL="${URL:-https://pos.extrovert.cafe/api/v1/points/$POINT/menu}"
 export ASSETS="${ASSETS:-/home/pi/pos-native/assets}"
 export TELEMETRY_SOCK="${TELEMETRY_SOCK:-/tmp/pos-native.sock}"
+# Демо-попап («Готуємо / Постав стакан під кран») за колом — увімкнено за
+# замовчанням, як і попап-режим був в HTML-версії. POPUP=0 у kiosk.env — вимкнути.
+export POPUP="${POPUP:-1}"
 BIN="${BIN:-/home/pi/pos-native/bin/pos-native-pi}"
 LOG=/home/pi/kiosk-native.log
 
