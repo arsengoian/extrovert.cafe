@@ -1,97 +1,147 @@
 {
-  "updated": "2026-08-09T14:37:01Z",
+  "updated": "2026-08-17T00:00:00Z",
   "theme": "dark",
   "refreshSec": 60,
   "reloadSec": 3600,
   "brand": {
     "name": "EXTROVERT",
     "suffix": ".CAFE",
-    "tagline": "більше, ніж кава"
+    "tagline": "не тільки кава"
+  },
+  "cups": {
+    "S": {
+      "label": "Еспресо",
+      "short": "S",
+      "where": "organizer",
+      "rim": 54,
+      "base": 45,
+      "height": 60,
+      "ml": 110,
+      "note": "Органайзер, без кришки. Мін. запас до вінця — 7 мм при 100 мл (Еспресо з молоком тому в M)."
+    },
+    "M": {
+      "label": "Стандартний",
+      "short": "M",
+      "where": "dispenser",
+      "rim": 90,
+      "base": 58,
+      "height": 113,
+      "ml": 400,
+      "note": "Роздавач, з кришкою. Брим-обʼєм ≈494 мл — запас 38–90 мм навіть при 280 мл."
+    }
   },
   "drinks": [
     {
+      "name": "Еспресо",
+      "vol": "30 мл",
+      "price": 30,
+      "color": "#402212",
+      "foam": false,
+      "cup": "S"
+    },
+    {
+      "name": "Лунго",
+      "vol": "60 мл",
+      "price": 32,
+      "color": "#4a2815",
+      "foam": false,
+      "cup": "S"
+    },
+    {
+      "name": "Подвійний еспресо",
+      "vol": "80 мл",
+      "price": 45,
+      "color": "#2c1608",
+      "foam": false,
+      "cup": "S"
+    },
+    {
       "name": "Американо",
-      "vol": "250 мл",
+      "vol": "150 мл",
       "price": 40,
       "color": "#60361c",
-      "foam": false
-    },
-    {
-      "name": "Капучино",
-      "vol": "250 мл",
-      "price": 50,
-      "color": "#9e7044",
-      "foam": true
-    },
-    {
-      "name": "Американо з молоком",
-      "vol": "250 мл",
-      "price": 45,
-      "color": "#7e522e",
-      "foam": true
-    },
-    {
-      "name": "Лате",
-      "vol": "300 мл",
-      "price": 50,
-      "color": "#b08458",
-      "foam": true
-    },
-    {
-      "name": "Флет вайт",
-      "vol": "250 мл",
-      "price": 50,
-      "color": "#96683e",
-      "foam": true
-    },
-    {
-      "name": "Еспресо",
-      "vol": "60 мл",
-      "price": 35,
-      "color": "#402212",
-      "foam": false
+      "foam": false,
+      "cup": "M"
     },
     {
       "name": "Еспресо з молоком",
-      "vol": "80 мл",
+      "vol": "100 мл",
       "price": 40,
       "color": "#784e2c",
-      "foam": true
+      "foam": true,
+      "cup": "M"
+    },
+    {
+      "name": "Американо з молоком",
+      "vol": "150 мл",
+      "price": 45,
+      "color": "#7e522e",
+      "foam": true,
+      "cup": "M"
+    },
+    {
+      "name": "Капучино",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#9e7044",
+      "foam": true,
+      "cup": "M"
     },
     {
       "name": "Мокачино",
-      "vol": "300 мл",
+      "vol": "280 мл",
       "price": 55,
       "color": "#70462c",
-      "foam": true
+      "foam": true,
+      "cup": "M"
+    },
+    {
+      "name": "Лате",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#b08458",
+      "foam": true,
+      "cup": "M"
+    },
+    {
+      "name": "Флет-вайт",
+      "vol": "220 мл",
+      "price": 50,
+      "color": "#96683e",
+      "foam": true,
+      "cup": "M"
+    },
+    {
+      "name": "Какао",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#5a3826",
+      "foam": true,
+      "cup": "M"
     },
     {
       "name": "Гарячий шоколад",
-      "vol": "300 мл",
+      "vol": "260 мл",
       "price": 50,
       "color": "#563422",
-      "foam": true
+      "foam": true,
+      "cup": "M"
     },
     {
-      "name": "Айріш-кава",
-      "vol": "250 мл",
+      "name": "Ірландський віскі",
+      "vol": "280 мл",
       "price": 55,
       "color": "#8c6038",
-      "foam": true
-    },
-    {
-      "name": "Чай лимонний",
-      "vol": "300 мл",
-      "price": 30,
-      "color": "#ce9e4a",
-      "foam": false
+      "foam": true,
+      "cup": "M"
     },
     {
       "name": "Американо з бонусами",
-      "vol": "250 мл",
+      "vol": "150 мл",
       "price": 80,
       "color": "#c0392b",
-      "foam": false
+      "foam": false,
+      "cup": "M"
     }
   ],
   "steps": [
