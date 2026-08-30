@@ -47,7 +47,8 @@
       "price": 30,
       "color": "#402212",
       "foam": false,
-      "cup": "S"
+      "cup": "S",
+      "sprite": "espresso"
     },
     {
       "name": "Лунго",
@@ -55,7 +56,8 @@
       "price": 32,
       "color": "#4a2815",
       "foam": false,
-      "cup": "S"
+      "cup": "S",
+      "sprite": "lungo"
     },
     {
       "name": "Подвійний еспресо",
@@ -63,7 +65,8 @@
       "price": 45,
       "color": "#2c1608",
       "foam": false,
-      "cup": "S"
+      "cup": "S",
+      "sprite": "double_espresso"
     },
     {
       "name": "Американо",
@@ -71,79 +74,8 @@
       "price": 40,
       "color": "#60361c",
       "foam": false,
-      "cup": "M"
-    },
-    {
-      "name": "Еспресо з молоком",
-      "vol": "100 мл",
-      "price": 40,
-      "color": "#784e2c",
-      "foam": true,
-      "cup": "M"
-    },
-    {
-      "name": "Американо з молоком",
-      "vol": "150 мл",
-      "price": 45,
-      "color": "#7e522e",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Капучино",
-      "vol": "260 мл",
-      "price": 50,
-      "color": "#9e7044",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Мокачино",
-      "vol": "280 мл",
-      "price": 55,
-      "color": "#70462c",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Лате",
-      "vol": "260 мл",
-      "price": 50,
-      "color": "#b08458",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Флет-вайт",
-      "vol": "220 мл",
-      "price": 50,
-      "color": "#96683e",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Какао",
-      "vol": "260 мл",
-      "price": 50,
-      "color": "#5a3826",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Гарячий шоколад",
-      "vol": "260 мл",
-      "price": 50,
-      "color": "#563422",
-      "foam": true,
-      "cup": "L"
-    },
-    {
-      "name": "Ірландський віскі",
-      "vol": "280 мл",
-      "price": 55,
-      "color": "#8c6038",
-      "foam": true,
-      "cup": "L"
+      "cup": "M",
+      "sprite": "americano"
     },
     {
       "name": "Американо з бонусами",
@@ -151,25 +83,108 @@
       "price": 80,
       "color": "#c0392b",
       "foam": false,
-      "cup": "M"
+      "cup": "M",
+      "sprite": "americano",
+      "bonus_coins": 80
+    },
+    {
+      "name": "Еспресо з молоком",
+      "vol": "100 мл",
+      "price": 40,
+      "color": "#784e2c",
+      "foam": true,
+      "cup": "M",
+      "sprite": "espresso_milk"
+    },
+    {
+      "name": "Американо з молоком",
+      "vol": "150 мл",
+      "price": 45,
+      "color": "#7e522e",
+      "foam": true,
+      "cup": "L",
+      "sprite": "americano_milk"
+    },
+    {
+      "name": "Капучино",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#9e7044",
+      "foam": true,
+      "cup": "L",
+      "sprite": "cappuccino"
+    },
+    {
+      "name": "Капучино з бонусами",
+      "vol": "260 мл",
+      "price": 100,
+      "color": "#9e7044",
+      "foam": true,
+      "cup": "L",
+      "sprite": "cappuccino",
+      "bonus_coins": 100
+    },
+    {
+      "name": "Мокачино",
+      "vol": "280 мл",
+      "price": 55,
+      "color": "#70462c",
+      "foam": true,
+      "cup": "L",
+      "sprite": "mocha"
+    },
+    {
+      "name": "Лате",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#b08458",
+      "foam": true,
+      "cup": "L",
+      "sprite": "latte"
+    },
+    {
+      "name": "Флет-вайт",
+      "vol": "220 мл",
+      "price": 50,
+      "color": "#96683e",
+      "foam": true,
+      "cup": "L",
+      "sprite": "flatwhite"
+    },
+    {
+      "name": "Какао",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#5a3826",
+      "foam": true,
+      "cup": "L",
+      "sprite": "cocoa"
+    },
+    {
+      "name": "Гарячий шоколад",
+      "vol": "260 мл",
+      "price": 50,
+      "color": "#563422",
+      "foam": true,
+      "cup": "L",
+      "sprite": "hotchoc"
+    },
+    {
+      "name": "Ірландський віскі",
+      "vol": "280 мл",
+      "price": 55,
+      "color": "#8c6038",
+      "foam": true,
+      "cup": "L",
+      "sprite": "irish"
     }
   ],
-  "steps": [
-    "Постав стакан",
-    "Обери напій",
-    "Приклади картку"
-  ],
-  "payments": [
-    "VISA",
-    "Mastercard",
-    "Apple Pay",
-    "Google Pay"
-  ],
-  "cashNote": "Готівка — монетоприймач",
-  "qr": {
-    "url": "https://extrovert.cafe",
-    "line1": "Вирости",
-    "line2": "кавенятко",
-    "line3": "extrovert.cafe"
+  "ad": {
+    "promo_label": "АКЦІЯ",
+    "head1": "Завтра шалений ранок у",
+    "head2": "extrovert.cafe",
+    "sub": "еспресо на 20% дешевший",
+    "fine": "діє до 12:00 в п'ятницю",
+    "sprite": "espresso"
   }
 }
