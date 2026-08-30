@@ -21,7 +21,7 @@ SRC_COMMON = src/main.c src/menu.c src/render.c src/gl.c src/telemetry.c \
              src/svgtpl.c src/qr.c src/bonus.c \
              third_party/cjson/cJSON.c third_party/qrcodegen/qrcodegen.c
 CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
-                -Ithird_party/cjson -Ithird_party/qrcodegen
+                -Ithird_party/cjson -Ithird_party/qrcodegen -pthread
 
 # glesv2/egl тут ідуть окремо від решти пакетів: на десктопі це системний
 # Mesa (потрібен для surfaceless-тесту), а на Pi — навпаки, GL/EGL мають бути

@@ -24,6 +24,7 @@
 #include <signal.h>
 #include <math.h>
 #include <unistd.h>
+#include <pthread.h>
 
 static volatile sig_atomic_t g_running = 1;
 static volatile sig_atomic_t g_popup_toggle = 0;
@@ -75,6 +76,49 @@ static double ease_out(double x) { return 1.0 - (1.0 - x) * (1.0 - x); }
 static double ease_in(double x)  { return x * x; }
 
 typedef enum { POPUP_HIDDEN, POPUP_IN, POPUP_SHOWN, POPUP_OUT } popup_state_t;
+
+/* Опитування меню — на окремому потоці, а не в кадровому циклі.
+ * Вимір телеметрією 30.08.2026 на реальному Pi: menu_poll() усередині
+ * while(g_running) дав кадр 13,5 СЕКУНДИ (CURLOPT_TIMEOUT=15 у menu.c) —
+ * curl_easy_perform() блокує, а більше нічого в циклі не малюється, поки
+ * він не поверне контроль. Екран кіоска на цей час просто завмирає.
+ * menu_t — POD (жодних вказівників, самі char[]/int/bool, menu.h), тому
+ * безпечно копіюється між потоками під мʼютексом без глибокого клону. */
+typedef struct {
+    pthread_mutex_t mu;
+    menu_t last;         /* остання бачена потоком менюшка — і джерело хеша
+                           * для дедуп-виходу в menu_poll (out->hash) */
+    menu_t pending;      /* нова менюшка, чекає, поки головний потік забере
+                           * її й перерендерить (тільки тут чіпаємо GL/Cairo) */
+    bool has_pending;
+    const char *url;
+    volatile sig_atomic_t stop;
+} menu_poller_t;
+
+static void *menu_poll_thread(void *arg) {
+    menu_poller_t *mp = (menu_poller_t *)arg;
+    for (;;) {
+        pthread_mutex_lock(&mp->mu);
+        menu_t attempt = mp->last;
+        pthread_mutex_unlock(&mp->mu);
+
+        /* Чекаємо refreshSec, перевіряючи stop кожні 100мс, а не суцільним
+         * sleep(refresh_s) — інакше зупинка (SIGTERM) чекала б до хвилини. */
+        int refresh_s = attempt.refresh_sec > 0 ? attempt.refresh_sec : 60;
+        for (int waited = 0; waited < refresh_s * 10 && !mp->stop; waited++)
+            usleep(100000);
+        if (mp->stop) break;
+
+        if (menu_poll(mp->url, &attempt)) {
+            pthread_mutex_lock(&mp->mu);
+            mp->last = attempt;
+            mp->pending = attempt;
+            mp->has_pending = true;
+            pthread_mutex_unlock(&mp->mu);
+        }
+    }
+    return NULL;
+}
 
 int main(int argc, char **argv) {
     const char *url = getenv("URL");
@@ -135,8 +179,17 @@ int main(int argc, char **argv) {
         fprintf(stderr, "main: не вдалось завантажити меню з %s, стартую з порожнім екраном\n", url);
     }
 
+    /* Далі опитування йде фоновим потоком (menu_poll_thread вище) — цей
+     * перший виклик лишається синхронним навмисно, той самий сенс, що й
+     * у коментарі над ним: перший кадр має вже мати вміст. */
+    menu_poller_t poller = {0};
+    pthread_mutex_init(&poller.mu, NULL);
+    poller.last = menu;
+    poller.url = url;
+    pthread_t poll_thread;
+    pthread_create(&poll_thread, NULL, menu_poll_thread, &poller);
+
     double t_start = now_s();
-    double last_poll = t_start;
     double sim_t = 0;
     long frame_no = 0;
 
@@ -157,23 +210,30 @@ int main(int argc, char **argv) {
         double t_now = now_s();
         sim_t = t_now - t_start;
 
-        /* опитування меню — та сама частота, що refreshSec у відповіді сервера */
-        if (t_now - last_poll >= (menu.refresh_sec > 0 ? menu.refresh_sec : 60)) {
-            last_poll = t_now;
-            menu_t next = menu;
-            if (menu_poll(url, &next)) {
-                menu = next;
-                cairo_surface_t *m = render_menu(&menu, assets_dir);
-                if (m) {
-                    gl_texture_destroy(&menu_tex);
-                    menu_tex = gl_texture_from_cairo(m);
-                    cairo_surface_destroy(m);
-                }
-                cairo_surface_t *a = render_ad(&menu, assets_dir);
-                gl_texture_destroy(&ad_tex);
-                if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
-                fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
+        /* Забираємо готову менюшку від фонового потоку, якщо вона зʼявилась
+         * (menu_poll_thread вище) — сам мережевий виклик тут уже не робимо,
+         * лишається тільки Cairo/GL-перерендер, який мілісекунди, не секунди. */
+        bool got_new_menu = false;
+        menu_t new_menu;
+        pthread_mutex_lock(&poller.mu);
+        if (poller.has_pending) {
+            new_menu = poller.pending;
+            poller.has_pending = false;
+            got_new_menu = true;
+        }
+        pthread_mutex_unlock(&poller.mu);
+        if (got_new_menu) {
+            menu = new_menu;
+            cairo_surface_t *m = render_menu(&menu, assets_dir);
+            if (m) {
+                gl_texture_destroy(&menu_tex);
+                menu_tex = gl_texture_from_cairo(m);
+                cairo_surface_destroy(m);
             }
+            cairo_surface_t *a = render_ad(&menu, assets_dir);
+            gl_texture_destroy(&ad_tex);
+            if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
+            fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
         }
 
         if (popup_demo && sim_t >= demo_next_t) {
@@ -274,6 +334,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "main: кадр збережено в /tmp/pos-native-frame.png (%ld кадрів, %.1f fps сер.)\n",
                 frame_no, frame_no / (now_s() - t_start));
     }
+
+    /* stop під мʼютексом не обовʼязковий (sig_atomic_t), але pthread_join
+     * тут може чекати до CURLOPT_TIMEOUT (15с, menu.c) — потік перевіряє
+     * stop лише між сплячками по 100мс, не посеред curl_easy_perform(). */
+    poller.stop = 1;
+    pthread_join(poll_thread, NULL);
+    pthread_mutex_destroy(&poller.mu);
 
     telemetry_close(&tel);
     gl_texture_destroy(&menu_tex);
