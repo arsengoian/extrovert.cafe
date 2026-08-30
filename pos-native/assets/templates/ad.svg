@@ -1,0 +1,38 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="470" height="390" viewBox="0 0 470 390" fill="#F2EFE6">
+  <defs>
+    <linearGradient id="pill" x1="0" y1="0.5" x2="1" y2="0.42"><stop offset="0" stop-color="#FE810B"></stop><stop offset="1" stop-color="#FF2D6F"></stop></linearGradient>
+    <linearGradient id="ring" x1="0" y1="0.5" x2="1" y2="0.42"><stop offset="0.08" stop-color="#FE810B"></stop><stop offset="0.88" stop-color="#FF2D6F"></stop></linearGradient>
+    <linearGradient id="adTint" x1="0" y1="0" x2="0.72" y2="1"><stop offset="0" stop-color="#FE810B" stop-opacity="0.20"></stop><stop offset="1" stop-color="#FF2D6F" stop-opacity="0.16"></stop></linearGradient>
+    <radialGradient id="adGlow" gradientUnits="userSpaceOnUse" cx="425" cy="35" r="150"><stop offset="0" stop-color="#FE810B" stop-opacity="0.34"></stop><stop offset="0.7" stop-color="#FE810B" stop-opacity="0"></stop></radialGradient>
+    <clipPath id="clipAd" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="470" height="390" rx="22" ry="22"></rect></clipPath>
+  </defs>
+
+  <g clip-path="url(#clipAd)">
+    <rect x="0" y="0" width="470" height="390" fill="#171A1F"></rect>
+    <rect x="0" y="0" width="470" height="390" fill="url(#adTint)"></rect>
+    <rect x="275" y="-115" width="300" height="300" fill="url(#adGlow)"></rect>
+    <rect x="26" y="26" width="78" height="28" rx="14" ry="14" fill="url(#pill)"></rect>
+    <!-- y тут — вже базова лінія, не центр: dominant-baseline="central" з
+         оригіналу librsvg не рендерить (стара дірка, поводиться як
+         alphabetic завжди), тож y зсунуто на (ascent-descent)/2 з реальних
+         Pango-метрик шрифту (виміряно 29.08.2026), а не залишено як є. -->
+    <text x="65" y="45.8" text-anchor="middle" font-family="Extro700" font-size="14" letter-spacing="1.4" fill="#FFFFFF">{{PROMO_LABEL}}</text>
+    <text x="26" y="94.2" font-family="Extro1000" font-size="31">{{HEAD1}}</text>
+    <text x="26" y="129.5" font-family="Extro1000" font-size="31">{{HEAD2}}</text>
+    <text x="26" y="170.0" font-family="Extro700" font-size="23" fill="url(#ring)">{{SUB}}</text>
+    <text x="26" y="202.4" font-family="Extro400" font-size="14" fill="#F2EFE6" fill-opacity="0.58">{{FINE}}</text>
+    <!-- Тінь уже впечена в PNG (tools/bake-drink-shadows.mjs) — filter="url(#cupShadow)"
+         з оригінального макета навмисно прибрано: Pi-шний librsvg (~2.40)
+         не знає feDropShadow, фільтр мовчки не спрацював би.
+         Розмір бокса тут БІЛЬШИЙ за задум макета (222×280.8) навмисно:
+         drinks-ad/*.png несуть прозорі поля під розмиття тіні (bake-
+         drink-shadows.mjs), і preserveAspectRatio="meet" вписує ввесь
+         файл ІЗ полями в заданий бокс — при box=222×280.8 сама чашка
+         виходила помітно меншою за задум (29.08.2026). Коефіцієнт 1.351 —
+         точне (W+padL+padR)/W для будь-якого файлу: dx=0 у фільтрі робить
+         поля симетричними по ширині, тож це не наближення, а сталa. Бокс
+         відцентровано на тому самому місці, що й оригінальний. -->
+    <image x="180.0" y="146.9" width="300.0" height="379.4" preserveAspectRatio="xMidYMid meet" href="{{HERO_IMG}}" xlink:href="{{HERO_IMG}}"></image>
+  </g>
+  <rect x="0.5" y="0.5" width="469" height="389" rx="21.5" ry="21.5" fill="none" stroke="#FE810B" stroke-opacity="0.32"></rect>
+</svg>

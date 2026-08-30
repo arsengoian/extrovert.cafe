@@ -11,3 +11,5 @@ __pycache__/
 
 # pos-native: тримаємо джерела, не бінарники
 pos-native/bin/
+# pos-native: одноразові тестові бінарники й дампи локальних прогонів
+pos-native/.render-tmp/

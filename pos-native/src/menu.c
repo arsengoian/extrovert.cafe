@@ -49,6 +49,10 @@ static void parse_drink(cJSON *item, drink_t *d) {
         snprintf(d->color, sizeof(d->color), "%s", j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "foam")) && cJSON_IsBool(j))
         d->foam = cJSON_IsTrue(j);
+    if ((j = cJSON_GetObjectItemCaseSensitive(item, "sprite")) && cJSON_IsString(j))
+        snprintf(d->sprite, sizeof(d->sprite), "%s", j->valuestring);
+    if ((j = cJSON_GetObjectItemCaseSensitive(item, "bonus_coins")) && cJSON_IsNumber(j))
+        d->bonus_coins = j->valueint;
 }
 
 const cup_tier_t *menu_find_cup(const menu_t *m, const char *key) {
@@ -56,17 +60,6 @@ const cup_tier_t *menu_find_cup(const menu_t *m, const char *key) {
     for (int i = 0; i < m->cup_count; i++)
         if (strcmp(m->cups[i].key, key) == 0) return &m->cups[i];
     return NULL;
-}
-
-static void parse_string_array(cJSON *arr, char (*out)[MENU_STR], int *count, int max) {
-    *count = 0;
-    if (!arr || !cJSON_IsArray(arr)) return;
-    cJSON *it;
-    cJSON_ArrayForEach(it, arr) {
-        if (*count >= max) break;
-        if (cJSON_IsString(it)) snprintf(out[*count], MENU_STR, "%s", it->valuestring);
-        (*count)++;
-    }
 }
 
 bool menu_poll(const char *url, menu_t *out) {
@@ -148,23 +141,22 @@ bool menu_poll(const char *url, menu_t *out) {
         }
     }
 
-    parse_string_array(cJSON_GetObjectItemCaseSensitive(root, "steps"),
-                        next.steps, &next.step_count, MENU_MAX_STEPS);
-    parse_string_array(cJSON_GetObjectItemCaseSensitive(root, "payments"),
-                        next.payments, &next.payment_count, MENU_MAX_PAYMENTS);
-
     cJSON *j;
-    if ((j = cJSON_GetObjectItemCaseSensitive(root, "cashNote")) && cJSON_IsString(j))
-        snprintf(next.cash_note, MENU_STR, "%s", j->valuestring);
-
-    cJSON *qr = cJSON_GetObjectItemCaseSensitive(root, "qr");
-    if (qr) {
-        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line1")) && cJSON_IsString(j))
-            snprintf(next.qr_line1, MENU_STR, "%s", j->valuestring);
-        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line2")) && cJSON_IsString(j))
-            snprintf(next.qr_line2, MENU_STR, "%s", j->valuestring);
-        if ((j = cJSON_GetObjectItemCaseSensitive(qr, "line3")) && cJSON_IsString(j))
-            snprintf(next.qr_line3, MENU_STR, "%s", j->valuestring);
+    cJSON *ad = cJSON_GetObjectItemCaseSensitive(root, "ad");
+    if (ad) {
+        next.ad.valid = true;
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "promo_label")) && cJSON_IsString(j))
+            snprintf(next.ad.promo_label, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "head1")) && cJSON_IsString(j))
+            snprintf(next.ad.head1, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "head2")) && cJSON_IsString(j))
+            snprintf(next.ad.head2, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "sub")) && cJSON_IsString(j))
+            snprintf(next.ad.sub, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "fine")) && cJSON_IsString(j))
+            snprintf(next.ad.fine, MENU_STR, "%s", j->valuestring);
+        if ((j = cJSON_GetObjectItemCaseSensitive(ad, "sprite")) && cJSON_IsString(j))
+            snprintf(next.ad.sprite, sizeof(next.ad.sprite), "%s", j->valuestring);
     }
 
     cJSON_Delete(root);

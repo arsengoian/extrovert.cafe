@@ -1,4 +1,5 @@
-/* main.c — pos-native: композитор поверх Cairo-контенту.
+/* main.c — pos-native: композитор поверх SVG-шаблонів (меню, реклама,
+ * панель бонусів) і прямого Cairo (смуга прогресу, попап).
  *
  *   URL=... POINT=kyiv-01 ASSETS=./assets DESKTOP_FRAMES=180 ./pos-native
  *
@@ -12,6 +13,7 @@
 #include "gl.h"
 #include "platform.h"
 #include "telemetry.h"
+#include "bonus.h"
 
 #include <fontconfig/fontconfig.h>
 #include <curl/curl.h>
@@ -41,26 +43,34 @@ static double now_s(void) {
  * процесі — не системна інсталяція, так само точково, як лого вставляється
  * через scripts/embed-logo.mjs, а не переписуванням системи. */
 static void load_fonts(const char *assets_dir) {
-    const char *names[] = { "Extro400", "Extro600", "Extro700", "Extro900" };
+    /* Extro* — кожна вага своя "родина" (файл названо як окрему family,
+     * а не одна family з кількома вагами) — так простіше й надійніше
+     * підбирати шрифт за буквальною назвою в font_spec, без покладання
+     * на те, що fontconfig правильно розв'яже вагу. Extro1000 доданий
+     * 29.08.2026 для заголовка реклами (AD_HEAD_FONT_SIZE, config.h). */
+    const char *names[] = { "Extro400", "Extro600", "Extro700", "Extro900", "Extro1000" };
     for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); i++) {
         char path[1024];
         snprintf(path, sizeof(path), "%s/fonts/%s.ttf", assets_dir, names[i]);
         if (!FcConfigAppFontAddFile(FcConfigGetCurrent(), (const FcChar8 *)path))
             fprintf(stderr, "main: не вдалось підвантажити шрифт %s\n", path);
     }
+
+    /* Poppins — звичайний Google Fonts файл: ОДНА typographic family
+     * "Poppins" із трьома встановленими вагами. На відміну від Extro*,
+     * тут покладаємось на fontconfig, щоб підібрати найближчу вагу за
+     * font_spec "Poppins <вага> <розмір>" (config.h: FONT_POPPINS). */
+    const char *poppins[] = { "Poppins-Regular", "Poppins-SemiBold", "Poppins-Bold" };
+    for (size_t i = 0; i < sizeof(poppins) / sizeof(poppins[0]); i++) {
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/fonts/%s.ttf", assets_dir, poppins[i]);
+        if (!FcConfigAppFontAddFile(FcConfigGetCurrent(), (const FcChar8 *)path))
+            fprintf(stderr, "main: не вдалось підвантажити шрифт %s\n", path);
+    }
 }
 
-/* easing з style.css: cupFloat — ease-in-out, повний період ANIM_CUP_PERIOD_S,
- * амплітуда ANIM_CUP_AMPLITUDE_PX. Апроксимуємо ease-in-out синусом — того
- * самого класу крива, яку CSS дає за замовчуванням для симетричних keyframes. */
-static double cup_offset_y(double t, double phase) {
-    double x = fmod(t + phase, ANIM_CUP_PERIOD_S) / ANIM_CUP_PERIOD_S;
-    return -ANIM_CUP_AMPLITUDE_PX * 0.5 * (1.0 - cos(2.0 * M_PI * x));
-}
-
-/* popIn .34s ease-out / popOut .28s ease-in — кубічні наближення теж
- * зайві для ока на попапі; квадратичний ease достатньо помітно відрізняє
- * "влітає" від "лінійно їде". */
+/* popIn .34s ease-out / popOut .28s ease-in — квадратичні наближення
+ * досить помітно відрізняють "влітає" від "лінійно їде". */
 static double ease_out(double x) { return 1.0 - (1.0 - x) * (1.0 - x); }
 static double ease_in(double x)  { return x * x; }
 
@@ -101,29 +111,26 @@ int main(int argc, char **argv) {
     telemetry_init(&tel, sock_path);
 
     menu_t menu = {0};
-    gl_texture_t bg_tex = {0};
-    gl_texture_t cup_tex[MENU_MAX_DRINKS] = {0};
-    cup_slot_t cup_slots[MENU_MAX_DRINKS] = {0};
-    int cup_count = 0;
+    gl_texture_t menu_tex = {0};   /* лого + сітка карток — templates/menu.svg */
+    gl_texture_t ad_tex = {0};     /* реклама — templates/ad.svg, окремий квад */
 
     gl_texture_t popup_tex = {0};
     popup_state_t popup_state = POPUP_HIDDEN;
     double popup_t0 = 0;
+    double popup_shown_at = 0;   /* коли увійшли в POPUP_SHOWN — для авто-приховування */
 
     /* Перший рендер — синхронно, до входу в цикл: інакше перший кадр
      * малював би порожню сцену, і саме він потрапив би на fps-статистику. */
     if (menu_poll(url, &menu)) {
         fprintf(stderr, "main: меню завантажено, %d напоїв\n", menu.drink_count);
-        cairo_surface_t *bg = render_background(&menu, assets_dir, cup_slots);
-        if (getenv("DEBUG_CAIRO_PNG")) cairo_surface_write_to_png(bg, getenv("DEBUG_CAIRO_PNG"));
-        bg_tex = gl_texture_from_cairo(bg);
-        cairo_surface_destroy(bg);
-        for (int i = 0; i < menu.drink_count; i++) {
-            cairo_surface_t *cs = render_cup_sprite(menu.drinks[i].color, menu.drinks[i].foam);
-            cup_tex[i] = gl_texture_from_cairo(cs);
-            cairo_surface_destroy(cs);
+        cairo_surface_t *m = render_menu(&menu, assets_dir);
+        if (m) {
+            if (getenv("DEBUG_CAIRO_PNG")) cairo_surface_write_to_png(m, getenv("DEBUG_CAIRO_PNG"));
+            menu_tex = gl_texture_from_cairo(m);
+            cairo_surface_destroy(m);
         }
-        cup_count = menu.drink_count;
+        cairo_surface_t *a = render_ad(&menu, assets_dir);
+        if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
     } else {
         fprintf(stderr, "main: не вдалось завантажити меню з %s, стартую з порожнім екраном\n", url);
     }
@@ -132,6 +139,12 @@ int main(int argc, char **argv) {
     double last_poll = t_start;
     double sim_t = 0;
     long frame_no = 0;
+
+    /* WS ще не підключений (libwebsockets, коли буде готовий протокол/
+     * сервер) — bonus_tick_emulate() тимчасово грає його роль. sim_t=0
+     * тут навмисно: узгоджено з таймлайном, яким живе решта цього циклу. */
+    bonus_state_t bonus;
+    bonus_init(&bonus, 0.0, assets_dir);
 
     /* Той самий цикл, що в app.js: показати через 1.2с, тримати 3.2с,
      * сховати, почекати 2.6с, повторити. Використовує той самий
@@ -150,18 +163,16 @@ int main(int argc, char **argv) {
             menu_t next = menu;
             if (menu_poll(url, &next)) {
                 menu = next;
-                cairo_surface_t *bg = render_background(&menu, assets_dir, cup_slots);
-                gl_texture_destroy(&bg_tex);
-                bg_tex = gl_texture_from_cairo(bg);
-                cairo_surface_destroy(bg);
-                for (int i = 0; i < cup_count; i++) gl_texture_destroy(&cup_tex[i]);
-                for (int i = 0; i < menu.drink_count; i++) {
-                    cairo_surface_t *cs = render_cup_sprite(menu.drinks[i].color, menu.drinks[i].foam);
-                    cup_tex[i] = gl_texture_from_cairo(cs);
-                    cairo_surface_destroy(cs);
+                cairo_surface_t *m = render_menu(&menu, assets_dir);
+                if (m) {
+                    gl_texture_destroy(&menu_tex);
+                    menu_tex = gl_texture_from_cairo(m);
+                    cairo_surface_destroy(m);
                 }
-                cup_count = menu.drink_count;
-                fprintf(stderr, "main: меню оновлено, %d напоїв\n", cup_count);
+                cairo_surface_t *a = render_ad(&menu, assets_dir);
+                gl_texture_destroy(&ad_tex);
+                if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
+                fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
             }
         }
 
@@ -171,31 +182,54 @@ int main(int argc, char **argv) {
             else                 { demo_next_t = sim_t + 2.6; demo_phase = 0; }
         }
 
-        if (g_popup_toggle) {
+        /* Емуляція WS (bonus.h): раз на BONUS_EMULATE_PERIOD_S додає
+         * випадковий напій у панель бонусів і, якщо в цей момент екран не
+         * зайнятий іншим попапом, показує "бонус нараховано". Рядок у
+         * панелі з'являється незалежно від того, чи вдалось показати
+         * попап — це вже bonus_update() нижче, не залежить від popup_state. */
+        char bonus_drink[64] = {0};
+        int bonus_coins = 0;
+        bool bonus_arrived = bonus_tick_emulate(&bonus, sim_t, &menu, bonus_drink, &bonus_coins);
+        bonus_update(&bonus, sim_t, assets_dir);
+
+        if (bonus_arrived && popup_state == POPUP_HIDDEN) {
+            gl_texture_destroy(&popup_tex);
+            cairo_surface_t *ps = render_bonus_popup(bonus_drink, bonus_coins, assets_dir);
+            popup_tex = gl_texture_from_cairo(ps);
+            cairo_surface_destroy(ps);
+            popup_state = POPUP_IN; popup_t0 = sim_t;
+            g_popup_toggle = 0;   /* бонус має пріоритет над демо-циклом цього кадру */
+        } else if (g_popup_toggle) {
             g_popup_toggle = 0;
             if (popup_state == POPUP_HIDDEN) {
-                if (!popup_tex.id) {
-                    cairo_surface_t *ps = render_popup("Готуємо", "Постав стакан під кран");
-                    popup_tex = gl_texture_from_cairo(ps);
-                    cairo_surface_destroy(ps);
-                }
+                gl_texture_destroy(&popup_tex);
+                cairo_surface_t *ps = render_popup("Готуємо", "Постав стакан під кран");
+                popup_tex = gl_texture_from_cairo(ps);
+                cairo_surface_destroy(ps);
                 popup_state = POPUP_IN; popup_t0 = sim_t;
             } else if (popup_state == POPUP_SHOWN) {
                 popup_state = POPUP_OUT; popup_t0 = sim_t;
             }
         }
-        if (popup_state == POPUP_IN && sim_t - popup_t0 >= ANIM_POPUP_IN_S) popup_state = POPUP_SHOWN;
+        if (popup_state == POPUP_IN && sim_t - popup_t0 >= ANIM_POPUP_IN_S) {
+            popup_state = POPUP_SHOWN;
+            popup_shown_at = sim_t;
+        }
+        /* Авто-приховування — незалежне від g_popup_toggle: без нього
+         * бонус-попап (нема кому послати другий toggle) назавжди лишався
+         * б SHOWN, і POPUP_HIDDEN-гвардія вище блокувала б усі наступні
+         * бонуси. Демо-цикл/SIGUSR1 і далі можуть сховати ЩЕ раніше через
+         * g_popup_toggle — обидва шляхи просто ведуть у POPUP_OUT. */
+        if (popup_state == POPUP_SHOWN && sim_t - popup_shown_at >= ANIM_POPUP_HOLD_S) {
+            popup_state = POPUP_OUT; popup_t0 = sim_t;
+        }
         if (popup_state == POPUP_OUT && sim_t - popup_t0 >= ANIM_POPUP_OUT_S) popup_state = POPUP_HIDDEN;
 
         gl_clear();
-        if (bg_tex.id) gl_draw_quad(&comp, &bg_tex, 0, 0, STAGE_W, STAGE_H, 1.0);
+        if (menu_tex.id) gl_draw_quad(&comp, &menu_tex, 0, 0, STAGE_W, STAGE_H, 1.0);
+        if (ad_tex.id) gl_draw_quad(&comp, &ad_tex, PANEL_X, AD_Y, PANEL_W, AD_H, 1.0);
 
-        for (int i = 0; i < cup_count; i++) {
-            double phase = (i % 3) * ANIM_CUP_PHASE_STAGGER_S;
-            double dy = cup_offset_y(sim_t, phase);
-            gl_draw_quad(&comp, &cup_tex[i], cup_slots[i].x, cup_slots[i].y + dy,
-                         CUP_W, CUP_H, 1.0);
-        }
+        bonus_draw(&bonus, &comp);
 
         if (popup_state != POPUP_HIDDEN && popup_tex.id) {
             double px = (STAGE_W - POPUP_W) / 2.0, py = (STAGE_H - POPUP_H) / 2.0;
@@ -242,9 +276,10 @@ int main(int argc, char **argv) {
     }
 
     telemetry_close(&tel);
-    gl_texture_destroy(&bg_tex);
-    for (int i = 0; i < cup_count; i++) gl_texture_destroy(&cup_tex[i]);
+    gl_texture_destroy(&menu_tex);
+    gl_texture_destroy(&ad_tex);
     gl_texture_destroy(&popup_tex);
+    bonus_destroy(&bonus);
     platform_destroy(plat);
     curl_global_cleanup();
     return 0;

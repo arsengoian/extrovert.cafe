@@ -1,0 +1,11 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="470" height="610" viewBox="0 0 470 610" fill="#F2EFE6">
+  <defs>
+    <clipPath id="clipPanel" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="470" height="610" rx="22" ry="22"></rect></clipPath>
+  </defs>
+  <g clip-path="url(#clipPanel)">
+    <rect x="0" y="0" width="470" height="610" fill="#14171B"></rect>
+    <text x="22" y="37.2" font-family="Extro700" font-size="19" letter-spacing="0.6">ЗАБЕРИ БОНУСИ</text>
+    <text x="448" y="37.2" text-anchor="end" font-family="Extro400" font-size="14" fill="#F2EFE6" fill-opacity="0.5">скануй свій QR</text>
+  </g>
+  <rect x="0.5" y="0.5" width="469" height="609" rx="21.5" ry="21.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10"></rect>
+</svg>

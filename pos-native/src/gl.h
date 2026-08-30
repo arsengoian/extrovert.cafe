@@ -30,6 +30,14 @@ int gl_compositor_init(gl_compositor_t *c, int stage_w, int stage_h);
 gl_texture_t gl_texture_from_cairo(cairo_surface_t *surf);
 void gl_texture_destroy(gl_texture_t *t);
 
+/* Як gl_texture_from_cairo, але без glGenTextures/glDeleteTextures, якщо
+ * розмір не змінився — glTexSubImage2D у вже існуючу текстуру. Для
+ * елементів, що перемальовуються щокадру (bonus.c: кільце прогресу):
+ * створювати й знищувати обʼєкт текстури 60 разів на секунду — зайва
+ * churn на дешевому GPU-драйвері, якої легко уникнути реюзом. Якщо *t
+ * ще порожній або розмір surf інший — падає назад на gl_texture_from_cairo. */
+void gl_texture_update_from_cairo(gl_texture_t *t, cairo_surface_t *surf);
+
 /* offset_x/y, scale — у пікселях сцени (1920×1080), не в NDC: рахувати
  * анімацію зручніше в тих самих одиницях, що й config.h/render.c. */
 void gl_draw_quad(gl_compositor_t *c, const gl_texture_t *tex,

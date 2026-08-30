@@ -1,0 +1,20 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1920" height="1080" viewBox="0 0 1920 1080" fill="#F2EFE6">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.38" y2="1">
+      <stop offset="0" stop-color="#FE810B" stop-opacity="0.14"></stop><stop offset="0.34" stop-color="#FE810B" stop-opacity="0"></stop>
+      <stop offset="0.62" stop-color="#FF2D6F" stop-opacity="0"></stop><stop offset="1" stop-color="#FF2D6F" stop-opacity="0.16"></stop>
+    </linearGradient>
+    <linearGradient id="pill" x1="0" y1="0.5" x2="1" y2="0.42"><stop offset="0" stop-color="#FE810B"></stop><stop offset="1" stop-color="#FF2D6F"></stop></linearGradient>
+    <linearGradient id="cardFade" x1="0" y1="1" x2="0" y2="0"><stop offset="0.30" stop-color="#171A1F" stop-opacity="0.98"></stop><stop offset="1" stop-color="#171A1F" stop-opacity="0"></stop></linearGradient>
+    <linearGradient id="tint" x1="0" y1="0" x2="0.62" y2="1"><stop offset="0" stop-color="#FE810B" stop-opacity="0.34"></stop><stop offset="1" stop-color="#FF2D6F" stop-opacity="0.26"></stop></linearGradient>
+    <linearGradient id="fadeMaskGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.58" stop-color="#FFFFFF"></stop><stop offset="0.95" stop-color="#FFFFFF" stop-opacity="0"></stop></linearGradient>
+    <mask id="fadeMask" maskContentUnits="objectBoundingBox"><rect x="0" y="0" width="1" height="1" fill="url(#fadeMaskGrad)"></rect></mask>
+    <clipPath id="clipCard" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="260" height="296.67" rx="18" ry="18"></rect></clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="1080" fill="#0C0E11"></rect>
+  <rect x="0" y="0" width="1920" height="1080" fill="url(#bg)"></rect>
+  <image x="30" y="33" width="349" height="70" href="{{ASSETS}}/logo_dark.svg" xlink:href="{{ASSETS}}/logo_dark.svg"></image>
+
+{{CARDS}}
+</svg>

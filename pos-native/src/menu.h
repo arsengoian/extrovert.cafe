@@ -9,8 +9,6 @@
 
 #define MENU_MAX_DRINKS 24
 #define MENU_MAX_CUPS 4
-#define MENU_MAX_STEPS 6
-#define MENU_MAX_PAYMENTS 8
 #define MENU_STR 64
 
 typedef struct {
@@ -20,7 +18,30 @@ typedef struct {
     int price;
     char color[16];      /* "#rrggbb" як у JSON */
     bool foam;
+    /* Ключ файлу в assets/drinks/ (без .png), напр. "cappuccino" —
+     * JSON-поле "sprite". Порожній рядок, якщо в меню його ще нема
+     * (старий prices.json) — card.svg тоді просто отримає биту href,
+     * librsvg промовчить і не намалює картинку, решта картки лишиться. */
+    char sprite[32];
+    /* JSON-поле "bonus_coins" — 0, якщо відсутнє (звичайна картка).
+     * >0 вмикає темний оверлей + бейдж монет у лівому верхньому куті
+     * (card_bonus.svg замість card.svg, render.c) — "Американо/Капучино
+     * з бонусами" в макеті. */
+    int bonus_coins;
 } drink_t;
+
+/* Рекламна картка правої панелі — JSON-ключ "ad", підтягується разом із
+ * рештою меню (той самий /api/v1/points/<point>/menu, той самий refreshSec
+ * і хеш-порівняння: своєї окремої частоти опитування ad не потребує). */
+typedef struct {
+    char promo_label[MENU_STR];  /* "АКЦІЯ" */
+    char head1[MENU_STR];
+    char head2[MENU_STR];
+    char sub[MENU_STR];          /* градієнтний рядок акції */
+    char fine[MENU_STR];         /* "діє до 12:00 в п'ятницю" */
+    char sprite[32];             /* герой-напій, той самий ключ, що й у drink_t */
+    bool valid;                  /* false — у меню нема "ad", панель не малюється */
+} ad_t;
 
 /* d.cups[<key>] — розмір стакана: підказка, який стакан узяти ДО вибору
  * напою (app.js:138-142, .cupTag/.cupTag.org у style.css:35-36). */
@@ -37,14 +58,7 @@ typedef struct {
     int drink_count;
     cup_tier_t cups[MENU_MAX_CUPS];
     int cup_count;
-    char steps[MENU_MAX_STEPS][MENU_STR];
-    int step_count;
-    char payments[MENU_MAX_PAYMENTS][MENU_STR];
-    int payment_count;
-    char cash_note[MENU_STR];
-    char qr_line1[MENU_STR];
-    char qr_line2[MENU_STR];
-    char qr_line3[MENU_STR];
+    ad_t ad;
     int refresh_sec;
     unsigned long hash;      /* FNV-1a по сирому тілу відповіді — як lastHash у app.js */
     bool valid;

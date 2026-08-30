@@ -1,9 +1,17 @@
-/* config.h — геометрія й кольори, скопійовані з pos/public/style.css.
+/* config.h — числа, яких не несе сама SVG-розмітка.
  *
- * Навмисно НЕ парсимо CSS. Значення нижче — константи для кіоска 1920×1080,
- * який ніколи не змінює розмір, тому це не дублювання логіки, а одноразова
- * виписка чисел. Якщо колись style.css розʼїдеться з цим файлом — розбіжність
- * буде видно на очах при порівнянні зі скріншотом, а не мовчки зламає щось.
+ * Редизайн 29.08.2026: меню, реклама й фон рядків бонусів більше не
+ * малюються вручну Cairo-викликами з передрукованими координатами —
+ * вони йдуть зі справжніх SVG-шаблонів (assets/templates/, svgtpl.c/h),
+ * адаптованих із design/monitor-menu/. Той підхід, що
+ * був до цього (переписати кожне число з макета в #define), і породив
+ * два реальні баги того ж дня: заголовок реклами обрізало по слову
+ * (Pango-рядок без "px" читав "31" як 31 ПУНКТ при 96dpi, тобто ~41px —
+ * SVG-текст цієї помилки в принципі не має, font-size у SVG завжди CSS-
+ * пікселі). Що лишається тут — те, що SVG сама не знає: як розкласти
+ * змінну кількість карток/рядків по сцені, і геометрія того єдиного
+ * елемента, який усе ще малює прямий Cairo (bonus.c: смуга прогресу,
+ * що рухається щосекунди).
  */
 #ifndef POS_NATIVE_CONFIG_H
 #define POS_NATIVE_CONFIG_H
@@ -11,197 +19,154 @@
 #define STAGE_W 1920
 #define STAGE_H 1080
 
-/* #head, #logo — style.css:11-12 */
-#define HEAD_X 52
-#define HEAD_Y 40
-#define LOGO_W 640
-#define LOGO_H 128
-
-/* #grid — style.css:15 */
-#define GRID_X 52
-#define GRID_Y 232
-#define GRID_COLS 4
+/* -------- сітка карток меню (assets/templates/menu.svg + card.svg) --------
+ * 5×3, редизайн 29.08.2026 (було 4×3 зі старим макетом). Кроки виведені з
+ * реальних translate() у монітор-меню.svg: колонка +276 (306-30), рядок
+ * +312.67 (440.67-128) — обидва дають однаковий зазор 16px від CARD_W/H,
+ * що і в старому дизайні, тому лишили ту саму назву. */
+#define GRID_X 30.0
+#define GRID_Y 128.0
+#define GRID_COLS 5
 #define GRID_ROWS 3
-#define CARD_W 290
-#define CARD_H 248
-#define CARD_GAP_X 16
-#define CARD_GAP_Y 18
-#define CARD_MAX 12
+#define CARD_MAX (GRID_COLS * GRID_ROWS)
+#define CARD_W 260.0
+#define CARD_H 296.67
+#define CARD_GAP_X 16.0
+#define CARD_GAP_Y 16.0
+/* назва в картці не переноситься й не обрізається самою SVG — виміряти й
+ * ellipsize (svgtpl_ellipsize) до підстановки, як і назва в рядку бонусу.
+ * Розмір шрифту тут — лише для цього вимірювання, сам шаблон font-size
+ * задає незалежно (card.svg), два числа мають лишатись однаковими вручну. */
+#define CARD_NAME_FONT_SIZE 20
+#define CARD_NAME_MAX_W 232.0
 
-/* .card — style.css:17-22 */
-#define CARD_RADIUS 16.0
-#define CARD_BG_R (0x17/255.0)
-#define CARD_BG_G (0x1A/255.0)
-#define CARD_BG_B (0x1F/255.0)
-#define CARD_BORDER_A 0.07
-#define CARD_TOPBAR_H 3.0
+/* "з бонусами" — темний оверлей + бейдж монет у лівому верхньому куті
+ * (templates/card_bonus.svg замість card.svg, коли d->bonus_coins>0).
+ * Ширина бейджа — той самий принцип, що монетна пігулка рядка бонусу:
+ * рахуємо від виміряного тексту, бо в макеті два реальні приклади
+ * (80→67.2px, 100→76.8px) явно НЕ дають однакового правого відступу —
+ * скоріш за все підігнані руками під ці два конкретні числа, а не за
+ * формулою, тож PAD_R тут — компроміс, а не точне відтворення обох. */
+#define CARD_BADGE_X 12.5
+#define CARD_BADGE_Y 12.5
+#define CARD_BADGE_H 33.0
+#define CARD_BADGE_ICON_PAD_L 9.5    /* 22 - 12.5 */
+#define CARD_BADGE_ICON_SIZE 20.0
+#define CARD_BADGE_ICON_TEXT_GAP 6.0 /* 48 - (22+20) */
+#define CARD_BADGE_PAD_R 12.0
+#define CARD_BADGE_FONT_SIZE 16
 
-/* .badge — style.css:25 */
-#define BADGE_SIZE 62.0
-#define BADGE_R 12.0
-#define BADGE_TOP 12.0
+/* -------- реклама (assets/templates/ad.svg) -------- */
+#define AD_Y 30.0
+#define AD_H 390.0
+/* заголовок Extro1000/31 — той самий ellipsize перед підстановкою, той
+ * самий баг, що дав переповнення 29.08.2026, тепер закритий на C-боці,
+ * не покладаючись, що зміст завжди влізе сам. Розмір шрифту тут — лише
+ * для вимірювання, сам шаблон (ad.svg) задає font-size незалежно. */
+#define AD_HEAD_FONT_SIZE 31
+#define AD_HEAD_MAX_W 418.0   /* PANEL_W - 2*26 */
+
+/* -------- права колонка: спільні координати композитингу -------- */
+#define PANEL_X 1420
+#define PANEL_W 470
+
+/* -------- панель бонусів (assets/templates/bonus_header.svg,
+ * bonus_empty.svg, bonus_row.svg) -------- */
+#define BONUS_Y 440
+#define BONUS_PANEL_H 610
+#define BONUS_ROW_X 22.0          /* відносно панелі */
+#define BONUS_ROW_Y0 55.0
+#define BONUS_ROW_W 426.0
+#define BONUS_ROW_H 157.0
+#define BONUS_ROW_GAP 12.0
+#define BONUS_MAX_VISIBLE 3        /* стільки рядків влазить у BONUS_PANEL_H */
+#define BONUS_TTL_S 120.0          /* "протягом 2 хвилин" — monitor-menu-empty.svg */
+#define BONUS_EMULATE_PERIOD_S 40.0
+
+/* назва напою в рядку — той самий ellipsize; межа праворуч — ліва сторона
+ * кільця (356-56=300), а не монетна пігулка: вони на різних вертикальних
+ * смугах макета (пігулка нижче, назва вище) й не перетинаються */
+#define BONUS_NAME_X 89.0
+#define BONUS_NAME_FONT_SIZE 18
+#define BONUS_NAME_MAX_W 199.0     /* 356 - 56 - 89 - 12 */
+
+/* монетна пігулка — ШИРИНА рахується від виміряного тексту (може бути
+ * 1-3 цифри), позиція фіксована; підставляється в {{COIN_PILL_W}} */
+#define BONUS_COIN_ICON_SIZE 16.0
+#define BONUS_COIN_PILL_PAD_L 8.5
+#define BONUS_COIN_ICON_TEXT_GAP 5.0
+#define BONUS_COIN_PILL_PAD_R 10.0
+#define BONUS_COIN_FONT_SIZE 14
+
+/* текст відліку — єдиний текстовий шматок рядка, що й далі рендериться
+ * прямим Cairo (перепікається раз на секунду, не через SVG-шаблон): рядок
+ * містить ЖИВЕ число, тож "готового" варіанта в шаблоні просто нема */
+#define BONUS_COUNTDOWN_X 89.0
+#define BONUS_COUNTDOWN_Y 98.0
+#define BONUS_COUNTDOWN_FONT_SIZE 14
+
+/* смуга прогресу — єдиний елемент, що рухається щокадру/щосекунди,
+ * тому єдиний, що лишається прямим Cairo, а не шаблоном (bonus.c).
+ * Трек (статичний) — частина bonus_row.svg; тут лише геометрія
+ * заповнення, яке малюється зверху в тому самому місці. */
+#define BONUS_BAR_X 14.0
+#define BONUS_BAR_Y 137.0
+#define BONUS_BAR_W 398.0
+#define BONUS_BAR_H 6.0
+#define BONUS_BAR_R 3.0
+
+/* QR — вписаний у внутрішнє коло кільця (356,70 відносно рядка, r=52 з
+ * bonus_row.svg); тиха зона є за рахунок різниці діаметрів кола й QR,
+ * як і в макеті (64px код у 104px колі). */
+#define QR_ROW_SIZE 64.0
+
+/* -------- кольори бренду — потрібні там, де досі малює прямий Cairo:
+ * смуга прогресу (градієнт url(#pill) з макета) і попап (нижче) -------- */
 #define BADGE_COLOR_R (0xFE/255.0)
 #define BADGE_COLOR_G (0x81/255.0)
 #define BADGE_COLOR_B (0x0B/255.0)
-#define BADGE_FONT_SIZE 31   /* було 20 — style.css:29 каже 31 */
-
-/* .cup / .body / .liq / .foam / .rim — style.css:37-42
- * Координати відносні до лівого верхнього кута .cup, який сам стоїть
- * top:24px, left:50%-52px відносно картки. */
-#define CUP_X_OFFSET (CARD_W/2.0 - 52.0)
-#define CUP_Y_OFFSET 24.0
-#define CUP_W 104.0
-#define CUP_H 120.0
-#define CUP_BODY_Y 8.0
-#define CUP_BODY_SIZE 104.0
-#define CUP_BODY_R (0xF7/255.0)
-#define CUP_BODY_G (0xF1/255.0)
-#define CUP_BODY_B (0xE6/255.0)
-#define CUP_LIQ_X 9.0
-#define CUP_LIQ_Y 22.0
-#define CUP_LIQ_W 86.0
-#define CUP_LIQ_H 84.0
-#define CUP_FOAM_Y 18.0
-#define CUP_FOAM_H 15.0
-#define CUP_FOAM_R (0xEE/255.0)
-#define CUP_FOAM_G (0xE2/255.0)
-#define CUP_FOAM_B (0xCE/255.0)
-#define CUP_RIM_X (-2.0)
-#define CUP_RIM_Y 1.0
-#define CUP_RIM_W 108.0
-#define CUP_RIM_H 16.0
-
-/* .name / .vol — style.css:30,32. Розміри шрифту виправлені 18.08.2026:
- * перша версія малювала 15/13 замість справжніх 22/19 — читалось, але
- * виглядало помітно дрібнішим за HTML. */
-#define NAME_X 18.0
-#define NAME_BOTTOM 40.0
-#define NAME_FONT_SIZE 22
-#define NAME_MAX_W 252.0
-#define VOL_X 18.0
-#define VOL_BOTTOM 12.0
-#define VOL_FONT_SIZE 19
+#define ACCENT2_R (0xFF/255.0)
+#define ACCENT2_G (0x2D/255.0)
+#define ACCENT2_B (0x6F/255.0)
+#define TEXT_FG_R (0xF2/255.0)
+#define TEXT_FG_G (0xEF/255.0)
+#define TEXT_FG_B (0xE6/255.0)
 #define TEXT_MUTED_R (0x8B/255.0)
 #define TEXT_MUTED_G (0x94/255.0)
 #define TEXT_MUTED_B (0xA3/255.0)
 
-/* .cupTag / .cupTag.org — style.css:35-36. Підказка розміру стакана поряд
- * з обʼємом: зелена — роздавач, помаранчева (.org) — стакан бере з органайзера. */
-#define CUPTAG_FONT_SIZE 14
-#define CUPTAG_PAD_X 7.0
-#define CUPTAG_H 21.0
-#define CUPTAG_R 9.0
-#define CUPTAG_GAP 6.0
-#define CUPTAG_GREEN_R (0xAF/255.0)
-#define CUPTAG_GREEN_G (0xEA/255.0)
-#define CUPTAG_GREEN_B (0x3A/255.0)
-#define CUPTAG_DARK_R (0x15/255.0)
-#define CUPTAG_DARK_G (0x18/255.0)
-#define CUPTAG_DARK_B (0x1C/255.0)
-
-/* другий колір у всіх градієнтах бренду — .badge/#howto/.card:after
- * (style.css:23,28,48); перший — уже є як BADGE_COLOR_*. */
-#define ACCENT2_R (0xFF/255.0)
-#define ACCENT2_G (0x2D/255.0)
-#define ACCENT2_B (0x6F/255.0)
-
-/* #side — style.css:44 */
-#define SIDE_X 1330
-#define SIDE_Y 40
-#define SIDE_W 544
-#define SIDE_H 1000
-#define SIDE_R 20.0
-#define SIDE_BG_R (0x17/255.0)
-#define SIDE_BG_G (0x1A/255.0)
-#define SIDE_BG_B (0x1F/255.0)
-
-/* #howto — style.css:46 */
-#define HOWTO_X 26
-#define HOWTO_Y 32
-#define HOWTO_W (SIDE_W - 52)
-#define HOWTO_H 62
-#define HOWTO_R 12.0
-#define HOWTO_FONT_SIZE 30   /* було 18 — style.css:50 каже 30 */
-
-/* #steps — style.css:51-57. Кіоск не має живого layout-рушія, тож ці
- * координати — ручний прорахунок normal-flow: #steps сидить одразу під
- * #howto (без відступів між ними), кожен .step — margin-top 36 + власна
- * висота 56, підписи через фіксовані 3 кольори бренду. Наближення: якщо
- * колись у steps буде > 3 пунктів, четвертий піде тим самим кольором, що
- * перший (CSS теж не визначає nth-child(4) окремо). */
-#define STEPS_TOP (HOWTO_Y + HOWTO_H)
-#define STEP_H 56.0
-#define STEP_MARGIN_TOP 36.0
-#define STEP_LEFT 34.0
-#define STEP_CIRCLE_SIZE 56.0
-#define STEP_BORDER_W 4.0
-#define STEP_TEXT_X 76.0
-#define STEP_TEXT_Y 11.0
-#define STEP_NUM_FONT_SIZE 29
-#define STEP_LABEL_FONT_SIZE 27
-
-/* .slabel — style.css:58. SLABEL_LINE_H — наближення висоти рядка Extro700
- * 20px (нема живого браузера під рукою, щоб зняти точний box). */
-#define SLABEL_MARGIN_TOP 52.0
-#define SLABEL_LEFT 34.0
-#define SLABEL_FONT_SIZE 20
-#define SLABEL_LINE_H 24.0
-#define SLABEL_MARGIN_BOTTOM 12.0
-
-/* #pays / .pay — style.css:59-62: float:left, 2 у рядок (176+20 разів 2 = 392 < 400) */
-#define PAYS_LEFT 34.0
-#define PAY_W 176.0
-#define PAY_H 46.0
-#define PAY_GAP_X 20.0
-#define PAY_GAP_Y 12.0
-#define PAY_COLS 2
-#define PAY_FONT_SIZE 20
-
-/* #cash — style.css:63: clear:both, тобто нижче обох рядків .pay */
-#define CASH_LEFT 34.0
-#define CASH_MARGIN_TOP 16.0
-#define CASH_FONT_SIZE 19
-
-/* #stage background — style.css:10 */
-#define STAGE_BG_R (0x0C/255.0)
-#define STAGE_BG_G (0x0E/255.0)
-#define STAGE_BG_B (0x11/255.0)
-#define TEXT_FG_R (0xF2/255.0)
-#define TEXT_FG_G (0xEF/255.0)
-#define TEXT_FG_B (0xE6/255.0)
-
-/* #qrbox — style.css:64 */
-#define QRBOX_X 34
-#define QRBOX_Y 742
-#define QR_SIZE 182
-
-/* #qrtext — style.css:66-68. Розміри виправлені 18.08.2026: було 20/15,
- * CSS каже 26 (обидва перші рядки) і 19 (.mut). */
-#define QRTEXT_X (QRBOX_X + QR_SIZE + 24)
-#define QRTEXT_Y 24
-#define QRTEXT_LINE_H 36.0
-#define QRTEXT_FONT_SIZE 26
-#define QRTEXT_MUT_FONT_SIZE 19
-
-/* Шрифти — файли, а не base64 з CSS; копії з design/brandbook/fonts */
+/* -------- шрифти -------- */
+/* Extro* — кожна вага своя "родина" (файл названо як окрему family),
+ * тому в SVG-шаблонах теж пишемо font-family="Extro700" явно на кожному
+ * text, а не покладаємось на успадкований font-family="Extro" з кореня +
+ * font-weight — це не гарантовано розв'яжеться в ту саму родину. */
 #define FONT_400 "Extro400"
 #define FONT_600 "Extro600"
 #define FONT_700 "Extro700"
 #define FONT_900 "Extro900"
+#define FONT_1000 "Extro1000"
 
-/* ── анімації — точні цифри з keyframes у style.css (рівень 2 і попап) ── */
-/* cupFloat — style.css:120-122: 0%,100%{y:0} 50%{y:-4px}, 3.2s ease-in-out infinite */
-#define ANIM_CUP_PERIOD_S 3.2
-#define ANIM_CUP_AMPLITUDE_PX 4.0
-/* зсув фаз по nth-child(3n+1/+2/+3n) — style.css:124-126: 0s / -1.1s / -2.2s */
-#define ANIM_CUP_PHASE_STAGGER_S 1.1
+/* Poppins — звичайний Google Fonts файл: ОДНА typographic family з
+ * кількома вагами, тому тут навпаки покладаємось на fontconfig + звичайний
+ * font-weight, і в C-коді (для вимірювання), і в SVG-шаблонах однаково. */
+#define FONT_POPPINS "Poppins"
 
-/* popIn/popOut — style.css: .34s ease-out / .28s ease-in */
+/* -------- попап: єдиний екран, що досі малюється вручну (bonus.c) —
+ * дизайну під нього ще нема, тому шаблонити нічого. Ті самі POPUP_W/H/R,
+ * що анімує main.c (POPUP_IN/SHOWN/OUT), незалежно від того, звідки взявся
+ * вміст. -------- */
 #define ANIM_POPUP_IN_S 0.34
 #define ANIM_POPUP_OUT_S 0.28
+/* Скільки тримати SHOWN, перш ніж САМ почати ховатись — без цього
+ * бонус-попап (на відміну від демо-циклу/SIGUSR1) нічим не приховати:
+ * bonus_tick_emulate() лише показує, а ніхто не додає g_popup_toggle
+ * пізніше. Без авто-приховування перший-ліпший бонус назавжди застрягав
+ * у SHOWN, і POPUP_HIDDEN-гвардія в main.c блокувала всі наступні. */
+#define ANIM_POPUP_HOLD_S 4.0
 #define POPUP_W 760.0
 #define POPUP_H 197.4
 #define POPUP_R 28.0
 #define POPUP_BG_A 0.94
+#define BONUS_POPUP_COIN_SIZE 72.0
 
 #endif

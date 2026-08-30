@@ -139,6 +139,35 @@ void gl_texture_destroy(gl_texture_t *t) {
     t->id = 0;
 }
 
+void gl_texture_update_from_cairo(gl_texture_t *t, cairo_surface_t *surf) {
+    cairo_surface_flush(surf);
+    int w = cairo_image_surface_get_width(surf);
+    int h = cairo_image_surface_get_height(surf);
+    if (!t->id || t->w != w || t->h != h) {
+        gl_texture_destroy(t);
+        *t = gl_texture_from_cairo(surf);
+        return;
+    }
+    unsigned char *data = cairo_image_surface_get_data(surf);
+    glBindTexture(GL_TEXTURE_2D, t->id);
+#ifdef POS_NATIVE_HAVE_BGRA
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, data);
+#else
+    {
+        int n = w * h;
+        unsigned char *rgba = malloc((size_t)n * 4);
+        for (int i = 0; i < n; i++) {
+            rgba[i*4+0] = data[i*4+2];
+            rgba[i*4+1] = data[i*4+1];
+            rgba[i*4+2] = data[i*4+0];
+            rgba[i*4+3] = data[i*4+3];
+        }
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, rgba);
+        free(rgba);
+    }
+#endif
+}
+
 void gl_draw_quad(gl_compositor_t *c, const gl_texture_t *tex,
                    double dst_x, double dst_y, double dst_w, double dst_h,
                    double alpha) {

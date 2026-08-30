@@ -1,0 +1,29 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="426" height="157" viewBox="0 0 426 157" fill="#F2EFE6">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0.5" x2="1" y2="0.42"><stop offset="0.08" stop-color="#FE810B"></stop><stop offset="0.88" stop-color="#FF2D6F"></stop></linearGradient>
+    <clipPath id="clipBonus" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="426" height="157" rx="16" ry="16"></rect></clipPath>
+  </defs>
+  <g clip-path="url(#clipBonus)">
+    <rect x="0" y="0" width="426" height="157" fill="#1B1F24"></rect>
+    <image x="14" y="39" width="62" height="62" preserveAspectRatio="xMidYMid meet" href="{{IMG}}" xlink:href="{{IMG}}"></image>
+    <!-- y — базова лінія, не центр: dominant-baseline="central" librsvg не
+         рендерить, зсунуто на виміряний (ascent-descent)/2 (29.08.2026). -->
+    <text x="89" y="51.0" font-family="Extro700" font-size="18">{{NAME}}</text>
+    <text x="89" y="77.5" font-family="Poppins" font-weight="400" font-size="13" fill="#F2EFE6" fill-opacity="0.5">{{EARNED_AT}}</text>
+    <rect x="134.5" y="61.5" width="{{COIN_PILL_W}}" height="23" rx="11.5" ry="11.5" fill="#FE810B" fill-opacity="0.16" stroke="#FE810B" stroke-opacity="0.34"></rect>
+    <image x="143" y="65" width="16" height="16" href="{{ASSETS}}/coin.png" xlink:href="{{ASSETS}}/coin.png"></image>
+    <text x="164" y="78.0" font-family="Poppins" font-weight="700" font-size="14" fill="#FE810B">{{COINS}}</text>
+    <!-- Кільце — статична декорація (лише два повних кола, ніякої дуги
+         прогресу нема в макеті); справжній індикатор часу — горизонтальна
+         смуга нижче. QR монтується в центр кільця окремим шаром (qr.c) —
+         тут лише темна підкладка з нього не потрібна: внутрішнє коло вже
+         дає темний фон. -->
+    <circle cx="356" cy="70" r="56" fill="url(#ring)"></circle>
+    <circle cx="356" cy="70" r="52" fill="#0B0C0E"></circle>
+    <!-- Трек прогрес-бару — статичний. Заповнення (ширина = залишок/TTL)
+         рухається щосекунди й малюється окремо прямим Cairo (bonus.c),
+         поверх цього шару, у тому самому місці. -->
+    <rect x="14" y="137" width="398" height="6" rx="3" ry="3" fill="#FFFFFF" fill-opacity="0.08"></rect>
+  </g>
+  <rect x="0.5" y="0.5" width="425" height="156" rx="15.5" ry="15.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10"></rect>
+</svg>
