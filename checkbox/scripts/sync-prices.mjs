@@ -7,11 +7,15 @@
 // поля (group, taxes, uktzed, ...) не займаємо — беремо їх з експорту
 // такими, як є, щоб не затерти щось, чим цей скрипт не керує.
 //
-// Мапінг назва->код прописаний руками (звірено з реальним експортом
-// 09.09.2026, Товари.xlsx): у prices.json нема поля код, а дві назви
-// в Checkbox відрізняються від наших ("Флет вайт" без дефіса,
-// просто "Шоколад" замість "Гарячий шоколад") — фазі matching за
-// іменем тут не довіряти.
+// Кожен напій у prices.json несе своє "system_code" — Checkbox "Код"
+// (не штрихкод, той порожній у звірених товарах) для регулярних напоїв,
+// і x-префіксований (замість a-) з тим самим номером для бонусних
+// варіантів (напр. Американо=a034 -> Американо з бонусами=x034) —
+// заведено 09.09.2026, коли назви в Checkbox уже привели до тих самих,
+// що в prices.json (звіряти fuzzy-мапінгом за іменем більше не треба).
+// Бонусні x-коди в Checkbox поки не існують і НЕ будуть створені цим
+// скриптом — вони підуть у "відсутні в експорті" нижче, доки товар не
+// заведуть на сайті вручну.
 //
 // За замовчуванням — сухий прогін (тільки друкує різницю й пише
 // прев'ю-файл). Реальний імпорт — лише з --apply: це живий каталог
@@ -29,27 +33,6 @@ const TOKEN = process.env.CHECKBOX_GOODS_TOKEN;
 const CLIENT_NAME = process.env.CHECKBOX_CLIENT_NAME || "extrovert-pos";
 const CLIENT_VERSION = process.env.CHECKBOX_CLIENT_VERSION || "1.0.0";
 const APPLY = process.argv.includes("--apply");
-
-// prices.json name -> Checkbox "Код" (не штрихкод — barcode/barcodes у
-// звірених товарах порожні, унікальний ключ саме код).
-const CODE_BY_NAME = {
-  "Американо": "a034",
-  "Американо з молоком": "a036",
-  "Еспресо": "a033",
-  "Ірландський віскі": "a018",
-  "Какао": "a024",
-  "Капучино": "a038",
-  "Еспресо з молоком": "a0102",
-  "Лате": "a039",
-  "Лунго": "a027",
-  "Мокачино": "a015",
-  "Подвійний еспресо": "a026",
-  "Флет-вайт": "a017",      // Checkbox: "Флет вайт" (пробіл, не дефіс)
-  "Гарячий шоколад": "a022", // Checkbox: просто "Шоколад"
-  // "Американо з бонусами" / "Капучино з бонусами" тут навмисно нема:
-  // це кіоскові гейміфікаційні варіанти того самого напою, окремого
-  // товару в Checkbox під них не заведено.
-};
 
 function authHeaders(extra = {}) {
   if (!TOKEN) {
@@ -126,7 +109,7 @@ async function main() {
   const unmapped = [];
   const missing = [];
   for (const d of prices.drinks) {
-    const code = CODE_BY_NAME[d.name];
+    const code = d.system_code;
     if (!code) { unmapped.push(d.name); continue; }
     const g = byCode.get(code);
     if (!g) { missing.push(`${d.name} (${code})`); continue; }
@@ -143,8 +126,8 @@ async function main() {
   } else {
     console.log("  різниці немає — Checkbox уже збігається з prices.json");
   }
-  if (unmapped.length) console.log(`Без коду Checkbox (пропущено): ${unmapped.join(", ")}`);
-  if (missing.length) console.log(`Є в мапінгу, але відсутні в експорті Checkbox: ${missing.join(", ")}`);
+  if (unmapped.length) console.log(`Без system_code (пропущено): ${unmapped.join(", ")}`);
+  if (missing.length) console.log(`Є system_code, але товару нема в експорті Checkbox: ${missing.join(", ")}`);
 
   if (!changes.length) return;
 
