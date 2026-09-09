@@ -45,6 +45,47 @@ base64(HmacSHA256(key, тіло_запиту_як_UTF8_байти))
 `tax_url` — саме те, що робить звіт орендодавцю таким, що перевіряється третьою
 стороною, а не «ось мій ексель».
 
+## Товари (goods) — окремо від вебхука
+
+Перевірено 09.09.2026: чи можна через Checkbox API оновлювати каталог
+товарів (ціни, зображення) — щоб не тримати цю синхронізацію вручну,
+якщо колись знадобиться показувати ціни й на боці Checkbox, а не лише
+в `pos/data/prices.json`.
+
+**Ціни — можна. Зображення — ні**, у схемі товару такого поля просто нема.
+
+Це не REST CRUD (`POST`/`PATCH /goods/{id}`), а асинхронний імпорт файлом:
+
+```
+POST /api/v1/goods/import/upload            multipart, .csv/.xlsx/.json → task_id
+GET  /api/v1/goods/import/task_status/{id}  → status: completed
+POST /api/v1/goods/import/apply_changes/{id} → новий task_id
+GET  /api/v1/goods/import/task_status/{id}  → status: done
+```
+
+Експорт — дзеркально: `GET /api/v1/goods/export/{xlsx|csv|json}` →
+`task_status` → `GET /api/v1/goods/export/file/{task_id}`.
+
+Схема товару (з прикладу `checkbox_goods.json` у вікі):
+
+```json
+{ "good_name": "...", "code": "...", "group": "...", "barcode": "...",
+  "barcodes": "...", "price": "51.00", "is_weight": false, "type": "good",
+  "taxes": "З", "leftovers": null, "uktzed": "" }
+```
+
+Товари дедуплікуються за `barcode` (параметр `ignore_barcode_duplicates`) —
+тобто повторний імпорт з тим самим штрихкодом і новою ціною оновлює
+існуючий товар, а не створює дублікат.
+
+⚠️ Приклад запиту в документації б'є на **`api.checkbox.ua`**, не на
+`api.checkbox.in.ua` (базовий URL вебхука вище) — схоже, окремий сервіс/
+домен від фіскального ПРРО API. Перевірити, який саме діє на нашому
+акаунті, ДО того як щось на цьому будувати.
+
+⚠️ Через імпорт неможливо створити поставку товару, якщо сам товар не
+було створено раніше через сайт checkbox.
+
 ## Наш приймач
 
 Мікросервіс `checkbox/`:
@@ -60,4 +101,6 @@ base64(HmacSHA256(key, тіло_запиту_як_UTF8_байти))
 
 - Вебхуки: https://wiki.checkbox.ua/uk/api/webhook
 - Специфікація: https://wiki.checkbox.ua/uk/api
+- Товари (goods): https://wiki.checkbox.ua/uk/api/goods — нема в OpenAPI нижче,
+  знайдено окремо
 - OpenAPI: https://api.checkbox.in.ua/api/openapi.json
