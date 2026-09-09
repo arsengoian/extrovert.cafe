@@ -44,29 +44,32 @@
     {
       "name": "Еспресо",
       "vol": "30 мл",
-      "price": 30,
+      "price": 35,
       "color": "#402212",
       "foam": false,
       "cup": "S",
-      "sprite": "espresso"
+      "sprite": "espresso",
+      "system_code": "a033"
     },
     {
       "name": "Лунго",
       "vol": "60 мл",
-      "price": 32,
+      "price": 35,
       "color": "#4a2815",
       "foam": false,
       "cup": "S",
-      "sprite": "lungo"
+      "sprite": "lungo",
+      "system_code": "a027"
     },
     {
       "name": "Подвійний еспресо",
       "vol": "80 мл",
-      "price": 45,
+      "price": 40,
       "color": "#2c1608",
       "foam": false,
       "cup": "S",
-      "sprite": "double_espresso"
+      "sprite": "double_espresso",
+      "system_code": "a026"
     },
     {
       "name": "Американо",
@@ -75,7 +78,8 @@
       "color": "#60361c",
       "foam": false,
       "cup": "M",
-      "sprite": "americano"
+      "sprite": "americano",
+      "system_code": "a034"
     },
     {
       "name": "Американо з бонусами",
@@ -85,7 +89,8 @@
       "foam": false,
       "cup": "M",
       "sprite": "americano",
-      "bonus_coins": 80
+      "bonus_coins": 80,
+      "system_code": "x034"
     },
     {
       "name": "Еспресо з молоком",
@@ -94,7 +99,8 @@
       "color": "#784e2c",
       "foam": true,
       "cup": "M",
-      "sprite": "espresso_milk"
+      "sprite": "espresso_milk",
+      "system_code": "a0102"
     },
     {
       "name": "Американо з молоком",
@@ -103,7 +109,8 @@
       "color": "#7e522e",
       "foam": true,
       "cup": "L",
-      "sprite": "americano_milk"
+      "sprite": "americano_milk",
+      "system_code": "a036"
     },
     {
       "name": "Капучино",
@@ -112,7 +119,8 @@
       "color": "#9e7044",
       "foam": true,
       "cup": "L",
-      "sprite": "cappuccino"
+      "sprite": "cappuccino",
+      "system_code": "a038"
     },
     {
       "name": "Капучино з бонусами",
@@ -122,16 +130,18 @@
       "foam": true,
       "cup": "L",
       "sprite": "cappuccino",
-      "bonus_coins": 100
+      "bonus_coins": 100,
+      "system_code": "x038"
     },
     {
       "name": "Мокачино",
       "vol": "280 мл",
-      "price": 55,
+      "price": 45,
       "color": "#70462c",
       "foam": true,
       "cup": "L",
-      "sprite": "mocha"
+      "sprite": "mocha",
+      "system_code": "a015"
     },
     {
       "name": "Лате",
@@ -140,16 +150,18 @@
       "color": "#b08458",
       "foam": true,
       "cup": "L",
-      "sprite": "latte"
+      "sprite": "latte",
+      "system_code": "a039"
     },
     {
       "name": "Флет-вайт",
       "vol": "220 мл",
-      "price": 50,
+      "price": 55,
       "color": "#96683e",
       "foam": true,
       "cup": "L",
-      "sprite": "flatwhite"
+      "sprite": "flatwhite",
+      "system_code": "a017"
     },
     {
       "name": "Какао",
@@ -158,7 +170,8 @@
       "color": "#5a3826",
       "foam": true,
       "cup": "L",
-      "sprite": "cocoa"
+      "sprite": "cocoa",
+      "system_code": "a024"
     },
     {
       "name": "Гарячий шоколад",
@@ -167,16 +180,18 @@
       "color": "#563422",
       "foam": true,
       "cup": "L",
-      "sprite": "hotchoc"
+      "sprite": "hotchoc",
+      "system_code": "a022"
     },
     {
       "name": "Ірландський віскі",
       "vol": "280 мл",
-      "price": 55,
+      "price": 50,
       "color": "#8c6038",
       "foam": true,
       "cup": "L",
-      "sprite": "irish"
+      "sprite": "irish",
+      "system_code": "a018"
     }
   ],
   "ad": {
