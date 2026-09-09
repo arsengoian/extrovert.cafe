@@ -6,7 +6,8 @@
   "description": "приймач вебхуків ПРРО Checkbox",
   "scripts": {
     "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "prices:sync": "node scripts/sync-prices.mjs"
   },
   "dependencies": {"fastify":"^5.0.0","pg":"^8.13.0","ioredis":"^5.4.1","@sentry/node":"^8.0.0"}
 }
