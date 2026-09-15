@@ -1,0 +1,1282 @@
+<!-- ЗГЕНЕРОВАНО scripts/build-data-map.mjs з docs/db-schema.md, docs/services.md. Не редагувати: правити markdown і запускати npm run docs:map. -->
+<title>Карта даних extrovert.cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--ground:#0C0E11;--surface:#14171C;--surface-2:#1B1F26;--line:#2A3039;--ink:#F2EFE6;--ink-dim:#9AA3B0;--ink-faint:#6B7480;--accent:#FE810B;--accent-2:#FF2D6F;--plate:#FBF9F6;--plate-line:#E4DED4;--plate-ink:#2A2620;--radius:12px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--ground:#F7F5F1;--surface:#FFFFFF;--surface-2:#F1EDE6;--line:#E0D9CE;--ink:#1E1B17;--ink-dim:#5E5852;--ink-faint:#8B8478;--accent:#C2610A;--accent-2:#D41E57}}
+:root[data-theme="light"]{--ground:#F7F5F1;--surface:#FFFFFF;--surface-2:#F1EDE6;--line:#E0D9CE;--ink:#1E1B17;--ink-dim:#5E5852;--ink-faint:#8B8478;--accent:#C2610A;--accent-2:#D41E57}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+.top{border-bottom:1px solid var(--line);padding:34px 20px 26px;background:radial-gradient(800px 300px at 10% -20%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 70%),radial-gradient(640px 280px at 90% -30%,color-mix(in srgb,var(--accent-2) 11%,transparent),transparent 70%)}
+.top-in{max-width:1320px;margin:0 auto}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.top h1{font-family:Poppins,system-ui,sans-serif;font-weight:700;font-size:clamp(28px,4vw,42px);line-height:1.1;margin:0 0 10px;letter-spacing:-.02em;text-wrap:balance}
+.top p{margin:0;color:var(--ink-dim);max-width:70ch}
+.layout{max-width:1320px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:290px minmax(0,1fr);gap:40px}
+.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:22px 4px 40px 0;font-size:14px}
+.toc-title{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 8px 6px}
+.toc ul{list-style:none;margin:0;padding:0}
+.toc ul ul{padding-left:14px;border-left:1px solid var(--line);margin-left:9px}
+.toc li{margin:1px 0}
+.toc a{display:flex;gap:6px;align-items:baseline;color:var(--ink-dim);text-decoration:none;padding:3px 6px;border-radius:6px;line-height:1.35}
+.toc a:hover,.toc a:focus-visible{color:var(--ink);background:var(--surface)}
+.toc a[aria-current="true"]{color:var(--ink);background:var(--surface);box-shadow:inset 2px 0 0 var(--accent)}
+.toc summary{list-style:none;display:flex;align-items:baseline;cursor:pointer}
+.toc summary::-webkit-details-marker{display:none}
+.toc summary::before{content:"▸";color:var(--ink-faint);width:12px;flex:none;font-size:11px;transition:transform .15s}
+.toc details[open]>summary::before{transform:rotate(90deg)}
+.toc summary a{flex:1}
+.toc li:not(:has(details))>a{margin-left:12px}
+.nav-doc>details>summary a{font-family:Poppins,sans-serif;font-weight:600;color:var(--ink);font-size:15px}
+.nav-table a{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.nav-badge{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ground);background:var(--accent);border-radius:4px;padding:0 5px;flex:none}
+main{min-width:0;padding:10px 0 60px}
+.doc{padding-top:26px}
+.doc+.doc{border-top:1px solid var(--line);margin-top:40px}
+.doc-head h1{font-family:Poppins,sans-serif;font-weight:700;font-size:30px;margin:0 0 14px;letter-spacing:-.01em}
+.doc-src{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);margin:0 0 4px}
+main h2{font-family:Poppins,sans-serif;font-weight:600;font-size:24px;margin:44px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+main h3{font-family:Poppins,sans-serif;font-weight:600;font-size:18px;margin:28px 0 6px}
+main h2,main h3{position:relative}
+.anchor{position:absolute;left:-.9em;color:var(--ink-faint);text-decoration:none;opacity:0;font-weight:400}
+h2:hover .anchor,h3:hover .anchor{opacity:1}
+main p,main li{max-width:74ch}
+main p{margin:0 0 14px}
+main ol,main ul{padding-left:22px}
+main pre:not(.mermaid){background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;overflow-x:auto;font-size:13.5px;line-height:1.5}
+main pre:not(.mermaid) code{background:none;padding:0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);margin:0 0 20px}
+.tablewrap table{border-collapse:collapse;width:100%;min-width:600px;font-size:14px}
+.tablewrap th,.tablewrap td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+.tablewrap thead th{background:var(--surface-2);font-family:Poppins,sans-serif;font-weight:600;font-size:13px}
+.tablewrap tbody tr:last-child td{border-bottom:0}
+figure.plate{margin:18px 0 16px}
+.plate-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ground);background:var(--accent);padding:2px 8px;border-radius:5px}
+.plate-meta{color:var(--ink-dim);font-size:13.5px}
+.plate-body{background:var(--plate);border:1px solid var(--plate-line);border-radius:var(--radius);padding:16px;overflow-x:auto}
+.plate-body pre.mermaid{margin:0;background:transparent;color:var(--plate-ink);font-size:12px;line-height:1.35;white-space:pre}
+.dict{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;margin:0 0 26px}
+.entity{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;scroll-margin-top:16px}
+.entity:target{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.entity header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.entity h4{margin:0;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:15px;color:var(--accent)}
+.entity-count{font-size:12px;color:var(--ink-faint)}
+.cols{overflow-x:auto}
+.cols table{border-collapse:collapse;width:100%;font-size:12.5px}
+.cols td{padding:3px 6px 3px 0;vertical-align:top;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.cols tr:first-child td{border-top:0}
+.c-name{font-family:"IBM Plex Mono",monospace;color:var(--ink);white-space:nowrap}
+.c-type{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);white-space:nowrap}
+.c-keys{white-space:nowrap}
+.c-note{color:var(--ink-dim)}
+.key{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:0 4px;border-radius:3px;margin-right:3px;border:1px solid var(--line);color:var(--ink-dim)}
+.key-pk{color:var(--ground);background:var(--accent);border-color:var(--accent)}
+.key-fk{color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 50%,transparent)}
+.rels{list-style:none;margin:8px 0 0;padding:8px 0 0;border-top:1px dashed var(--line);font-size:12.5px}
+.rels li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;max-width:none}
+.rel-card{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);min-width:58px}
+.rels a{font-family:"IBM Plex Mono",monospace}
+.rel-label{color:var(--ink-dim)}
+footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-size:13px;border-top:1px solid var(--line)}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}.toc{position:static;max-height:none;border-bottom:1px solid var(--line);padding:16px 0}.dict{grid-template-columns:1fr}.anchor{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<header class="top"><div class="top-in">
+  <p class="eyebrow">extrovert.cafe · джерело 3ada054</p>
+  <h1>Карта даних і сервісів</h1>
+  <p>Схема Postgres, кейспейс Redis і карта сервісів. Сторінку зібрано з <code>docs/db-schema.md</code> і <code>docs/services.md</code>: окремої копії діаграм тут немає, тож правка йде в markdown, а сторінка перезбирається командою <code>npm run docs:map</code>.</p>
+</div></header>
+<div class="layout">
+<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul><li class="nav-doc"><details open><summary><a href="#db">Схема даних: Postgres і Redis</a></summary><ul><li class="nav-section"><details open><summary><a href="#db-0-наскрізні-рішення">0. Наскрізні рішення</a></summary><ul><li class="nav-sub"><a href="#db-гроші-numeric-12-2-ігрові-валюти-integer">Гроші — numeric(12,2), ігрові валюти — integer</a></li><li class="nav-sub"><a href="#db-баланс-і-журнал-одночасно">Баланс і журнал одночасно</a></li><li class="nav-sub"><a href="#db-косметика-куща-в-jsonb-економіка-в-колонках">Косметика куща в jsonb, економіка в колонках</a></li><li class="nav-sub"><a href="#db-ідемпотентність-на-кожному-вході-ззовні">Ідемпотентність на кожному вході ззовні</a></li><li class="nav-sub"><a href="#db-точка-текстовий-ключ-із-першого-дня">Точка — текстовий ключ із першого дня</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-1-ідентичність-і-продажі">1. Ідентичність і продажі</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-1"><span class="nav-badge">ER</span>11 таблиць</a></summary><ul><li class="nav-table"><a href="#t-points">points</a></li><li class="nav-table"><a href="#t-users">users</a></li><li class="nav-table"><a href="#t-user_identities">user_identities</a></li><li class="nav-table"><a href="#t-checkbox_shifts">checkbox_shifts</a></li><li class="nav-table"><a href="#t-receipts">receipts</a></li><li class="nav-table"><a href="#t-receipt_items">receipt_items</a></li><li class="nav-table"><a href="#t-drinks">drinks</a></li><li class="nav-table"><a href="#t-menu_deployments">menu_deployments</a></li><li class="nav-table"><a href="#t-bonus_grants">bonus_grants</a></li><li class="nav-table"><a href="#t-wallets">wallets</a></li><li class="nav-table"><a href="#t-device_telemetry">device_telemetry</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-2-економіка-журнал-крамниця-маркет">2. Економіка: журнал, крамниця, маркет</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-2"><span class="nav-badge">ER</span>12 таблиць</a></summary><ul><li class="nav-table"><a href="#t-ledger_entries">ledger_entries</a></li><li class="nav-table"><a href="#t-item_defs">item_defs</a></li><li class="nav-table"><a href="#t-user_items">user_items</a></li><li class="nav-table"><a href="#t-crate_openings">crate_openings</a></li><li class="nav-table"><a href="#t-market_listings">market_listings</a></li><li class="nav-table"><a href="#t-market_trades">market_trades</a></li><li class="nav-table"><a href="#t-coin_transfers">coin_transfers</a></li><li class="nav-table"><a href="#t-redemptions">redemptions</a></li><li class="nav-table"><a href="#t-pos_discount_codes">pos_discount_codes</a></li><li class="nav-table"><a href="#t-quiz_profile_responses">quiz_profile_responses</a></li><li class="nav-table"><a href="#t-quiz_drink_responses">quiz_drink_responses</a></li><li class="nav-table"><a href="#t-repost_verifications">repost_verifications</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-3-кавенятка-ріст-догляд-гардероб">3. Кавенятка: ріст, догляд, гардероб</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-3"><span class="nav-badge">ER</span>5 таблиць</a></summary><ul><li class="nav-table"><a href="#t-plants">plants</a></li><li class="nav-table"><a href="#t-plant_stage_transitions">plant_stage_transitions</a></li><li class="nav-table"><a href="#t-wardrobe_sets">wardrobe_sets</a></li><li class="nav-table"><a href="#t-wardrobe_set_items">wardrobe_set_items</a></li><li class="nav-table"><a href="#t-chat_messages">chat_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-4-операційка-відео-здоровʼя-адмінка">4. Операційка: відео, здоровʼя, адмінка</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-4"><span class="nav-badge">ER</span>7 таблиць</a></summary><ul><li class="nav-table"><a href="#t-video_segments">video_segments</a></li><li class="nav-table"><a href="#t-video_events">video_events</a></li><li class="nav-table"><a href="#t-health_samples">health_samples</a></li><li class="nav-table"><a href="#t-problem_reports">problem_reports</a></li><li class="nav-table"><a href="#t-news_broadcasts">news_broadcasts</a></li><li class="nav-table"><a href="#t-admin_users">admin_users</a></li><li class="nav-table"><a href="#t-economy_params">economy_params</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-5-redis-що-саме-там-лежить">5. Redis: що саме там лежить</a></summary><ul><li class="nav-sub"><a href="#db-ключі">Ключі</a></li><li class="nav-sub"><a href="#db-канали-pub-sub">Канали pub/sub</a></li><li class="nav-sub"><a href="#db-чому-pub-sub-а-не-streams">Чому pub/sub, а не Streams</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-6-міграції-окремий-інструмент-не-сервіс">6. Міграції: окремий інструмент, не сервіс</a></summary><ul><li class="nav-sub"><a href="#db-рекомендація-dbmate">Рекомендація: dbmate</a></li><li class="nav-sub"><a href="#db-розкладка">Розкладка</a></li><li class="nav-sub"><a href="#db-правила-які-дешевше-прийняти-зараз">Правила, які дешевше прийняти зараз</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details open><summary><a href="#svc">Сервіси: хто де живе, як спілкується, як доводить, що це він</a></summary><ul><li class="nav-section"><details open><summary><a href="#svc-1-загальна-картина">1. Загальна картина</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-1"><span class="nav-badge">схема</span>Схема</a></li></ul></details></li><li class="nav-section"><a href="#svc-2-хто-де-крутиться-і-чому-саме-там">2. Хто де крутиться і чому саме там</a></li><li class="nav-section"><details open><summary><a href="#svc-3-автентифікація-кожна-стрілка-окремо">3. Автентифікація: кожна стрілка окремо</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#svc-гравець">Гравець</a></li><li class="nav-sub"><a href="#svc-вебсокет">Вебсокет</a></li><li class="nav-sub"><a href="#svc-кіоск">Кіоск</a></li><li class="nav-sub"><a href="#svc-checkbox-ми">Checkbox → ми</a></li><li class="nav-sub"><a href="#svc-ми-checkbox">Ми → Checkbox</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#svc-4-потоки-даних-які-варто-розуміти-цілком">4. Потоки даних, які варто розуміти цілком</a></summary><ul><li class="nav-sub"><a href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті">Продаж → бонус на екрані → бонус в акаунті</a></li><li class="nav-sub"><a href="#svc-оновлення-точки">Оновлення точки</a></li><li class="nav-sub"><a href="#svc-відео">Відео</a></li></ul></details></li><li class="nav-section"><a href="#svc-5-що-з-цього-реально-існує">5. Що з цього реально існує</a></li></ul></details></li></ul></nav>
+<main>
+<section class="doc" id="db">
+<header class="doc-head"><p class="doc-src">docs/db-schema.md</p><h1>Схема даних: Postgres і Redis</h1></header>
+<p>Стан на 15.09.2026. Це <strong>проєкт схеми</strong>, зведений з усіх чинних доків
+(<code>gamification_economy.md</code>, <code>gamification_ui.md</code>, <code>bush_graphics_customization.md</code>,
+<code>admin_panel.md</code>, <code>video.md</code>, <code>checkbox.md</code>, <code>urls.md</code>). У коді поки нема
+жодної таблиці — сервіси стоять заглушками, тому міняти тут дешево, а після
+першої міграції на проді вже ні.</p>
+<p>Діаграми — mermaid у цьому ж файлі: текст, який рендериться у вектор і
+правиться в дифі рядок за рядком. Окремої картинки, яку доведеться
+перемальовувати, свідомо немає. Для читання поза редактором цей файл
+разом із <code>services.md</code> збирається в <code>docs/data-map.html</code> — з меню до
+окремих таблиць (<code>npm run docs:map</code>).</p>
+<h2 id="db-0-наскрізні-рішення"><a class="anchor" href="#db-0-наскрізні-рішення" aria-hidden="true">#</a>0. Наскрізні рішення</h2>
+<h3 id="db-гроші-numeric-12-2-ігрові-валюти-integer"><a class="anchor" href="#db-гроші-numeric-12-2-ігрові-валюти-integer" aria-hidden="true">#</a>Гроші — <code>numeric(12,2)</code>, ігрові валюти — <code>integer</code></h3>
+<p>Гривня ніколи не <code>float</code>; монети й зерна цілі за визначенням (економіка
+оперує <code>round(маржа)</code>, <code>gamification_economy.md</code> §7).</p>
+<h3 id="db-баланс-і-журнал-одночасно"><a class="anchor" href="#db-баланс-і-журнал-одночасно" aria-hidden="true">#</a>Баланс і журнал одночасно</h3>
+<p><code>wallets</code> — швидкий баланс для UI, <code>ledger_entries</code> — незмінний журнал усіх
+рухів. Баланс завжди похідний і звіряється з журналом; розбіжність — це
+баг, який видно, а не тихо зіпсовані дані. Адмінка вимагає «історію
+транзакцій в справжній та ігровій валюті» (<code>admin_panel.md</code>) — саме журнал
+це й дає.</p>
+<h3 id="db-косметика-куща-в-jsonb-економіка-в-колонках"><a class="anchor" href="#db-косметика-куща-в-jsonb-економіка-в-колонках" aria-hidden="true">#</a>Косметика куща в <code>jsonb</code>, економіка в колонках</h3>
+<p>У <code>bush_graphics_customization.md</code> §9 стан кавенятка — великий документ
+(листя, гілки, плодові слоти з x/y і <code>sprite_id</code>). Він рендериться цілком і
+ніколи не питається по полю, тому лежить у <code>plants.appearance jsonb</code>. А
+стадія росту, лічильники препаратів, таймери й <code>last_watered_at</code> — звичайні
+колонки: вони гейтять економіку, перевіряються бекендом і потрапляють у
+звіти. Саме цю межу найлегше розмити пізніше «за компанію», тому вона
+записана явно.</p>
+<h3 id="db-ідемпотентність-на-кожному-вході-ззовні"><a class="anchor" href="#db-ідемпотентність-на-кожному-вході-ззовні" aria-hidden="true">#</a>Ідемпотентність на кожному вході ззовні</h3>
+<p>Вебхуки ПРРО, телеметрія з малини, заливка відеосегментів — усе має
+унікальний ключ від джерела: мережа на точці рветься, і повтор запиту не
+має подвоювати ні чек, ні бонус.</p>
+<h3 id="db-точка-текстовий-ключ-із-першого-дня"><a class="anchor" href="#db-точка-текстовий-ключ-із-першого-дня" aria-hidden="true">#</a>Точка — текстовий ключ із першого дня</h3>
+<p><code>point_id</code> відповідає <code>^[a-z0-9][a-z0-9-]{1,30}$</code> (<code>urls.md</code>). Не uuid: він
+їде в URL кіоска й у ключі R2.</p>
+<h2 id="db-1-ідентичність-і-продажі"><a class="anchor" href="#db-1-ідентичність-і-продажі" aria-hidden="true">#</a>1. Ідентичність і продажі</h2>
+<figure class="plate" id="db-diagram-1">
+  <figcaption class="plate-head"><span class="tag">ER</span><span class="plate-meta">11 таблиць нижче — з колонками й звʼязками</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+erDiagram
+    POINTS ||--o{ RECEIPTS : &quot;де продано&quot;
+    POINTS ||--o{ MENU_DEPLOYMENTS : &quot;яке меню&quot;
+    POINTS ||--o{ DEVICE_TELEMETRY : &quot;що шле залізо&quot;
+    USERS ||--o{ USER_IDENTITIES : &quot;google/apple&quot;
+    USERS ||--|| WALLETS : &quot;баланси&quot;
+    RECEIPTS ||--o{ RECEIPT_ITEMS : &quot;позиції чека&quot;
+    RECEIPTS ||--o| BONUS_GRANTS : &quot;нарахування за чек&quot;
+    CHECKBOX_SHIFTS ||--o{ RECEIPTS : &quot;у межах зміни&quot;
+    WEBHOOK_DELIVERIES ||--o| RECEIPTS : &quot;з якої доставки&quot;
+    DRINKS ||--o{ RECEIPT_ITEMS : &quot;system_code&quot;
+    USERS ||--o{ BONUS_GRANTS : &quot;хто заредімив&quot;
+
+    POINTS {
+        text id PK &quot;kyiv-01&quot;
+        text name
+        text address
+        text timezone
+        text status &quot;planned|live|paused&quot;
+        timestamptz created_at
+    }
+    USERS {
+        uuid id PK
+        citext nickname UK &quot;унікальний, автоген при реєстрації&quot;
+        citext email &quot;метч між провайдерами&quot;
+        timestamptz consent_at &quot;терми + обробка даних&quot;
+        text terms_version
+        timestamptz last_seen_at
+        timestamptz created_at
+    }
+    USER_IDENTITIES {
+        uuid id PK
+        uuid user_id FK
+        text provider &quot;google|apple&quot;
+        text subject UK &quot;sub від провайдера&quot;
+        timestamptz created_at
+    }
+    CHECKBOX_SHIFTS {
+        bigserial id PK
+        text point_id FK
+        uuid checkbox_shift_id UK
+        timestamptz opened_at
+        timestamptz closed_at
+        jsonb raw
+    }
+    RECEIPTS {
+        bigserial id PK
+        text point_id FK
+        uuid checkbox_receipt_id UK &quot;ідемпотентність&quot;
+        text fiscal_code
+        timestamptz fiscal_date
+        numeric total_sum
+        jsonb payments
+        text tax_url &quot;доказ обороту для орендодавця&quot;
+        bigint shift_id FK
+        jsonb raw
+        timestamptz created_at
+    }
+    RECEIPT_ITEMS {
+        bigserial id PK
+        bigint receipt_id FK
+        text system_code &quot;a034 / x034&quot;
+        text name
+        numeric qty
+        numeric price_uah
+        numeric sum_uah
+        boolean is_bonus_drink
+    }
+    DRINKS {
+        bigserial id PK
+        text system_code UK &quot;код у Checkbox&quot;
+        text name
+        text vol
+        numeric price_uah
+        int coins &quot;round(маржа x k)&quot;
+        int bonus_coins &quot;лише бонус-напої&quot;
+        text sprite
+        text cup
+        boolean active
+        int sort_order
+    }
+    MENU_DEPLOYMENTS {
+        bigserial id PK
+        text point_id FK
+        jsonb payload &quot;знімок цін і акції&quot;
+        text status &quot;queued|deploying|current|failed|history&quot;
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz deployed_at
+        text error
+    }
+    BONUS_GRANTS {
+        bigserial id PK
+        bigint receipt_id FK &quot;unique: один чек - одне нарахування&quot;
+        text point_id FK
+        int coins_yellow
+        jsonb items &quot;лутдроп, якщо випав&quot;
+        text claim_token UK &quot;у QR на екрані&quot;
+        timestamptz expires_at &quot;2 хв, gamification_ui.md&quot;
+        timestamptz claimed_at &quot;забрали на пристрій&quot;
+        uuid redeemed_by FK
+        timestamptz redeemed_at &quot;зарахували в акаунт&quot;
+        text status &quot;pending|claimed|redeemed|expired&quot;
+    }
+    WALLETS {
+        uuid user_id PK
+        int coins_yellow &quot;передаються між гравцями&quot;
+        int coins_silver &quot;НЕ передаються&quot;
+        int beans
+        timestamptz updated_at
+    }
+    DEVICE_TELEMETRY {
+        bigserial id PK
+        text point_id FK
+        text device &quot;pi|jetino|camera&quot;
+        text idem_key UK &quot;малина ретраїть зі збереженим ключем&quot;
+        timestamptz measured_at
+        jsonb metrics
+        timestamptz received_at
+    }</pre></div>
+</figure>
+<div class="dict"><article class="entity" id="t-points">
+  <header><h4>points</h4><span class="entity-count">6 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">kyiv-01</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">timezone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">planned|live|paused</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployments">menu_deployments</a><span class="rel-label">яке меню</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-device_telemetry">device_telemetry</a><span class="rel-label">що шле залізо</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_segments">video_segments</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-problem_reports">problem_reports</a><span class="rel-label">скарги з форми</span></li></ul>
+</article>
+<article class="entity" id="t-users">
+  <header><h4>users</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">nickname</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">унікальний, автоген при реєстрації</td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">метч між провайдерами</td></tr><tr><td class="c-name">consent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">терми + обробка даних</td></tr><tr><td class="c-name">terms_version</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-user_identities">user_identities</a><span class="rel-label">google/apple</span></li><li><span class="rel-card">→ 1</span><a href="#t-wallets">wallets</a><span class="rel-label">баланси</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">хто заредімив</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">кожен рух валюти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-user_items">user_items</a><span class="rel-label">склад</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-crate_openings">crate_openings</a><span class="rel-label">відкриття крейтів</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-market_listings">market_listings</a><span class="rel-label">продає</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-coin_transfers">coin_transfers</a><span class="rel-label">переказ жовтих</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemptions">redemptions</a><span class="rel-label">витрата зерен</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_profile_responses">quiz_profile_responses</a><span class="rel-label">анкета, одноразово</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-repost_verifications">repost_verifications</a><span class="rel-label">репости</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plants">plants</a><span class="rel-label">необмежено кавенят</span></li></ul>
+</article>
+<article class="entity" id="t-user_identities">
+  <header><h4>user_identities</h4><span class="entity-count">5 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">provider</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">google|apple</td></tr><tr><td class="c-name">subject</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">sub від провайдера</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">google/apple</span></li></ul>
+</article>
+<article class="entity" id="t-checkbox_shifts">
+  <header><h4>checkbox_shifts</h4><span class="entity-count">6 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">checkbox_shift_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">opened_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">closed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">raw</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">у межах зміни</span></li></ul>
+</article>
+<article class="entity" id="t-receipts">
+  <header><h4>receipts</h4><span class="entity-count">11 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">checkbox_receipt_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">ідемпотентність</td></tr><tr><td class="c-name">fiscal_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">fiscal_date</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">total_sum</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">payments</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">tax_url</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">доказ обороту для орендодавця</td></tr><tr><td class="c-name">shift_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">raw</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">нарахування за чек</span></li><li><span class="rel-card">← 1</span><a href="#t-checkbox_shifts">checkbox_shifts</a><span class="rel-label">у межах зміни</span></li><li><span class="rel-card">← 1</span><span>webhook_deliveries</span><span class="rel-label">з якої доставки</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-video_events">video_events</a><span class="rel-label">звід за таймстемпом</span></li></ul>
+</article>
+<article class="entity" id="t-receipt_items">
+  <header><h4>receipt_items</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">system_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">a034 / x034</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">qty</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sum_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">is_bonus_drink</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">← 1</span><a href="#t-drinks">drinks</a><span class="rel-label">system_code</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">про яке замовлення</span></li></ul>
+</article>
+<article class="entity" id="t-drinks">
+  <header><h4>drinks</h4><span class="entity-count">11 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">system_code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">код у Checkbox</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">vol</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">round(маржа x k)</td></tr><tr><td class="c-name">bonus_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">лише бонус-напої</td></tr><tr><td class="c-name">sprite</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cup</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sort_order</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">system_code</span></li></ul>
+</article>
+<article class="entity" id="t-menu_deployments">
+  <header><h4>menu_deployments</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">payload</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">знімок цін і акції</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">queued|deploying|current|failed|history</td></tr><tr><td class="c-name">created_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">deployed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">error</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">яке меню</span></li><li><span class="rel-card">← 1</span><a href="#t-admin_users">admin_users</a><span class="rel-label">хто викотив ціни</span></li></ul>
+</article>
+<article class="entity" id="t-bonus_grants">
+  <header><h4>bonus_grants</h4><span class="entity-count">11 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: один чек - одне нарахування</td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">items</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">лутдроп, якщо випав</td></tr><tr><td class="c-name">claim_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">у QR на екрані</td></tr><tr><td class="c-name">expires_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">2 хв, gamification_ui.md</td></tr><tr><td class="c-name">claimed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">забрали на пристрій</td></tr><tr><td class="c-name">redeemed_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">redeemed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">зарахували в акаунт</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">pending|claimed|redeemed|expired</td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">нарахування за чек</span></li><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">хто заредімив</span></li></ul>
+</article>
+<article class="entity" id="t-wallets">
+  <header><h4>wallets</h4><span class="entity-count">5 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">передаються між гравцями</td></tr><tr><td class="c-name">coins_silver</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">НЕ передаються</td></tr><tr><td class="c-name">beans</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">updated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">баланси</span></li></ul>
+</article>
+<article class="entity" id="t-device_telemetry">
+  <header><h4>device_telemetry</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">device</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">pi|jetino|camera</td></tr><tr><td class="c-name">idem_key</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">малина ретраїть зі збереженим ключем</td></tr><tr><td class="c-name">measured_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">metrics</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">received_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">що шле залізо</span></li></ul>
+</article></div>
+<p><code>BONUS_GRANTS</code> описує рівно той потік, що в <code>gamification_ui.md</code>: на екрані
+QR → скан забирає бонус на пристрій (<code>claimed_at</code>, з екрана зникає) →
+авторизація зараховує в акаунт (<code>redeemed_at</code>). Три стани, а не два, бо між
+ними користувач може закрити вкладку — і тоді бонус має протухнути за
+<code>expires_at</code>, а не висіти вічно.</p>
+<h2 id="db-2-економіка-журнал-крамниця-маркет"><a class="anchor" href="#db-2-економіка-журнал-крамниця-маркет" aria-hidden="true">#</a>2. Економіка: журнал, крамниця, маркет</h2>
+<figure class="plate" id="db-diagram-2">
+  <figcaption class="plate-head"><span class="tag">ER</span><span class="plate-meta">12 таблиць нижче — з колонками й звʼязками</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+erDiagram
+    USERS ||--o{ LEDGER_ENTRIES : &quot;кожен рух валюти&quot;
+    USERS ||--o{ USER_ITEMS : &quot;склад&quot;
+    USERS ||--o{ CRATE_OPENINGS : &quot;відкриття крейтів&quot;
+    USERS ||--o{ MARKET_LISTINGS : &quot;продає&quot;
+    USERS ||--o{ COIN_TRANSFERS : &quot;переказ жовтих&quot;
+    USERS ||--o{ REDEMPTIONS : &quot;витрата зерен&quot;
+    USERS ||--o{ QUIZ_DRINK_RESPONSES : &quot;квіз про напій&quot;
+    USERS ||--o| QUIZ_PROFILE_RESPONSES : &quot;анкета, одноразово&quot;
+    USERS ||--o{ REPOST_VERIFICATIONS : &quot;репости&quot;
+    ITEM_DEFS ||--o{ USER_ITEMS : &quot;каталог&quot;
+    USER_ITEMS ||--o| MARKET_LISTINGS : &quot;виставлений предмет&quot;
+    MARKET_LISTINGS ||--o| MARKET_TRADES : &quot;угода&quot;
+    CRATE_OPENINGS ||--o| USER_ITEMS : &quot;що випало&quot;
+    RECEIPT_ITEMS ||--o| QUIZ_DRINK_RESPONSES : &quot;про яке замовлення&quot;
+    REDEMPTIONS ||--o| POS_DISCOUNT_CODES : &quot;знижка на POS&quot;
+
+    LEDGER_ENTRIES {
+        bigserial id PK
+        uuid user_id FK
+        text currency &quot;yellow|silver|beans&quot;
+        int delta &quot;+ нарахування, - витрата&quot;
+        int balance_after &quot;звірка з wallets&quot;
+        text reason &quot;purchase|quiz|repost|crate|care|transfer|market|redeem|convert|admin&quot;
+        text ref_type
+        bigint ref_id
+        timestamptz created_at
+    }
+    ITEM_DEFS {
+        bigserial id PK
+        text code UK
+        text name
+        text slot &quot;head|body|feet|acc_1|acc_2&quot;
+        text tier &quot;common|uncommon|rare|epic&quot;
+        text sprite_id
+        int price_coins &quot;лише Common, gamification_ui.md&quot;
+        bigint season_id &quot;сезонні скіни - лише за грн&quot;
+        boolean active
+    }
+    USER_ITEMS {
+        bigserial id PK
+        uuid user_id FK
+        bigint item_def_id FK
+        text acquired_from &quot;crate|drop|shop|market|gift|bonus_drink&quot;
+        boolean locked &quot;замкнений у подарованому комплекті&quot;
+        bigint set_id FK
+        bigint listing_id FK
+        timestamptz acquired_at
+    }
+    CRATE_OPENINGS {
+        bigserial id PK
+        uuid user_id FK
+        text source &quot;coins|cash|bonus_drink|shadow_drop&quot;
+        text paid_currency
+        numeric paid_amount
+        text result_type &quot;item|coins&quot;
+        bigint result_item_id FK
+        int result_coins
+        text rolled_tier
+        timestamptz opened_at
+    }
+    MARKET_LISTINGS {
+        bigserial id PK
+        uuid seller_id FK
+        text kind &quot;item|plant&quot;
+        bigint user_item_id FK
+        uuid plant_id FK
+        int price_amount
+        text price_currency &quot;yellow|beans&quot;
+        numeric commission_pct &quot;10 одяг / до 2 кавенятко&quot;
+        text status &quot;active|sold|cancelled&quot;
+        timestamptz created_at
+    }
+    MARKET_TRADES {
+        bigserial id PK
+        bigint listing_id FK
+        uuid buyer_id FK
+        uuid seller_id FK
+        int gross
+        int commission &quot;згорає, нікому не йде&quot;
+        int net
+        text currency
+        timestamptz created_at
+    }
+    COIN_TRANSFERS {
+        bigserial id PK
+        uuid from_user FK
+        uuid to_user FK
+        int amount &quot;тільки yellow&quot;
+        timestamptz created_at
+    }
+    REDEMPTIONS {
+        bigserial id PK
+        uuid user_id FK
+        text kind &quot;coffee|merch|print|pos_discount|sapling|coins&quot;
+        int beans_spent
+        numeric cost_uah_actual &quot;для 10% ліміту бюджету&quot;
+        text status &quot;requested|approved|shipped|delivered|cancelled&quot;
+        text np_branch
+        text np_ttn
+        bigint evidence_event_id FK
+        timestamptz created_at
+    }
+    POS_DISCOUNT_CODES {
+        bigserial id PK
+        bigint redemption_id FK
+        uuid user_id FK
+        text code UK
+        numeric amount_uah
+        timestamptz issued_at
+        timestamptz used_at
+        bigint receipt_id FK
+    }
+    QUIZ_PROFILE_RESPONSES {
+        bigserial id PK
+        uuid user_id FK &quot;unique: анкета одноразова&quot;
+        jsonb answers
+        int coins_awarded
+        timestamptz created_at
+    }
+    QUIZ_DRINK_RESPONSES {
+        bigserial id PK
+        uuid user_id FK
+        bigint receipt_item_id FK
+        jsonb answers &quot;оцінки складників + чистота&quot;
+        text free_text
+        int coins_awarded
+        timestamptz created_at
+    }
+    REPOST_VERIFICATIONS {
+        bigserial id PK
+        uuid user_id FK
+        text network
+        text redirect_token UK
+        timestamptz clicked_at
+        timestamptz verified_at
+        int coins_awarded
+    }</pre></div>
+</figure>
+<div class="dict"><article class="entity" id="t-ledger_entries">
+  <header><h4>ledger_entries</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">currency</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">yellow|silver|beans</td></tr><tr><td class="c-name">delta</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">+ нарахування, - витрата</td></tr><tr><td class="c-name">balance_after</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">звірка з wallets</td></tr><tr><td class="c-name">reason</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">purchase|quiz|repost|crate|care|transfer|market|redeem|convert|admin</td></tr><tr><td class="c-name">ref_type</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ref_id</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">кожен рух валюти</span></li></ul>
+</article>
+<article class="entity" id="t-item_defs">
+  <header><h4>item_defs</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">head|body|feet|acc_1|acc_2</td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">common|uncommon|rare|epic</td></tr><tr><td class="c-name">sprite_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">лише Common, gamification_ui.md</td></tr><tr><td class="c-name">season_id</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note">сезонні скіни - лише за грн</td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-user_items">user_items</a><span class="rel-label">каталог</span></li></ul>
+</article>
+<article class="entity" id="t-user_items">
+  <header><h4>user_items</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">item_def_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">acquired_from</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">crate|drop|shop|market|gift|bonus_drink</td></tr><tr><td class="c-name">locked</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">замкнений у подарованому комплекті</td></tr><tr><td class="c-name">set_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">acquired_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">склад</span></li><li><span class="rel-card">← 1</span><a href="#t-item_defs">item_defs</a><span class="rel-label">каталог</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-market_listings">market_listings</a><span class="rel-label">виставлений предмет</span></li><li><span class="rel-card">← 1</span><a href="#t-crate_openings">crate_openings</a><span class="rel-label">що випало</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_set_items">wardrobe_set_items</a><span class="rel-label">який предмет у слоті</span></li></ul>
+</article>
+<article class="entity" id="t-crate_openings">
+  <header><h4>crate_openings</h4><span class="entity-count">10 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">source</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">coins|cash|bonus_drink|shadow_drop</td></tr><tr><td class="c-name">paid_currency</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">paid_amount</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">result_type</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">item|coins</td></tr><tr><td class="c-name">result_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">result_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">rolled_tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">opened_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">відкриття крейтів</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-user_items">user_items</a><span class="rel-label">що випало</span></li></ul>
+</article>
+<article class="entity" id="t-market_listings">
+  <header><h4>market_listings</h4><span class="entity-count">10 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">seller_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">item|plant</td></tr><tr><td class="c-name">user_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">price_amount</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_currency</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">yellow|beans</td></tr><tr><td class="c-name">commission_pct</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">10 одяг / до 2 кавенятко</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">active|sold|cancelled</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">продає</span></li><li><span class="rel-card">← 1</span><a href="#t-user_items">user_items</a><span class="rel-label">виставлений предмет</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-market_trades">market_trades</a><span class="rel-label">угода</span></li></ul>
+</article>
+<article class="entity" id="t-market_trades">
+  <header><h4>market_trades</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">buyer_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">seller_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">gross</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">commission</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">згорає, нікому не йде</td></tr><tr><td class="c-name">net</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">currency</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-market_listings">market_listings</a><span class="rel-label">угода</span></li></ul>
+</article>
+<article class="entity" id="t-coin_transfers">
+  <header><h4>coin_transfers</h4><span class="entity-count">5 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">from_user</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">to_user</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">amount</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">тільки yellow</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">переказ жовтих</span></li></ul>
+</article>
+<article class="entity" id="t-redemptions">
+  <header><h4>redemptions</h4><span class="entity-count">10 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">coffee|merch|print|pos_discount|sapling|coins</td></tr><tr><td class="c-name">beans_spent</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cost_uah_actual</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">для 10% ліміту бюджету</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">requested|approved|shipped|delivered|cancelled</td></tr><tr><td class="c-name">np_branch</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">np_ttn</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">evidence_event_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">витрата зерен</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-pos_discount_codes">pos_discount_codes</a><span class="rel-label">знижка на POS</span></li></ul>
+</article>
+<article class="entity" id="t-pos_discount_codes">
+  <header><h4>pos_discount_codes</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">redemption_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">amount_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">issued_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">used_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-redemptions">redemptions</a><span class="rel-label">знижка на POS</span></li></ul>
+</article>
+<article class="entity" id="t-quiz_profile_responses">
+  <header><h4>quiz_profile_responses</h4><span class="entity-count">5 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: анкета одноразова</td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">анкета, одноразово</span></li></ul>
+</article>
+<article class="entity" id="t-quiz_drink_responses">
+  <header><h4>quiz_drink_responses</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">оцінки складників + чистота</td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">← 1</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">про яке замовлення</span></li></ul>
+</article>
+<article class="entity" id="t-repost_verifications">
+  <header><h4>repost_verifications</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">network</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">redirect_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">clicked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">verified_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">репости</span></li></ul>
+</article></div>
+<p>Два правила економіки, які <strong>мають жити в схемі, а не лише в коді</strong>:</p>
+<ul>
+<li><code>coins_silver</code> не можна переказати. У <code>COIN_TRANSFERS</code> немає колонки
+валюти взагалі — таблиця за визначенням тільки про жовті. Спроба
+переказати срібні тоді не «валідація, яку забули», а неможливий стан.</li>
+<li>Предмет у подарованому комплекті не продається. <code>USER_ITEMS.locked</code> +
+часткові індекси: виставити можна лише те, де <code>locked = false</code>.</li>
+</ul>
+<h2 id="db-3-кавенятка-ріст-догляд-гардероб"><a class="anchor" href="#db-3-кавенятка-ріст-догляд-гардероб" aria-hidden="true">#</a>3. Кавенятка: ріст, догляд, гардероб</h2>
+<figure class="plate" id="db-diagram-3">
+  <figcaption class="plate-head"><span class="tag">ER</span><span class="plate-meta">5 таблиць нижче — з колонками й звʼязками</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+erDiagram
+    USERS ||--o{ PLANTS : &quot;необмежено кавенят&quot;
+    PLANTS ||--o{ PLANT_STAGE_TRANSITIONS : &quot;історія росту&quot;
+    PLANTS ||--o{ WARDROBE_SETS : &quot;подаровані комплекти&quot;
+    PLANTS ||--o{ CHAT_MESSAGES : &quot;AI-чат&quot;
+    WARDROBE_SETS ||--o{ WARDROBE_SET_ITEMS : &quot;5 слотів&quot;
+    USER_ITEMS ||--o| WARDROBE_SET_ITEMS : &quot;який предмет у слоті&quot;
+    PLANTS ||--o| WARDROBE_SETS : &quot;зараз одягнений&quot;
+
+    PLANTS {
+        uuid id PK
+        uuid owner_id FK
+        text name
+        smallint growth_stage &quot;0..10&quot;
+        smallint face_set_id &quot;1..5, назавжди&quot;
+        timestamptz last_stage_transition_at &quot;гейт: 1 перехід на добу&quot;
+        timestamptz last_watered_at &quot;mood рахується, не зберігається&quot;
+        int water_bucket_liters
+        int compost_kg
+        int fertilizer_kg
+        int insecticide_bottles
+        text cycle_phase &quot;initial|regrowth&quot;
+        int lifetime_beans_gifted
+        uuid worn_set_id FK
+        bigint listing_id FK &quot;заморожене на маркеті&quot;
+        jsonb appearance &quot;листя/гілки/плоди - див. §0&quot;
+        timestamptz created_at
+    }
+    PLANT_STAGE_TRANSITIONS {
+        bigserial id PK
+        uuid plant_id FK
+        smallint from_stage
+        smallint to_stage
+        text consumed &quot;water|compost|fertilizer|insecticide&quot;
+        int cost_coins
+        timestamptz created_at
+    }
+    WARDROBE_SETS {
+        bigserial id PK
+        uuid plant_id FK
+        text tier &quot;за найслабшим предметом&quot;
+        boolean complete
+        boolean gifted &quot;зерна нараховуються тут&quot;
+        timestamptz gifted_at
+        int beans_awarded
+    }
+    WARDROBE_SET_ITEMS {
+        bigserial id PK
+        bigint set_id FK
+        text slot &quot;head|body|feet|acc_1|acc_2&quot;
+        bigint user_item_id FK
+    }
+    CHAT_MESSAGES {
+        bigserial id PK
+        uuid plant_id FK
+        uuid user_id FK
+        text role &quot;user|plant|system&quot;
+        text body
+        int coins_charged &quot;1 монета, перші 10 безкоштовні&quot;
+        int tokens_in
+        int tokens_out
+        timestamptz created_at
+    }</pre></div>
+</figure>
+<div class="dict"><article class="entity" id="t-plants">
+  <header><h4>plants</h4><span class="entity-count">17 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">1..5, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">water_bucket_liters</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">compost_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">fertilizer_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">insecticide_bottles</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
+</article>
+<article class="entity" id="t-plant_stage_transitions">
+  <header><h4>plant_stage_transitions</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">from_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">to_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">consumed</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">water|compost|fertilizer|insecticide</td></tr><tr><td class="c-name">cost_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">історія росту</span></li></ul>
+</article>
+<article class="entity" id="t-wardrobe_sets">
+  <header><h4>wardrobe_sets</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">за найслабшим предметом</td></tr><tr><td class="c-name">complete</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">gifted</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">зерна нараховуються тут</td></tr><tr><td class="c-name">gifted_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">beans_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_set_items">wardrobe_set_items</a><span class="rel-label">5 слотів</span></li><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">зараз одягнений</span></li></ul>
+</article>
+<article class="entity" id="t-wardrobe_set_items">
+  <header><h4>wardrobe_set_items</h4><span class="entity-count">4 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">set_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">head|body|feet|acc_1|acc_2</td></tr><tr><td class="c-name">user_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">5 слотів</span></li><li><span class="rel-card">← 1</span><a href="#t-user_items">user_items</a><span class="rel-label">який предмет у слоті</span></li></ul>
+</article>
+<article class="entity" id="t-chat_messages">
+  <header><h4>chat_messages</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">role</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">user|plant|system</td></tr><tr><td class="c-name">body</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_charged</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">1 монета, перші 10 безкоштовні</td></tr><tr><td class="c-name">tokens_in</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">tokens_out</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">AI-чат</span></li></ul>
+</article></div>
+<p><code>PLANT_STAGE_TRANSITIONS</code> виглядає надлишковою поруч із
+<code>plants.last_stage_transition_at</code>, але саме вона робить перевіряємим
+головний гейт економіки — «не більше одного переходу на добу»
+(<code>gamification_economy.md</code> §3.1) — і дає адмінці історію без реконструкції
+з журналу валют. <code>unique (plant_id, to_stage)</code> заразом робить подвійний
+перехід неможливим, а не лише незручним.</p>
+<p><code>WARDROBE_SET_ITEMS</code> окремою таблицею, а не пʼятьма колонками: слоти
+перелічені в доку як 5, але «acc_3» коштуватиме міграції даних, а не
+рядка в enum.</p>
+<h2 id="db-4-операційка-відео-здоровʼя-адмінка"><a class="anchor" href="#db-4-операційка-відео-здоровʼя-адмінка" aria-hidden="true">#</a>4. Операційка: відео, здоровʼя, адмінка</h2>
+<figure class="plate" id="db-diagram-4">
+  <figcaption class="plate-head"><span class="tag">ER</span><span class="plate-meta">7 таблиць нижче — з колонками й звʼязками</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+erDiagram
+    POINTS ||--o{ VIDEO_SEGMENTS : &quot;запис&quot;
+    VIDEO_SEGMENTS ||--o{ VIDEO_EVENTS : &quot;що знайшов воркер&quot;
+    RECEIPTS ||--o| VIDEO_EVENTS : &quot;звід за таймстемпом&quot;
+    POINTS ||--o{ PROBLEM_REPORTS : &quot;скарги з форми&quot;
+    ADMIN_USERS ||--o{ MENU_DEPLOYMENTS : &quot;хто викотив ціни&quot;
+    ADMIN_USERS ||--o{ NEWS_BROADCASTS : &quot;розсилка в чат кавенятка&quot;
+
+    VIDEO_SEGMENTS {
+        bigserial id PK
+        text point_id FK
+        text camera_id
+        text r2_key UK &quot;ідемпотентність заливки&quot;
+        timestamptz started_at
+        int duration_ms
+        bigint bytes
+        text status &quot;pending|processing|done|failed|expired&quot;
+        smallint attempts
+        timestamptz locked_at &quot;черга через SKIP LOCKED&quot;
+        timestamptz processed_at
+        text error
+    }
+    VIDEO_EVENTS {
+        bigserial id PK
+        text point_id FK
+        text kind &quot;approach|queue|idle&quot;
+        timestamptz started_at
+        timestamptz ended_at
+        bigint segment_id FK
+        bigint receipt_id FK &quot;ідентичність з чека, не з обличчя&quot;
+        jsonb meta &quot;GIN-індекс&quot;
+    }
+    HEALTH_SAMPLES {
+        bigserial id PK
+        text target &quot;service:api|frontend:client|check:webhook|point:kyiv-01&quot;
+        timestamptz bucket_start &quot;півгодини, тиждень історії&quot;
+        boolean ok
+        text detail &quot;тултіп в адмінці&quot;
+        int samples
+    }
+    PROBLEM_REPORTS {
+        bigserial id PK
+        uuid user_id FK
+        text point_id FK
+        text categories &quot;масив: кавомашина, монітор, сайт, матеріали, ідея&quot;
+        text body
+        text image_r2_key
+        text status &quot;new|read|closed&quot;
+        timestamptz created_at
+    }
+    NEWS_BROADCASTS {
+        bigserial id PK
+        uuid created_by FK
+        text title
+        text body
+        text audience
+        timestamptz sent_at
+    }
+    ADMIN_USERS {
+        uuid id PK
+        citext email UK
+        text role &quot;owner|ops&quot;
+        timestamptz last_login_at
+    }
+    ECONOMY_PARAMS {
+        text key PK &quot;k_coins|bean_rate|rarity|crate_price&quot;
+        jsonb value
+        uuid updated_by FK
+        timestamptz updated_at
+    }</pre></div>
+</figure>
+<div class="dict"><article class="entity" id="t-video_segments">
+  <header><h4>video_segments</h4><span class="entity-count">12 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">camera_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">r2_key</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">ідемпотентність заливки</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">duration_ms</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">bytes</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">pending|processing|done|failed|expired</td></tr><tr><td class="c-name">attempts</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">locked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">черга через SKIP LOCKED</td></tr><tr><td class="c-name">processed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">error</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_events">video_events</a><span class="rel-label">що знайшов воркер</span></li></ul>
+</article>
+<article class="entity" id="t-video_events">
+  <header><h4>video_events</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">approach|queue|idle</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ended_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">segment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">ідентичність з чека, не з обличчя</td></tr><tr><td class="c-name">meta</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">GIN-індекс</td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-video_segments">video_segments</a><span class="rel-label">що знайшов воркер</span></li><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">звід за таймстемпом</span></li></ul>
+</article>
+<article class="entity" id="t-health_samples">
+  <header><h4>health_samples</h4><span class="entity-count">6 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">target</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">service:api|frontend:client|check:webhook|point:kyiv-01</td></tr><tr><td class="c-name">bucket_start</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">півгодини, тиждень історії</td></tr><tr><td class="c-name">ok</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">detail</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">тултіп в адмінці</td></tr><tr><td class="c-name">samples</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  
+</article>
+<article class="entity" id="t-problem_reports">
+  <header><h4>problem_reports</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">categories</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">масив: кавомашина, монітор, сайт, матеріали, ідея</td></tr><tr><td class="c-name">body</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">image_r2_key</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">new|read|closed</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">скарги з форми</span></li></ul>
+</article>
+<article class="entity" id="t-news_broadcasts">
+  <header><h4>news_broadcasts</h4><span class="entity-count">6 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">created_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">title</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">body</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">audience</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-admin_users">admin_users</a><span class="rel-label">розсилка в чат кавенятка</span></li></ul>
+</article>
+<article class="entity" id="t-admin_users">
+  <header><h4>admin_users</h4><span class="entity-count">4 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">role</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">owner|ops</td></tr><tr><td class="c-name">last_login_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployments">menu_deployments</a><span class="rel-label">хто викотив ціни</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-news_broadcasts">news_broadcasts</a><span class="rel-label">розсилка в чат кавенятка</span></li></ul>
+</article>
+<article class="entity" id="t-economy_params">
+  <header><h4>economy_params</h4><span class="entity-count">4 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">key</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">k_coins|bean_rate|rarity|crate_price</td></tr><tr><td class="c-name">value</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">updated_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">updated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  
+</article></div>
+<p><code>VIDEO_SEGMENTS</code>/<code>VIDEO_EVENTS</code> — дослівно зі схеми у <code>video.md</code>, включно з
+чергою через <code>SKIP LOCKED</code>. <code>HEALTH_SAMPLES</code> одразу зберігається
+півгодинними відрами: адмінка просить тиждень історії з такою
+гранулярністю, і зберігати сирі проби, щоб потім їх агрегувати, немає
+навіщо — старше за тиждень усе одно затирається.</p>
+<h2 id="db-5-redis-що-саме-там-лежить"><a class="anchor" href="#db-5-redis-що-саме-там-лежить" aria-hidden="true">#</a>5. Redis: що саме там лежить</h2>
+<p>Redis тут — <strong>не база</strong>. Втрата всього кейспейсу має коштувати
+перевідкриття сесій і холодний кеш, і нічого більше. Усе, втрата чого
+означала б втрачений продаж або бонус, живе в Postgres.</p>
+<h3 id="db-ключі"><a class="anchor" href="#db-ключі" aria-hidden="true">#</a>Ключі</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Ключ</th>
+<th>Тип</th>
+<th>TTL</th>
+<th>Хто пише</th>
+<th>Хто читає</th>
+<th>Навіщо</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>sess:&lt;token&gt;</code></td>
+<td>hash</td>
+<td>30 діб</td>
+<td>api</td>
+<td>api</td>
+<td>сесія гравця після OAuth</td>
+</tr>
+<tr>
+<td><code>sess:admin:&lt;token&gt;</code></td>
+<td>hash</td>
+<td>12 год</td>
+<td>api</td>
+<td>api</td>
+<td>окремий, коротший строк для адмінки</td>
+</tr>
+<tr>
+<td><code>ws:ticket:&lt;uuid&gt;</code></td>
+<td>string</td>
+<td>60 с</td>
+<td>api</td>
+<td>ws</td>
+<td>одноразовий квиток: вебсокет не бачить кук</td>
+</tr>
+<tr>
+<td><code>rl:&lt;scope&gt;:&lt;id&gt;</code></td>
+<td>string лічильник</td>
+<td>60 с</td>
+<td>api</td>
+<td>api</td>
+<td>rate limit (чат — без ліміту, решта — є)</td>
+</tr>
+<tr>
+<td><code>bonus:claim:&lt;token&gt;</code></td>
+<td>hash</td>
+<td>120 с</td>
+<td>api</td>
+<td>api</td>
+<td>вікно сканування QR, дзеркало <code>bonus_grants</code></td>
+</tr>
+<tr>
+<td><code>menu:&lt;point&gt;</code></td>
+<td>string (JSON)</td>
+<td>60 с</td>
+<td>api</td>
+<td>api, pos-worker</td>
+<td>кеш меню, щоб кіоск не бив у Postgres</td>
+</tr>
+<tr>
+<td><code>idem:&lt;scope&gt;:&lt;key&gt;</code></td>
+<td>string</td>
+<td>24 год</td>
+<td>api</td>
+<td>api</td>
+<td>ідемпотентність телеметрії й заливок</td>
+</tr>
+<tr>
+<td><code>lock:&lt;job&gt;</code></td>
+<td>string <code>SET NX PX</code></td>
+<td>за роботою</td>
+<td>overseer, worker</td>
+<td>вони ж</td>
+<td>щоб дві копії крона не робили те саме</td>
+</tr>
+<tr>
+<td><code>health:last:&lt;target&gt;</code></td>
+<td>hash</td>
+<td>1 год</td>
+<td>overseer</td>
+<td>api (адмінка)</td>
+<td>останній стан без запиту в Postgres</td>
+</tr>
+</tbody></table>
+</div>
+<h3 id="db-канали-pub-sub"><a class="anchor" href="#db-канали-pub-sub" aria-hidden="true">#</a>Канали pub/sub</h3>
+<p>Доставка «в кращому разі», без збереження.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Канал</th>
+<th>Публікує</th>
+<th>Слухає</th>
+<th>Подія</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>point:&lt;id&gt;</code></td>
+<td>checkbox, api</td>
+<td>ws</td>
+<td>чек фіскалізовано, бонус нарахований, оновлення меню</td>
+</tr>
+<tr>
+<td><code>user:&lt;uuid&gt;</code></td>
+<td>api</td>
+<td>ws</td>
+<td>бонус зарахований, продаж на маркеті, срібні монети, розсилка</td>
+</tr>
+<tr>
+<td><code>admin:health</code></td>
+<td>overseer</td>
+<td>ws</td>
+<td>зміна стану сервісу для живої адмінки</td>
+</tr>
+</tbody></table>
+</div>
+<h3 id="db-чому-pub-sub-а-не-streams"><a class="anchor" href="#db-чому-pub-sub-а-не-streams" aria-hidden="true">#</a>Чому pub/sub, а не Streams</h3>
+<p>Втрата повідомлення тут не втрачає дані:
+і кіоск, і застосунок при (пере)підключенні витягують свій стан із <code>api</code>
+одним запитом, а джерело істини — Postgres. Там, де втрата була б дірою в
+архіві (відеосегменти), черга свідомо зроблена таблицею з <code>SKIP LOCKED</code>
+(<code>video.md</code>), а не Redis-ом. Окремий брокер на цих обсягах — залежність,
+яку доведеться доглядати, без задачі, яку вона вирішує.</p>
+<h2 id="db-6-міграції-окремий-інструмент-не-сервіс"><a class="anchor" href="#db-6-міграції-окремий-інструмент-не-сервіс" aria-hidden="true">#</a>6. Міграції: окремий інструмент, не сервіс</h2>
+<p>Вимога: міграції <strong>не всередині жодного сервісу</strong>. Причина не смак:
+зараз <code>api</code>, <code>ws</code>, <code>checkbox</code> і <code>overseer</code> стартують одночасно в
+docker-compose, і якщо міграції живуть у котромусь із них, то (а) порядок
+старту вирішує, хто першим накотить схему, (б) два екземпляри одного
+сервісу накочують паралельно, (в) відкотити сервіс означає відкотити
+міграції разом із ним.</p>
+<h3 id="db-рекомендація-dbmate"><a class="anchor" href="#db-рекомендація-dbmate" aria-hidden="true">#</a>Рекомендація: <strong>dbmate</strong></h3>
+<p>Один статичний Go-бінарник (~10 МБ), чистий SQL, нічого не знає про
+Node. Запускається окремим одноразовим контейнером, виходить — і все.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>dbmate</th>
+<th>node-pg-migrate</th>
+<th>Atlas</th>
+<th>Flyway/Liquibase</th>
+<th>Sqitch</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Окремо від сервісів</td>
+<td>✅ бінарник</td>
+<td>⚠️ тягне Node-залежності</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Формат</td>
+<td>чистий SQL</td>
+<td>JS або SQL</td>
+<td>HCL/SQL, декларативно</td>
+<td>SQL/XML</td>
+<td>SQL + граф залежностей</td>
+</tr>
+<tr>
+<td>Вага в CI</td>
+<td>~10 МБ</td>
+<td>образ Node</td>
+<td>~30 МБ</td>
+<td>JVM ~200 МБ</td>
+<td>Perl</td>
+</tr>
+<tr>
+<td>Down-міграції</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️ інша модель</td>
+<td>платно (Teams)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Дамп схеми в git</td>
+<td>✅ вбудовано</td>
+<td>ні</td>
+<td>✅</td>
+<td>ні</td>
+<td>ні</td>
+</tr>
+<tr>
+<td>Навчання</td>
+<td>година</td>
+<td>година</td>
+<td>день</td>
+<td>день</td>
+<td>день</td>
+</tr>
+</tbody></table>
+</div>
+<p><code>node-pg-migrate</code> — очевидний «залишитись у Node», але тоді міграції знову
+поруч із сервісним <code>package.json</code>, і спокуса імпортнути з коду сервісу
+зʼявиться сама. <code>Atlas</code> кращий, коли схема декларативна й потрібен
+drift-detection — це наступний крок, не перший. JVM-інструменти на
+дроплеті за $24 — невиправдана вага.</p>
+<h3 id="db-розкладка"><a class="anchor" href="#db-розкладка" aria-hidden="true">#</a>Розкладка</h3>
+<pre><code>db/
+├── migrations/
+│   ├── 20260915120000_points_and_users.sql
+│   ├── 20260915120500_receipts_from_checkbox.sql
+│   └── …                       -- -- migrate:up / -- migrate:down у кожному
+├── schema.sql                  -- дамп, що комітиться: диф схеми видно в рев&#39;ю
+└── Dockerfile                  -- FROM ghcr.io/amacneil/dbmate
+</code></pre>
+<pre><code class="language-yaml"># docker-compose.yml
+  migrate:
+    build: ./db
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://…@postgres:5432/extrovert?sslmode=disable
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: [&quot;up&quot;]
+    restart: &quot;no&quot;          # одноразова робота, не сервіс
+
+  api:
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+</code></pre>
+<h3 id="db-правила-які-дешевше-прийняти-зараз"><a class="anchor" href="#db-правила-які-дешевше-прийняти-зараз" aria-hidden="true">#</a>Правила, які дешевше прийняти зараз</h3>
+<ol>
+<li><strong>Expand → migrate → contract.</strong> Нова колонка додається <code>nullable</code>,
+код навчається її писати, дані добиваються, і лише наступним релізом
+вона стає <code>not null</code>. Одночасна зміна схеми й коду означає, що відкат
+коду ламає базу.</li>
+<li><strong>Жодного <code>drop</code>/<code>rename</code> у тому ж релізі, що й код, який це потребує.</strong>
+Видалення — окремим, пізнішим релізом, коли відкочуватись уже нема куди.</li>
+<li><strong><code>schema.sql</code> комітиться.</strong> Рев&#39;ю читає диф схеми, а не перебирає
+міграції очима.</li>
+<li><strong>CI: накотити на чисту базу, потім накотити ще раз.</strong> Друге накочення
+має бути no-op — це ловить міграції, які не ідемпотентні.</li>
+<li><strong>Перший тестовий відкат — одразу</strong>, як і з бекапами (<code>video.md</code>):
+<code>dbmate down</code> на стейджі до того, як він знадобиться на проді.</li>
+</ol>
+
+</section>
+<section class="doc" id="svc">
+<header class="doc-head"><p class="doc-src">docs/services.md</p><h1>Сервіси: хто де живе, як спілкується, як доводить, що це він</h1></header>
+<p>Стан на 15.09.2026. <code>stack.md</code> описує задум у двох абзацах — тут повна
+картина під те, що вже вирішено доками гейміфікації, адмінки й відео.
+Половина з цього ще не написана: що саме заглушка, позначено в §5.</p>
+<h2 id="svc-1-загальна-картина"><a class="anchor" href="#svc-1-загальна-картина" aria-hidden="true">#</a>1. Загальна картина</h2>
+<figure class="plate" id="svc-diagram-1">
+  <figcaption class="plate-head"><span class="tag">Схема</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+graph TB
+    subgraph edge[&quot;Точка (Raspberry Pi, /home/pi/extrovert)&quot;]
+        KIOSK[&quot;kiosk&lt;br/&gt;pos-native, C+GLES2&lt;br/&gt;dispmanx, без X&quot;]
+        UPD[&quot;updater&lt;br/&gt;оновлює стек сам&quot;]
+        REC[&quot;recorder&lt;br/&gt;ffmpeg -c copy (план)&quot;]
+        SUP[&quot;supervisor&quot;]
+        SUP --- KIOSK
+        SUP --- UPD
+        SUP --- REC
+    end
+
+    subgraph cf[&quot;Cloudflare Workers (статика + edge)&quot;]
+        POSW[&quot;pos worker&lt;br/&gt;/p/point, меню з R2&quot;]
+        CLIENT[&quot;client&lt;br/&gt;React SPA, гравець&quot;]
+    end
+
+    subgraph pub[&quot;Дроплет public (2 vCPU / 4 ГБ)&quot;]
+        API[&quot;api :3001&lt;br/&gt;REST&quot;]
+        WS[&quot;ws :3002&lt;br/&gt;вебсокет&quot;]
+        CB[&quot;checkbox :3003&lt;br/&gt;вебхук ПРРО&quot;]
+        OVS[&quot;overseer&lt;br/&gt;телеграм, лупа&quot;]
+        ADMIN[&quot;admin&lt;br/&gt;React + amCharts5&quot;]
+        PG[(&quot;Postgres&quot;)]
+        RD[(&quot;Redis&quot;)]
+        GT[&quot;GlitchTip&quot;]
+    end
+
+    subgraph ana[&quot;Дроплет analysis (1 vCPU / 2 ГБ, без публічних портів)&quot;]
+        WRK[&quot;worker&lt;br/&gt;детекція 2 fps&quot;]
+    end
+
+    subgraph r2[&quot;Cloudflare R2&quot;]
+        R2M[&quot;menu + releases&quot;]
+        R2V[&quot;video 7 діб&quot;]
+        R2E[&quot;evidence&quot;]
+    end
+
+    subgraph ext[&quot;Зовнішні&quot;]
+        CBAPI[&quot;Checkbox API&lt;br/&gt;api.checkbox.ua&quot;]
+        OAUTH[&quot;Google / Apple&quot;]
+        MONO[&quot;mono pay&quot;]
+        NP[&quot;Нова Пошта&quot;]
+        TG[&quot;Telegram&quot;]
+    end
+
+    KIOSK --&gt;|&quot;GET меню, 60 с&quot;| POSW
+    KIOSK --&gt;|&quot;телеметрія, ідемпотентно&quot;| API
+    UPD --&gt;|&quot;маніфест + tar.gz&quot;| R2M
+    REC --&gt;|&quot;presigned PUT&quot;| R2V
+    POSW --&gt; R2M
+    CLIENT --&gt;|&quot;REST + Bearer&quot;| API
+    CLIENT --&gt;|&quot;wss, одноразовий квиток&quot;| WS
+    ADMIN --&gt;|&quot;REST, окрема сесія&quot;| API
+    CBAPI --&gt;|&quot;вебхук, HMAC&quot;| CB
+    CB --&gt;|&quot;логін касира - токен&quot;| CBAPI
+    CB --&gt; PG
+    CB --&gt;|&quot;publish point:id&quot;| RD
+    API --&gt; PG
+    API --&gt; RD
+    WS --&gt;|&quot;subscribe&quot;| RD
+    OVS --&gt; PG
+    OVS --&gt; TG
+    WRK --&gt;|&quot;SKIP LOCKED&quot;| PG
+    WRK --&gt; R2V
+    WRK --&gt; R2E
+    CLIENT --&gt;|&quot;логін&quot;| OAUTH
+    CLIENT --&gt;|&quot;скіни, крейти&quot;| MONO
+    API --&gt;|&quot;відправки&quot;| NP
+    API -.-&gt; GT
+    CB -.-&gt; GT
+    WS -.-&gt; GT
+    WRK -.-&gt; GT</pre></div>
+</figure>
+<h2 id="svc-2-хто-де-крутиться-і-чому-саме-там"><a class="anchor" href="#svc-2-хто-де-крутиться-і-чому-саме-там" aria-hidden="true">#</a>2. Хто де крутиться і чому саме там</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Що</th>
+<th>Де</th>
+<th>Чому не деінде</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kiosk</code>, <code>updater</code>, <code>recorder</code></td>
+<td>Raspberry Pi на точці</td>
+<td>екран і камера фізично тут; запис має пережити обрив звʼязку</td>
+</tr>
+<tr>
+<td><code>pos worker</code>, <code>client</code></td>
+<td>Cloudflare Workers</td>
+<td>статика, нуль обслуговування, близько до користувача</td>
+</tr>
+<tr>
+<td><code>api</code>, <code>ws</code>, <code>checkbox</code>, <code>overseer</code>, <code>admin</code></td>
+<td>дроплет <code>public</code></td>
+<td>усе, що має публічний порт і потребує стану</td>
+</tr>
+<tr>
+<td><code>worker</code> (відео)</td>
+<td>дроплет <code>analysis</code></td>
+<td>нестабільне навантаження <strong>фізично</strong> не має дотягуватись до кіоска (<code>video.md</code>)</td>
+</tr>
+<tr>
+<td>Postgres, Redis</td>
+<td>дроплет <code>public</code>, лише петля</td>
+<td>керована база відкладена; умови переїзду — <code>video.md</code></td>
+</tr>
+<tr>
+<td>відео, меню, релізи</td>
+<td>R2</td>
+<td>вихідний трафік безкоштовний, lifecycle робить ротацію за нас</td>
+</tr>
+</tbody></table>
+</div>
+<p><code>admin</code> свідомо на <code>public</code>, а не на Workers: їй потрібні довгі запити до
+Postgres і закешовані агрегати, а не edge-роздача.</p>
+<h2 id="svc-3-автентифікація-кожна-стрілка-окремо"><a class="anchor" href="#svc-3-автентифікація-кожна-стрілка-окремо" aria-hidden="true">#</a>3. Автентифікація: кожна стрілка окремо</h2>
+<figure class="plate" id="svc-diagram-2">
+  <figcaption class="plate-head"><span class="tag">Схема</span></figcaption>
+  <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
+graph LR
+    subgraph who[&quot;Хто&quot;]
+        P[&quot;гравець&quot;]
+        A[&quot;адмін&quot;]
+        K[&quot;кіоск на точці&quot;]
+        CBX[&quot;Checkbox&quot;]
+    end
+
+    P --&gt;|&quot;1 OAuth Google/Apple&quot;| API1[&quot;api&quot;]
+    API1 --&gt;|&quot;2 сесійний токен, Redis sess:&quot;| P
+    P --&gt;|&quot;3 Bearer до REST&quot;| API1
+    P --&gt;|&quot;4 квиток на 60 с - wss&quot;| WS1[&quot;ws&quot;]
+    A --&gt;|&quot;окрема сесія sess:admin:, 12 год&quot;| API1
+    K --&gt;|&quot;токен пристрою з config/env&quot;| API1
+    CBX --&gt;|&quot;HMAC-SHA256 тіла&quot;| CB1[&quot;checkbox&quot;]
+    CB1 --&gt;|&quot;логін-пароль касира - токен у памʼяті&quot;| CBAPI1[&quot;api.checkbox.ua&quot;]</pre></div>
+</figure>
+<h3 id="svc-гравець"><a class="anchor" href="#svc-гравець" aria-hidden="true">#</a>Гравець</h3>
+<p>Логін лише через Google/Apple (<code>gamification_ui.md</code>), метч за email між
+провайдерами — тому <code>user_identities</code> окремою таблицею, а не двома
+колонками в <code>users</code>. Пароля в нас немає взагалі; це не спрощення, а
+свідоме зняття з себе зберігання секретів.</p>
+<h3 id="svc-вебсокет"><a class="anchor" href="#svc-вебсокет" aria-hidden="true">#</a>Вебсокет</h3>
+<p>Браузер не дає поставити заголовок на <code>WebSocket</code>, а куки через субдомен —
+це CORS і SameSite там, де їх не хочеться. Тому <code>api</code> видає одноразовий
+квиток (<code>ws:ticket:&lt;uuid&gt;</code>, 60 с, TTL у Redis), клієнт підставляє його в
+URL, <code>ws</code> обмінює на <code>user_id</code> і одразу видаляє.</p>
+<h3 id="svc-кіоск"><a class="anchor" href="#svc-кіоск" aria-hidden="true">#</a>Кіоск</h3>
+<p>Меню читає публічно (воно й так публічне — висить на екрані). Токен
+пристрою потрібен рівно для одного: телеметрії й скарг, тобто запису.
+Лежить у <code>config/env</code>, переживає оновлення, відкликається зміною на точці —
+тому і не вшивається в бінарник.</p>
+<h3 id="svc-checkbox-ми"><a class="anchor" href="#svc-checkbox-ми" aria-hidden="true">#</a>Checkbox → ми</h3>
+<p><code>base64(HmacSHA256(key, тіло))</code>, перевіряти обовʼязково: без цього будь-хто
+накрутить собі бонуси підробленими «продажами» (<code>checkbox.md</code>). Ключ віддає
+сам Checkbox при реєстрації вебхука.</p>
+<h3 id="svc-ми-checkbox"><a class="anchor" href="#svc-ми-checkbox" aria-hidden="true">#</a>Ми → Checkbox</h3>
+<p>Уточнено 15.09.2026: <strong>усі методи — на одному
+<code>api.checkbox.ua</code></strong>, окремого домену для товарів немає. Авторизація — логін
+і пароль касира в обмін на токен; токен тримаємо <strong>в памʼяті</strong> й
+перевипускаємо лише коли прилетіла помилка авторизації, а не за таймером.
+Це прямо суперечить попередній редакції <code>checkbox.md</code> (<code>api.checkbox.in.ua</code></p>
+<ul>
+<li>окремий кабінетний токен) — стара версія була помилкою дослідження, і
+<code>checkbox/scripts/sync-prices.mjs</code> під неї й написаний, тобто зараз
+неробочий (§5).</li>
+</ul>
+<h2 id="svc-4-потоки-даних-які-варто-розуміти-цілком"><a class="anchor" href="#svc-4-потоки-даних-які-варто-розуміти-цілком" aria-hidden="true">#</a>4. Потоки даних, які варто розуміти цілком</h2>
+<h3 id="svc-продаж-бонус-на-екрані-бонус-в-акаунті"><a class="anchor" href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті" aria-hidden="true">#</a>Продаж → бонус на екрані → бонус в акаунті</h3>
+<pre><code>Checkbox → вебхук (HMAC) → checkbox:3003
+  → receipts + receipt_items (ідемпотентно за checkbox_receipt_id)
+  → bonus_grants (claim_token, 2 хв)
+  → PUBLISH point:kyiv-01
+      → ws → кіоск малює QR
+          → гравець сканує → claim (зникає з екрана)
+              → авторизація → redeem → wallets + ledger_entries
+                  → PUBLISH user:&lt;uuid&gt; → «+80 монет» у чат кавенятка
+</code></pre>
+<p>Найтонше місце — не HMAC, а <strong>звірка</strong>: вебхук може не дійти, і тоді
+продажу для нас не існувало. Раз на годину <code>checkbox</code> тягне
+<code>GET /api/v1/receipts</code> за період і добирає пропущене (<code>checkbox.md</code>).</p>
+<h3 id="svc-оновлення-точки"><a class="anchor" href="#svc-оновлення-точки" aria-hidden="true">#</a>Оновлення точки</h3>
+<p><code>pi/stack/README.md</code> — окремий документ, бо це вже не архітектура, а
+операція з відкатом.</p>
+<h3 id="svc-відео"><a class="anchor" href="#svc-відео" aria-hidden="true">#</a>Відео</h3>
+<p><code>video.md</code> — запис, presigned PUT, черга через <code>SKIP LOCKED</code>, звід події з
+чеком за таймстемпом.</p>
+<h2 id="svc-5-що-з-цього-реально-існує"><a class="anchor" href="#svc-5-що-з-цього-реально-існує" aria-hidden="true">#</a>5. Що з цього реально існує</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Компонент</th>
+<th>Стан на 15.09.2026</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>kiosk</code> (pos-native)</td>
+<td><strong>працює на залізі</strong>, 60 fps, автозапуск</td>
+</tr>
+<tr>
+<td><code>pi/stack</code> (supervisor + updater)</td>
+<td>написано, зібрано, <strong>на малині не проганялось</strong></td>
+</tr>
+<tr>
+<td><code>pos worker</code></td>
+<td>працює, віддає меню з R2</td>
+</tr>
+<tr>
+<td><code>checkbox</code></td>
+<td>лише перевірка HMAC; запису в Postgres і публікації в Redis <strong>немає</strong></td>
+</tr>
+<tr>
+<td><code>api</code></td>
+<td>заглушка: <code>/healthz</code> + три роути з <code>501</code></td>
+</tr>
+<tr>
+<td><code>ws</code></td>
+<td>заглушка: приймає зʼєднання, на Redis <strong>не підписаний</strong></td>
+</tr>
+<tr>
+<td><code>overseer</code></td>
+<td>заглушка: порожній <code>tick()</code></td>
+</tr>
+<tr>
+<td><code>client</code></td>
+<td>лише <code>package.json</code> і README</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>не існує</td>
+</tr>
+<tr>
+<td><code>worker</code> (відео)</td>
+<td>не існує</td>
+</tr>
+<tr>
+<td>Postgres</td>
+<td><strong>жодної таблиці</strong> — схема описана в <code>db-schema.md</code>, міграцій ще нема</td>
+</tr>
+<tr>
+<td><code>checkbox/scripts/sync-prices.mjs</code></td>
+<td>написаний під стару (хибну) модель авторизації — переписати під §3</td>
+</tr>
+</tbody></table>
+</div>
+<p>Тобто архітектура вище — це карта, а не звіт. Єдина її частина, що працює
+на точці щодня, — кіоск.</p>
+
+</section>
+</main>
+</div>
+<footer>Хеш джерел 3ada054 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
+<script>
+(function(){
+  var toc = document.querySelector(".toc"); if (!toc) return;
+  var links = {}; Array.prototype.forEach.call(toc.querySelectorAll("a[href^='#']"), function(a){ links[a.getAttribute("href").slice(1)] = a; });
+  var targets = Object.keys(links).map(function(id){ return document.getElementById(id); }).filter(Boolean);
+  var current = null, queued = false;
+  function mark(id){
+    if (!id || id === current) return; current = id;
+    Array.prototype.forEach.call(toc.querySelectorAll("a[aria-current]"), function(a){ a.removeAttribute("aria-current"); });
+    var a = links[id]; if (!a) return;
+    a.setAttribute("aria-current", "true");
+    for (var el = a.parentElement; el && el !== toc; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true;
+    if (getComputedStyle(toc).position === "sticky") a.scrollIntoView({ block: "nearest" });
+  }
+  function update(){
+    queued = false;
+    var line = 120, found = null;
+    for (var i = 0; i < targets.length; i++) if (targets[i].getBoundingClientRect().top <= line) found = targets[i];
+    mark(found ? found.id : targets[0] && targets[0].id);
+  }
+  window.addEventListener("scroll", function(){ if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+  window.addEventListener("hashchange", function(){ mark(location.hash.slice(1)); });
+  update();
+})();
+</script>

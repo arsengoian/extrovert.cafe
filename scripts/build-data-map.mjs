@@ -1,0 +1,484 @@
+#!/usr/bin/env node
+// build-data-map.mjs — збирає docs/data-map.html із docs/db-schema.md і
+// docs/services.md.
+//
+// Джерело істини — markdown. HTML похідний і руками не редагується: перша
+// версія сторінки жила окремою копією діаграм, і той самий баг у mermaid
+// довелось виправляти у двох місцях (15.09.2026). Тепер копії немає.
+//
+//   node scripts/build-data-map.mjs                  # перегенерувати docs/data-map.html
+//   node scripts/build-data-map.mjs --check          # код 1: html застарів або ER-синтаксис битий
+//   node scripts/build-data-map.mjs --artifact <out> # варіант для claude.ai, без mermaid-скрипта
+//   node scripts/build-data-map.mjs --hook           # PostToolUse-хук Claude Code (stdin JSON)
+//
+// Меню сторінки будується з самої структури доків: # документ → ## розділ →
+// ### підрозділ → діаграма → окремі таблиці з ER. Тобто глибина меню
+// керується заголовками в markdown, а не цим скриптом.
+
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { Marked, Renderer } from "marked";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const OUT = "docs/data-map.html";
+
+// Порядок тут = порядок на сторінці. Новий документ із діаграмами — рядок
+// сюди; хук і --check підхоплять його автоматично, окремого списку ніде нема.
+const SOURCES = [
+  { key: "db", file: "docs/db-schema.md" },
+  { key: "svc", file: "docs/services.md" },
+];
+
+const MERMAID_VERSION = "10.9.1";
+
+// ── дрібні утиліти ──────────────────────────────────────────────────────
+const esc = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Підпис для меню: без markdown-розмітки, але з кодом як текстом.
+const plain = (s) => String(s).replace(/`([^`]*)`/g, "$1").replace(/\*\*([^*]*)\*\*/g, "$1").replace(/\*([^*]*)\*/g, "$1").trim();
+
+function slugger() {
+  const used = new Map();
+  return (prefix, text) => {
+    const base =
+      prefix +
+      "-" +
+      plain(text)
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60);
+    const n = (used.get(base) || 0) + 1;
+    used.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
+  };
+}
+
+const samePath = (a, b) => {
+  const ra = path.resolve(a), rb = path.resolve(b);
+  return process.platform === "win32" ? ra.toLowerCase() === rb.toLowerCase() : ra === rb;
+};
+
+// ── розбір ER-діаграми ─────────────────────────────────────────────────────
+// Розбираємо лише ту підмножину mermaid, якою пишуться наші доки. Усе, що не
+// розпізнано, — попередження: саме так ловиться помилка на кшталт
+// `uuid user_id FK UK` (ключі мають іти через кому), яку mermaid відмовляється
+// малювати, а markdown-прев'ю мовчки показує як текст.
+const LEFT = { "||": "1", "|o": "0..1", "}o": "0..N", "}|": "1..N" };
+const RIGHT = { "||": "1", "o|": "0..1", "o{": "0..N", "|{": "1..N" };
+const RE_REL = /^([A-Za-z_][\w-]*)\s+(\|o|\|\||\}o|\}\|)(--|\.\.)(o\||\|\||o\{|\|\{)\s+([A-Za-z_][\w-]*)\s*:\s*(?:"([^"]*)"|(.+))$/;
+const RE_OPEN = /^([A-Za-z_][\w-]*)\s*\{$/;
+const RE_ATTR = /^(\S+)\s+([A-Za-z_][\w-]*)(?:\s+((?:PK|FK|UK)(?:\s*,\s*(?:PK|FK|UK))*))?(?:\s+"([^"]*)")?$/;
+
+function parseER(src, where) {
+  const entities = new Map();
+  const relations = [];
+  const warnings = [];
+  let cur = null;
+  src.split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    const at = `${where}, рядок ${i + 1}`;
+    if (!line || line === "erDiagram" || line.startsWith("%%")) return;
+    if (cur) {
+      if (line === "}") { cur = null; return; }
+      const m = line.match(RE_ATTR);
+      if (!m) { warnings.push(`${at}: атрибут не розпізнано — «${line}»`); return; }
+      cur.attrs.push({
+        type: m[1],
+        name: m[2],
+        keys: m[3] ? m[3].split(",").map((k) => k.trim()) : [],
+        note: m[4] || "",
+      });
+      return;
+    }
+    let m = line.match(RE_OPEN);
+    if (m) {
+      if (entities.has(m[1])) warnings.push(`${at}: таблицю ${m[1]} описано двічі`);
+      cur = { name: m[1], attrs: [] };
+      entities.set(m[1], cur);
+      return;
+    }
+    m = line.match(RE_REL);
+    if (m) {
+      relations.push({ a: m[1], b: m[5], aCard: LEFT[m[2]], bCard: RIGHT[m[4]], label: m[6] ?? m[7].trim() });
+      return;
+    }
+    warnings.push(`${at}: рядок не розпізнано — «${line}»`);
+  });
+  if (cur) warnings.push(`${where}: таблиця ${cur.name} не закрита «}»`);
+  return { entities, relations, warnings };
+}
+
+// ── модель: токени, меню, реєстр таблиць ────────────────────────────────────
+function buildModel() {
+  const slug = slugger();
+  const registry = new Map(); // ENTITY → { anchor, docKey }
+  const allRelations = [];
+  const warnings = [];
+  const docs = SOURCES.map((src) => {
+    const md = readFileSync(path.join(ROOT, src.file), "utf8").replace(/\r\n/g, "\n");
+    const lexer = new Marked();
+    const tokens = lexer.lexer(md);
+    const doc = { ...src, md, tokens, title: src.file, nav: { id: src.key, label: src.file, kind: "doc", children: [] } };
+    let h2 = null, h3 = null, nDiagram = 0;
+    for (const t of tokens) {
+      if (t.type === "heading" && t.depth === 1) {
+        doc.title = plain(t.text);
+        doc.nav.label = doc.title;
+        t._skip = true;
+      } else if (t.type === "heading" && t.depth === 2) {
+        t._id = slug(src.key, t.text);
+        h2 = { id: t._id, label: plain(t.text), kind: "section", children: [] };
+        h3 = null;
+        doc.nav.children.push(h2);
+      } else if (t.type === "heading" && t.depth === 3) {
+        t._id = slug(src.key, t.text);
+        h3 = { id: t._id, label: plain(t.text), kind: "sub", children: [] };
+        (h2 || doc.nav).children.push(h3);
+      } else if (t.type === "code" && t.lang === "mermaid") {
+        nDiagram++;
+        const kind = /^\s*erDiagram/.test(t.text) ? "er" : "graph";
+        const id = `${src.key}-diagram-${nDiagram}`;
+        const node = { id, kind, children: [] };
+        if (kind === "er") {
+          const er = parseER(t.text, `${src.file}, діаграма ${nDiagram}`);
+          warnings.push(...er.warnings);
+          allRelations.push(...er.relations);
+          for (const e of er.entities.values()) {
+            const anchor = `t-${e.name.toLowerCase()}`;
+            if (!registry.has(e.name)) registry.set(e.name, { anchor, docKey: src.key });
+            node.children.push({ id: anchor, label: e.name.toLowerCase(), kind: "table", children: [] });
+          }
+          node.label = `${er.entities.size} таблиць`;
+          t._er = er;
+        } else {
+          node.label = "Схема";
+        }
+        t._diagram = node;
+        (h3 || h2 || doc.nav).children.push(node);
+      } else if (t.type === "hr") {
+        t._skip = true;
+      }
+    }
+    return doc;
+  });
+  return { docs, registry, allRelations, warnings };
+}
+
+// ── рендер ────────────────────────────────────────────────────────────────
+function entityCards(er, model) {
+  const cards = [...er.entities.values()].map((e) => {
+    const anchor = `t-${e.name.toLowerCase()}`;
+    const rows = e.attrs
+      .map((a) => {
+        const keys = a.keys.map((k) => `<span class="key key-${k.toLowerCase()}">${k}</span>`).join("");
+        return `<tr><td class="c-name">${esc(a.name)}</td><td class="c-type">${esc(a.type)}</td><td class="c-keys">${keys}</td><td class="c-note">${esc(a.note)}</td></tr>`;
+      })
+      .join("");
+    // Звʼязки збираються з УСІХ діаграм: receipts ↔ video_events оголошено в
+    // розділі операційки, але шукати його будуть на картці receipts.
+    const rels = model.allRelations
+      .filter((r) => r.a === e.name || r.b === e.name)
+      .map((r) => {
+        const out = r.a === e.name;
+        const other = out ? r.b : r.a;
+        const card = out ? r.bCard : r.aCard;
+        const target = model.registry.get(other);
+        const name = esc(other.toLowerCase());
+        const link = target ? `<a href="#${target.anchor}">${name}</a>` : `<span>${name}</span>`;
+        return `<li><span class="rel-card">${out ? "→" : "←"} ${card}</span>${link}<span class="rel-label">${esc(r.label)}</span></li>`;
+      })
+      .join("");
+    return `<article class="entity" id="${anchor}">
+  <header><h4>${esc(e.name.toLowerCase())}</h4><span class="entity-count">${e.attrs.length} кол.</span></header>
+  <div class="cols"><table>${rows}</table></div>
+  ${rels ? `<ul class="rels">${rels}</ul>` : ""}
+</article>`;
+  });
+  return `<div class="dict">${cards.join("\n")}</div>`;
+}
+
+// init-директива всередині діаграми, а не в mermaid.initialize: її чує і
+// наша сторінка, і хост claude.ai, який малює mermaid сам. Широкі ER-схеми
+// без useMaxWidth лишаються читабельними й скроляться, а не стискаються в
+// дрібний шрифт на ширину колонки.
+const MERMAID_INIT =
+  '%%{init: {"theme": "default", "er": {"useMaxWidth": false}, "flowchart": {"useMaxWidth": false}}}%%\n';
+
+function renderDoc(doc, model) {
+  const marked = new Marked();
+  marked.use({
+    renderer: {
+      heading(t) {
+        if (t._skip) return "";
+        const inner = this.parser.parseInline(t.tokens);
+        return `<h${t.depth} id="${t._id}"><a class="anchor" href="#${t._id}" aria-hidden="true">#</a>${inner}</h${t.depth}>\n`;
+      },
+      hr(t) {
+        return t._skip ? "" : "<hr>\n";
+      },
+      table(t) {
+        return `<div class="tablewrap">${Renderer.prototype.table.call(this, t)}</div>\n`;
+      },
+      code(t) {
+        if (t.lang !== "mermaid") return false;
+        const d = t._diagram;
+        const tag = d.kind === "er" ? "ER" : "Схема";
+        const plate = `<figure class="plate" id="${d.id}">
+  <figcaption class="plate-head"><span class="tag">${tag}</span>${d.kind === "er" ? `<span class="plate-meta">${d.children.length} таблиць нижче — з колонками й звʼязками</span>` : ""}</figcaption>
+  <div class="plate-body"><pre class="mermaid">${esc(MERMAID_INIT + t.text)}</pre></div>
+</figure>\n`;
+        return d.kind === "er" ? plate + entityCards(t._er, model) + "\n" : plate;
+      },
+    },
+  });
+  return `<section class="doc" id="${doc.key}">
+<header class="doc-head"><p class="doc-src">${esc(doc.file)}</p><h1>${esc(doc.title)}</h1></header>
+${marked.parser(doc.tokens)}
+</section>`;
+}
+
+function navHTML(node, depth) {
+  const kids = node.children.map((c) => navHTML(c, depth + 1)).join("");
+  const badge =
+    node.kind === "er" ? `<span class="nav-badge">ER</span>` : node.kind === "graph" ? `<span class="nav-badge">схема</span>` : "";
+  const label = `<a href="#${node.id}">${badge}${esc(node.label)}</a>`;
+  if (!kids) return `<li class="nav-${node.kind}">${label}</li>`;
+  // Документи й розділи відкриті: так меню одразу показує структуру. Списки
+  // таблиць під ER згорнуті — інакше сайдбар стає довшим за саму сторінку.
+  const open = node.kind === "doc" || node.kind === "section" || node.kind === "sub";
+  return `<li class="nav-${node.kind}"><details${open ? " open" : ""}><summary>${label}</summary><ul>${kids}</ul></details></li>`;
+}
+
+const STYLE = `
+:root{--ground:#0C0E11;--surface:#14171C;--surface-2:#1B1F26;--line:#2A3039;--ink:#F2EFE6;--ink-dim:#9AA3B0;--ink-faint:#6B7480;--accent:#FE810B;--accent-2:#FF2D6F;--plate:#FBF9F6;--plate-line:#E4DED4;--plate-ink:#2A2620;--radius:12px}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--ground:#F7F5F1;--surface:#FFFFFF;--surface-2:#F1EDE6;--line:#E0D9CE;--ink:#1E1B17;--ink-dim:#5E5852;--ink-faint:#8B8478;--accent:#C2610A;--accent-2:#D41E57}}
+:root[data-theme="light"]{--ground:#F7F5F1;--surface:#FFFFFF;--surface-2:#F1EDE6;--line:#E0D9CE;--ink:#1E1B17;--ink-dim:#5E5852;--ink-faint:#8B8478;--accent:#C2610A;--accent-2:#D41E57}
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--surface-2);padding:1px 5px;border-radius:4px;color:var(--ink)}
+.top{border-bottom:1px solid var(--line);padding:34px 20px 26px;background:radial-gradient(800px 300px at 10% -20%,color-mix(in srgb,var(--accent) 15%,transparent),transparent 70%),radial-gradient(640px 280px at 90% -30%,color-mix(in srgb,var(--accent-2) 11%,transparent),transparent 70%)}
+.top-in{max-width:1320px;margin:0 auto}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.top h1{font-family:Poppins,system-ui,sans-serif;font-weight:700;font-size:clamp(28px,4vw,42px);line-height:1.1;margin:0 0 10px;letter-spacing:-.02em;text-wrap:balance}
+.top p{margin:0;color:var(--ink-dim);max-width:70ch}
+.layout{max-width:1320px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:290px minmax(0,1fr);gap:40px}
+.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:22px 4px 40px 0;font-size:14px}
+.toc-title{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 8px 6px}
+.toc ul{list-style:none;margin:0;padding:0}
+.toc ul ul{padding-left:14px;border-left:1px solid var(--line);margin-left:9px}
+.toc li{margin:1px 0}
+.toc a{display:flex;gap:6px;align-items:baseline;color:var(--ink-dim);text-decoration:none;padding:3px 6px;border-radius:6px;line-height:1.35}
+.toc a:hover,.toc a:focus-visible{color:var(--ink);background:var(--surface)}
+.toc a[aria-current="true"]{color:var(--ink);background:var(--surface);box-shadow:inset 2px 0 0 var(--accent)}
+.toc summary{list-style:none;display:flex;align-items:baseline;cursor:pointer}
+.toc summary::-webkit-details-marker{display:none}
+.toc summary::before{content:"▸";color:var(--ink-faint);width:12px;flex:none;font-size:11px;transition:transform .15s}
+.toc details[open]>summary::before{transform:rotate(90deg)}
+.toc summary a{flex:1}
+.toc li:not(:has(details))>a{margin-left:12px}
+.nav-doc>details>summary a{font-family:Poppins,sans-serif;font-weight:600;color:var(--ink);font-size:15px}
+.nav-table a{font-family:"IBM Plex Mono",monospace;font-size:12.5px}
+.nav-badge{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ground);background:var(--accent);border-radius:4px;padding:0 5px;flex:none}
+main{min-width:0;padding:10px 0 60px}
+.doc{padding-top:26px}
+.doc+.doc{border-top:1px solid var(--line);margin-top:40px}
+.doc-head h1{font-family:Poppins,sans-serif;font-weight:700;font-size:30px;margin:0 0 14px;letter-spacing:-.01em}
+.doc-src{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);margin:0 0 4px}
+main h2{font-family:Poppins,sans-serif;font-weight:600;font-size:24px;margin:44px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+main h3{font-family:Poppins,sans-serif;font-weight:600;font-size:18px;margin:28px 0 6px}
+main h2,main h3{position:relative}
+.anchor{position:absolute;left:-.9em;color:var(--ink-faint);text-decoration:none;opacity:0;font-weight:400}
+h2:hover .anchor,h3:hover .anchor{opacity:1}
+main p,main li{max-width:74ch}
+main p{margin:0 0 14px}
+main ol,main ul{padding-left:22px}
+main pre:not(.mermaid){background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;overflow-x:auto;font-size:13.5px;line-height:1.5}
+main pre:not(.mermaid) code{background:none;padding:0}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);margin:0 0 20px}
+.tablewrap table{border-collapse:collapse;width:100%;min-width:600px;font-size:14px}
+.tablewrap th,.tablewrap td{text-align:left;padding:9px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+.tablewrap thead th{background:var(--surface-2);font-family:Poppins,sans-serif;font-weight:600;font-size:13px}
+.tablewrap tbody tr:last-child td{border-bottom:0}
+figure.plate{margin:18px 0 16px}
+.plate-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ground);background:var(--accent);padding:2px 8px;border-radius:5px}
+.plate-meta{color:var(--ink-dim);font-size:13.5px}
+.plate-body{background:var(--plate);border:1px solid var(--plate-line);border-radius:var(--radius);padding:16px;overflow-x:auto}
+.plate-body pre.mermaid{margin:0;background:transparent;color:var(--plate-ink);font-size:12px;line-height:1.35;white-space:pre}
+.dict{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;margin:0 0 26px}
+.entity{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;scroll-margin-top:16px}
+.entity:target{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 35%,transparent)}
+.entity header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
+.entity h4{margin:0;font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:15px;color:var(--accent)}
+.entity-count{font-size:12px;color:var(--ink-faint)}
+.cols{overflow-x:auto}
+.cols table{border-collapse:collapse;width:100%;font-size:12.5px}
+.cols td{padding:3px 6px 3px 0;vertical-align:top;border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.cols tr:first-child td{border-top:0}
+.c-name{font-family:"IBM Plex Mono",monospace;color:var(--ink);white-space:nowrap}
+.c-type{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);white-space:nowrap}
+.c-keys{white-space:nowrap}
+.c-note{color:var(--ink-dim)}
+.key{font-family:"IBM Plex Mono",monospace;font-size:10px;padding:0 4px;border-radius:3px;margin-right:3px;border:1px solid var(--line);color:var(--ink-dim)}
+.key-pk{color:var(--ground);background:var(--accent);border-color:var(--accent)}
+.key-fk{color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 50%,transparent)}
+.rels{list-style:none;margin:8px 0 0;padding:8px 0 0;border-top:1px dashed var(--line);font-size:12.5px}
+.rels li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;max-width:none}
+.rel-card{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);min-width:58px}
+.rels a{font-family:"IBM Plex Mono",monospace}
+.rel-label{color:var(--ink-dim)}
+footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-size:13px;border-top:1px solid var(--line)}
+@media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}.toc{position:static;max-height:none;border-bottom:1px solid var(--line);padding:16px 0}.dict{grid-template-columns:1fr}.anchor{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+`;
+
+// Підсвітка поточного пункту меню. Без JS меню однаково повне й клікабельне —
+// скрипт лише додає «де я» і розкриває згорнуту гілку з таблицями.
+//
+// Не IntersectionObserver: цілі вкладені одна в одну (документ містить
+// розділ, розділ — картку таблиці), і спостерігач у смузі зверху бачить їх
+// усі одночасно — перша версія підсвічувала весь документ замість таблиці.
+// «Остання ціль у порядку документа, чий верх уже пройшов позначку» дає
+// найглибший поточний пункт без жодних евристик.
+const SPY = `
+(function(){
+  var toc = document.querySelector(".toc"); if (!toc) return;
+  var links = {}; Array.prototype.forEach.call(toc.querySelectorAll("a[href^='#']"), function(a){ links[a.getAttribute("href").slice(1)] = a; });
+  var targets = Object.keys(links).map(function(id){ return document.getElementById(id); }).filter(Boolean);
+  var current = null, queued = false;
+  function mark(id){
+    if (!id || id === current) return; current = id;
+    Array.prototype.forEach.call(toc.querySelectorAll("a[aria-current]"), function(a){ a.removeAttribute("aria-current"); });
+    var a = links[id]; if (!a) return;
+    a.setAttribute("aria-current", "true");
+    for (var el = a.parentElement; el && el !== toc; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true;
+    if (getComputedStyle(toc).position === "sticky") a.scrollIntoView({ block: "nearest" });
+  }
+  function update(){
+    queued = false;
+    var line = 120, found = null;
+    for (var i = 0; i < targets.length; i++) if (targets[i].getBoundingClientRect().top <= line) found = targets[i];
+    mark(found ? found.id : targets[0] && targets[0].id);
+  }
+  window.addEventListener("scroll", function(){ if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+  window.addEventListener("hashchange", function(){ mark(location.hash.slice(1)); });
+  update();
+})();
+`;
+
+function renderPage(model, { artifact }) {
+  const sha = createHash("sha256");
+  model.docs.forEach((d) => sha.update(d.md));
+  const stamp = sha.digest("hex").slice(0, 7);
+  const sources = SOURCES.map((s) => `<code>${esc(s.file)}</code>`).join(" і ");
+  const nav = `<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul>${model.docs.map((d) => navHTML(d.nav, 0)).join("")}</ul></nav>`;
+  const mermaidTags = artifact
+    ? "" // хост claude.ai малює <pre class="mermaid"> сам — бібліотеку не вантажимо
+    : `<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/${MERMAID_VERSION}/mermaid.min.js"></script>
+<script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>`;
+
+  return `<!-- ЗГЕНЕРОВАНО scripts/build-data-map.mjs з ${SOURCES.map((s) => s.file).join(", ")}. Не редагувати: правити markdown і запускати npm run docs:map. -->
+<title>Карта даних extrovert.cafe</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>${STYLE}</style>
+<header class="top"><div class="top-in">
+  <p class="eyebrow">extrovert.cafe · джерело ${stamp}</p>
+  <h1>Карта даних і сервісів</h1>
+  <p>Схема Postgres, кейспейс Redis і карта сервісів. Сторінку зібрано з ${sources}: окремої копії діаграм тут немає, тож правка йде в markdown, а сторінка перезбирається командою <code>npm run docs:map</code>.</p>
+</div></header>
+<div class="layout">
+${nav}
+<main>
+${model.docs.map((d) => renderDoc(d, model)).join("\n")}
+</main>
+</div>
+<footer>Хеш джерел ${stamp} — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+${mermaidTags}
+<script>${SPY}</script>
+`;
+}
+
+// ── запуск ────────────────────────────────────────────────────────────────
+function build({ artifact = false } = {}) {
+  const model = buildModel();
+  return { html: renderPage(model, { artifact }), warnings: model.warnings };
+}
+
+const readStdin = () =>
+  new Promise((resolve) => {
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (c) => (data += c));
+    process.stdin.on("end", () => resolve(data));
+    if (process.stdin.isTTY) resolve("");
+  });
+
+const args = process.argv.slice(2);
+const outPath = path.join(ROOT, OUT);
+
+if (args.includes("--hook")) {
+  // Хук стріляє на КОЖЕН Write/Edit — для чужих файлів тихо виходимо.
+  let payload = {};
+  try { payload = JSON.parse(await readStdin()); } catch { process.exit(0); }
+  const file = payload?.tool_input?.file_path || payload?.tool_response?.filePath;
+  if (!file || !SOURCES.some((s) => samePath(file, path.join(ROOT, s.file)))) process.exit(0);
+  try {
+    const { html, warnings } = build();
+    writeFileSync(outPath, html);
+    const warn = warnings.length ? ` Попередження ER (${warnings.length}): ${warnings.join("; ")}` : "";
+    process.stdout.write(
+      JSON.stringify({
+        systemMessage: `Карту даних перегенеровано → code/${OUT}.${warn}`,
+        hookSpecificOutput: {
+          hookEventName: "PostToolUse",
+          additionalContext:
+            `code/${OUT} перегенеровано з ${SOURCES.map((s) => s.file).join(", ")}; закомітити разом із доком.` +
+            " Artifact на claude.ai сам не оновлюється — перепублікувати через --artifact, якщо сторінку треба показати." +
+            warn,
+        },
+      }),
+    );
+  } catch (e) {
+    process.stdout.write(JSON.stringify({ systemMessage: `Карту даних НЕ перегенеровано: ${e.message}` }));
+  }
+  process.exit(0);
+}
+
+if (args.includes("--check")) {
+  const { html, warnings } = build();
+  const existing = existsSync(outPath) ? readFileSync(outPath, "utf8").replace(/\r\n/g, "\n") : "";
+  warnings.forEach((w) => console.error(`ER: ${w}`));
+  if (existing !== html) {
+    console.error(`${OUT} застарів — запустіть: npm run docs:map`);
+    process.exit(1);
+  }
+  if (warnings.length) process.exit(1);
+  console.log(`${OUT} актуальний`);
+  process.exit(0);
+}
+
+const artIdx = args.indexOf("--artifact");
+if (artIdx !== -1) {
+  const target = args[artIdx + 1];
+  if (!target) { console.error("--artifact потребує шлях до файла"); process.exit(2); }
+  const { html, warnings } = build({ artifact: true });
+  writeFileSync(path.resolve(target), html);
+  warnings.forEach((w) => console.error(`ER: ${w}`));
+  console.log(`артефакт-варіант → ${path.resolve(target)}`);
+  process.exit(0);
+}
+
+const { html, warnings } = build();
+writeFileSync(outPath, html);
+warnings.forEach((w) => console.error(`ER: ${w}`));
+console.log(`${OUT} перегенеровано${warnings.length ? `, попереджень: ${warnings.length}` : ""}`);
