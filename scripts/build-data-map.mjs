@@ -338,27 +338,40 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 `;
 
-// Підсвітка поточного пункту меню. Без JS меню однаково повне й клікабельне —
-// скрипт лише додає «де я» і розкриває згорнуту гілку з таблицями.
+// Підсвітка поточного пункту меню й згортання гілок. Без JS меню однаково
+// повне й клікабельне — скрипт лише додає «де я», розкриває згорнуту гілку з
+// таблицями і згортає пункт повторним кліком.
 //
 // Не IntersectionObserver: цілі вкладені одна в одну (документ містить
 // розділ, розділ — картку таблиці), і спостерігач у смузі зверху бачить їх
 // усі одночасно — перша версія підсвічувала весь документ замість таблиці.
 // «Остання ціль у порядку документа, чий верх уже пройшов позначку» дає
 // найглибший поточний пункт без жодних евристик.
+//
+// Згортання. Клік по посиланню всередині <summary> гілку не перемикає —
+// клік забирає посилання, а не summary. Тому перший клік розкриває гілку й
+// веде до розділу, а другий клік по тому ж пункті згортає її без переходу.
+// Згорнуту руками гілку позначаємо data-closed, бо інакше підсвітка на
+// найближчому ж скролі розкрила б її назад. Поки гілка згорнута, «де я»
+// світить її заголовок, а не сховану всередині таблицю.
 const SPY = `
 (function(){
   var toc = document.querySelector(".toc"); if (!toc) return;
   var links = {}; Array.prototype.forEach.call(toc.querySelectorAll("a[href^='#']"), function(a){ links[a.getAttribute("href").slice(1)] = a; });
   var targets = Object.keys(links).map(function(id){ return document.getElementById(id); }).filter(Boolean);
-  var current = null, queued = false;
+  var current = null, queued = false, lastClicked = null;
+  function ownDetails(a){ var s = a.parentElement; return s && s.tagName === "SUMMARY" ? s.parentElement : null; }
   function mark(id){
-    if (!id || id === current) return; current = id;
-    Array.prototype.forEach.call(toc.querySelectorAll("a[aria-current]"), function(a){ a.removeAttribute("aria-current"); });
-    var a = links[id]; if (!a) return;
-    a.setAttribute("aria-current", "true");
-    for (var el = a.parentElement; el && el !== toc; el = el.parentElement) if (el.tagName === "DETAILS") el.open = true;
-    if (getComputedStyle(toc).position === "sticky") a.scrollIntoView({ block: "nearest" });
+    var a = id && links[id]; if (!a || id === current) return; current = id;
+    var shown = a, el;
+    for (el = a.parentElement; el && el !== toc; el = el.parentElement)
+      if (el.tagName === "DETAILS" && el !== ownDetails(a) && !el.open && el.hasAttribute("data-closed")) shown = el.querySelector("summary a");
+    if (shown === a)
+      for (el = a.parentElement; el && el !== toc; el = el.parentElement)
+        if (el.tagName === "DETAILS" && !el.hasAttribute("data-closed")) el.open = true;
+    Array.prototype.forEach.call(toc.querySelectorAll("a[aria-current]"), function(x){ x.removeAttribute("aria-current"); });
+    shown.setAttribute("aria-current", "true");
+    if (getComputedStyle(toc).position === "sticky") shown.scrollIntoView({ block: "nearest" });
   }
   function update(){
     queued = false;
@@ -366,8 +379,33 @@ const SPY = `
     for (var i = 0; i < targets.length; i++) if (targets[i].getBoundingClientRect().top <= line) found = targets[i];
     mark(found ? found.id : targets[0] && targets[0].id);
   }
+  toc.addEventListener("click", function(e){
+    var a = e.target.closest && e.target.closest("a[href^='#']"); if (!a) return;
+    var d = ownDetails(a);
+    if (d && d.open && lastClicked === a) {
+      e.preventDefault();
+      d.open = false;
+      lastClicked = null;
+      return;
+    }
+    if (d) d.open = true;
+    lastClicked = a;
+  });
+  // toggle не спливає, тому ловимо на фазі захоплення. Сюди ж приходить і
+  // клік по стрілці ▸, який браузер перемикає сам, без нашого обробника.
+  toc.addEventListener("toggle", function(e){
+    var d = e.target; if (d.tagName !== "DETAILS") return;
+    if (d.open) d.removeAttribute("data-closed"); else d.setAttribute("data-closed", "");
+    current = null; update();
+  }, true);
   window.addEventListener("scroll", function(){ if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
-  window.addEventListener("hashchange", function(){ mark(location.hash.slice(1)); });
+  // location.hash віддає кирилицю закодованою (%D1%96…), а ключі links —
+  // як у href. Без декодування mark() не знаходив пункт і лише збивав current.
+  window.addEventListener("hashchange", function(){
+    var id = location.hash.slice(1);
+    try { id = decodeURIComponent(id); } catch (e) {}
+    mark(id);
+  });
   update();
 })();
 `;
