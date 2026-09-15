@@ -1,10 +1,18 @@
 # crontab -l на pi. РЕКОНСТРУКЦІЯ — звірити з пристроєм.
 #
-# З переходом на pos-native (18.08.2026) перезапуск кладе на systemd
-# (pos-native.service, Restart=always) — цей рядок ловить інший випадок:
-# коли systemd сам здався (вичерпав StartLimitBurst після серії швидких
-# падінь) і більше не перезапускає. `systemctl restart` у такому стані
-# скидає лічильник спроб.
+# Керований стек (pi/stack, extrovert.service) — рядок, який ставиться разом
+# із переходом на стек. Дивиться на юніт, а не на процес кіоска: під час
+# підміни версії кіоска кілька секунд немає або їх двоє, і pgrep тоді
+# запускав би зайвий кіоск посеред оновлення.
+# */5 * * * * systemctl is-active --quiet extrovert || sudo systemctl restart extrovert >/dev/null 2>&1  # stack-watch
+#
+# Поточний, до переходу на стек. З pos-native (18.08.2026) перезапуск кладе
+# на systemd (pos-native.service, Restart=always) — цей рядок ловить інший
+# випадок: коли systemd сам здався (вичерпав StartLimitBurst після серії
+# швидких падінь) і більше не перезапускає. `systemctl restart` у такому
+# стані скидає лічильник спроб. ⚠️ Прибрати при переході на стек:
+# `systemctl restart` піднімає й вимкнений (disable) юніт, тож поруч зі
+# стеком він запустив би другий кіоск.
 */5 * * * * pgrep -f pos-native-pi >/dev/null || sudo systemctl restart pos-native >/dev/null 2>&1  # kiosk-watch
 #
 # Стара версія (Chromium) — на випадок відкату:

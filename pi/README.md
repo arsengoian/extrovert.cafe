@@ -8,6 +8,11 @@
 (systemd, `WantedBy=multi-user.target`). Chromium-варіант (`archive/kiosk-chromium.sh`)
 лишається робочим fallback'ом — розділ «Відкат на Chromium-кіоск» нижче.
 
+**Наступний крок — керований стек (`stack/`)**: супервізор, кіоск і апдейтер,
+який сам привозить релізи з R2. Написаний, на пристрій ще не поставлений.
+Що крутиться, як викотити реліз і як перейти на стек —
+`../docs/raspberry-pi.md`.
+
 Памʼять: `gpu_mem=128` у `/boot/config.txt` (виправлено 18.08.2026 — до того не
 був заданий узагалі, тобто діяв дефолт 64 МБ, і `pos-native`'у бракувало
 GPU-памʼяті під власну поверхню виводу — саме це, а не баг рендера, викликало
@@ -48,6 +53,8 @@ GPU-памʼяті під власну поверхню виводу — сам�
 | `rec-test.sh` | Pi | костиль запису `-c copy` у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV |
 | `kiosk-native.sh` | Pi | **поточний прод**: запускає й перезапускає бінарник `pos-native`, керується `pos-native.service` |
 | `pos-native.service` | Pi | systemd-юніт автозапуску `kiosk-native.sh` (`WantedBy=multi-user.target`) |
+| `stack/` | Pi | **наступний прод**: супервізор, апдейтер, `extrovert.service`, збирання релізу — `stack/README.md` |
+| `crontab` | Pi | крон-сторож: `kiosk-watch` зараз, `stack-watch` після переходу на стек |
 | `archive/kiosk-chromium.sh` | — | попередній `kiosk.sh` — робочий fallback, дивись відкат нижче |
 
 ### Прод: нативний рендерер (`pos-native`), без X — з 18.08.2026

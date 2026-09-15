@@ -80,8 +80,16 @@ else
     echo "  sudo install -m 0644 $HERE/extrovert.service /etc/systemd/system/"
     echo "  sudo systemctl daemon-reload"
 fi
+# Старий юніт мало вимкнути: `systemctl restart pos-native` (крон-сторож)
+# піднімає й вимкнений юніт — і поруч зі стеком стартував би другий кіоск.
+# `mask` тут не спрацює: файл юніта лежить у /etc/systemd/system, і systemd
+# відмовляється підміняти його симлінком. Тому файл відкладаємо вбік —
+# суфікс .off systemd не читає, а відкат — це `mv` назад.
 cat <<'NEXT'
   sudo systemctl disable --now pos-native.service   # старий однокомпонентний юніт
+  sudo mv /etc/systemd/system/pos-native.service /etc/systemd/system/pos-native.service.off
+  sudo systemctl daemon-reload
+  crontab -e   # рядок kiosk-watch замінити на stack-watch з pi/crontab
   sudo systemctl enable  --now extrovert.service
   journalctl -u extrovert -f
 NEXT

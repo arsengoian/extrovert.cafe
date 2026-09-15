@@ -25,13 +25,22 @@
 │   └── 2026.09.10-ff31a02/    попередній — ціль відкату
 ├── config/env                 POINT, UPDATE_URL… переживає оновлення
 ├── state/                     version, updating, slot.*, bad-releases
-└── logs/                      kiosk.log, updater.log
+├── logs/                      kiosk.log, updater.log
+└── build/                     лише на складальній малині: вихідники й dist/
 ```
 
-Поза цією текою — рівно один файл: `/etc/systemd/system/extrovert.service`.
-Він навмисно тупий (підняти супервізора й не лізти далі), тому його не
-доводиться чіпати ніколи: новий компонент стеку — це рядок у
-`components.conf` усередині релізу, а не правка в systemd під sudo.
+Поза цією текою — юніт `/etc/systemd/system/extrovert.service` і рядок
+крон-сторожа (`pi/crontab`, `stack-watch`). Юніт навмисно тупий (підняти
+супервізора й не лізти далі), тому його не доводиться чіпати: новий
+компонент стеку — це рядок у `components.conf` усередині релізу, а не
+правка в systemd під sudo.
+
+⚠️ Такий рядок **набуває чинності з наступним стартом юніта**, а не одразу
+після оновлення. Супервізор читає `components.conf` один раз на старті й
+перезапускає лише кіоск; перезапустити себе сам він не може, не погасивши
+все, чим володіє. Те саме стосується правок у самих `supervisor.sh` і
+`common.sh`: до ребуту чи `systemctl restart extrovert` працює стара копія.
+`updater.sh` цього обмеження не має — він `exec`-ає себе з нового релізу.
 
 ## Хто є хто
 
@@ -54,7 +63,7 @@
 | # | Крок | Що станеться, якщо не вийде |
 |---|---|---|
 | 1 | маніфест (200 байт, `If-None-Match`) | тиша до наступного кола |
-| 2 | завантаження в `.part` (`-C -`, 5 спроб) | те саме, нічого не змінено |
+| 2 | завантаження в `.part` (`-C -`, 5 спроб) | нічого не змінено, наступне коло пробує знову (ETag скидається); після 3 кіл — чорний список |
 | 3 | `sha256` | архів викидається, реліз у чорний список |
 | 4 | розпакування в `.tmp` → атомарний `mv` | те саме |
 | 5 | **`--selftest` нової версії** | стара лишається працювати, реліз у чорний список |
@@ -110,22 +119,20 @@
 ## Операції
 
 ```bash
-# перший раз на пристрої (забрати вже встановлений кіоск як реліз 0)
-cd /home/pi/extrovert-repo/pi/stack && ./install.sh --adopt /home/pi/pos-native
-sudo systemctl disable --now pos-native.service
-sudo systemctl enable  --now extrovert.service
+# перший раз на пристрої — повний чекліст у docs/raspberry-pi.md, §4
+cd /home/pi/extrovert/build/pi/stack && ./install.sh --adopt /home/pi/pos-native
 
-# зібрати реліз — НА складальній малині, бо бінарник ARM
-cd pos-native && make pi && cd ../pi/stack && ./make-release.sh
-# → dist/<реліз>.tar.gz + dist/manifest.json, далі в R2 (маніфест ОСТАННІМ)
+# зібрати й викотити реліз — docs/raspberry-pi.md, §3 (з ПК, по кроках)
 
 # подивитись, що відбувається
 journalctl -u extrovert -f
 tail -f /home/pi/extrovert/logs/updater.log
 cat /home/pi/extrovert/state/version
 
-# змусити перевірити оновлення просто зараз
-pkill -f 'updater.sh' && echo "супервізор підніме його за 3 с і цикл почнеться заново"
+# змусити перевірити оновлення просто зараз (підхопить за ≤ 5 с)
+touch /home/pi/extrovert/state/check-now
+# а НЕ pkill updater.sh: новий процес починає з очікування, і перевірка
+# відсунеться ще на UPDATE_PERIOD_S
 
 # відкотитись руками
 ln -sfn /home/pi/extrovert/releases/<старий> /home/pi/extrovert/current.new
@@ -137,7 +144,9 @@ echo plain > /home/pi/extrovert/state/restart.kiosk
 як робочий однокомпонентний варіант — так само, як `archive/kiosk-chromium.sh`
 лишився після переходу на `pos-native`. Одночасно вмикати їх і
 `extrovert.service` **не можна**: обидва запустять кіоск, і другий не
-дістане шару.
+дістане шару. «Вимкнути» тут означає й прибрати старий крон-рядок
+`kiosk-watch`, і відкласти файл `pos-native.service`: `systemctl restart`
+піднімає навіть вимкнений юніт.
 
 ## Чого ще не знаємо (перевірити, коли малина повернеться)
 

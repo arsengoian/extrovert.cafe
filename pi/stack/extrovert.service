@@ -21,6 +21,10 @@ User=pi
 Group=pi
 # video — доступ до /dev/vchiq (dispmanx/GPU) без root
 SupplementaryGroups=video
+# Гасить світлодіоди на корпусі — раніше це робив kiosk-native.sh. Скрипт
+# живе на пристрої, не в релізі (це налаштування заліза, а не наш код);
+# «-» — щоб його відсутність на іншій малині не зупиняла стек.
+ExecStartPre=-/home/pi/scripts/start.sh
 ExecStart=/home/pi/extrovert/bin/supervisor.sh
 Restart=always
 RestartSec=5

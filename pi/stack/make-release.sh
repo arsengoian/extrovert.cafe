@@ -80,6 +80,7 @@ echo "готово:"
 echo "  $TAR  ($(( SIZE / 1024 )) КБ)"
 echo "  $DIST/manifest.json"
 echo
-echo "залити в R2 (маніфест — ОСТАННІМ):"
-echo "  rclone copy $TAR      r2:extrovert-pos/releases/pi/"
-echo "  rclone copy $DIST/manifest.json r2:extrovert-pos/releases/pi/"
+# Заливає вже ПК: на малині немає ні wrangler, ні ключів до R2, і так має
+# лишатись — пристрій у публічному коридорі.
+echo "далі з ПК (docs/raspberry-pi.md, §3): забрати обидва файли й залити"
+echo "в R2 під releases/pi/ — архів першим, маніфест ОСТАННІМ"
