@@ -90,12 +90,12 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 3ada054</p>
+  <p class="eyebrow">extrovert.cafe · джерело 89cc3bd</p>
   <h1>Карта даних і сервісів</h1>
   <p>Схема Postgres, кейспейс Redis і карта сервісів. Сторінку зібрано з <code>docs/db-schema.md</code> і <code>docs/services.md</code>: окремої копії діаграм тут немає, тож правка йде в markdown, а сторінка перезбирається командою <code>npm run docs:map</code>.</p>
 </div></header>
 <div class="layout">
-<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul><li class="nav-doc"><details open><summary><a href="#db">Схема даних: Postgres і Redis</a></summary><ul><li class="nav-section"><details open><summary><a href="#db-0-наскрізні-рішення">0. Наскрізні рішення</a></summary><ul><li class="nav-sub"><a href="#db-гроші-numeric-12-2-ігрові-валюти-integer">Гроші — numeric(12,2), ігрові валюти — integer</a></li><li class="nav-sub"><a href="#db-баланс-і-журнал-одночасно">Баланс і журнал одночасно</a></li><li class="nav-sub"><a href="#db-косметика-куща-в-jsonb-економіка-в-колонках">Косметика куща в jsonb, економіка в колонках</a></li><li class="nav-sub"><a href="#db-ідемпотентність-на-кожному-вході-ззовні">Ідемпотентність на кожному вході ззовні</a></li><li class="nav-sub"><a href="#db-точка-текстовий-ключ-із-першого-дня">Точка — текстовий ключ із першого дня</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-1-ідентичність-і-продажі">1. Ідентичність і продажі</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-1"><span class="nav-badge">ER</span>11 таблиць</a></summary><ul><li class="nav-table"><a href="#t-points">points</a></li><li class="nav-table"><a href="#t-users">users</a></li><li class="nav-table"><a href="#t-user_identities">user_identities</a></li><li class="nav-table"><a href="#t-checkbox_shifts">checkbox_shifts</a></li><li class="nav-table"><a href="#t-receipts">receipts</a></li><li class="nav-table"><a href="#t-receipt_items">receipt_items</a></li><li class="nav-table"><a href="#t-drinks">drinks</a></li><li class="nav-table"><a href="#t-menu_deployments">menu_deployments</a></li><li class="nav-table"><a href="#t-bonus_grants">bonus_grants</a></li><li class="nav-table"><a href="#t-wallets">wallets</a></li><li class="nav-table"><a href="#t-device_telemetry">device_telemetry</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-2-економіка-журнал-крамниця-маркет">2. Економіка: журнал, крамниця, маркет</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-2"><span class="nav-badge">ER</span>12 таблиць</a></summary><ul><li class="nav-table"><a href="#t-ledger_entries">ledger_entries</a></li><li class="nav-table"><a href="#t-item_defs">item_defs</a></li><li class="nav-table"><a href="#t-user_items">user_items</a></li><li class="nav-table"><a href="#t-crate_openings">crate_openings</a></li><li class="nav-table"><a href="#t-market_listings">market_listings</a></li><li class="nav-table"><a href="#t-market_trades">market_trades</a></li><li class="nav-table"><a href="#t-coin_transfers">coin_transfers</a></li><li class="nav-table"><a href="#t-redemptions">redemptions</a></li><li class="nav-table"><a href="#t-pos_discount_codes">pos_discount_codes</a></li><li class="nav-table"><a href="#t-quiz_profile_responses">quiz_profile_responses</a></li><li class="nav-table"><a href="#t-quiz_drink_responses">quiz_drink_responses</a></li><li class="nav-table"><a href="#t-repost_verifications">repost_verifications</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-3-кавенятка-ріст-догляд-гардероб">3. Кавенятка: ріст, догляд, гардероб</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-3"><span class="nav-badge">ER</span>5 таблиць</a></summary><ul><li class="nav-table"><a href="#t-plants">plants</a></li><li class="nav-table"><a href="#t-plant_stage_transitions">plant_stage_transitions</a></li><li class="nav-table"><a href="#t-wardrobe_sets">wardrobe_sets</a></li><li class="nav-table"><a href="#t-wardrobe_set_items">wardrobe_set_items</a></li><li class="nav-table"><a href="#t-chat_messages">chat_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-4-операційка-відео-здоровʼя-адмінка">4. Операційка: відео, здоровʼя, адмінка</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-4"><span class="nav-badge">ER</span>7 таблиць</a></summary><ul><li class="nav-table"><a href="#t-video_segments">video_segments</a></li><li class="nav-table"><a href="#t-video_events">video_events</a></li><li class="nav-table"><a href="#t-health_samples">health_samples</a></li><li class="nav-table"><a href="#t-problem_reports">problem_reports</a></li><li class="nav-table"><a href="#t-news_broadcasts">news_broadcasts</a></li><li class="nav-table"><a href="#t-admin_users">admin_users</a></li><li class="nav-table"><a href="#t-economy_params">economy_params</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-5-redis-що-саме-там-лежить">5. Redis: що саме там лежить</a></summary><ul><li class="nav-sub"><a href="#db-ключі">Ключі</a></li><li class="nav-sub"><a href="#db-канали-pub-sub">Канали pub/sub</a></li><li class="nav-sub"><a href="#db-чому-pub-sub-а-не-streams">Чому pub/sub, а не Streams</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-6-міграції-окремий-інструмент-не-сервіс">6. Міграції: окремий інструмент, не сервіс</a></summary><ul><li class="nav-sub"><a href="#db-рекомендація-dbmate">Рекомендація: dbmate</a></li><li class="nav-sub"><a href="#db-розкладка">Розкладка</a></li><li class="nav-sub"><a href="#db-правила-які-дешевше-прийняти-зараз">Правила, які дешевше прийняти зараз</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details open><summary><a href="#svc">Сервіси: хто де живе, як спілкується, як доводить, що це він</a></summary><ul><li class="nav-section"><details open><summary><a href="#svc-1-загальна-картина">1. Загальна картина</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-1"><span class="nav-badge">схема</span>Схема</a></li></ul></details></li><li class="nav-section"><a href="#svc-2-хто-де-крутиться-і-чому-саме-там">2. Хто де крутиться і чому саме там</a></li><li class="nav-section"><details open><summary><a href="#svc-3-автентифікація-кожна-стрілка-окремо">3. Автентифікація: кожна стрілка окремо</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#svc-гравець">Гравець</a></li><li class="nav-sub"><a href="#svc-вебсокет">Вебсокет</a></li><li class="nav-sub"><a href="#svc-кіоск">Кіоск</a></li><li class="nav-sub"><a href="#svc-checkbox-ми">Checkbox → ми</a></li><li class="nav-sub"><a href="#svc-ми-checkbox">Ми → Checkbox</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#svc-4-потоки-даних-які-варто-розуміти-цілком">4. Потоки даних, які варто розуміти цілком</a></summary><ul><li class="nav-sub"><a href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті">Продаж → бонус на екрані → бонус в акаунті</a></li><li class="nav-sub"><a href="#svc-оновлення-точки">Оновлення точки</a></li><li class="nav-sub"><a href="#svc-відео">Відео</a></li></ul></details></li><li class="nav-section"><a href="#svc-5-що-з-цього-реально-існує">5. Що з цього реально існує</a></li></ul></details></li></ul></nav>
+<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul><li class="nav-doc"><details open><summary><a href="#db">Схема даних: Postgres і Redis</a></summary><ul><li class="nav-section"><details open><summary><a href="#db-0-наскрізні-рішення">0. Наскрізні рішення</a></summary><ul><li class="nav-sub"><a href="#db-гроші-numeric-12-2-ігрові-валюти-integer">Гроші — numeric(12,2), ігрові валюти — integer</a></li><li class="nav-sub"><a href="#db-баланс-і-журнал-одночасно">Баланс і журнал одночасно</a></li><li class="nav-sub"><a href="#db-косметика-куща-в-jsonb-економіка-в-колонках">Косметика куща в jsonb, економіка в колонках</a></li><li class="nav-sub"><a href="#db-ідемпотентність-на-кожному-вході-ззовні">Ідемпотентність на кожному вході ззовні</a></li><li class="nav-sub"><a href="#db-точка-текстовий-ключ-із-першого-дня">Точка — текстовий ключ із першого дня</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-1-ідентичність-і-продажі">1. Ідентичність і продажі</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-1"><span class="nav-badge">ER</span>11 таблиць</a></summary><ul><li class="nav-table"><a href="#t-points">points</a></li><li class="nav-table"><a href="#t-users">users</a></li><li class="nav-table"><a href="#t-user_identities">user_identities</a></li><li class="nav-table"><a href="#t-checkbox_shifts">checkbox_shifts</a></li><li class="nav-table"><a href="#t-receipts">receipts</a></li><li class="nav-table"><a href="#t-receipt_items">receipt_items</a></li><li class="nav-table"><a href="#t-drinks">drinks</a></li><li class="nav-table"><a href="#t-menu_deployments">menu_deployments</a></li><li class="nav-table"><a href="#t-bonus_grants">bonus_grants</a></li><li class="nav-table"><a href="#t-wallets">wallets</a></li><li class="nav-table"><a href="#t-device_telemetry">device_telemetry</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-2-економіка-журнал-крамниця-маркет">2. Економіка: журнал, крамниця, маркет</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-2"><span class="nav-badge">ER</span>12 таблиць</a></summary><ul><li class="nav-table"><a href="#t-ledger_entries">ledger_entries</a></li><li class="nav-table"><a href="#t-item_defs">item_defs</a></li><li class="nav-table"><a href="#t-user_items">user_items</a></li><li class="nav-table"><a href="#t-crate_openings">crate_openings</a></li><li class="nav-table"><a href="#t-market_listings">market_listings</a></li><li class="nav-table"><a href="#t-market_trades">market_trades</a></li><li class="nav-table"><a href="#t-coin_transfers">coin_transfers</a></li><li class="nav-table"><a href="#t-redemptions">redemptions</a></li><li class="nav-table"><a href="#t-pos_discount_codes">pos_discount_codes</a></li><li class="nav-table"><a href="#t-quiz_profile_responses">quiz_profile_responses</a></li><li class="nav-table"><a href="#t-quiz_drink_responses">quiz_drink_responses</a></li><li class="nav-table"><a href="#t-repost_verifications">repost_verifications</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-3-кавенятка-ріст-догляд-гардероб">3. Кавенятка: ріст, догляд, гардероб</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-3"><span class="nav-badge">ER</span>5 таблиць</a></summary><ul><li class="nav-table"><a href="#t-plants">plants</a></li><li class="nav-table"><a href="#t-plant_stage_transitions">plant_stage_transitions</a></li><li class="nav-table"><a href="#t-wardrobe_sets">wardrobe_sets</a></li><li class="nav-table"><a href="#t-wardrobe_set_items">wardrobe_set_items</a></li><li class="nav-table"><a href="#t-chat_messages">chat_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-4-операційка-відео-здоровʼя-адмінка">4. Операційка: відео, здоровʼя, адмінка</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-4"><span class="nav-badge">ER</span>7 таблиць</a></summary><ul><li class="nav-table"><a href="#t-video_segments">video_segments</a></li><li class="nav-table"><a href="#t-video_events">video_events</a></li><li class="nav-table"><a href="#t-health_samples">health_samples</a></li><li class="nav-table"><a href="#t-problem_reports">problem_reports</a></li><li class="nav-table"><a href="#t-news_broadcasts">news_broadcasts</a></li><li class="nav-table"><a href="#t-admin_users">admin_users</a></li><li class="nav-table"><a href="#t-economy_params">economy_params</a></li></ul></details></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-5-redis-що-саме-там-лежить">5. Redis: що саме там лежить</a></summary><ul><li class="nav-sub"><a href="#db-ключі">Ключі</a></li><li class="nav-sub"><a href="#db-канали-pub-sub">Канали pub/sub</a></li><li class="nav-sub"><a href="#db-чому-pub-sub-а-не-streams">Чому pub/sub, а не Streams</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#db-6-міграції-окремий-інструмент-не-сервіс">6. Міграції: окремий інструмент, не сервіс</a></summary><ul><li class="nav-sub"><a href="#db-рішення-dbmate-15-09-2026">Рішення: dbmate, 15.09.2026</a></li><li class="nav-sub"><a href="#db-розкладка">Розкладка</a></li><li class="nav-sub"><a href="#db-правила-які-дешевше-прийняти-зараз">Правила, які дешевше прийняти зараз</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details open><summary><a href="#svc">Сервіси: хто де живе, як спілкується, як доводить, що це він</a></summary><ul><li class="nav-section"><details open><summary><a href="#svc-1-загальна-картина">1. Загальна картина</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-1"><span class="nav-badge">схема</span>Схема</a></li></ul></details></li><li class="nav-section"><a href="#svc-2-хто-де-крутиться-і-чому-саме-там">2. Хто де крутиться і чому саме там</a></li><li class="nav-section"><details open><summary><a href="#svc-3-автентифікація-кожна-стрілка-окремо">3. Автентифікація: кожна стрілка окремо</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#svc-гравець">Гравець</a></li><li class="nav-sub"><a href="#svc-вебсокет">Вебсокет</a></li><li class="nav-sub"><a href="#svc-кіоск">Кіоск</a></li><li class="nav-sub"><a href="#svc-checkbox-ми">Checkbox → ми</a></li><li class="nav-sub"><a href="#svc-ми-checkbox">Ми → Checkbox</a></li></ul></details></li><li class="nav-section"><details open><summary><a href="#svc-4-потоки-даних-які-варто-розуміти-цілком">4. Потоки даних, які варто розуміти цілком</a></summary><ul><li class="nav-sub"><a href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті">Продаж → бонус на екрані → бонус в акаунті</a></li><li class="nav-sub"><a href="#svc-оновлення-точки">Оновлення точки</a></li><li class="nav-sub"><a href="#svc-відео">Відео</a></li></ul></details></li><li class="nav-section"><a href="#svc-5-що-з-цього-реально-існує">5. Що з цього реально існує</a></li></ul></details></li></ul></nav>
 <main>
 <section class="doc" id="db">
 <header class="doc-head"><p class="doc-src">docs/db-schema.md</p><h1>Схема даних: Postgres і Redis</h1></header>
@@ -112,7 +112,9 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 <h2 id="db-0-наскрізні-рішення"><a class="anchor" href="#db-0-наскрізні-рішення" aria-hidden="true">#</a>0. Наскрізні рішення</h2>
 <h3 id="db-гроші-numeric-12-2-ігрові-валюти-integer"><a class="anchor" href="#db-гроші-numeric-12-2-ігрові-валюти-integer" aria-hidden="true">#</a>Гроші — <code>numeric(12,2)</code>, ігрові валюти — <code>integer</code></h3>
 <p>Гривня ніколи не <code>float</code>; монети й зерна цілі за визначенням (економіка
-оперує <code>round(маржа)</code>, <code>gamification_economy.md</code> §7).</p>
+оперує <code>round(маржа)</code>, <code>gamification_economy.md</code> §7). Checkbox віддає суми
+цілими копійками (Еспресо 35 ₴ приходить як <code>3500</code>) — ділимо на 100 на
+вході в <code>checkbox</code>, щоб копійки не розповзлися по схемі.</p>
 <h3 id="db-баланс-і-журнал-одночасно"><a class="anchor" href="#db-баланс-і-журнал-одночасно" aria-hidden="true">#</a>Баланс і журнал одночасно</h3>
 <p><code>wallets</code> — швидкий баланс для UI, <code>ledger_entries</code> — незмінний журнал усіх
 рухів. Баланс завжди похідний і звіряється з журналом; розбіжність — це
@@ -882,75 +884,14 @@ docker-compose, і якщо міграції живуть у котромусь 
 старту вирішує, хто першим накотить схему, (б) два екземпляри одного
 сервісу накочують паралельно, (в) відкотити сервіс означає відкотити
 міграції разом із ним.</p>
-<h3 id="db-рекомендація-dbmate"><a class="anchor" href="#db-рекомендація-dbmate" aria-hidden="true">#</a>Рекомендація: <strong>dbmate</strong></h3>
-<p>Один статичний Go-бінарник (~10 МБ), чистий SQL, нічого не знає про
-Node. Запускається окремим одноразовим контейнером, виходить — і все.</p>
-<div class="tablewrap"><table>
-<thead>
-<tr>
-<th></th>
-<th>dbmate</th>
-<th>node-pg-migrate</th>
-<th>Atlas</th>
-<th>Flyway/Liquibase</th>
-<th>Sqitch</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Окремо від сервісів</td>
-<td>✅ бінарник</td>
-<td>⚠️ тягне Node-залежності</td>
-<td>✅</td>
-<td>✅</td>
-<td>✅</td>
-</tr>
-<tr>
-<td>Формат</td>
-<td>чистий SQL</td>
-<td>JS або SQL</td>
-<td>HCL/SQL, декларативно</td>
-<td>SQL/XML</td>
-<td>SQL + граф залежностей</td>
-</tr>
-<tr>
-<td>Вага в CI</td>
-<td>~10 МБ</td>
-<td>образ Node</td>
-<td>~30 МБ</td>
-<td>JVM ~200 МБ</td>
-<td>Perl</td>
-</tr>
-<tr>
-<td>Down-міграції</td>
-<td>✅</td>
-<td>✅</td>
-<td>⚠️ інша модель</td>
-<td>платно (Teams)</td>
-<td>✅</td>
-</tr>
-<tr>
-<td>Дамп схеми в git</td>
-<td>✅ вбудовано</td>
-<td>ні</td>
-<td>✅</td>
-<td>ні</td>
-<td>ні</td>
-</tr>
-<tr>
-<td>Навчання</td>
-<td>година</td>
-<td>година</td>
-<td>день</td>
-<td>день</td>
-<td>день</td>
-</tr>
-</tbody></table>
-</div>
-<p><code>node-pg-migrate</code> — очевидний «залишитись у Node», але тоді міграції знову
-поруч із сервісним <code>package.json</code>, і спокуса імпортнути з коду сервісу
-зʼявиться сама. <code>Atlas</code> кращий, коли схема декларативна й потрібен
-drift-detection — це наступний крок, не перший. JVM-інструменти на
-дроплеті за $24 — невиправдана вага.</p>
+<h3 id="db-рішення-dbmate-15-09-2026"><a class="anchor" href="#db-рішення-dbmate-15-09-2026" aria-hidden="true">#</a>Рішення: <strong>dbmate</strong>, 15.09.2026</h3>
+<p>Один статичний Go-бінарник, чистий SQL, нічого не знає про Node.
+Запускається окремим одноразовим контейнером, виходить — і все. Спокуси
+імпортнути щось із коду сервісу не виникає, бо поруч немає ні
+<code>package.json</code>, ні спільних модулів.</p>
+<p><strong>Коли:</strong> після того, як затвердимо діаграми — ER вище й потоки в
+<code>services.md</code>. Поки схема рухається, правка діаграми коштує рядок тексту, а
+кожна правка вже накоченої схеми — окрема міграція з <code>up</code> і <code>down</code>.</p>
 <h3 id="db-розкладка"><a class="anchor" href="#db-розкладка" aria-hidden="true">#</a>Розкладка</h3>
 <pre><code>db/
 ├── migrations/
@@ -985,10 +926,12 @@ drift-detection — це наступний крок, не перший. JVM-і�
 Видалення — окремим, пізнішим релізом, коли відкочуватись уже нема куди.</li>
 <li><strong><code>schema.sql</code> комітиться.</strong> Рев&#39;ю читає диф схеми, а не перебирає
 міграції очима.</li>
-<li><strong>CI: накотити на чисту базу, потім накотити ще раз.</strong> Друге накочення
-має бути no-op — це ловить міграції, які не ідемпотентні.</li>
+<li><strong>CI: чиста база → <code>dbmate up</code> → диф <code>schema.sql</code> порожній → <code>dbmate rollback</code> → <code>dbmate up</code>.</strong> Повторний <code>up</code> сам по собі нічого не
+перевіряє: dbmate памʼятає накочені версії й просто нічого не робить.
+Порожній диф ловить забутий дамп, а <code>rollback</code> + <code>up</code> — зламаний <code>down</code>,
+який інакше знайдеться лише тоді, коли відкочуватись уже треба.</li>
 <li><strong>Перший тестовий відкат — одразу</strong>, як і з бекапами (<code>video.md</code>):
-<code>dbmate down</code> на стейджі до того, як він знадобиться на проді.</li>
+<code>dbmate rollback</code> на стейджі до того, як він знадобиться на проді.</li>
 </ol>
 
 </section>
@@ -1013,7 +956,7 @@ graph TB
     end
 
     subgraph cf[&quot;Cloudflare Workers (статика + edge)&quot;]
-        POSW[&quot;pos worker&lt;br/&gt;/p/point, меню з R2&quot;]
+        POSW[&quot;pos worker&lt;br/&gt;/p/point, меню й релізи з R2&quot;]
         CLIENT[&quot;client&lt;br/&gt;React SPA, гравець&quot;]
     end
 
@@ -1048,7 +991,7 @@ graph TB
 
     KIOSK --&gt;|&quot;GET меню, 60 с&quot;| POSW
     KIOSK --&gt;|&quot;телеметрія, ідемпотентно&quot;| API
-    UPD --&gt;|&quot;маніфест + tar.gz&quot;| R2M
+    UPD --&gt;|&quot;маніфест + tar.gz, ETag, Range&quot;| POSW
     REC --&gt;|&quot;presigned PUT&quot;| R2V
     POSW --&gt; R2M
     CLIENT --&gt;|&quot;REST + Bearer&quot;| API
@@ -1162,12 +1105,12 @@ URL, <code>ws</code> обмінює на <code>user_id</code> і одразу в
 <code>api.checkbox.ua</code></strong>, окремого домену для товарів немає. Авторизація — логін
 і пароль касира в обмін на токен; токен тримаємо <strong>в памʼяті</strong> й
 перевипускаємо лише коли прилетіла помилка авторизації, а не за таймером.
-Це прямо суперечить попередній редакції <code>checkbox.md</code> (<code>api.checkbox.in.ua</code></p>
-<ul>
-<li>окремий кабінетний токен) — стара версія була помилкою дослідження, і
-<code>checkbox/scripts/sync-prices.mjs</code> під неї й написаний, тобто зараз
-неробочий (§5).</li>
-</ul>
+Попередня редакція <code>checkbox.md</code> (<code>api.checkbox.in.ua</code> + окремий
+кабінетний токен) була помилкою дослідження.</p>
+<p><strong>Каталог товарів належить організації, а не касиру.</strong> Тестовий касир
+бачить ті самі товари з тими самими цінами, що й справжній (перевірено
+15.09.2026), тож тестовий логін ізолює чеки, але не ціни. Писати в каталог
+з тестовим логіном — усе одно писати в живий каталог.</p>
 <h2 id="svc-4-потоки-даних-які-варто-розуміти-цілком"><a class="anchor" href="#svc-4-потоки-даних-які-варто-розуміти-цілком" aria-hidden="true">#</a>4. Потоки даних, які варто розуміти цілком</h2>
 <h3 id="svc-продаж-бонус-на-екрані-бонус-в-акаунті"><a class="anchor" href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті" aria-hidden="true">#</a>Продаж → бонус на екрані → бонус в акаунті</h3>
 <pre><code>Checkbox → вебхук (HMAC) → checkbox:3003
@@ -1183,8 +1126,9 @@ URL, <code>ws</code> обмінює на <code>user_id</code> і одразу в
 продажу для нас не існувало. Раз на годину <code>checkbox</code> тягне
 <code>GET /api/v1/receipts</code> за період і добирає пропущене (<code>checkbox.md</code>).</p>
 <h3 id="svc-оновлення-точки"><a class="anchor" href="#svc-оновлення-точки" aria-hidden="true">#</a>Оновлення точки</h3>
-<p><code>pi/stack/README.md</code> — окремий документ, бо це вже не архітектура, а
-операція з відкатом.</p>
+<p><code>raspberry-pi.md</code> — окремий документ, бо це вже не архітектура, а
+операція з відкатом: діаграма процесів на малині, деплой релізу від коміту
+до екрана, перехід на стек. Нутрощі стеку — <code>pi/stack/README.md</code>.</p>
 <h3 id="svc-відео"><a class="anchor" href="#svc-відео" aria-hidden="true">#</a>Відео</h3>
 <p><code>video.md</code> — запис, presigned PUT, черга через <code>SKIP LOCKED</code>, звід події з
 чеком за таймстемпом.</p>
@@ -1202,11 +1146,11 @@ URL, <code>ws</code> обмінює на <code>user_id</code> і одразу в
 </tr>
 <tr>
 <td><code>pi/stack</code> (supervisor + updater)</td>
-<td>написано, зібрано, <strong>на малині не проганялось</strong></td>
+<td>написано; апдейтер прогнано в Linux-контейнері, <strong>на малині не проганялось</strong> (<code>raspberry-pi.md</code> §7)</td>
 </tr>
 <tr>
 <td><code>pos worker</code></td>
-<td>працює, віддає меню з R2</td>
+<td>працює, віддає меню з R2; роут релізів <code>/releases/pi/*</code> перевірено локально, <strong>на прод не викочено</strong></td>
 </tr>
 <tr>
 <td><code>checkbox</code></td>
@@ -1238,11 +1182,11 @@ URL, <code>ws</code> обмінює на <code>user_id</code> і одразу в
 </tr>
 <tr>
 <td>Postgres</td>
-<td><strong>жодної таблиці</strong> — схема описана в <code>db-schema.md</code>, міграцій ще нема</td>
+<td><strong>жодної таблиці</strong> — схема описана в <code>db-schema.md</code>; міграції на dbmate, після затвердження діаграм</td>
 </tr>
 <tr>
 <td><code>checkbox/scripts/sync-prices.mjs</code></td>
-<td>написаний під стару (хибну) модель авторизації — переписати під §3</td>
+<td>переписаний під токен касира; порівняння з каталогом <strong>перевірено</strong>, запис (<code>--apply</code>) <strong>ще ні</strong></td>
 </tr>
 </tbody></table>
 </div>
@@ -1252,7 +1196,7 @@ URL, <code>ws</code> обмінює на <code>user_id</code> і одразу в
 </section>
 </main>
 </div>
-<footer>Хеш джерел 3ada054 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 89cc3bd — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
