@@ -1,21 +1,27 @@
 #!/usr/bin/env node
-// build-data-map.mjs — збирає docs/data-map.html із docs/db-schema.md і
-// docs/services.md.
+// build-data-map.mjs — збирає docs/data-map.html з усіх чинних доків.
 //
 // Джерело істини — markdown. HTML похідний і руками не редагується: перша
 // версія сторінки жила окремою копією діаграм, і той самий баг у mermaid
 // довелось виправляти у двох місцях (15.09.2026). Тепер копії немає.
 //
 //   node scripts/build-data-map.mjs                  # перегенерувати docs/data-map.html
-//   node scripts/build-data-map.mjs --check          # код 1: html застарів або ER-синтаксис битий
+//   node scripts/build-data-map.mjs --check          # код 1: html застарів, реєстр дірявий або ER битий
 //   node scripts/build-data-map.mjs --artifact <out> # варіант для claude.ai, без mermaid-скрипта
 //   node scripts/build-data-map.mjs --hook           # PostToolUse-хук Claude Code (stdin JSON)
 //
-// Меню сторінки будується з самої структури доків: # документ → ## розділ →
-// ### підрозділ → діаграма → окремі таблиці з ER. Тобто глибина меню
-// керується заголовками в markdown, а не цим скриптом.
+// Які доки потрапляють на сторінку, вирішує реєстр docs/README.md, а не цей
+// скрипт: ## група → таблиця з файлами. Група зі словом «Архів» пропускається.
+// Окремого списку тут свідомо немає — інакше реєстр і сторінка розходились
+// би так само, як колись розійшлися копії діаграм. Док із docs/, якого нема
+// в реєстрі, — попередження, і --check не проходить.
+//
+// Меню будується з самої структури доків: група → # документ → розділ →
+// підрозділ → ще рівень → діаграма → окремі таблиці з ER. Рівні рахуються
+// від найменшого заголовка в доці, тож док, що починається з «#», і док із
+// «##» дають однакове меню.
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,13 +29,11 @@ import { Marked, Renderer } from "marked";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = "docs/data-map.html";
+const REGISTRY = "docs/README.md";
 
-// Порядок тут = порядок на сторінці. Новий документ із діаграмами — рядок
-// сюди; хук і --check підхоплять його автоматично, окремого списку ніде нема.
-const SOURCES = [
-  { key: "db", file: "docs/db-schema.md" },
-  { key: "svc", file: "docs/services.md" },
-];
+// Якорі #db-… і #svc-… уже розіслані посиланнями з першої версії сторінки,
+// тому ключі цих двох доків фіксовані. Решта — з імені файла.
+const FIXED_KEYS = { "docs/db-schema.md": "db", "docs/services.md": "svc" };
 
 const MERMAID_VERSION = "10.9.1";
 
@@ -42,7 +46,7 @@ const plain = (s) => String(s).replace(/`([^`]*)`/g, "$1").replace(/\*\*([^*]*)\
 
 function slugger() {
   const used = new Map();
-  return (prefix, text) => {
+  const slug = (prefix, text) => {
     const base =
       prefix +
       "-" +
@@ -55,7 +59,20 @@ function slugger() {
     used.set(base, n);
     return n === 1 ? base : `${base}-${n}`;
   };
+  // Ключі доків займаються наперед: розділ «stack» у pi/README.md інакше
+  // отримав би id «pi-stack» — той самий, що й док pi/stack/README.md.
+  slug.reserve = (id) => used.set(id, (used.get(id) || 0) + 1);
+  return slug;
 }
+
+const plural = (n, [one, few, many]) => {
+  const d = n % 10, dd = n % 100;
+  if (d === 1 && dd !== 11) return one;
+  if (d >= 2 && d <= 4 && (dd < 12 || dd > 14)) return few;
+  return many;
+};
+
+const readText = (file) => readFileSync(path.join(ROOT, file), "utf8").replace(/\r\n/g, "\n");
 
 const samePath = (a, b) => {
   const ra = path.resolve(a), rb = path.resolve(b);
@@ -112,60 +129,135 @@ function parseER(src, where) {
   return { entities, relations, warnings };
 }
 
-// ── модель: токени, меню, реєстр таблиць ────────────────────────────────────
-function buildModel() {
-  const slug = slugger();
-  const registry = new Map(); // ENTITY → { anchor, docKey }
-  const allRelations = [];
+// ── реєстр доків ──────────────────────────────────────────────────────────
+// docs/README.md: «## Група», під нею таблиця, у першій колонці — шлях у
+// бектиках відносно docs/. Не-markdown рядки (data-map.html) пропускаються.
+function readRegistry() {
+  const md = readText(REGISTRY);
   const warnings = [];
-  const docs = SOURCES.map((src) => {
-    const md = readFileSync(path.join(ROOT, src.file), "utf8").replace(/\r\n/g, "\n");
-    const lexer = new Marked();
-    const tokens = lexer.lexer(md);
-    const doc = { ...src, md, tokens, title: src.file, nav: { id: src.key, label: src.file, kind: "doc", children: [] } };
-    let h2 = null, h3 = null, nDiagram = 0;
-    for (const t of tokens) {
-      if (t.type === "heading" && t.depth === 1) {
-        doc.title = plain(t.text);
-        doc.nav.label = doc.title;
-        t._skip = true;
-      } else if (t.type === "heading" && t.depth === 2) {
-        t._id = slug(src.key, t.text);
-        h2 = { id: t._id, label: plain(t.text), kind: "section", children: [] };
-        h3 = null;
-        doc.nav.children.push(h2);
-      } else if (t.type === "heading" && t.depth === 3) {
-        t._id = slug(src.key, t.text);
-        h3 = { id: t._id, label: plain(t.text), kind: "sub", children: [] };
-        (h2 || doc.nav).children.push(h3);
-      } else if (t.type === "code" && t.lang === "mermaid") {
-        nDiagram++;
-        const kind = /^\s*erDiagram/.test(t.text) ? "er" : "graph";
-        const id = `${src.key}-diagram-${nDiagram}`;
-        const node = { id, kind, children: [] };
-        if (kind === "er") {
-          const er = parseER(t.text, `${src.file}, діаграма ${nDiagram}`);
-          warnings.push(...er.warnings);
-          allRelations.push(...er.relations);
-          for (const e of er.entities.values()) {
-            const anchor = `t-${e.name.toLowerCase()}`;
-            if (!registry.has(e.name)) registry.set(e.name, { anchor, docKey: src.key });
-            node.children.push({ id: anchor, label: e.name.toLowerCase(), kind: "table", children: [] });
-          }
-          node.label = `${er.entities.size} таблиць`;
-          t._er = er;
-        } else {
-          node.label = "Схема";
-        }
-        t._diagram = node;
-        (h3 || h2 || doc.nav).children.push(node);
-      } else if (t.type === "hr") {
-        t._skip = true;
+  const groups = [];
+  const archived = [];
+  const listed = new Set();
+  let group = null;
+  for (const t of new Marked().lexer(md)) {
+    if (t.type === "heading" && t.depth === 2) {
+      group = { title: plain(t.text), archive: /архів/i.test(t.text), docs: [] };
+      if (!group.archive) groups.push(group);
+    } else if (t.type === "table" && group) {
+      for (const row of t.rows) {
+        const m = (row[0]?.text ?? "").trim().match(/^`([^`]+\.md)`$/i);
+        if (!m) continue;
+        const file = path.posix.normalize(path.posix.join(path.posix.dirname(REGISTRY), m[1]));
+        if (listed.has(file)) { warnings.push(`реєстр: ${file} записано двічі`); continue; }
+        listed.add(file);
+        if (!existsSync(path.join(ROOT, file))) { warnings.push(`реєстр: ${file} не існує`); continue; }
+        (group.archive ? archived : group.docs).push(file);
       }
     }
-    return doc;
+  }
+  // Док, якого нема в реєстрі, мовчки випав би зі сторінки — саме так
+  // сторінка колись показувала два доки з шістнадцяти.
+  for (const name of readdirSync(path.join(ROOT, "docs")).sort()) {
+    const file = `docs/${name}`;
+    if (/\.md$/i.test(name) && file !== REGISTRY && !listed.has(file)) {
+      warnings.push(`реєстр: ${file} немає ні в групі, ні в архіві ${REGISTRY}`);
+    }
+  }
+  return { md, groups: groups.filter((g) => g.docs.length), archived, listed, warnings };
+}
+
+const docKey = (file) =>
+  FIXED_KEYS[file] ??
+  file
+    .replace(/^docs\//, "")
+    .replace(/(^|\/)README\.md$/i, "")
+    .replace(/\.md$/i, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+// `raspberry-pi.md` у тексті — посилання на цей док на сторінці. Шлях
+// пробуємо відносно самого дока, від кореня й від docs/: у pi/README.md
+// пишуть `stack/README.md`, у доках — `pi/stack/README.md` або `services.md`.
+function resolveDocRef(fromFile, ref, keys) {
+  const clean = ref.trim().replace(/\\/g, "/");
+  for (const cand of [path.posix.join(path.posix.dirname(fromFile), clean), clean, path.posix.join("docs", clean)]) {
+    const key = keys.get(path.posix.normalize(cand));
+    if (key) return key;
+  }
+  return null;
+}
+
+// ── модель: токени, меню, реєстр таблиць ────────────────────────────────────
+const LEVEL_KINDS = ["section", "sub", "subsub"]; // глибші заголовки — лише якір, без пункту меню
+
+function parseDoc(file, key, ctx) {
+  const md = readText(file);
+  const tokens = new Marked().lexer(md);
+  const headings = tokens.filter((t) => t.type === "heading");
+  const titleTok = headings[0]?.depth === 1 ? headings[0] : null;
+  if (!titleTok) ctx.warnings.push(`${file}: немає заголовка «# …» на початку — у меню йде імʼя файла`);
+  const title = titleTok ? plain(titleTok.text) : file;
+  if (titleTok) titleTok._skip = true;
+  const base = Math.min(6, ...headings.filter((h) => h !== titleTok).map((h) => h.depth));
+  const doc = { file, key, md, tokens, title, nav: { id: key, label: title, kind: "doc", children: [] } };
+
+  const trail = []; // trail[рівень] = пункт меню поточного заголовка
+  const deepest = () => trail.filter(Boolean).at(-1) || doc.nav;
+  let nDiagram = 0;
+  for (const t of tokens) {
+    if (t.type === "heading" && t !== titleTok) {
+      const level = t.depth - base;
+      t._id = ctx.slug(key, t.text);
+      t._render = Math.min(6, level + 2); // документ — h1, його розділи — h2, як на всій сторінці
+      if (level >= LEVEL_KINDS.length) continue;
+      const node = { id: t._id, label: plain(t.text), kind: LEVEL_KINDS[level], children: [] };
+      trail.length = level;
+      deepest().children.push(node);
+      trail[level] = node;
+    } else if (t.type === "code" && t.lang === "mermaid") {
+      nDiagram++;
+      const kind = /^\s*erDiagram/.test(t.text) ? "er" : "graph";
+      const node = { id: `${key}-diagram-${nDiagram}`, kind, children: [] };
+      if (kind === "er") {
+        const er = parseER(t.text, `${file}, діаграма ${nDiagram}`);
+        ctx.warnings.push(...er.warnings);
+        ctx.allRelations.push(...er.relations);
+        for (const e of er.entities.values()) {
+          const anchor = `t-${e.name.toLowerCase()}`;
+          if (ctx.registry.has(e.name)) { ctx.warnings.push(`${file}: таблицю ${e.name} уже описано в іншій діаграмі`); continue; }
+          ctx.registry.set(e.name, { anchor });
+          node.children.push({ id: anchor, label: e.name.toLowerCase(), kind: "table", children: [] });
+        }
+        node.label = `${er.entities.size} ${plural(er.entities.size, ["таблиця", "таблиці", "таблиць"])}`;
+        t._er = er;
+      } else {
+        node.label = "Схема";
+      }
+      t._diagram = node;
+      deepest().children.push(node);
+    } else if (t.type === "hr") {
+      t._skip = true;
+    }
+  }
+  return doc;
+}
+
+function buildModel() {
+  const reg = readRegistry();
+  const ctx = { slug: slugger(), registry: new Map(), allRelations: [], warnings: [...reg.warnings] };
+  const keys = new Map(); // файл → ключ дока, для посилань між доками
+  for (const g of reg.groups) for (const file of g.docs) keys.set(file, docKey(file));
+  for (const key of keys.values()) ctx.slug.reserve(key);
+
+  const docs = [];
+  const groups = reg.groups.map((g) => {
+    const id = ctx.slug("g", g.title);
+    const groupDocs = g.docs.map((file) => parseDoc(file, keys.get(file), ctx));
+    docs.push(...groupDocs);
+    return { id, title: g.title, docs: groupDocs, nav: { id, label: g.title, kind: "group", children: groupDocs.map((d) => d.nav) } };
   });
-  return { docs, registry, allRelations, warnings };
+  return { reg, groups, docs, keys, registry: ctx.registry, allRelations: ctx.allRelations, warnings: ctx.warnings };
 }
 
 // ── рендер ────────────────────────────────────────────────────────────────
@@ -215,7 +307,13 @@ function renderDoc(doc, model) {
       heading(t) {
         if (t._skip) return "";
         const inner = this.parser.parseInline(t.tokens);
-        return `<h${t.depth} id="${t._id}"><a class="anchor" href="#${t._id}" aria-hidden="true">#</a>${inner}</h${t.depth}>\n`;
+        const h = t._render;
+        return `<h${h} id="${t._id}"><a class="anchor" href="#${t._id}" aria-hidden="true">#</a>${inner}</h${h}>\n`;
+      },
+      codespan(t) {
+        const code = `<code>${esc(t.text)}</code>`;
+        const target = /\.md$/i.test(t.text) ? resolveDocRef(doc.file, t.text, model.keys) : null;
+        return target && target !== doc.key ? `<a class="doclink" href="#${target}">${code}</a>` : code;
       },
       hr(t) {
         return t._skip ? "" : "<hr>\n";
@@ -228,7 +326,7 @@ function renderDoc(doc, model) {
         const d = t._diagram;
         const tag = d.kind === "er" ? "ER" : "Схема";
         const plate = `<figure class="plate" id="${d.id}">
-  <figcaption class="plate-head"><span class="tag">${tag}</span>${d.kind === "er" ? `<span class="plate-meta">${d.children.length} таблиць нижче — з колонками й звʼязками</span>` : ""}</figcaption>
+  <figcaption class="plate-head"><span class="tag">${tag}</span>${d.kind === "er" ? `<span class="plate-meta">${d.children.length} ${plural(d.children.length, ["таблиця", "таблиці", "таблиць"])} нижче — з колонками й звʼязками</span>` : ""}</figcaption>
   <div class="plate-body"><pre class="mermaid">${esc(MERMAID_INIT + t.text)}</pre></div>
 </figure>\n`;
         return d.kind === "er" ? plate + entityCards(t._er, model) + "\n" : plate;
@@ -241,15 +339,15 @@ ${marked.parser(doc.tokens)}
 </section>`;
 }
 
-function navHTML(node, depth) {
-  const kids = node.children.map((c) => navHTML(c, depth + 1)).join("");
+function navHTML(node) {
+  const kids = node.children.map(navHTML).join("");
   const badge =
     node.kind === "er" ? `<span class="nav-badge">ER</span>` : node.kind === "graph" ? `<span class="nav-badge">схема</span>` : "";
   const label = `<a href="#${node.id}">${badge}${esc(node.label)}</a>`;
   if (!kids) return `<li class="nav-${node.kind}">${label}</li>`;
-  // Документи й розділи відкриті: так меню одразу показує структуру. Списки
-  // таблиць під ER згорнуті — інакше сайдбар стає довшим за саму сторінку.
-  const open = node.kind === "doc" || node.kind === "section" || node.kind === "sub";
+  // Відкриті лише групи: з півтора десятка доків, розгорнутих до розділів,
+  // меню довше за саму сторінку. Гілку того, що читаєш, розкриває підсвітка.
+  const open = node.kind === "group";
   return `<li class="nav-${node.kind}"><details${open ? " open" : ""}><summary>${label}</summary><ul>${kids}</ul></details></li>`;
 }
 
@@ -333,6 +431,25 @@ figure.plate{margin:18px 0 16px}
 .rel-card{font-family:"IBM Plex Mono",monospace;color:var(--ink-faint);min-width:58px}
 .rels a{font-family:"IBM Plex Mono",monospace}
 .rel-label{color:var(--ink-dim)}
+.toc .nav-group{margin-top:16px}
+.toc .nav-group:first-child{margin-top:0}
+.nav-group>details>summary a{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.toc .nav-group>details>ul{border-left:0;margin-left:0;padding-left:4px}
+.group-band{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:72px 0 0;padding:14px 0 0;border-top:2px solid var(--accent);scroll-margin-top:16px}
+main>.group-band:first-child{margin-top:26px}
+.group-name{font-family:Poppins,sans-serif;font-weight:700;font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.group-count{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-faint)}
+.group-band+.doc{padding-top:14px}
+main h4{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;margin:24px 0 6px;position:relative}
+main h5,main h6{font-family:Poppins,sans-serif;font-weight:600;font-size:15px;margin:20px 0 4px;color:var(--ink-dim);position:relative}
+h4:hover .anchor,h5:hover .anchor,h6:hover .anchor{opacity:1}
+main blockquote{margin:0 0 16px;padding:10px 16px;background:var(--surface);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;color:var(--ink-dim);max-width:78ch}
+main blockquote p:last-child{margin-bottom:0}
+main li:has(>input[type="checkbox"]){list-style:none;margin-left:-20px}
+main input[type="checkbox"]{accent-color:var(--accent);margin:0 8px 0 0;vertical-align:-1px}
+.doclink{text-decoration:none}
+.doclink code{color:var(--accent)}
+.doclink:hover code,.doclink:focus-visible code{text-decoration:underline}
 footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-size:13px;border-top:1px solid var(--line)}
 @media (max-width:900px){.layout{grid-template-columns:1fr;gap:0}.toc{position:static;max-height:none;border-bottom:1px solid var(--line);padding:16px 0}.dict{grid-template-columns:1fr}.anchor{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -354,6 +471,12 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 // Згорнуту руками гілку позначаємо data-closed, бо інакше підсвітка на
 // найближчому ж скролі розкрила б її назад. Поки гілка згорнута, «де я»
 // світить її заголовок, а не сховану всередині таблицю.
+//
+// Що розкрила підсвітка (data-spy), те вона ж і згортає, коли читач пішов
+// далі: інакше з кожним прочитаним доком меню ставало б довшим. Розкрите
+// руками лишається, як лишив читач. Власні перемикання скрипт позначає
+// data-auto: toggle приходить асинхронно, і без позначки його не відрізнити
+// від кліку людини.
 const SPY = `
 (function(){
   var toc = document.querySelector(".toc"); if (!toc) return;
@@ -361,14 +484,18 @@ const SPY = `
   var targets = Object.keys(links).map(function(id){ return document.getElementById(id); }).filter(Boolean);
   var current = null, queued = false, lastClicked = null;
   function ownDetails(a){ var s = a.parentElement; return s && s.tagName === "SUMMARY" ? s.parentElement : null; }
+  function setOpen(d, open){ if (d.open === open) return; d.setAttribute("data-auto", open ? "open" : "close"); d.open = open; }
   function mark(id){
     var a = id && links[id]; if (!a || id === current) return; current = id;
-    var shown = a, el;
+    var shown = a, el, path = [];
     for (el = a.parentElement; el && el !== toc; el = el.parentElement)
       if (el.tagName === "DETAILS" && el !== ownDetails(a) && !el.open && el.hasAttribute("data-closed")) shown = el.querySelector("summary a");
+    for (el = shown.parentElement; el && el !== toc; el = el.parentElement) if (el.tagName === "DETAILS") path.push(el);
     if (shown === a)
-      for (el = a.parentElement; el && el !== toc; el = el.parentElement)
-        if (el.tagName === "DETAILS" && !el.hasAttribute("data-closed")) el.open = true;
+      path.forEach(function(d){ if (!d.open && !d.hasAttribute("data-closed")) { setOpen(d, true); d.setAttribute("data-spy", ""); } });
+    Array.prototype.forEach.call(toc.querySelectorAll("details[data-spy]"), function(d){
+      if (path.indexOf(d) === -1) { d.removeAttribute("data-spy"); setOpen(d, false); }
+    });
     Array.prototype.forEach.call(toc.querySelectorAll("a[aria-current]"), function(x){ x.removeAttribute("aria-current"); });
     shown.setAttribute("aria-current", "true");
     if (getComputedStyle(toc).position === "sticky") shown.scrollIntoView({ block: "nearest" });
@@ -395,6 +522,9 @@ const SPY = `
   // клік по стрілці ▸, який браузер перемикає сам, без нашого обробника.
   toc.addEventListener("toggle", function(e){
     var d = e.target; if (d.tagName !== "DETAILS") return;
+    var auto = d.getAttribute("data-auto"); d.removeAttribute("data-auto");
+    if (auto && auto === (d.open ? "open" : "close")) return;
+    d.removeAttribute("data-spy");
     if (d.open) d.removeAttribute("data-closed"); else d.setAttribute("data-closed", "");
     current = null; update();
   }, true);
@@ -412,16 +542,24 @@ const SPY = `
 
 function renderPage(model, { artifact }) {
   const sha = createHash("sha256");
+  sha.update(model.reg.md);
   model.docs.forEach((d) => sha.update(d.md));
   const stamp = sha.digest("hex").slice(0, 7);
-  const sources = SOURCES.map((s) => `<code>${esc(s.file)}</code>`).join(" і ");
-  const nav = `<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul>${model.docs.map((d) => navHTML(d.nav, 0)).join("")}</ul></nav>`;
+  const nDocs = model.docs.length, nGroups = model.groups.length;
+  const nav = `<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul>${model.groups.map((g) => navHTML(g.nav)).join("")}</ul></nav>`;
+  const body = model.groups
+    .map((g) => {
+      const band = `<div class="group-band" id="${g.id}"><span class="group-name">${esc(g.title)}</span><span class="group-count">${g.docs.length} ${plural(g.docs.length, ["документ", "документи", "документів"])}</span></div>`;
+      return [band, ...g.docs.map((d) => renderDoc(d, model))].join("\n");
+    })
+    .join("\n");
+  const archived = model.reg.archived.map((f) => `<code>${esc(f)}</code>`).join(", ");
   const mermaidTags = artifact
     ? "" // хост claude.ai малює <pre class="mermaid"> сам — бібліотеку не вантажимо
     : `<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/${MERMAID_VERSION}/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>`;
 
-  return `<!-- ЗГЕНЕРОВАНО scripts/build-data-map.mjs з ${SOURCES.map((s) => s.file).join(", ")}. Не редагувати: правити markdown і запускати npm run docs:map. -->
+  return `<!-- ЗГЕНЕРОВАНО scripts/build-data-map.mjs з доків реєстру ${REGISTRY}. Не редагувати: правити markdown і запускати npm run docs:map. -->
 <title>Карта даних extrovert.cafe</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -431,16 +569,16 @@ function renderPage(model, { artifact }) {
 <style>${STYLE}</style>
 <header class="top"><div class="top-in">
   <p class="eyebrow">extrovert.cafe · джерело ${stamp}</p>
-  <h1>Карта даних і сервісів</h1>
-  <p>Схема Postgres, кейспейс Redis і карта сервісів. Сторінку зібрано з ${sources}: окремої копії діаграм тут немає, тож правка йде в markdown, а сторінка перезбирається командою <code>npm run docs:map</code>.</p>
+  <h1>Карта даних і документації</h1>
+  <p>Уся чинна документація проєкту однією сторінкою: ${nDocs} ${plural(nDocs, ["документ", "документи", "документів"])} у ${nGroups} ${nGroups === 1 ? "групі" : "групах"}, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>${REGISTRY}</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
 <div class="layout">
 ${nav}
 <main>
-${model.docs.map((d) => renderDoc(d, model)).join("\n")}
+${body}
 </main>
 </div>
-<footer>Хеш джерел ${stamp} — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ${stamp} — якщо він не збігається з поточними доками, сторінка застаріла.${archived ? ` В архіві й тут не показано: ${archived}.` : ""}</footer>
 ${mermaidTags}
 <script>${SPY}</script>
 `;
@@ -449,7 +587,7 @@ ${mermaidTags}
 // ── запуск ────────────────────────────────────────────────────────────────
 function build({ artifact = false } = {}) {
   const model = buildModel();
-  return { html: renderPage(model, { artifact }), warnings: model.warnings };
+  return { html: renderPage(model, { artifact }), warnings: model.warnings, docs: model.docs.length };
 }
 
 const readStdin = () =>
@@ -469,18 +607,23 @@ if (args.includes("--hook")) {
   let payload = {};
   try { payload = JSON.parse(await readStdin()); } catch { process.exit(0); }
   const file = payload?.tool_input?.file_path || payload?.tool_response?.filePath;
-  if (!file || !SOURCES.some((s) => samePath(file, path.join(ROOT, s.file)))) process.exit(0);
+  if (!file) process.exit(0);
+  // Стріляємо на реєстр, на будь-який док у docs/ (щоб новий файл одразу дав
+  // попередження «нема в реєстрі») і на доки реєстру поза docs/ (pi/README.md).
+  const isDocsMd = /\.md$/i.test(file) && samePath(path.dirname(path.resolve(file)), path.join(ROOT, "docs"));
+  const inRegistry = () => [...readRegistry().listed].some((f) => samePath(file, path.join(ROOT, f)));
+  if (!isDocsMd && !inRegistry()) process.exit(0);
   try {
-    const { html, warnings } = build();
+    const { html, warnings, docs } = build();
     writeFileSync(outPath, html);
-    const warn = warnings.length ? ` Попередження ER (${warnings.length}): ${warnings.join("; ")}` : "";
+    const warn = warnings.length ? ` Попередження (${warnings.length}): ${warnings.join("; ")}` : "";
     process.stdout.write(
       JSON.stringify({
         systemMessage: `Карту даних перегенеровано → code/${OUT}.${warn}`,
         hookSpecificOutput: {
           hookEventName: "PostToolUse",
           additionalContext:
-            `code/${OUT} перегенеровано з ${SOURCES.map((s) => s.file).join(", ")}; закомітити разом із доком.` +
+            `code/${OUT} перегенеровано з ${docs} доків реєстру ${REGISTRY}; закомітити разом із доком.` +
             " Artifact на claude.ai сам не оновлюється — перепублікувати через --artifact, якщо сторінку треба показати." +
             warn,
         },
@@ -495,7 +638,7 @@ if (args.includes("--hook")) {
 if (args.includes("--check")) {
   const { html, warnings } = build();
   const existing = existsSync(outPath) ? readFileSync(outPath, "utf8").replace(/\r\n/g, "\n") : "";
-  warnings.forEach((w) => console.error(`ER: ${w}`));
+  warnings.forEach((w) => console.error(`увага: ${w}`));
   if (existing !== html) {
     console.error(`${OUT} застарів — запустіть: npm run docs:map`);
     process.exit(1);
@@ -511,12 +654,12 @@ if (artIdx !== -1) {
   if (!target) { console.error("--artifact потребує шлях до файла"); process.exit(2); }
   const { html, warnings } = build({ artifact: true });
   writeFileSync(path.resolve(target), html);
-  warnings.forEach((w) => console.error(`ER: ${w}`));
+  warnings.forEach((w) => console.error(`увага: ${w}`));
   console.log(`артефакт-варіант → ${path.resolve(target)}`);
   process.exit(0);
 }
 
 const { html, warnings } = build();
 writeFileSync(outPath, html);
-warnings.forEach((w) => console.error(`ER: ${w}`));
+warnings.forEach((w) => console.error(`увага: ${w}`));
 console.log(`${OUT} перегенеровано${warnings.length ? `, попереджень: ${warnings.length}` : ""}`);
