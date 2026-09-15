@@ -3,22 +3,28 @@
 Самокав'ярні: кіоск на точці, гейміфікація в телефоні, бекенд і звітність.
 
 ```
-docs/       документація: залізо, стек, ПРРО, гейміфікація
-pi/         те, що живе на Raspberry Pi (кіоск-скрипти, автозапуск, watchdog)
-pos/        фронтенд кіоска — Cloudflare Workers, статика + меню з R2
-client/     фронтенд для телефона — гейміфікація, бонуси, кавенятка
-api/        REST-бекенд для client і pos
-ws/         сервер подій (WebSocket) — «твоя кава готова», нарахування бонусів
-checkbox/   мікросервіс: приймає вебхуки ПРРО Checkbox, віддає події далі
-overseer/   telegram-бот звітності, працює на лупі, пише в груповий чат
-docker/     конфіги контейнерів
+docs/        документація; реєстр — docs/README.md, уся разом — docs/data-map.html
+pos-native/  прод-кіоск: нативний рендерер меню (C, Cairo, GLES2) для Raspberry Pi 1
+pi/          усе про малину: керований стек з автооновленням, заміри, скрипти
+pos/         Cloudflare Worker точки: меню й релізи з R2, запасна браузерна сторінка кіоска
+client/      застосунок гравця для телефона — поки лише заготовка
+api/         REST-бекенд для client, кіоска й адмінки
+ws/          сервер подій (WebSocket) — «ти купив каву, забери бонус»
+checkbox/    ПРРО Checkbox: вебхук продажів, звірка цін каталогу
+overseer/    telegram-бот звітності, працює на лупі, пише в груповий чат
+scripts/     збірка сторінки документації
+docker/      образи й конфіги контейнерів
 ```
+
+Більшість бекенд-сервісів поки заготовки; що з цього реально працює —
+`docs/services.md` §5.
 
 ## Стек
 
-Node.js · Vue · Redis · Postgres · R2 для статики · GlitchTip для помилок.
-Фронтенди статичні, деплой на Cloudflare Workers. Бекенд — docker compose.
-Адмінка Laravel Filament — у планах; поки нас двоє, у базу ходимо напряму.
+Кіоск — C, Cairo, GLES2 на Raspberry Pi 1. Бекенд — Node.js, Postgres, Redis
+у docker compose. Застосунок гравця й адмінка — React, статика на Cloudflare
+Workers. R2 — меню, релізи й відео. GlitchTip — помилки з усіх сервісів.
+Повна карта — `docs/services.md`.
 
 ## Запуск бекенда
 
@@ -28,11 +34,21 @@ docker compose up -d
 docker compose ps
 ```
 
-## Фронтенди
+## Кіоск і Worker
 
 ```bash
-cd pos    && npm i && npm run dev      # кіоск
-cd client && npm i && npm run dev      # телефон
+pos-native/docker/build.sh       # один раз: образ із тулчейном
+pos-native/docker/make.sh        # нативний кіоск для ПК; на малині — make pi
+npm run dev -w pos               # Worker локально: меню, релізи, запасна сторінка
+```
+
+Як реліз кіоска потрапляє на точку — `docs/raspberry-pi.md`.
+
+## Документація
+
+```bash
+npm run docs:map          # зібрати docs/data-map.html з усіх доків реєстру
+npm run docs:map:check    # код 1, якщо сторінка застаріла або в реєстрі дірка
 ```
 
 ## Головна домовленість про URL
