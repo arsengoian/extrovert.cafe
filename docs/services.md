@@ -1,0 +1,198 @@
+# Сервіси: хто де живе, як спілкується, як доводить, що це він
+
+Стан на 15.09.2026. `stack.md` описує задум у двох абзацах — тут повна
+картина під те, що вже вирішено доками гейміфікації, адмінки й відео.
+Половина з цього ще не написана: що саме заглушка, позначено в §5.
+
+---
+
+## 1. Загальна картина
+
+```mermaid
+graph TB
+    subgraph edge["Точка (Raspberry Pi, /home/pi/extrovert)"]
+        KIOSK["kiosk<br/>pos-native, C+GLES2<br/>dispmanx, без X"]
+        UPD["updater<br/>оновлює стек сам"]
+        REC["recorder<br/>ffmpeg -c copy (план)"]
+        SUP["supervisor"]
+        SUP --- KIOSK
+        SUP --- UPD
+        SUP --- REC
+    end
+
+    subgraph cf["Cloudflare Workers (статика + edge)"]
+        POSW["pos worker<br/>/p/point, меню з R2"]
+        CLIENT["client<br/>React SPA, гравець"]
+    end
+
+    subgraph pub["Дроплет public (2 vCPU / 4 ГБ)"]
+        API["api :3001<br/>REST"]
+        WS["ws :3002<br/>вебсокет"]
+        CB["checkbox :3003<br/>вебхук ПРРО"]
+        OVS["overseer<br/>телеграм, лупа"]
+        ADMIN["admin<br/>React + amCharts5"]
+        PG[("Postgres")]
+        RD[("Redis")]
+        GT["GlitchTip"]
+    end
+
+    subgraph ana["Дроплет analysis (1 vCPU / 2 ГБ, без публічних портів)"]
+        WRK["worker<br/>детекція 2 fps"]
+    end
+
+    subgraph r2["Cloudflare R2"]
+        R2M["menu + releases"]
+        R2V["video 7 діб"]
+        R2E["evidence"]
+    end
+
+    subgraph ext["Зовнішні"]
+        CBAPI["Checkbox API<br/>api.checkbox.ua"]
+        OAUTH["Google / Apple"]
+        MONO["mono pay"]
+        NP["Нова Пошта"]
+        TG["Telegram"]
+    end
+
+    KIOSK -->|"GET меню, 60 с"| POSW
+    KIOSK -->|"телеметрія, ідемпотентно"| API
+    UPD -->|"маніфест + tar.gz"| R2M
+    REC -->|"presigned PUT"| R2V
+    POSW --> R2M
+    CLIENT -->|"REST + Bearer"| API
+    CLIENT -->|"wss, одноразовий квиток"| WS
+    ADMIN -->|"REST, окрема сесія"| API
+    CBAPI -->|"вебхук, HMAC"| CB
+    CB -->|"логін касира - токен"| CBAPI
+    CB --> PG
+    CB -->|"publish point:id"| RD
+    API --> PG
+    API --> RD
+    WS -->|"subscribe"| RD
+    OVS --> PG
+    OVS --> TG
+    WRK -->|"SKIP LOCKED"| PG
+    WRK --> R2V
+    WRK --> R2E
+    CLIENT -->|"логін"| OAUTH
+    CLIENT -->|"скіни, крейти"| MONO
+    API -->|"відправки"| NP
+    API -.-> GT
+    CB -.-> GT
+    WS -.-> GT
+    WRK -.-> GT
+```
+
+---
+
+## 2. Хто де крутиться і чому саме там
+
+| Що | Де | Чому не деінде |
+|---|---|---|
+| `kiosk`, `updater`, `recorder` | Raspberry Pi на точці | екран і камера фізично тут; запис має пережити обрив звʼязку |
+| `pos worker`, `client` | Cloudflare Workers | статика, нуль обслуговування, близько до користувача |
+| `api`, `ws`, `checkbox`, `overseer`, `admin` | дроплет `public` | усе, що має публічний порт і потребує стану |
+| `worker` (відео) | дроплет `analysis` | нестабільне навантаження **фізично** не має дотягуватись до кіоска (`video.md`) |
+| Postgres, Redis | дроплет `public`, лише петля | керована база відкладена; умови переїзду — `video.md` |
+| відео, меню, релізи | R2 | вихідний трафік безкоштовний, lifecycle робить ротацію за нас |
+
+`admin` свідомо на `public`, а не на Workers: їй потрібні довгі запити до
+Postgres і закешовані агрегати, а не edge-роздача.
+
+---
+
+## 3. Автентифікація: кожна стрілка окремо
+
+```mermaid
+graph LR
+    subgraph who["Хто"]
+        P["гравець"]
+        A["адмін"]
+        K["кіоск на точці"]
+        CBX["Checkbox"]
+    end
+
+    P -->|"1 OAuth Google/Apple"| API1["api"]
+    API1 -->|"2 сесійний токен, Redis sess:"| P
+    P -->|"3 Bearer до REST"| API1
+    P -->|"4 квиток на 60 с - wss"| WS1["ws"]
+    A -->|"окрема сесія sess:admin:, 12 год"| API1
+    K -->|"токен пристрою з config/env"| API1
+    CBX -->|"HMAC-SHA256 тіла"| CB1["checkbox"]
+    CB1 -->|"логін-пароль касира - токен у памʼяті"| CBAPI1["api.checkbox.ua"]
+```
+
+**Гравець.** Логін лише через Google/Apple (`gamification_ui.md`), метч за
+email між провайдерами — тому `user_identities` окремою таблицею, а не
+двома колонками в `users`. Пароля в нас немає взагалі; це не спрощення, а
+свідоме зняття з себе зберігання секретів.
+
+**Вебсокет.** Браузер не дає поставити заголовок на `WebSocket`, а куки
+через субдомен — це CORS і SameSite там, де їх не хочеться. Тому `api`
+видає одноразовий квиток (`ws:ticket:<uuid>`, 60 с, TTL у Redis), клієнт
+підставляє його в URL, `ws` обмінює на `user_id` і одразу видаляє.
+
+**Кіоск.** Меню читає публічно (воно й так публічне — висить на екрані).
+Токен пристрою потрібен рівно для одного: телеметрії й скарг, тобто
+запису. Лежить у `config/env`, переживає оновлення, відкликається зміною
+на точці — тому і не вшивається в бінарник.
+
+**Checkbox → ми.** `base64(HmacSHA256(key, тіло))`, перевіряти обовʼязково:
+без цього будь-хто накрутить собі бонуси підробленими «продажами»
+(`checkbox.md`). Ключ віддає сам Checkbox при реєстрації вебхука.
+
+**Ми → Checkbox.** Уточнено 15.09.2026: **усі методи — на одному
+`api.checkbox.ua`**, окремого домену для товарів немає. Авторизація — логін
+і пароль касира в обмін на токен; токен тримаємо **в памʼяті** й
+перевипускаємо лише коли прилетіла помилка авторизації, а не за таймером.
+Це прямо суперечить попередній редакції `checkbox.md` (`api.checkbox.in.ua`
++ окремий кабінетний токен) — стара версія була помилкою дослідження, і
+`checkbox/scripts/sync-prices.mjs` під неї й написаний, тобто зараз
+неробочий (§5).
+
+---
+
+## 4. Потоки даних, які варто розуміти цілком
+
+**Продаж → бонус на екрані → бонус в акаунті.**
+```
+Checkbox → вебхук (HMAC) → checkbox:3003
+  → receipts + receipt_items (ідемпотентно за checkbox_receipt_id)
+  → bonus_grants (claim_token, 2 хв)
+  → PUBLISH point:kyiv-01
+      → ws → кіоск малює QR
+          → гравець сканує → claim (зникає з екрана)
+              → авторизація → redeem → wallets + ledger_entries
+                  → PUBLISH user:<uuid> → «+80 монет» у чат кавенятка
+```
+Найтонше місце — не HMAC, а **звірка**: вебхук може не дійти, і тоді
+продажу для нас не існувало. Раз на годину `checkbox` тягне
+`GET /api/v1/receipts` за період і добирає пропущене (`checkbox.md`).
+
+**Оновлення точки.** `pi/stack/README.md` — окремий документ, бо це вже не
+архітектура, а операція з відкатом.
+
+**Відео.** `video.md` — запис, presigned PUT, черга через `SKIP LOCKED`,
+звід події з чеком за таймстемпом.
+
+---
+
+## 5. Що з цього реально існує
+
+| Компонент | Стан на 15.09.2026 |
+|---|---|
+| `kiosk` (pos-native) | **працює на залізі**, 60 fps, автозапуск |
+| `pi/stack` (supervisor + updater) | написано, зібрано, **на малині не проганялось** |
+| `pos worker` | працює, віддає меню з R2 |
+| `checkbox` | лише перевірка HMAC; запису в Postgres і публікації в Redis **немає** |
+| `api` | заглушка: `/healthz` + три роути з `501` |
+| `ws` | заглушка: приймає зʼєднання, на Redis **не підписаний** |
+| `overseer` | заглушка: порожній `tick()` |
+| `client` | лише `package.json` і README |
+| `admin` | не існує |
+| `worker` (відео) | не існує |
+| Postgres | **жодної таблиці** — схема описана в `db-schema.md`, міграцій ще нема |
+| `checkbox/scripts/sync-prices.mjs` | написаний під стару (хибну) модель авторизації — переписати під §3 |
+
+Тобто архітектура вище — це карта, а не звіт. Єдина її частина, що працює
+на точці щодня, — кіоск.
