@@ -18,6 +18,19 @@ unsigned long menu_fnv1a(const char *data, size_t len) {
 
 struct buf { char *data; size_t len, cap; };
 
+static volatile sig_atomic_t *g_abort_flag = NULL;
+
+void menu_set_abort_flag(volatile sig_atomic_t *flag) { g_abort_flag = flag; }
+
+/* Ненульове повернення = curl негайно обриває передачу (CURLE_ABORTED_BY_CALLBACK).
+ * Колбек викликається і під час очікування даних, не тільки на кожному
+ * прийнятому байті, — тому працює навіть на зʼєднанні, що мовчить. */
+static int xfer_cb(void *p, curl_off_t dltotal, curl_off_t dlnow,
+                   curl_off_t ultotal, curl_off_t ulnow) {
+    (void)p; (void)dltotal; (void)dlnow; (void)ultotal; (void)ulnow;
+    return (g_abort_flag && *g_abort_flag) ? 1 : 0;
+}
+
 static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
     struct buf *b = (struct buf *)userdata;
     size_t add = size * nmemb;
@@ -72,6 +85,8 @@ bool menu_poll(const char *url, menu_t *out) {
     curl_easy_setopt(c, CURLOPT_TIMEOUT, 15L);
     curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(c, CURLOPT_USERAGENT, "pos-native/0.1");
+    curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, xfer_cb);
     /* Той самий сенс, що і "t="+Date.now() в getJSON() з app.js — кеш проксі
      * не повинен віддавати старе тіло, з якого й береться хеш. */
     curl_easy_setopt(c, CURLOPT_HTTPHEADER, NULL);

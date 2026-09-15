@@ -228,6 +228,39 @@ cairo_surface_t *render_ad(const menu_t *menu, const char *assets_dir) {
 
 /* -------- попап: без дизайну поки що, лишається прямим Cairo -------- */
 
+/* -------- плашка "оновлення": прямий Cairo, як і попап --------
+ * Шаблоном не робиться свідомо: це не частина макета, а службовий
+ * індикатор, який має бути видно ПОВЕРХ будь-якого стану сцени й не
+ * чіпати кеш menu.svg (перерендер 1920×1080 на Pi 1 коштує помітно). */
+cairo_surface_t *render_update_banner(const char *label, double *out_w) {
+    char font[32];
+    snprintf(font, sizeof(font), FONT_700 " %dpx", UPDATE_BANNER_FONT_SIZE);
+
+    int tw = 0, th = 0;
+    text_extents(font, label, &tw, &th);
+    double w = tw + 2 * UPDATE_BANNER_PAD_X;
+    if (w > UPDATE_BANNER_MAX_W) w = UPDATE_BANNER_MAX_W;
+    if (out_w) *out_w = w;
+
+    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                     (int)w, (int)UPDATE_BANNER_H);
+    cairo_t *cr = cairo_create(s);
+
+    rounded_rect(cr, 0.5, 0.5, w - 1, UPDATE_BANNER_H - 1, UPDATE_BANNER_R);
+    cairo_set_source_rgba(cr, 0x0C / 255.0, 0x0E / 255.0, 0x11 / 255.0, 0.72);
+    cairo_fill_preserve(cr);
+    cairo_set_source_rgba(cr, BADGE_COLOR_R, BADGE_COLOR_G, BADGE_COLOR_B, 0.55);
+    cairo_set_line_width(cr, 1.0);
+    cairo_stroke(cr);
+
+    draw_text_vc_ellipsized(cr, UPDATE_BANNER_PAD_X, UPDATE_BANNER_H / 2.0, font,
+                             BADGE_COLOR_R, BADGE_COLOR_G, BADGE_COLOR_B,
+                             label, w - 2 * UPDATE_BANNER_PAD_X);
+
+    cairo_destroy(cr);
+    return s;
+}
+
 cairo_surface_t *render_popup(const char *title, const char *text) {
     cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
                                                       (int)POPUP_W, (int)POPUP_H);

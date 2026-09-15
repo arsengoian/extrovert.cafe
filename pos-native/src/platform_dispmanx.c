@@ -67,10 +67,21 @@ platform_t *platform_init(int width, int height) {
 
     p->dispman_display = vc_dispmanx_display_open(0);
     DISPMANX_UPDATE_HANDLE_T update = vc_dispmanx_update_start(0);
-    /* layer 0 — той самий, що в офіційному прикладі; кіоск-скрипт для
-     * native-режиму зупиняє X перед запуском, тож конфліктів шарів немає. */
+    /* layer 0 за замовчуванням — той самий, що в офіційному прикладі.
+     *
+     * DISPMANX_LAYER робить його змінним заради оновлення без чорного
+     * екрана (pi/stack/updater.sh): нова версія піднімається на шарі ВИЩЕ,
+     * малює свій перший кадр і лише тоді стара отримує SIGTERM. dispmanx
+     * складає шари сам, тож у момент підміни на екрані весь час є
+     * намальований кадр — чи то старий, чи то вже новий, але не порожнеча.
+     * Ціна — короткий час, коли на GPU живуть дві 1080p-поверхні (~8 МБ
+     * кожна), тому апдейтер уміє відкотитись на послідовну заміну. */
+    int layer = 0;
+    const char *layer_env = getenv("DISPMANX_LAYER");
+    if (layer_env && layer_env[0]) layer = atoi(layer_env);
+    fprintf(stderr, "dispmanx: шар %d\n", layer);
     DISPMANX_ELEMENT_HANDLE_T element = vc_dispmanx_element_add(
-        update, p->dispman_display, 0, &dst_rect, 0, &src_rect,
+        update, p->dispman_display, layer, &dst_rect, 0, &src_rect,
         DISPMANX_PROTECTION_NONE, 0, 0, 0);
 
     p->nativewindow.element = element;

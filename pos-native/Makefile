@@ -18,7 +18,7 @@
 
 CC ?= gcc
 SRC_COMMON = src/main.c src/menu.c src/render.c src/gl.c src/telemetry.c \
-             src/svgtpl.c src/qr.c src/bonus.c \
+             src/svgtpl.c src/qr.c src/bonus.c src/update.c src/selftest.c \
              third_party/cjson/cJSON.c third_party/qrcodegen/qrcodegen.c
 CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
                 -Ithird_party/cjson -Ithird_party/qrcodegen -pthread

@@ -6,6 +6,7 @@
 
 #include <stdbool.h>
 #include <time.h>
+#include <signal.h>
 
 #define MENU_MAX_DRINKS 24
 #define MENU_MAX_CUPS 4
@@ -73,6 +74,18 @@ const cup_tier_t *menu_find_cup(const menu_t *m, const char *key);
  * і *out не займає CPU на перепарс, так само як apply(d, cache) в app.js
  * порівнює JSON.stringify(d) з lastHash перед render(). */
 bool menu_poll(const char *url, menu_t *out);
+
+/* Прапорець "кидай усе і виходь" для curl усередині menu_poll.
+ *
+ * Без цього зупинка кіоска впиралась у CURLOPT_TIMEOUT: якщо SIGTERM
+ * прилітав саме тоді, коли фоновий потік висів на повільному HTTPS,
+ * pthread_join у main.c чекав до 15 секунд. Для звичайного вимкнення це
+ * дрібниця, а для оновлення — рівно та пауза, коли на екрані вже нічого
+ * немає (dispmanx-шар зникає разом із процесом). Тепер curl перевіряє
+ * прапорець у progress-колбеку й обриває зʼєднання одразу.
+ *
+ * NULL — вимкнути перевірку (стан за замовчуванням). */
+void menu_set_abort_flag(volatile sig_atomic_t *flag);
 
 unsigned long menu_fnv1a(const char *data, size_t len);
 

@@ -41,4 +41,9 @@ void draw_text_vc_ellipsized(cairo_t *cr, double x, double y_center, const char 
  * для демо-циклу (POPUP=1/SIGUSR1). */
 cairo_surface_t *render_popup(const char *title, const char *text);
 
+/* Плашка "оновлення" в шапці (update.h). Ширина рахується з тексту, тому
+ * повертається через *out_w — композитор має знати квад, у який класти
+ * текстуру. Прозорий фон: лягає поверх уже намальованого меню. */
+cairo_surface_t *render_update_banner(const char *label, double *out_w);
+
 #endif

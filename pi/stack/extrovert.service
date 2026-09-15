@@ -1,0 +1,41 @@
+# EXTROVERT.CAFE — увесь наш стек на точці одним юнітом.
+#
+# Це ЄДИНИЙ файл, який ми кладемо поза /home/pi/extrovert. Він навмисно
+# тупий: підняти супервізора й не лізти далі. Склад стеку, версії, порядок
+# запуску, оновлення — усе всередині нашої теки, куди можна писати без root.
+# Замінює pos-native.service (той треба вимкнути — див. stack/README.md).
+#
+# Встановлення (один раз):
+#   sudo cp extrovert.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now extrovert.service
+
+[Unit]
+Description=extrovert.cafe — стек точки (кіоск, апдейтер)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+# video — доступ до /dev/vchiq (dispmanx/GPU) без root
+SupplementaryGroups=video
+ExecStart=/home/pi/extrovert/bin/supervisor.sh
+Restart=always
+RestartSec=5
+
+# mixed: SIGTERM отримує лише супервізор, і він сам ґречно гасить дітей
+# (кіоску потрібен чистий вихід, щоб звільнити dispmanx-шар). SIGKILL по
+# всій групі — лише якщо не вклався в TimeoutStopSec.
+KillMode=mixed
+TimeoutStopSec=45
+
+# journal, а не append:/шлях — `append:` зʼявився в systemd 240, а на
+# Stretch стоїть 232. Логи компонентів супервізор і так пише сам у
+# logs/<компонент>.log; сюди йде лише його власний потік.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

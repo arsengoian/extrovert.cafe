@@ -169,4 +169,21 @@
 #define POPUP_BG_A 0.94
 #define BONUS_POPUP_COIN_SIZE 72.0
 
+/* -------- плашка "оновлення" в шапці (update.c, pi/stack/updater.sh) -------
+ * Живе праворуч від лого (menu.svg: лого x=30..379, y=33..103), у вільній
+ * смузі до рекламної панелі (PANEL_X=1420). Окрема маленька текстура, а не
+ * перемальовка menu.svg: меню — 1920×1080 і рендериться лише при зміні
+ * даних, а плашка спалахує посеред роботи й не варта перерендеру сцени. */
+#define UPDATE_BANNER_X 400.0
+#define UPDATE_BANNER_Y 48.0
+#define UPDATE_BANNER_H 40.0
+#define UPDATE_BANNER_R 20.0
+#define UPDATE_BANNER_PAD_X 18.0
+#define UPDATE_BANNER_FONT_SIZE 15
+#define UPDATE_BANNER_MAX_W 420.0
+/* Як часто перевіряти файл-прапорець. Це stat() раз на секунду, не читання:
+ * дешевше за будь-який IPC і переживає перезапуск обох сторін, бо стан
+ * лежить у файловій системі, а не в памʼяті процесу. */
+#define UPDATE_POLL_PERIOD_S 1.0
+
 #endif

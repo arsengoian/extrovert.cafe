@@ -14,6 +14,8 @@
 #include "platform.h"
 #include "telemetry.h"
 #include "bonus.h"
+#include "update.h"
+#include "selftest.h"
 
 #include <fontconfig/fontconfig.h>
 #include <curl/curl.h>
@@ -132,7 +134,25 @@ int main(int argc, char **argv) {
      * ховається по колу, щоб було на що дивитись без ручного тригера
      * (SIGUSR1 лишається для разового ручного показу). */
     bool popup_demo = getenv("POPUP") && strcmp(getenv("POPUP"), "1") == 0;
-    (void)argc; (void)argv;
+
+    /* Тека стану, спільна з апдейтером (pi/stack/). Порожня змінна —
+     * механізм оновлення вимкнено, кіоск поводиться як раніше. */
+    const char *state_dir = getenv("EXTROVERT_STATE");
+    char update_flag[1024] = {0};
+    if (state_dir && state_dir[0])
+        snprintf(update_flag, sizeof(update_flag), "%s/updating", state_dir);
+
+    /* --selftest: перевірка "цей бінарник із цими ассетами намалює екран",
+     * БЕЗ дисплея — щоб апдейтер міг випробувати нову версію, поки стару
+     * ще видно на екрані (selftest.h пояснює, чому інакше не можна). */
+    bool selftest = false;
+    for (int i = 1; i < argc; i++)
+        if (strcmp(argv[i], "--selftest") == 0) selftest = true;
+    if (selftest) {
+        load_fonts(assets_dir);
+        const char *out = getenv("SELFTEST_PNG");
+        return selftest_run(assets_dir, out && out[0] ? out : NULL);
+    }
 
     signal(SIGTERM, on_sigterm);
     signal(SIGINT, on_sigterm);
@@ -159,6 +179,13 @@ int main(int argc, char **argv) {
     gl_texture_t ad_tex = {0};     /* реклама — templates/ad.svg, окремий квад */
 
     gl_texture_t popup_tex = {0};
+    /* Плашка "оновлення": своя текстура, що перепікається лише коли
+     * змінився стан (update.h), а не щокадру. */
+    update_state_t upd;
+    update_init(&upd, update_flag);
+    gl_texture_t update_tex = {0};
+    double update_tex_w = 0;
+
     popup_state_t popup_state = POPUP_HIDDEN;
     double popup_t0 = 0;
     double popup_shown_at = 0;   /* коли увійшли в POPUP_SHOWN — для авто-приховування */
@@ -186,6 +213,9 @@ int main(int argc, char **argv) {
     pthread_mutex_init(&poller.mu, NULL);
     poller.last = menu;
     poller.url = url;
+    /* Щоб SIGTERM під час оновлення не чекав на curl його повний таймаут —
+     * деталі в menu.h. */
+    menu_set_abort_flag(&poller.stop);
     pthread_t poll_thread;
     pthread_create(&poll_thread, NULL, menu_poll_thread, &poller);
 
@@ -234,6 +264,18 @@ int main(int argc, char **argv) {
             gl_texture_destroy(&ad_tex);
             if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
             fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
+        }
+
+        /* Оновлення: апдейтер створює файл-прапорець перед підміною версії,
+         * кіоск показує плашку в шапці й працює далі до самого SIGTERM. */
+        update_poll(&upd, update_flag, sim_t);
+        if (upd.dirty) {
+            gl_texture_destroy(&update_tex);
+            update_tex_w = 0;
+            if (upd.active) {
+                cairo_surface_t *us = render_update_banner(upd.label, &update_tex_w);
+                if (us) { update_tex = gl_texture_from_cairo(us); cairo_surface_destroy(us); }
+            }
         }
 
         if (popup_demo && sim_t >= demo_next_t) {
@@ -291,6 +333,10 @@ int main(int argc, char **argv) {
 
         bonus_draw(&bonus, &comp);
 
+        if (upd.active && update_tex.id)
+            gl_draw_quad(&comp, &update_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
+                         update_tex_w, UPDATE_BANNER_H, 1.0);
+
         if (popup_state != POPUP_HIDDEN && popup_tex.id) {
             double px = (STAGE_W - POPUP_W) / 2.0, py = (STAGE_H - POPUP_H) / 2.0;
             double alpha = 1.0, scale = 1.0, dy = 0.0;
@@ -346,6 +392,7 @@ int main(int argc, char **argv) {
     gl_texture_destroy(&menu_tex);
     gl_texture_destroy(&ad_tex);
     gl_texture_destroy(&popup_tex);
+    gl_texture_destroy(&update_tex);
     bonus_destroy(&bonus);
     platform_destroy(plat);
     curl_global_cleanup();
