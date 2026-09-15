@@ -6,6 +6,7 @@
 //   /                             → 302 на точку за замовчанням
 //   /p/<point>                    → сторінка кіоска
 //   /api/v1/points/<point>/menu   → меню точки з R2 (ключ points/<point>/menu.json)
+//   /releases/pi/<файл>           → релізи стеку малини з R2 (pi/stack/updater.sh)
 //   /healthz                      → пінг
 //
 // Поки бекенда немає, меню лежить у R2. Коли зʼявиться api-сервіс,
@@ -44,6 +45,40 @@ export default {
           "x-updated": obj.uploaded ? obj.uploaded.toISOString() : ""
         }
       });
+    }
+
+    // ── релізи для апдейтера на точці ──
+    // Маніфест і архіви кладе в R2 людина (docs/raspberry-pi.md, «Деплой»).
+    // Обидва заголовки, які апдейтер шле, тут мусять працювати: If-None-Match
+    // → 304, щоб раз на 15 хвилин не качати маніфест заново, і Range → 206,
+    // бо curl -C - докачує обірваний архів на мобільному каналі.
+    const rel = p.match(/^\/releases\/pi\/([A-Za-z0-9][A-Za-z0-9._-]{0,99})$/);
+    if (rel) {
+      if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "method not allowed" }, 405);
+      const obj = await env.PRICES.get(`releases/pi/${rel[1]}`, {
+        onlyIf: request.headers,
+        range: request.headers,
+      });
+      if (!obj) return json({ error: `${rel[1]} не знайдено` }, 404);
+      const headers = new Headers();
+      obj.writeHttpMetadata(headers);
+      headers.set("etag", obj.httpEtag);
+      headers.set("accept-ranges", "bytes");
+      // Маніфест не кешуємо ніде: закешована стара версія = точка, яка
+      // «не бачить» релізу. Архіви незмінні (імʼя містить версію).
+      headers.set("cache-control", rel[1] === "manifest.json" ? "no-store" : "public, max-age=31536000, immutable");
+      // onlyIf не пройшов → R2 віддає метадані без тіла.
+      if (!("body" in obj)) return new Response(null, { status: 304, headers });
+      const body = request.method === "HEAD" ? null : obj.body;
+      if (obj.range && request.headers.has("range")) {
+        const start = obj.range.offset ?? 0;
+        const len = obj.range.length ?? obj.size - start;
+        headers.set("content-range", `bytes ${start}-${start + len - 1}/${obj.size}`);
+        headers.set("content-length", String(len));
+        return new Response(body, { status: 206, headers });
+      }
+      headers.set("content-length", String(obj.size));
+      return new Response(body, { headers });
     }
 
     // ── старий роут: лишаємо, поки Pi не перепрошитий на новий URL ──
