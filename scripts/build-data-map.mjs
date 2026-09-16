@@ -11,7 +11,7 @@
 //   node scripts/build-data-map.mjs --hook           # PostToolUse-хук Claude Code (stdin JSON)
 //
 // Які доки потрапляють на сторінку, вирішує реєстр docs/README.md, а не цей
-// скрипт: ## група → таблиця з файлами. Група зі словом «Архів» пропускається.
+// скрипт: ## група → таблиця з файлами.
 // Окремого списку тут свідомо немає — інакше реєстр і сторінка розходились
 // би так само, як колись розійшлися копії діаграм. Док із docs/, якого нема
 // в реєстрі, — попередження, і --check не проходить.
@@ -160,7 +160,7 @@ function readRegistry() {
   for (const name of readdirSync(path.join(ROOT, "docs")).sort()) {
     const file = `docs/${name}`;
     if (/\.md$/i.test(name) && file !== REGISTRY && !listed.has(file)) {
-      warnings.push(`реєстр: ${file} немає ні в групі, ні в архіві ${REGISTRY}`);
+      warnings.push(`реєстр: ${file} не записаний у ${REGISTRY}`);
     }
   }
   return { md, groups: groups.filter((g) => g.docs.length), archived, listed, warnings };
@@ -366,7 +366,8 @@ code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;backgrou
 .top h1{font-family:Poppins,system-ui,sans-serif;font-weight:700;font-size:clamp(28px,4vw,42px);line-height:1.1;margin:0 0 10px;letter-spacing:-.02em;text-wrap:balance}
 .top p{margin:0;color:var(--ink-dim);max-width:70ch}
 .layout{max-width:1320px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:290px minmax(0,1fr);gap:40px}
-.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:22px 4px 40px 0;font-size:14px}
+.toc{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;scrollbar-width:none;-ms-overflow-style:none;padding:22px 4px 40px 0;font-size:14px}
+.toc::-webkit-scrollbar{width:0;height:0}
 .toc-title{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 8px 6px}
 .toc ul{list-style:none;margin:0;padding:0}
 .toc ul ul{padding-left:14px;border-left:1px solid var(--line);margin-left:9px}
