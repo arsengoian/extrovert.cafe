@@ -57,6 +57,7 @@ node scripts/push-prices.mjs kyiv-02 ./m.json # інша точка й інши�
 ## Події (ws)
 
 `wss://ws.extrovert.cafe/v1/points/<point>` — кіоск слухає свою точку.
-`wss://ws.extrovert.cafe/v1/me` — телефон слухає свій акаунт. Заголовок на
-`WebSocket` браузер поставити не дає, тож `api` видає одноразовий квиток на
-60 с, і він їде в URL (`services.md` §3).
+`wss://ws.extrovert.cafe/v1/me` — телефон слухає свій акаунт. Доступ — той
+самий JWT, що й до `api`, але не в URL: браузер не дає поставити заголовок
+`Authorization` на `WebSocket`, тож токен їде в `Sec-WebSocket-Protocol`
+(`services.md` §3). У URL токенів немає ніде: URL осідають у логах.

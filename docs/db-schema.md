@@ -1,6 +1,6 @@
 # Схема даних: Postgres і Redis
 
-Стан на 15.09.2026. Це **проєкт схеми**, зведений з усіх чинних доків
+Стан на 17.09.2026. Це **проєкт схеми**, зведений з усіх чинних доків
 (`gamification_economy.md`, `gamification_ui.md`, `bush_graphics_customization.md`,
 `admin_panel.md`, `video.md`, `checkbox.md`, `urls.md`). У коді поки нема
 жодної таблиці — сервіси стоять заглушками, тому міняти тут дешево, а після
@@ -23,13 +23,29 @@
 цілими копійками (Еспресо 35 ₴ приходить як `3500`) — ділимо на 100 на
 вході в `checkbox`, щоб копійки не розповзлися по схемі.
 
-### Баланс і журнал одночасно
+### Баланси — колонки в `users`, рухи — рядки журналу
 
-`wallets` — швидкий баланс для UI, `ledger_entries` — незмінний журнал усіх
-рухів. Баланс завжди похідний і звіряється з журналом; розбіжність — це
-баг, який видно, а не тихо зіпсовані дані. Адмінка вимагає «історію
-транзакцій в справжній та ігровій валюті» (`admin_panel.md`) — саме журнал
-це й дає.
+Три баланси (`coins_yellow`, `coins_silver`, `beans`) лежать прямо в `users`
+з `check (… >= 0)`. Окрема таблиця `wallets` 1:1 до користувача нічого не
+давала, крім зайвого join (рішення 17.09.2026).
+
+`ledger_entries` — незмінний журнал, де **один рядок — це одна операція з
+трьома знаковими дельтами**: `delta_yellow`, `delta_silver`, `delta_beans`.
+Обмін зерна на монети — один рядок `delta_beans = -1, delta_yellow = +15`,
+а не два, між якими може впасти процес і лишити гравця без зерна й без
+монет. Баланс і журнал змінюються в одній транзакції:
+
+```sql
+update users set beans = beans - 1, coins_yellow = coins_yellow + 15
+ where id = $1 and beans >= 1;             -- 0 рядків = не вистачило, rollback
+insert into ledger_entries (user_id, delta_beans, delta_yellow, reason, idem_key)
+values ($1, -1, 15, 'exchange', $2);        -- idem_key: повтор запиту не пише вдруге
+```
+
+Баланс звіряється з `sum(delta_*)` по журналу; розбіжність — баг, який видно,
+а не тихо зіпсовані дані. Адмінка просить «історію транзакцій в справжній та
+ігровій валюті» (`admin_panel.md`): ігрова — цей журнал, справжня — чеки
+Checkbox і оплати mono pay, на які рядок посилається через `ref_type`/`ref_id`.
 
 ### Косметика куща в `jsonb`, економіка в колонках
 
@@ -43,9 +59,20 @@
 
 ### Ідемпотентність на кожному вході ззовні
 
-Вебхуки ПРРО, телеметрія з малини, заливка відеосегментів — усе має
-унікальний ключ від джерела: мережа на точці рветься, і повтор запиту не
-має подвоювати ні чек, ні бонус.
+Вебхуки ПРРО, опитування Checkbox, телеметрія з малини, заливка
+відеосегментів — усе має унікальний ключ від джерела: мережа на точці
+рветься, і повтор запиту не має подвоювати ні чек, ні бонус.
+
+### Подія пишеться в тій самій транзакції, що й зміна
+
+Між Postgres і Redis — та сама «задача двох генералів»: закомітити чек і
+впасти до `PUBLISH` означає бонус, про який кіоск не дізнався. Тому подія
+для кіоска чи телефона — рядок в `outbox` (§4) у тій самій транзакції, що й
+чек або бонус. Публікатор забирає рядки з `SKIP LOCKED`, шле в Redis і
+позначає `published_at`. Упасти між відправкою й позначкою — значить
+відправити двічі, тому в кожній події її `outbox.id`, і клієнти відкидають
+повтор. Доставка «принаймні раз» + ідемпотентний отримувач — це найближче
+до «рівно раз», що взагалі досяжне.
 
 ### Точка — текстовий ключ із першого дня
 
@@ -59,14 +86,13 @@
 ```mermaid
 erDiagram
     POINTS ||--o{ RECEIPTS : "де продано"
-    POINTS ||--o{ MENU_DEPLOYMENTS : "яке меню"
-    POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
+    POINTS ||--o{ DEVICES : "малини на точці"
+    POINTS ||--o{ MENU_DEPLOYMENT_TARGETS : "яке меню стоїть"
+    MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
+    DEVICES ||--o{ DEVICE_TELEMETRY : "що шле залізо"
     USERS ||--o{ USER_IDENTITIES : "google/apple"
-    USERS ||--|| WALLETS : "баланси"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
-    CHECKBOX_SHIFTS ||--o{ RECEIPTS : "у межах зміни"
-    WEBHOOK_DELIVERIES ||--o| RECEIPTS : "з якої доставки"
     DRINKS ||--o{ RECEIPT_ITEMS : "system_code"
     USERS ||--o{ BONUS_GRANTS : "хто заредімив"
 
@@ -82,6 +108,9 @@ erDiagram
         uuid id PK
         citext nickname UK "унікальний, автоген при реєстрації"
         citext email "метч між провайдерами"
+        int coins_yellow "check >= 0, передаються між гравцями"
+        int coins_silver "check >= 0, НЕ передаються"
+        int beans "check >= 0"
         timestamptz consent_at "терми + обробка даних"
         text terms_version
         timestamptz last_seen_at
@@ -94,24 +123,17 @@ erDiagram
         text subject UK "sub від провайдера"
         timestamptz created_at
     }
-    CHECKBOX_SHIFTS {
-        bigserial id PK
-        text point_id FK
-        uuid checkbox_shift_id UK
-        timestamptz opened_at
-        timestamptz closed_at
-        jsonb raw
-    }
     RECEIPTS {
         bigserial id PK
         text point_id FK
-        uuid checkbox_receipt_id UK "ідемпотентність"
+        uuid checkbox_receipt_id UK "ідемпотентність: вебхук і опитування"
+        uuid checkbox_shift_id "з чека; таблиці змін немає"
         text fiscal_code
         timestamptz fiscal_date
         numeric total_sum
         jsonb payments
         text tax_url "доказ обороту для орендодавця"
-        bigint shift_id FK
+        text source "webhook|poll - хто записав першим"
         jsonb raw
         timestamptz created_at
     }
@@ -140,12 +162,21 @@ erDiagram
     }
     MENU_DEPLOYMENTS {
         bigserial id PK
-        text point_id FK
         jsonb payload "знімок цін і акції"
-        text status "queued|deploying|current|failed|history"
+        text status "queued|deploying|done|partial|failed"
         uuid created_by FK
+        timestamptz scheduled_at
         timestamptz created_at
-        timestamptz deployed_at
+        timestamptz finished_at
+    }
+    MENU_DEPLOYMENT_TARGETS {
+        bigserial id PK
+        bigint deployment_id FK
+        text kind "r2|checkbox|jetinno"
+        text point_id FK "null для checkbox: каталог спільний"
+        text status "queued|deploying|done|failed|skipped"
+        timestamptz done_at
+        timestamptz acked_at "кіоск підтвердив, що показує"
         text error
     }
     BONUS_GRANTS {
@@ -161,17 +192,19 @@ erDiagram
         timestamptz redeemed_at "зарахували в акаунт"
         text status "pending|claimed|redeemed|expired"
     }
-    WALLETS {
-        uuid user_id PK
-        int coins_yellow "передаються між гравцями"
-        int coins_silver "НЕ передаються"
-        int beans
-        timestamptz updated_at
+    DEVICES {
+        text id PK "pi-kyiv-01"
+        text point_id FK
+        text key_hash "sha256 ключа з config/device.key"
+        text next_key_hash "ротація: видано, пристрій ще не підхопив"
+        timestamptz key_rotated_at
+        timestamptz revoked_at
+        timestamptz last_seen_at
     }
     DEVICE_TELEMETRY {
         bigserial id PK
-        text point_id FK
-        text device "pi|jetino|camera"
+        text device_id FK
+        text source "pi|jetino|camera"
         text idem_key UK "малина ретраїть зі збереженим ключем"
         timestamptz measured_at
         jsonb metrics
@@ -185,18 +218,35 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 ними користувач може закрити вкладку — і тоді бонус має протухнути за
 `expires_at`, а не висіти вічно.
 
+**Змін Checkbox окремою таблицею немає** (прибрано 17.09.2026). Ні адмінка,
+ні економіка, ні звіт орендодавцю не питають нічого «по змінах»: оборот
+рахується по чеках за день. `checkbox_shift_id` лишається в чеку як
+посилання, щоб знайти зміну в кабінеті Checkbox, якщо колись знадобиться.
+
+**Деплой меню — на всі точки одразу, якщо не вибрано інше.** Статус
+тримається на кожній цілі окремо: одна малина офлайн чи портал Jetinno
+впав — це `partial`, а не провал усього деплою. На кожну активну точку
+створюється ціль `r2` (меню, яке тягне кіоск), одна `checkbox` (каталог
+спільний на організацію, `checkbox.md`) і, якщо підтвердиться потреба,
+`jetinno` на точку (`services.md` §4). `acked_at` ставить сам кіоск, коли
+вже показує нові ціни, — «викотили в R2» і «висить на екрані» різні речі.
+
+**Пристрій = малина точки.** Ключ живе у файлі `config/device.key`, у базі —
+лише його хеш. Відкликання — `revoked_at`; ротація — `next_key_hash`, доки
+пристрій не підхопив новий ключ (`services.md` §3).
+
 ---
 
 ## 2. Економіка: журнал, крамниця, маркет
 
 ```mermaid
 erDiagram
-    USERS ||--o{ LEDGER_ENTRIES : "кожен рух валюти"
+    USERS ||--o{ LEDGER_ENTRIES : "кожна операція"
     USERS ||--o{ USER_ITEMS : "склад"
     USERS ||--o{ CRATE_OPENINGS : "відкриття крейтів"
     USERS ||--o{ MARKET_LISTINGS : "продає"
     USERS ||--o{ COIN_TRANSFERS : "переказ жовтих"
-    USERS ||--o{ REDEMPTIONS : "витрата зерен"
+    USERS ||--o{ REDEMPTIONS : "доставки Новою Поштою"
     USERS ||--o{ QUIZ_DRINK_RESPONSES : "квіз про напій"
     USERS ||--o| QUIZ_PROFILE_RESPONSES : "анкета, одноразово"
     USERS ||--o{ REPOST_VERIFICATIONS : "репости"
@@ -205,24 +255,30 @@ erDiagram
     MARKET_LISTINGS ||--o| MARKET_TRADES : "угода"
     CRATE_OPENINGS ||--o| USER_ITEMS : "що випало"
     RECEIPT_ITEMS ||--o| QUIZ_DRINK_RESPONSES : "про яке замовлення"
-    REDEMPTIONS ||--o| POS_DISCOUNT_CODES : "знижка на POS"
+    LEDGER_ENTRIES ||--o| POS_DISCOUNT_CODES : "знижка на POS"
+    LEDGER_ENTRIES ||--o| REDEMPTIONS : "списання зерен за доставку"
+    REDEMPTIONS ||--o{ REDEMPTION_EVENTS : "історія статусів"
+    NP_CITIES ||--o{ NP_WAREHOUSES : "відділення й поштомати"
+    NP_WAREHOUSES ||--o{ REDEMPTIONS : "куди везти"
 
     LEDGER_ENTRIES {
         bigserial id PK
         uuid user_id FK
-        text currency "yellow|silver|beans"
-        int delta "+ нарахування, - витрата"
-        int balance_after "звірка з wallets"
-        text reason "purchase|quiz|repost|crate|care|transfer|market|redeem|convert|admin"
-        text ref_type
+        int delta_yellow "знакова, 0 якщо не чіпали"
+        int delta_silver "знакова"
+        int delta_beans "знакова"
+        text reason "purchase|quiz|repost|crate|care|chat|transfer|market|exchange|pos_discount|delivery|sapling|admin"
+        text ref_type "receipt|crate_opening|market_trade|coin_transfer|redemption"
         bigint ref_id
+        text idem_key UK "повтор запиту не пише рядок удруге"
+        jsonb meta "курс обміну, що саме купили"
         timestamptz created_at
     }
     ITEM_DEFS {
         bigserial id PK
         text code UK
         text name
-        text slot "head|body|feet|acc_1|acc_2"
+        text slot "head|body|pants|feet|acc_1"
         text tier "common|uncommon|rare|epic"
         text sprite_id
         int price_coins "лише Common, gamification_ui.md"
@@ -284,18 +340,54 @@ erDiagram
     REDEMPTIONS {
         bigserial id PK
         uuid user_id FK
-        text kind "coffee|merch|print|pos_discount|sapling|coins"
-        int beans_spent
+        bigint ledger_entry_id FK "списання зерен"
+        text product "coffee_250g|merch_cup|merch_spoon|custom_print"
         numeric cost_uah_actual "для 10% ліміту бюджету"
-        text status "requested|approved|shipped|delivered|cancelled"
-        text np_branch
-        text np_ttn
-        bigint evidence_event_id FK
+        text recipient_name
+        text recipient_phone "без нього НП посилку не видасть"
+        text np_warehouse_ref "Ref із довідника"
+        text np_warehouse_kind "branch|postomat"
+        text np_address_snapshot "довідник міняється, замовлення - ні"
+        text np_ttn UK
+        text np_status_code "останній код із трекінгу"
+        text status "new|packing|shipped|arrived|received|returned|cancelled"
+        timestamptz status_changed_at
+        timestamptz user_seen_at "лічильник: зміни, яких гравець ще не бачив"
+        bigint evidence_event_id FK "доказ з камери"
         timestamptz created_at
+    }
+    REDEMPTION_EVENTS {
+        bigserial id PK
+        bigint redemption_id FK
+        text status
+        text source "admin|np|system"
+        text note
+        timestamptz created_at
+    }
+    NP_CITIES {
+        text ref PK "Ref із довідника НП"
+        text name
+        text area
+        text settlement_type
+        timestamptz synced_at
+    }
+    NP_WAREHOUSES {
+        text ref PK
+        text city_ref FK
+        int number
+        text category "branch|postomat"
+        text type_ref "з getWarehouseTypes, не хардкод"
+        text description
+        text short_address
+        int place_max_weight_kg
+        jsonb dimension_limits "поштомат: чи влізе товар"
+        jsonb schedule
+        text status "неробочі не показуємо"
+        timestamptz synced_at
     }
     POS_DISCOUNT_CODES {
         bigserial id PK
-        bigint redemption_id FK
+        bigint ledger_entry_id FK
         uuid user_id FK
         text code UK
         numeric amount_uah
@@ -337,6 +429,18 @@ erDiagram
   переказати срібні тоді не «валідація, яку забули», а неможливий стан.
 - Предмет у подарованому комплекті не продається. `USER_ITEMS.locked` +
   часткові індекси: виставити можна лише те, де `locked = false`.
+
+**`redemptions` — лише те, що їде Новою Поштою** (17.09.2026). Раніше таблиця
+дублювала журнал: знижка на POS, саджанець, обмін на монети — це просто
+рядки `ledger_entries` з відповідним `reason` (для знижки ще й код у
+`pos_discount_codes`). Окремий рядок потрібен лише там, де є фізичний світ:
+отримувач, відділення, ТТН і статуси, які змінюють адмін і трекінг НП.
+`redemption_events` — історія цих статусів: з неї екран «Мої замовлення»
+малює стрічку, а `user_seen_at` дає лічильник на кнопці (`gamification_ui.md`).
+
+**Довідник НП — локальна копія, оновлюється щоночі** (`services.md` §4). У
+замовлення знімається текстова адреса відділення: довідник живе своїм
+життям, а замовлення має показувати, куди насправді відправили.
 
 ---
 
@@ -392,7 +496,7 @@ erDiagram
     WARDROBE_SET_ITEMS {
         bigserial id PK
         bigint set_id FK
-        text slot "head|body|feet|acc_1|acc_2"
+        text slot "head|body|pants|feet|acc_1"
         bigint user_item_id FK
     }
     CHAT_MESSAGES {
@@ -489,10 +593,25 @@ erDiagram
         timestamptz last_login_at
     }
     ECONOMY_PARAMS {
-        text key PK "k_coins|bean_rate|rarity|crate_price"
+        text key PK "k_coins|bean_rate|rarity|crate_price|shop_products"
         jsonb value
         uuid updated_by FK
         timestamptz updated_at
+    }
+    OUTBOX {
+        bigserial id PK
+        text channel "point:kyiv-01|user:uuid"
+        text event "sale|bonus.claimed|menu.deployed|order.updated"
+        jsonb payload "з outbox.id, щоб клієнт відкинув повтор"
+        timestamptz created_at
+        timestamptz published_at "null - ще не в Redis"
+        smallint attempts
+    }
+    SYNC_CURSORS {
+        text name PK "checkbox:receipts|np:directory|np:tracking"
+        timestamptz cursor_at "до якого моменту все забрано"
+        timestamptz run_at
+        text last_error
     }
 ```
 
@@ -501,6 +620,11 @@ erDiagram
 півгодинними відрами: адмінка просить тиждень історії з такою
 гранулярністю, і зберігати сирі проби, щоб потім їх агрегувати, немає
 навіщо — старше за тиждень усе одно затирається.
+
+`OUTBOX` — див. §0 «Подія пишеться в тій самій транзакції». `SYNC_CURSORS` —
+де зупинилось кожне фонове забирання: опитування чеків Checkbox, нічна
+синхронізація довідника й трекінг НП. Курсор у базі, а не в памʼяті
+процесу: перезапуск не має ні пропустити вікно, ні перечитати тиждень.
 
 ---
 
@@ -514,14 +638,14 @@ Redis тут — **не база**. Втрата всього кейспейсу
 
 | Ключ | Тип | TTL | Хто пише | Хто читає | Навіщо |
 |---|---|---|---|---|---|
-| `sess:<token>` | hash | 30 діб | api | api | сесія гравця після OAuth |
-| `sess:admin:<token>` | hash | 12 год | api | api | окремий, коротший строк для адмінки |
-| `ws:ticket:<uuid>` | string | 60 с | api | ws | одноразовий квиток: вебсокет не бачить кук |
+| `sess:<id>` | hash | 30 діб | api | api | refresh-сесія гравця; сам доступ — JWT на 15 хв, у Redis його немає |
+| `sess:admin:<id>` | hash | 12 год | api | api | refresh-сесія адміна, коротша |
+| `revoked:device:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |
 | `rl:<scope>:<id>` | string лічильник | 60 с | api | api | rate limit (чат — без ліміту, решта — є) |
 | `bonus:claim:<token>` | hash | 120 с | api | api | вікно сканування QR, дзеркало `bonus_grants` |
 | `menu:<point>` | string (JSON) | 60 с | api | api, pos-worker | кеш меню, щоб кіоск не бив у Postgres |
 | `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |
-| `lock:<job>` | string `SET NX PX` | за роботою | overseer, worker | вони ж | щоб дві копії крона не робили те саме |
+| `lock:<job>` | string `SET NX PX` | за роботою | api, overseer, worker, deployer | вони ж | щоб дві копії фонової роботи не робили те саме |
 | `health:last:<target>` | hash | 1 год | overseer | api (адмінка) | останній стан без запиту в Postgres |
 
 ### Канали pub/sub
@@ -530,15 +654,17 @@ Redis тут — **не база**. Втрата всього кейспейсу
 
 | Канал | Публікує | Слухає | Подія |
 |---|---|---|---|
-| `point:<id>` | checkbox, api | ws | чек фіскалізовано, бонус нарахований, оновлення меню |
-| `user:<uuid>` | api | ws | бонус зарахований, продаж на маркеті, срібні монети, розсилка |
+| `point:<id>` | публікатор `outbox` | ws → кіоск | `sale` (QR бонусу), `bonus.claimed`, `bonus.expired`, `menu.deployed`, `promo.deployed` |
+| `user:<uuid>` | публікатор `outbox` | ws → телефон | бонус зарахований, продаж на маркеті, срібні монети, розсилка, `order.updated` |
 | `admin:health` | overseer | ws | зміна стану сервісу для живої адмінки |
 
 ### Чому pub/sub, а не Streams
 
 Втрата повідомлення тут не втрачає дані:
 і кіоск, і застосунок при (пере)підключенні витягують свій стан із `api`
-одним запитом, а джерело істини — Postgres. Там, де втрата була б дірою в
+одним запитом, а джерело істини — Postgres. Між базою й Redis подію не
+губить `outbox` (§0); pub/sub відповідає лише за «доставити тим, хто зараз
+на звʼязку». Там, де втрата була б дірою в
 архіві (відеосегменти), черга свідомо зроблена таблицею з `SKIP LOCKED`
 (`video.md`), а не Redis-ом. Окремий брокер на цих обсягах — залежність,
 яку доведеться доглядати, без задачі, яку вона вирішує.

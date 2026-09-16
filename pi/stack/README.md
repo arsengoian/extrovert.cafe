@@ -24,6 +24,7 @@
 │   │   └── release.json
 │   └── 2026.09.10-ff31a02/    попередній — ціль відкату
 ├── config/env                 POINT, UPDATE_URL… переживає оновлення
+├── config/device.key          ключ пристрою, 0600; відкликається й ротується з адмінки
 ├── state/                     version, updating, slot.*, bad-releases
 ├── logs/                      kiosk.log, updater.log
 └── build/                     лише на складальній малині: вихідники й dist/
