@@ -614,6 +614,16 @@ erDiagram
         timestamptz run_at
         text last_error
     }
+    SUPPORT_TICKETS {
+        bigserial id PK
+        int bot_ticket_id UK "номер тікета в support-bot"
+        text telegram_user_id
+        text status "open|replied|closed|banned"
+        text last_preview "до 200 символів із вебхука"
+        smallint csat_rating
+        timestamptz opened_at
+        timestamptz last_event_at
+    }
 ```
 
 `VIDEO_SEGMENTS`/`VIDEO_EVENTS` — дослівно зі схеми у `video.md`, включно з
@@ -626,6 +636,12 @@ erDiagram
 де зупинилось кожне фонове забирання: опитування чеків Checkbox, нічна
 синхронізація довідника й трекінг НП. Курсор у базі, а не в памʼяті
 процесу: перезапуск не має ні пропустити вікно, ні перечитати тиждень.
+
+`SUPPORT_TICKETS` — лише дзеркало тікетів із готового бота підтримки
+(`services.md` §4) для розділу «Підтримка» в адмінці. Саму переписку
+тримають бот і staff-група Telegram, тож тут немає ні повідомлень, ні
+звʼязку з `users`: у гравця акаунт Google/Apple, а в бота — Telegram.
+Лічильник непрочитаних — тікети в статусі `open`.
 
 ---
 
