@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 6ca4bf3</p>
+  <p class="eyebrow">extrovert.cafe · джерело 722ddec</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 16 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -533,7 +533,9 @@ Checkbox ─ опитування раз на хв ───┤
 <p>Пошук на чекауті йде по локальній копії: швидко, без ключа НП у браузері,
 і чекаут не лягає разом з API НП. Поштомати, у які товар не влазить за
 вагою чи габаритами (<code>PlaceMaxWeightAllowed</code>, обмеження розмірів із
-довідника), для цього товару не показуються.</p>
+довідника), для цього товару не показуються. Габарити й вага товарів в
+упаковці — <code>api/data/shop-products.json</code>: верхні межі, щоб фільтр помилявся
+лише в безпечний бік, доки немає замірів реального товару.</p>
 <p><strong>Відправка — з адмінки.</strong> Адмін пакує й створює ТТН (<code>InternetDocument/save</code>:
 відправник — наш ФОП, платить відправник, вага; для поштомата ще й габарити
 місця в <code>OptionsSeat</code>). Точний набір полів звірити з документацією НП на
@@ -1033,7 +1035,8 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         bigint ledger_entry_id FK &quot;списання зерен&quot;
-        text product &quot;coffee_250g|merch_cup|merch_spoon|custom_print&quot;
+        text product &quot;id з api/data/shop-products.json&quot;
+        jsonb options &quot;розмір футболки&quot;
         numeric cost_uah_actual &quot;для 10% ліміту бюджету&quot;
         text recipient_name
         text recipient_phone &quot;без нього НП посилку не видасть&quot;
@@ -1149,8 +1152,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">переказ жовтих</span></li></ul>
 </article>
 <article class="entity" id="t-redemptions">
-  <header><h4>redemptions</h4><span class="entity-count">17 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">ledger_entry_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">списання зерен</td></tr><tr><td class="c-name">product</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">coffee_250g|merch_cup|merch_spoon|custom_print</td></tr><tr><td class="c-name">cost_uah_actual</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">для 10% ліміту бюджету</td></tr><tr><td class="c-name">recipient_name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">recipient_phone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">без нього НП посилку не видасть</td></tr><tr><td class="c-name">np_warehouse_ref</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">Ref із довідника</td></tr><tr><td class="c-name">np_warehouse_kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">branch|postomat</td></tr><tr><td class="c-name">np_address_snapshot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">довідник міняється, замовлення - ні</td></tr><tr><td class="c-name">np_ttn</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">np_status_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">останній код із трекінгу</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">new|packing|shipped|arrived|received|returned|cancelled</td></tr><tr><td class="c-name">status_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">user_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">лічильник: зміни, яких гравець ще не бачив</td></tr><tr><td class="c-name">evidence_event_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">доказ з камери</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>redemptions</h4><span class="entity-count">18 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">ledger_entry_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">списання зерен</td></tr><tr><td class="c-name">product</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">id з api/data/shop-products.json</td></tr><tr><td class="c-name">options</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">розмір футболки</td></tr><tr><td class="c-name">cost_uah_actual</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">для 10% ліміту бюджету</td></tr><tr><td class="c-name">recipient_name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">recipient_phone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">без нього НП посилку не видасть</td></tr><tr><td class="c-name">np_warehouse_ref</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">Ref із довідника</td></tr><tr><td class="c-name">np_warehouse_kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">branch|postomat</td></tr><tr><td class="c-name">np_address_snapshot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">довідник міняється, замовлення - ні</td></tr><tr><td class="c-name">np_ttn</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">np_status_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">останній код із трекінгу</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">new|packing|shipped|arrived|received|returned|cancelled</td></tr><tr><td class="c-name">status_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">user_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">лічильник: зміни, яких гравець ще не бачив</td></tr><tr><td class="c-name">evidence_event_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">доказ з камери</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">доставки Новою Поштою</span></li><li><span class="rel-card">← 1</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">списання зерен за доставку</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemption_events">redemption_events</a><span class="rel-label">історія статусів</span></li><li><span class="rel-card">← 1</span><a href="#t-np_warehouses">np_warehouses</a><span class="rel-label">куди везти</span></li></ul>
 </article>
 <article class="entity" id="t-redemption_events">
@@ -1377,7 +1380,7 @@ erDiagram
         timestamptz last_login_at
     }
     ECONOMY_PARAMS {
-        text key PK &quot;k_coins|bean_rate|rarity|crate_price|shop_products&quot;
+        text key PK &quot;k_coins|bean_rate|rarity|crate_price&quot;
         jsonb value
         uuid updated_by FK
         timestamptz updated_at
@@ -1430,7 +1433,7 @@ erDiagram
 </article>
 <article class="entity" id="t-economy_params">
   <header><h4>economy_params</h4><span class="entity-count">4 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">key</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">k_coins|bean_rate|rarity|crate_price|shop_products</td></tr><tr><td class="c-name">value</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">updated_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">updated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">key</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">k_coins|bean_rate|rarity|crate_price</td></tr><tr><td class="c-name">value</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">updated_by</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">updated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   
 </article>
 <article class="entity" id="t-outbox">
@@ -4154,9 +4157,10 @@ Lally et al. (медіана 66 днів) лише частково — цикл
 обирає, чи потрібне Добриво, чи Інсектицид — і саме ЦЕЙ препарат показує
 хмаринка з думками (нижче). Ціна однакова незалежно від того, який із двох
 випав (16 монет) — рандом впливає лише на те, ЩО саме треба купити, не на
-скільки це коштує. Останній із цих двох переходів (6→7) свідомо НЕ
-рандомний — форсовано Інсектицид, щоб плавно підвести гравця до чисто
-&quot;захисної&quot; фази (7→8, 8→9, 9→10), яка веде до врожаю.</p>
+скільки це коштує. Далі, на пізніших етапах, — <strong>завжди Інсектицид</strong>:
+переходи 7→8, 8→9 і 9→10 форсовано ведуть гравця через чисто &quot;захисну&quot;
+фазу до врожаю. 🔄 <em>17.09.2026: раніше тут стояло, що форсований уже 6→7, —
+це суперечило обом таблицям вище; праві таблиці, 6→7 рандомний.</em></p>
 <p>Порівняно з органічним доходом монет (у середньому ≈21-23 монета/покупку
 після AI-чату, розділ 7.2) препарати НІКОЛИ не блокують перехід стадії за
 звичайного темпу гри. Це свідомий вибір: добриво/компост/інсектицид —
@@ -4880,7 +4884,7 @@ COGS 11,46) → профіт 68,54 грн → формула дала б 69 мо
 <h5 id="gamification-ui-застосування-препарату"><a class="anchor" href="#gamification-ui-застосування-препарату" aria-hidden="true">#</a>Застосування препарату</h5>
 <ul>
 <li>Хмаринка над кавенятком показує, що воно хоче. Тап по хмаринці (або по поличці чи відру) застосовує саме цей препарат - гравцю не треба пам&#39;ятати, що куди сипати.</li>
-<li>Препарату немає в запасі - попап купівлі пачки за тією ж ціною, що в Магазині, з кнопкою &quot;купити й застосувати&quot;.</li>
+<li>Препарату немає в запасі - попап &quot;Не вистачає препарату&quot; (розділ &quot;Попапи&quot;).</li>
 <li>Не минула доба від попереднього переходу - хмаринка вже каже &quot;росте, треба трохи часу 🕐&quot;, тап показує, коли можна буде далі.</li>
 <li>Переходи без посадки відбуваються одразу: коротка анімація й текст у хмаринці.</li>
 <li>Переходи з посадкою відкривають відповідний екран нижче. <strong>Препарат списується, стадія змінюється і посаджене фіксується одним запитом - лише по кнопці &quot;Посадити&quot;.</strong> Вийшов з екрана - нічого не списано, стадія та сама, а розстановка лишається чернеткою на пристрої; хмаринка показує &quot;посади листя 🌿&quot; (гілки, бутони), тап продовжує з того самого місця.</li>
@@ -4964,7 +4968,7 @@ COGS 11,46) → профіт 68,54 грн → формула дала б 69 мо
 <li>Знижка на POS - 6 зерен ≈ 20 грн знижки, з тултипом &quot;X монет = Y% знижки&quot; (§9 economy-доки)</li>
 <li>Кава 250г - ~30 зерен</li>
 <li>Мерч (чашка/ложка) - ~15 зерен</li>
-<li>Кастомний принт кавенятка - ~36-45 зерен, з явним маркуванням &quot;тільки твій - унікальний вигляд саме твого кавенятка&quot; (§9 economy-доки)</li>
+<li>Кастомний принт кавенятка на футболці - ~36-45 зерен, з явним маркуванням &quot;тільки твій - унікальний вигляд саме твого кавенятка&quot; (§9 economy-доки)</li>
 <li>Новий саджанець кавенятка - 15 зерен</li>
 <li>Обмін бобів на монети (1 зерно → 13-17 монет) - дублює функцію з Гаманця</li>
 </ul>
@@ -4983,6 +4987,7 @@ COGS 11,46) → профіт 68,54 грн → формула дала б 69 мо
 <li><strong>Місто:</strong> пошук за назвою.</li>
 <li><strong>Відділення чи поштомат:</strong> перемикач. Поштомати, у які цей товар не влазить за вагою чи розміром, не показуються; якщо в місті таких не лишилось - текст &quot;цей товар не влазить у поштомат, оберіть відділення&quot;.</li>
 <li><strong>Список</strong> із пошуком за номером або вулицею: номер, адреса, графік на сьогодні.</li>
+<li><strong>Розмір</strong> - лише для футболки з принтом: S-XXL, поруч таблиця розмірів.</li>
 <li><strong>&quot;Замовити за N зерен&quot;</strong> - попап підтвердження - зерна списуються одразу, замовлення отримує статус &quot;Нове&quot; - відкривається його картка в &quot;Мої замовлення&quot;.</li>
 </ul>
 <h5 id="gamification-ui-мої-замовлення"><a class="anchor" href="#gamification-ui-мої-замовлення" aria-hidden="true">#</a>Мої замовлення</h5>
@@ -5011,6 +5016,33 @@ COGS 11,46) → профіт 68,54 грн → формула дала б 69 мо
 <li>Повідомлення як працює певна механіка (скріншот/ілюстрація + текст)</li>
 <li>Попап з переказом монет іншому гравцю (вводиш нікнейм, кількість золотих монет, підтверджуєш; срібні монети в переказі недоступні)</li>
 <li>Попап для репосту в соц. мережі (інфо + кнопка репосту)</li>
+<li><strong>Не вистачає препарату</strong> (вода, компост, добриво, інсектицид) - тап по хмаринці, поличці чи відру, а в запасі нуль:<ul>
+<li>що потрібно й навіщо: &quot;Кавенятку потрібен компост, щоб рости далі&quot;</li>
+<li>запас зараз і пачка з ціною: 5 л води - 5 монет; 3 кг компосту чи добрива або 3 пляшки інсектициду - 3× ціна застосування на цьому переході (gamification_economy.md §3.2)</li>
+<li>баланс монет і кнопки &quot;Купити й застосувати&quot; та &quot;Пізніше&quot;; на переходах з посадкою кнопка - &quot;Купити й садити&quot;: пачка купується одразу, а препарат списується вже по &quot;Посадити&quot;</li>
+<li>монет на пачку не вистачає - кнопка купівлі відкриває попап &quot;Не вистачає монет або зерен&quot;</li>
+<li>перші 3 літри води в житті кавенятка безкоштовні, тож на стадії 0 попап не з&#39;являється</li>
+</ul>
+</li>
+<li><strong>Не вистачає монет або зерен</strong> - на будь-якій покупці, яку баланс не покриває: Магазин, прев&#39;ю товару, чекаут, пачка препарату, крейт, платне повідомлення в чаті:<ul>
+<li>скільки саме бракує: &quot;Бракує 12 монет&quot;</li>
+<li>способи отримати валюту - кожен рядком з кнопкою переходу; недоступні видно, але неактивні з причиною (як у Free coins)</li>
+<li><strong>монети:</strong><ul>
+<li>купити каву на точці - кожен напій дає монети, в середньому ≈21-23 за покупку, бонус-напій - 80-100</li>
+<li>Free coins у Гаманці - квіз профілю, квіз про напій, репост; срібні монети витрачаються нарівні з золотими</li>
+<li>обміняти зерна на монети (1 зерно → 13-17 монет) - якщо зерна є</li>
+<li>продати одяг або кавенятко на P2P маркеті - кнопка веде на Склад</li>
+</ul>
+</li>
+<li><strong>зерна:</strong><ul>
+<li>виростити кавенятко до кінця - +7 зерен на стадії 10; показуємо, скільки лишилось найближчому до врожаю (&quot;стадія 6 з 10&quot;)</li>
+<li>зібрати й подарувати кавенятку комплект одягу - зерна за рідкістю комплекту (gamification_economy.md §3.4); кнопка веде в Гардероб, а якщо повного комплекту ще немає - на Склад</li>
+<li>продати на P2P маркеті за зерна</li>
+<li>окремим рядком: монети в зерна не обмінюються - щоб гравець не шукав такої кнопки</li>
+</ul>
+</li>
+</ul>
+</li>
 <li>Попап &quot;кавенятко зголодніло за поливом&quot; - показується одразу при знятті з продажу на P2P-маркеті, якщо реальний час без поливу за час лістингу перевищив поріг сум/зів&#39;ялий (§4 graphics-доки)</li>
 </ul>
 <h3 id="gamification-ui-сповіщення"><a class="anchor" href="#gamification-ui-сповіщення" aria-hidden="true">#</a>Сповіщення</h3>
@@ -7724,9 +7756,9 @@ GlitchTip — з першого ж сервісу, кожен компонент
 <td>до кроку 5.1</td>
 </tr>
 <tr>
-<td>Габарити й вага товарів за зерна (кава 250 г, чашка, принт) — щоб фільтрувати поштомати</td>
-<td>заміряти й записати в <code>shop_products</code></td>
-<td>до чекауту</td>
+<td><del>Габарити й вага товарів за зерна</del></td>
+<td>✅ верхні межі в <code>api/data/shop-products.json</code>: кава 250 г, стандартні чашка й футболка з принтом; замінити замірами, коли приїде товар</td>
+<td>закрито 17.09.2026</td>
 </tr>
 </tbody></table>
 </div>
@@ -7782,7 +7814,7 @@ GlitchTip — з першого ж сервісу, кожен компонент
 </section>
 </main>
 </div>
-<footer>Хеш джерел 6ca4bf3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 722ddec — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

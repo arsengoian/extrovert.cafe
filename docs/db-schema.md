@@ -341,7 +341,8 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         bigint ledger_entry_id FK "списання зерен"
-        text product "coffee_250g|merch_cup|merch_spoon|custom_print"
+        text product "id з api/data/shop-products.json"
+        jsonb options "розмір футболки"
         numeric cost_uah_actual "для 10% ліміту бюджету"
         text recipient_name
         text recipient_phone "без нього НП посилку не видасть"
@@ -593,7 +594,7 @@ erDiagram
         timestamptz last_login_at
     }
     ECONOMY_PARAMS {
-        text key PK "k_coins|bean_rate|rarity|crate_price|shop_products"
+        text key PK "k_coins|bean_rate|rarity|crate_price"
         jsonb value
         uuid updated_by FK
         timestamptz updated_at
