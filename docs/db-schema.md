@@ -351,7 +351,7 @@ erDiagram
         text np_address_snapshot "довідник міняється, замовлення - ні"
         text np_ttn UK
         text np_status_code "останній код із трекінгу"
-        text status "new|packing|shipped|arrived|received|returned|cancelled"
+        text status "new|printing|packing|shipped|arrived|received|returned|cancelled"
         timestamptz status_changed_at
         timestamptz user_seen_at "лічильник: зміни, яких гравець ще не бачив"
         bigint evidence_event_id FK "доказ з камери"
