@@ -24,10 +24,9 @@
 │   │   └── release.json
 │   └── 2026.09.10-ff31a02/    попередній — ціль відкату
 ├── config/env                 POINT, UPDATE_URL… переживає оновлення
-├── config/device.key          ключ пристрою, 0600; відкликається й ротується з адмінки
+├── config/point.key           ключ точки, 0600; відкликається й ротується з адмінки
 ├── state/                     version, updating, slot.*, bad-releases
-├── logs/                      kiosk.log, updater.log
-└── build/                     лише на складальній малині: вихідники й dist/
+└── logs/                      kiosk.log, updater.log
 ```
 
 Поза цією текою — юніт `/etc/systemd/system/extrovert.service` і рядок
@@ -142,8 +141,8 @@ echo plain > /home/pi/extrovert/state/restart.kiosk
 ```
 
 Старі `pi/kiosk-native.sh` + `pi/pos-native.service` лишаються в репозиторії
-як робочий однокомпонентний варіант — так само, як `archive/kiosk-chromium.sh`
-лишився після переходу на `pos-native`. Одночасно вмикати їх і
+як робочий однокомпонентний варіант: саме з них стек «усиновлює» кіоск при
+переході. Одночасно вмикати їх і
 `extrovert.service` **не можна**: обидва запустять кіоск, і другий не
 дістане шару. «Вимкнути» тут означає й прибрати старий крон-рядок
 `kiosk-watch`, і відкласти файл `pos-native.service`: `systemctl restart`

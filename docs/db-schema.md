@@ -86,10 +86,9 @@ Checkbox і оплати mono pay, на які рядок посилається
 ```mermaid
 erDiagram
     POINTS ||--o{ RECEIPTS : "де продано"
-    POINTS ||--o{ DEVICES : "малини на точці"
     POINTS ||--o{ MENU_DEPLOYMENT_TARGETS : "яке меню стоїть"
     MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
-    DEVICES ||--o{ DEVICE_TELEMETRY : "що шле залізо"
+    POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
     USERS ||--o{ USER_IDENTITIES : "google/apple"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
@@ -102,6 +101,11 @@ erDiagram
         text address
         text timezone
         text status "planned|live|paused"
+        text key_hash "sha256 ключа з config/point.key на малині"
+        text next_key_hash "ротація: видано, малина ще не підхопила"
+        timestamptz key_rotated_at
+        timestamptz key_revoked_at
+        timestamptz last_seen_at "остання телеметрія"
         timestamptz created_at
     }
     USERS {
@@ -132,7 +136,7 @@ erDiagram
         timestamptz fiscal_date
         numeric total_sum
         jsonb payments
-        text tax_url "доказ обороту для орендодавця"
+        text tax_url "сторінка чека в ДПС"
         text source "webhook|poll - хто записав першим"
         jsonb raw
         timestamptz created_at
@@ -192,18 +196,9 @@ erDiagram
         timestamptz redeemed_at "зарахували в акаунт"
         text status "pending|claimed|redeemed|expired"
     }
-    DEVICES {
-        text id PK "pi-kyiv-01"
-        text point_id FK
-        text key_hash "sha256 ключа з config/device.key"
-        text next_key_hash "ротація: видано, пристрій ще не підхопив"
-        timestamptz key_rotated_at
-        timestamptz revoked_at
-        timestamptz last_seen_at
-    }
     DEVICE_TELEMETRY {
         bigserial id PK
-        text device_id FK
+        text point_id FK
         text source "pi|jetino|camera"
         text idem_key UK "малина ретраїть зі збереженим ключем"
         timestamptz measured_at
@@ -219,8 +214,8 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 `expires_at`, а не висіти вічно.
 
 **Змін Checkbox окремою таблицею немає** (прибрано 17.09.2026). Ні адмінка,
-ні економіка, ні звіт орендодавцю не питають нічого «по змінах»: оборот
-рахується по чеках за день. `checkbox_shift_id` лишається в чеку як
+ні економіка, ні аналітика не питають нічого «по змінах»: оборот рахується
+по чеках за день. `checkbox_shift_id` лишається в чеку як
 посилання, щоб знайти зміну в кабінеті Checkbox, якщо колись знадобиться.
 
 **Деплой меню — на всі точки одразу, якщо не вибрано інше.** Статус
@@ -231,9 +226,11 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 `jetinno` на точку (`services.md` §4). `acked_at` ставить сам кіоск, коли
 вже показує нові ціни, — «викотили в R2» і «висить на екрані» різні речі.
 
-**Пристрій = малина точки.** Ключ живе у файлі `config/device.key`, у базі —
-лише його хеш. Відкликання — `revoked_at`; ротація — `next_key_hash`, доки
-пристрій не підхопив новий ключ (`services.md` §3).
+**Точка і її малина — один рядок** (18.09.2026). Окремої таблиці пристроїв
+немає: на точці одна малина, і «пристрій без точки» чи «дві малини на точку»
+— стани, яких не буває. Ключ живе у файлі `config/point.key` на малині, у
+базі лише його хеш; відкликання — `key_revoked_at`, ротація —
+`next_key_hash`, доки малина не підхопила новий (`services.md` §3).
 
 ---
 
@@ -614,15 +611,26 @@ erDiagram
         timestamptz run_at
         text last_error
     }
-    SUPPORT_TICKETS {
+    SUPPORT_THREADS {
         bigserial id PK
-        int bot_ticket_id UK "номер тікета в support-bot"
-        text telegram_user_id
-        text status "open|replied|closed|banned"
-        text last_preview "до 200 символів із вебхука"
-        smallint csat_rating
-        timestamptz opened_at
-        timestamptz last_event_at
+        text telegram_chat_id UK "один чат - один тред"
+        uuid user_id FK "якщо прийшов за кодом із застосунку"
+        text telegram_username
+        text status "open|closed"
+        timestamptz last_user_at "остання репліка гравця"
+        timestamptz last_admin_at "остання наша"
+        timestamptz created_at
+    }
+    SUPPORT_MESSAGES {
+        bigserial id PK
+        bigint thread_id FK
+        text direction "in|out"
+        bigint telegram_update_id UK "ідемпотентність вебхука"
+        bigint telegram_message_id
+        text body
+        jsonb attachments "file_id, тип; файл лишається в Telegram"
+        uuid admin_id FK "хто відповів"
+        timestamptz created_at
     }
 ```
 
@@ -637,11 +645,11 @@ erDiagram
 синхронізація довідника й трекінг НП. Курсор у базі, а не в памʼяті
 процесу: перезапуск не має ні пропустити вікно, ні перечитати тиждень.
 
-`SUPPORT_TICKETS` — лише дзеркало тікетів із готового бота підтримки
-(`services.md` §4) для розділу «Підтримка» в адмінці. Саму переписку
-тримають бот і staff-група Telegram, тож тут немає ні повідомлень, ні
-звʼязку з `users`: у гравця акаунт Google/Apple, а в бота — Telegram.
-Лічильник непрочитаних — тікети в статусі `open`.
+`SUPPORT_THREADS` і `SUPPORT_MESSAGES` — уся підтримка (`services.md` §4):
+тред на чат у Telegram, повідомлення в обидва боки. `user_id` заповнюється
+лише тоді, коли гравець прийшов із застосунку за одноразовим кодом: акаунт
+у нас Google/Apple, а в боті Telegram, і спільного ідентифікатора немає.
+Лічильник в адмінці — треди, де `last_user_at > last_admin_at`.
 
 ---
 
@@ -657,12 +665,11 @@ Redis тут — **не база**. Втрата всього кейспейсу
 |---|---|---|---|---|---|
 | `sess:<id>` | hash | 30 діб | api | api | refresh-сесія гравця; сам доступ — JWT на 15 хв, у Redis його немає |
 | `sess:admin:<id>` | hash | 12 год | api | api | refresh-сесія адміна, коротша |
-| `revoked:device:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |
+| `revoked:point:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |
 | `rl:<scope>:<id>` | string лічильник | 60 с | api | api | rate limit (чат — без ліміту, решта — є) |
 | `bonus:claim:<token>` | hash | 120 с | api | api | вікно сканування QR, дзеркало `bonus_grants` |
-| `menu:<point>` | string (JSON) | 60 с | api | api, pos-worker | кеш меню, щоб кіоск не бив у Postgres |
 | `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |
-| `lock:<job>` | string `SET NX PX` | за роботою | api, overseer, worker, deployer | вони ж | щоб дві копії фонової роботи не робили те саме |
+| `lock:<job>` | string `SET NX PX` | за роботою | scheduler, checkbox, overseer, worker | вони ж | щоб дві копії фонової роботи не робили одне й те саме |
 | `health:last:<target>` | hash | 1 год | overseer | api (адмінка) | останній стан без запиту в Postgres |
 
 ### Канали pub/sub
@@ -671,8 +678,8 @@ Redis тут — **не база**. Втрата всього кейспейсу
 
 | Канал | Публікує | Слухає | Подія |
 |---|---|---|---|
-| `point:<id>` | публікатор `outbox` | ws → кіоск | `sale` (QR бонусу), `bonus.claimed`, `bonus.expired`, `menu.deployed`, `promo.deployed` |
-| `user:<uuid>` | публікатор `outbox` | ws → телефон | бонус зарахований, продаж на маркеті, срібні монети, розсилка, `order.updated` |
+| `point:<id>` | публікатор `outbox` у `scheduler` | ws → кіоск | `sale` (QR бонусу), `bonus.claimed`, `bonus.expired`, `menu.deployed`, `promo.deployed` |
+| `user:<uuid>` | публікатор `outbox` у `scheduler` | ws → телефон | бонус зарахований, продаж на маркеті, срібні монети, розсилка, `order.updated` |
 | `admin:health` | overseer | ws | зміна стану сервісу для живої адмінки |
 
 ### Чому pub/sub, а не Streams
