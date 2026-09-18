@@ -1,10 +1,10 @@
 #!/bin/sh
 # make-release.sh — зібрати архів релізу й маніфест до нього.
 #
-# Запускати ТАМ, ДЕ ЛЕЖИТЬ ЗІБРАНИЙ ARM-бінарник — тобто на складальній
-# малині (`make pi`, ~80 с), не на робочому ПК: крос-компіляція свідомо
-# відхилена (docs/roadmap.md, спайк 18.08.2026 — sysroot під gcc 6.3/glibc
-# 2.24 дорожчий за нативну збірку).
+# Запускати на ПК, після `pos-native/docker/make-pi.sh`: бінарник збирає
+# контейнер із тим самим Raspbian Stretch під armv6, тож ARM-код є, а
+# процесор малини вільний. На пристрої цей скрипт не запускається взагалі —
+# там немає ні git, ні вихідників (docs/raspberry-pi.md §3).
 #
 #   ./make-release.sh                      # версія з дати й git-хеша
 #   ./make-release.sh 2026.09.20-hotfix    # своя версія
@@ -30,7 +30,10 @@ if [ -z "$REL" ]; then
 fi
 
 BIN="$NATIVE/bin/pos-native-pi"
-[ -x "$BIN" ] || { echo "нема $BIN — спершу: cd pos-native && make pi" >&2; exit 1; }
+# Саме -f, а не -x: на теці Windows, змонтованій у Git Bash, біт виконання
+# не зберігається, і перевірка на -x відмовляла б у цілком нормальному
+# білді. Права виставляються нижче, уже в стейджі.
+[ -f "$BIN" ] || { echo "нема $BIN — спершу: ./pos-native/docker/make-pi.sh" >&2; exit 1; }
 # Перевірка, що бінарник справді під малину, а не десктопний: сплутати
 # легко (обидва лежать у bin/), а помилка виявиться аж на точці.
 if command -v file >/dev/null 2>&1; then
@@ -42,6 +45,7 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/bin" "$STAGE/assets" "$STAGE/stack"
 
 cp -a "$BIN" "$STAGE/bin/"
+chmod +x "$STAGE/bin/pos-native-pi"
 cp -a "$NATIVE/assets/." "$STAGE/assets/"
 cp -a "$SRC/stack/common.sh" "$SRC/stack/supervisor.sh" "$SRC/stack/updater.sh" \
       "$SRC/stack/components.conf" "$STAGE/stack/"
@@ -80,7 +84,6 @@ echo "готово:"
 echo "  $TAR  ($(( SIZE / 1024 )) КБ)"
 echo "  $DIST/manifest.json"
 echo
-# Заливає вже ПК: на малині немає ні wrangler, ні ключів до R2, і так має
-# лишатись — пристрій у публічному коридорі.
-echo "далі з ПК (docs/raspberry-pi.md, §3): забрати обидва файли й залити"
-echo "в R2 під releases/pi/ — архів першим, маніфест ОСТАННІМ"
+# Ключі до R2 лежать у pos/.env і на точку не потрапляють ніколи: пристрій
+# стоїть у публічному коридорі, а бакет публічний лише на читання.
+echo "далі: npm run release:push -w pos    (архів, потім маніфест)"

@@ -143,6 +143,10 @@ stage_release() { # stage_release <реліз> <url> <sha256> → 0 / 1 / 2
     rm -f "$_part"
     [ -f "$_tmp/stack/components.conf" ] || {
         log "в архіві нема stack/components.conf — це не наш реліз"; rm -rf "$_tmp"; return 1; }
+    # Біт виконання не завжди переживає дорогу: реліз пакується на ПК, а на
+    # NTFS його немає взагалі. Без цього selftest відмовиться від цілком
+    # нормального релізу ("нема bin/pos-native-pi") і занесе його в bad.
+    chmod +x "$_tmp/bin/pos-native-pi" "$_tmp/stack/"*.sh 2>/dev/null || true
     rm -rf "${EXTROVERT_RELEASES:?}/$_rel"
     mv "$_tmp" "$EXTROVERT_RELEASES/$_rel" || { log "не змогли покласти реліз на місце"; return 1; }
     log "реліз $_rel розпаковано"
