@@ -39,7 +39,7 @@ sock_for() { echo "/tmp/pos-native-$2.sock"; }   # sock_for <імʼя> <слот
 component_env() { # component_env <імʼя> <слот>
     export EXTROVERT_STATE EXTROVERT_ROOT POINT
     export ASSETS="${ASSETS:-$EXTROVERT_CURRENT/assets}"
-    export URL="${URL:-https://pos.extrovert.cafe/api/v1/points/$POINT/menu}"
+    export URL="${URL:-https://pos.extrovert.cafe/points/$POINT/menu.json}"
     export POPUP="${POPUP:-1}"
     export DISPMANX_LAYER="$2"
     export TELEMETRY_SOCK="$(sock_for "$1" "$2")"

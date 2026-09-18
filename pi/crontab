@@ -14,6 +14,3 @@
 # `systemctl restart` піднімає й вимкнений (disable) юніт, тож поруч зі
 # стеком він запустив би другий кіоск.
 */5 * * * * pgrep -f pos-native-pi >/dev/null || sudo systemctl restart pos-native >/dev/null 2>&1  # kiosk-watch
-#
-# Стара версія (Chromium) — на випадок відкату:
-# */5 * * * * pgrep -f "chromium-browser --kiosk" >/dev/null || DISPLAY=:0 /home/pi/kiosk.sh >/dev/null 2>&1 &  # kiosk-watch

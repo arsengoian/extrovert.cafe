@@ -38,7 +38,7 @@ if [ ! -f "$ROOT/config/env" ]; then
     cat > "$ROOT/config/env" <<ENV
 # Конфіг точки. Переживає оновлення (лежить поза releases/).
 POINT=kyiv-01
-# URL=https://pos.extrovert.cafe/api/v1/points/\$POINT/menu
+# URL=https://pos.extrovert.cafe/points/\$POINT/menu.json
 UPDATE_URL=https://pos.extrovert.cafe/releases/pi/manifest.json
 UPDATE_PERIOD_S=900
 POPUP=1

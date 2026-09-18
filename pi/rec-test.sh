@@ -29,13 +29,13 @@ ffmpeg -nostdin -loglevel warning \
 FF=$!
 trap 'kill $FF 2>/dev/null || true' EXIT INT TERM
 
-echo "ts,ffmpeg_cpu,chromium_cpu,load1,mem_free_mb,temp_c,segments,buf_mb" > "$LOG"
+echo "ts,ffmpeg_cpu,kiosk_cpu,load1,mem_free_mb,temp_c,segments,buf_mb" > "$LOG"
 END=$(( $(date +%s) + MIN*60 ))
 while [ "$(date +%s)" -lt "$END" ]; do
   sleep 10
   kill -0 $FF 2>/dev/null || { echo "!! ffmpeg помер, дивись вище"; break; }
   FCPU=$(ps -o %cpu= -p $FF 2>/dev/null | tr -d ' '); FCPU=${FCPU:-0}
-  CCPU=$(ps -C chromium-browser -o %cpu= 2>/dev/null | awk '{s+=$1} END{printf "%.1f", s+0}')
+  CCPU=$(ps -C pos-native-pi -o %cpu= 2>/dev/null | awk '{s+=$1} END{printf "%.1f", s+0}')
   LOAD=$(awk '{print $1}' /proc/loadavg)
   MEM=$(free -m | awk '/^Mem:/{print $7?$7:$4}')
   TEMP=$(awk '{printf "%.1f", $1/1000}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)
@@ -48,7 +48,7 @@ kill $FF 2>/dev/null || true; wait $FF 2>/dev/null || true
 echo
 echo "== підсумок =="
 awk -F, 'NR>1{fc+=$2;cc+=$3;n++; if($2>mf)mf=$2; if($6>mt)mt=$6}
-         END{if(n)printf "ffmpeg CPU сер %.1f%% макс %.1f%% · chromium сер %.1f%% · темп макс %.1f°C\n",fc/n,mf,cc/n,mt}' "$LOG"
+         END{if(n)printf "ffmpeg CPU сер %.1f%% макс %.1f%% · кіоск сер %.1f%% · темп макс %.1f°C\n",fc/n,mf,cc/n,mt}' "$LOG"
 echo "сегментів: $(ls -1 "$BUF"/*.ts 2>/dev/null | wc -l) · обсяг: $(du -sh "$BUF" 2>/dev/null | awk '{print $1}')"
 echo "цілісність останніх трьох сегментів:"
 ls -1t "$BUF"/*.ts 2>/dev/null | head -3 | while read f; do

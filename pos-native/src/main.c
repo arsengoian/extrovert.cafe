@@ -124,7 +124,7 @@ static void *menu_poll_thread(void *arg) {
 
 int main(int argc, char **argv) {
     const char *url = getenv("URL");
-    if (!url) url = "https://pos.extrovert.cafe/api/v1/points/kyiv-01/menu";
+    if (!url) url = "https://pos.extrovert.cafe/points/kyiv-01/menu.json";
     const char *assets_dir = getenv("ASSETS");
     if (!assets_dir) assets_dir = "./assets";
     const char *sock_path = getenv("TELEMETRY_SOCK");

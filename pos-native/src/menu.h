@@ -1,5 +1,5 @@
 /* menu.h — модель меню й опитування API. Дзеркалить app.js: той самий
- * ендпойнт /api/v1/points/<point>/menu, той самий принцип «перемалювати
+ * ключ points/<point>/menu.json у публічному бакеті, той самий принцип «перемалювати
  * лише коли змінився хеш», той самий refreshSec із відповіді сервера. */
 #ifndef POS_NATIVE_MENU_H
 #define POS_NATIVE_MENU_H
@@ -32,7 +32,7 @@ typedef struct {
 } drink_t;
 
 /* Рекламна картка правої панелі — JSON-ключ "ad", підтягується разом із
- * рештою меню (той самий /api/v1/points/<point>/menu, той самий refreshSec
+ * рештою меню (той самий points/<point>/menu.json, той самий refreshSec
  * і хеш-порівняння: своєї окремої частоти опитування ad не потребує). */
 typedef struct {
     char promo_label[MENU_STR];  /* "АКЦІЯ" */
