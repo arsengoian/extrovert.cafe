@@ -237,7 +237,8 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 чого він сам не бачить і за чим ніхто не рахує гроші. Перший ключ —
 `qr_pos`: ідентифікатор точки з QR-наклейки, через яку людина прийшла
 (`qr.extrovert.cafe?p=1` → `{"qr_pos": "1"}`, `urls.md`). Пишеться раз, не
-перезаписується. У jsonb, а не колонкою — за тим самим правилом, що й
+перезаписується. Другий ключ — `dev`: акаунт розробника. Лише такі
+акаунти мають право міняти скрипти розробника (`roadmap.md`, крок 0-біс). У jsonb, а не колонкою — за тим самим правилом, що й
 косметика куща (§0): по ньому не будують звʼязків і не рахують баланси, а
 нові такі змінні не повинні означати міграцію.
 
@@ -297,7 +298,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         bigint item_def_id FK
-        text acquired_from "crate|drop|shop|market|gift|bonus_drink"
+        text acquired_from "crate|drop|shop|market|gift|bonus_drink|admin"
         boolean locked "замкнений у подарованому комплекті"
         bigint set_id FK
         bigint listing_id FK
