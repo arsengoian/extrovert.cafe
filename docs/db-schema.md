@@ -284,10 +284,11 @@ erDiagram
         bigserial id PK
         text code UK
         text name
+        text description_md "опис предмета, markdown; рендерить клієнт"
         text slot "head|body|pants|feet|acc_1"
         text tier "common|uncommon|rare|epic"
         text sprite_id
-        int price_coins "лише Common, gamification_ui.md"
+        int price_coins "пряма покупка, усі тіри: 93/189/425/850 (economy §5.1)"
         bigint season_id "сезонні скіни - лише за грн"
         boolean active
     }
@@ -448,6 +449,14 @@ erDiagram
 **Довідник НП — локальна копія, оновлюється щоночі** (`services.md` §4). У
 замовлення знімається текстова адреса відділення: довідник живе своїм
 життям, а замовлення має показувати, куди насправді відправили.
+
+**Опис кожного предмета одягу — markdown в `item_defs.description_md`**
+(19.09.2026). Гравець бачить його в картці предмета (`gamification_ui.md`,
+Склад). У базі лежить вихідний markdown, а не HTML: рендерить клієнт, без
+сирого HTML і картинок, тож бекенду нема чого чистити, а опис лишається
+текстом, який видно в дифі. Колонка `not null default ''`, і
+`check (not active or description_md <> '')`: предмет без опису можна
+завести в каталог, але не пустити в гру.
 
 ---
 
