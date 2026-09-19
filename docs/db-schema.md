@@ -325,6 +325,7 @@ erDiagram
         text price_currency "yellow|beans"
         numeric commission_pct "10 одяг / до 2 кавенятко"
         text status "active|sold|cancelled"
+        int impressions "скільки разів API запропонував лот; з Redis раз на хвилину"
         timestamptz created_at
     }
     MARKET_TRADES {
@@ -610,7 +611,7 @@ erDiagram
         timestamptz last_login_at
     }
     ECONOMY_PARAMS {
-        text key PK "k_coins|bean_rate|rarity|crate_price"
+        text key PK "k_coins|bean_rate|rarity|crate_price|market_offer_bias"
         jsonb value
         uuid updated_by FK
         timestamptz updated_at
@@ -685,6 +686,7 @@ Redis тут — **не база**. Втрата всього кейспейсу
 | `sess:<id>` | hash | 30 діб | api | api | refresh-сесія гравця; сам доступ — JWT на 15 хв, у Redis його немає |
 | `sess:admin:<id>` | hash | 12 год | api | api | refresh-сесія адміна, коротша |
 | `revoked:point:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |
+| `market:impressions` | hash `listing_id → n` | до перенесення | api (`HINCRBY`) | scheduler, раз на хвилину | покази лотів без запису в Postgres на кожен запит (`services.md` §4) |
 | `rl:<scope>:<id>` | string лічильник | 60 с | api | api | rate limit (чат — без ліміту, решта — є) |
 | `bonus:claim:<token>` | hash | 120 с | api | api | вікно сканування QR, дзеркало `bonus_grants` |
 | `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |

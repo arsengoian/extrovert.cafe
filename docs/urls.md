@@ -88,6 +88,8 @@ GET  /api/v1/points/<point>/state      знімок стану після пер
 GET  /api/v1/me                        профіль гравця
 GET  /api/v1/me/plants                 кавенятка
 POST /api/v1/me/qr                     p з наклейки → users.metadata.qr_pos, раз
+GET  /api/v1/market/items/<code>?limit= лоти одного предмета, limit 1–10, зважений рандом
+GET  /api/v1/market/plants?limit=       лоти кавенят, так само
 ```
 
 Окремої стрічки подій точки роутом **немає**: усе, що відбувається, приходить
