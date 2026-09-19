@@ -90,6 +90,7 @@ GET  /api/v1/me/plants                 кавенятка
 POST /api/v1/me/qr                     p з наклейки → users.metadata.qr_pos, раз
 GET  /api/v1/market/items/<code>?limit= лоти одного предмета, limit 1–10, зважений рандом
 GET  /api/v1/market/plants?limit=       лоти кавенят, так само
+GET  /api/v1/me/listings               мої лоти з лічильником показів
 ```
 
 Окремої стрічки подій точки роутом **немає**: усе, що відбувається, приходить
