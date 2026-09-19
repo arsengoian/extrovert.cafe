@@ -284,6 +284,7 @@ erDiagram
         bigserial id PK
         text code UK
         text name
+        text collection "набір із bush_graphics §7.1: групує Склад, на гру не впливає"
         text description_md "опис предмета, markdown; рендерить клієнт"
         text slot "head|body|pants|feet|acc_1"
         text tier "common|uncommon|rare|epic"
@@ -452,7 +453,7 @@ erDiagram
 
 **Опис кожного предмета одягу — markdown в `item_defs.description_md`**
 (19.09.2026). Гравець бачить його в картці предмета (`gamification_ui.md`,
-Склад). У базі лежить вихідний markdown, а не HTML: рендерить клієнт, без
+Склад). Прототипи текстів для всіх 75 предметів — у `db/seeds/item_defs.json` (§7). У базі лежить вихідний markdown, а не HTML: рендерить клієнт, без
 сирого HTML і картинок, тож бекенду нема чого чистити, а опис лишається
 текстом, який видно в дифі. Колонка `not null default ''`, і
 `check (not active or description_md <> '')`: предмет без опису можна
@@ -826,7 +827,7 @@ db/seeds/
 {
   "points":         { "key": "id",          "owner": "git", "columns": ["id", "name", "address", "timezone"] },
   "drinks":         { "key": "system_code", "owner": "git", "columns": ["system_code", "name", "vol", "price_uah", "coins", "bonus_coins", "sprite", "cup", "active", "sort_order"] },
-  "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] },
+  "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "collection", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] },
   "economy_params": { "key": "key",         "owner": "git", "columns": ["key", "value"] }
 }
 ```
@@ -839,10 +840,11 @@ db/seeds/
 {
   "code": "cowboy_head",
   "name": "Крислатий капелюх",
+  "collection": "Ковбой",
   "description_md": [
     "Під такими крисами кавенятко переживе будь-яку спеку.",
     "",
-    "Частина комплекту **Ковбой**."
+    "*А ранкову сонливість вони сховають від сторонніх очей.*"
   ],
   "slot": "head",
   "tier": "common",
@@ -852,8 +854,12 @@ db/seeds/
 }
 ```
 
+Перший файл уже є: `db/seeds/item_defs.json` — 75 предметів із 15 наборів
+(`bush_graphics_customization.md` §7.1) з прототипами назв і описів. Код —
+`<набір>_<слот>`, `sprite_id` поки збігається з кодом.
+
 Сам інструмент — `scripts/seed.mjs` у корені, поруч із `build-data-map.mjs`:
-у `db/` навмисно немає `package.json` (§6).
+у `db/` навмисно немає `package.json` (§6). Його ще немає.
 
 ### Команди
 

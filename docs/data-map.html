@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 269deb2</p>
+  <p class="eyebrow">extrovert.cafe · джерело b61abd8</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 17 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -757,7 +757,7 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 </tr>
 <tr>
 <td>сіди контенту (<code>db/seeds</code>)</td>
-<td>описано (<a class="doclink" href="#db"><code>db-schema.md</code></a> §7): JSON на таблицю, <code>pull</code> і <code>apply</code> по оточеннях; коду й файлів ще немає</td>
+<td>описано (<a class="doclink" href="#db"><code>db-schema.md</code></a> §7): JSON на таблицю, <code>pull</code> і <code>apply</code> по оточеннях. Є <code>item_defs.json</code> (75 предметів, прототипи описів); інструмента ще немає</td>
 </tr>
 <tr>
 <td><code>checkbox/scripts/sync-prices.mjs</code></td>
@@ -1076,6 +1076,7 @@ erDiagram
         bigserial id PK
         text code UK
         text name
+        text collection &quot;набір із bush_graphics §7.1: групує Склад, на гру не впливає&quot;
         text description_md &quot;опис предмета, markdown; рендерить клієнт&quot;
         text slot &quot;head|body|pants|feet|acc_1&quot;
         text tier &quot;common|uncommon|rare|epic&quot;
@@ -1227,8 +1228,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">кожна операція</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-pos_discount_codes">pos_discount_codes</a><span class="rel-label">знижка на POS</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-redemptions">redemptions</a><span class="rel-label">списання зерен за доставку</span></li></ul>
 </article>
 <article class="entity" id="t-item_defs">
-  <header><h4>item_defs</h4><span class="entity-count">10 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">description_md</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">опис предмета, markdown; рендерить клієнт</td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">head|body|pants|feet|acc_1</td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">common|uncommon|rare|epic</td></tr><tr><td class="c-name">sprite_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">пряма покупка, усі тіри: 93/189/425/850 (economy §5.1)</td></tr><tr><td class="c-name">season_id</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note">сезонні скіни - лише за грн</td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>item_defs</h4><span class="entity-count">11 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">collection</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">набір із bush_graphics §7.1: групує Склад, на гру не впливає</td></tr><tr><td class="c-name">description_md</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">опис предмета, markdown; рендерить клієнт</td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">head|body|pants|feet|acc_1</td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">common|uncommon|rare|epic</td></tr><tr><td class="c-name">sprite_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">пряма покупка, усі тіри: 93/189/425/850 (economy §5.1)</td></tr><tr><td class="c-name">season_id</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note">сезонні скіни - лише за грн</td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-user_items">user_items</a><span class="rel-label">каталог</span></li></ul>
 </article>
 <article class="entity" id="t-user_items">
@@ -1316,7 +1317,7 @@ erDiagram
 життям, а замовлення має показувати, куди насправді відправили.</p>
 <p><strong>Опис кожного предмета одягу — markdown в <code>item_defs.description_md</code></strong>
 (19.09.2026). Гравець бачить його в картці предмета (<a class="doclink" href="#gamification-ui"><code>gamification_ui.md</code></a>,
-Склад). У базі лежить вихідний markdown, а не HTML: рендерить клієнт, без
+Склад). Прототипи текстів для всіх 75 предметів — у <code>db/seeds/item_defs.json</code> (§7). У базі лежить вихідний markdown, а не HTML: рендерить клієнт, без
 сирого HTML і картинок, тож бекенду нема чого чистити, а опис лишається
 текстом, який видно в дифі. Колонка <code>not null default ''</code>, і
 <code>check (not active or description_md &lt;&gt; '')</code>: предмет без опису можна
@@ -1839,7 +1840,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 <pre><code class="language-json">{
   &quot;points&quot;:         { &quot;key&quot;: &quot;id&quot;,          &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;id&quot;, &quot;name&quot;, &quot;address&quot;, &quot;timezone&quot;] },
   &quot;drinks&quot;:         { &quot;key&quot;: &quot;system_code&quot;, &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;system_code&quot;, &quot;name&quot;, &quot;vol&quot;, &quot;price_uah&quot;, &quot;coins&quot;, &quot;bonus_coins&quot;, &quot;sprite&quot;, &quot;cup&quot;, &quot;active&quot;, &quot;sort_order&quot;] },
-  &quot;item_defs&quot;:      { &quot;key&quot;: &quot;code&quot;,        &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;code&quot;, &quot;name&quot;, &quot;description_md&quot;, &quot;slot&quot;, &quot;tier&quot;, &quot;sprite_id&quot;, &quot;price_coins&quot;, &quot;active&quot;] },
+  &quot;item_defs&quot;:      { &quot;key&quot;: &quot;code&quot;,        &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;code&quot;, &quot;name&quot;, &quot;collection&quot;, &quot;description_md&quot;, &quot;slot&quot;, &quot;tier&quot;, &quot;sprite_id&quot;, &quot;price_coins&quot;, &quot;active&quot;] },
   &quot;economy_params&quot;: { &quot;key&quot;: &quot;key&quot;,         &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;key&quot;, &quot;value&quot;] }
 }
 </code></pre>
@@ -1849,10 +1850,11 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 <pre><code class="language-json">{
   &quot;code&quot;: &quot;cowboy_head&quot;,
   &quot;name&quot;: &quot;Крислатий капелюх&quot;,
+  &quot;collection&quot;: &quot;Ковбой&quot;,
   &quot;description_md&quot;: [
     &quot;Під такими крисами кавенятко переживе будь-яку спеку.&quot;,
     &quot;&quot;,
-    &quot;Частина комплекту **Ковбой**.&quot;
+    &quot;*А ранкову сонливість вони сховають від сторонніх очей.*&quot;
   ],
   &quot;slot&quot;: &quot;head&quot;,
   &quot;tier&quot;: &quot;common&quot;,
@@ -1861,8 +1863,11 @@ JSON на таблицю. Інструмент уміє рівно дві реч
   &quot;active&quot;: true
 }
 </code></pre>
+<p>Перший файл уже є: <code>db/seeds/item_defs.json</code> — 75 предметів із 15 наборів
+(<a class="doclink" href="#bush-graphics-customization"><code>bush_graphics_customization.md</code></a> §7.1) з прототипами назв і описів. Код —
+<code>&lt;набір&gt;_&lt;слот&gt;</code>, <code>sprite_id</code> поки збігається з кодом.</p>
 <p>Сам інструмент — <code>scripts/seed.mjs</code> у корені, поруч із <code>build-data-map.mjs</code>:
-у <code>db/</code> навмисно немає <code>package.json</code> (§6).</p>
+у <code>db/</code> навмисно немає <code>package.json</code> (§6). Його ще немає.</p>
 <h3 id="db-команди"><a class="anchor" href="#db-команди" aria-hidden="true">#</a>Команди</h3>
 <pre><code class="language-bash">npm run seed:pull  -- --env prod             # база → db/seeds/*.json, далі git diff
 npm run seed:apply -- --env stage            # показати, що зміниться; нічого не пише
@@ -5347,7 +5352,7 @@ AI-чат) — жодних реальних COGS нижче по ланцюгу
 <p>Збираємо демографічні дані і інформацію про споживання кави: яку каву любить, які бренди любить, як часто п&#39;є, які напої любить, які не любить, чи використовує палички, цукор, кришечки тощо.</p>
 <h4 id="gamification-ui-склад"><a class="anchor" href="#gamification-ui-склад" aria-hidden="true">#</a>Склад</h4>
 <p>Інвентар одягу, відсортований за комплектами з порожніми місцями та лутбоксів. Продубльовані предмети відображаються лічильником. Лутбокс можна відкрити з інвентаря після чого відбувається попап, показуються отримані айтеми і оновлюється контент. Однакові предмети (дублікати) не мають жодної спецмеханіки понад лічильник - рішення 18.09.2026: дублі залишаються просто на складі, без авто-конвертації в монети/зерна й без pity-захисту в крейт-ролі. Спосіб отримати з дубліката цінність - продати на P2P-маркеті (нижче) або зібрати ним другий повний комплект (кавенятко може мати кілька подарованих комплектів одночасно, gamification_economy.md §3.4)</p>
-<p><strong>Картка предмета одягу</strong> <em>(19.09.2026)</em>. Тап по предмету - на Складі, в Гардеробі й примірочній, у прев&#39;ю Магазину, у P2P-лістингу чи в попапі відкриття крейта - відкриває його картку: спрайт, назва, тір, слот, кількість (якщо є дублікати) і <strong>текстовий опис</strong>. Опис є в кожного предмета, пишеться в markdown (<code>item_defs.description_md</code>, db-schema.md §2) і рендериться в картці: абзаци, жирний, курсив, списки, посилання; сирий HTML і картинки не показуються. У сітках і списках опису немає - лише в картці, щоб не роздувати екран. Дії в картці залежать від того, звідки її відкрили: зі Складу - продати на P2P чи зняти з продажу, з Гардеробу - приміряти, з Магазину - купити.</p>
+<p><strong>Картка предмета одягу</strong> <em>(19.09.2026)</em>. Тап по предмету - на Складі, в Гардеробі й примірочній, у прев&#39;ю Магазину, у P2P-лістингу чи в попапі відкриття крейта - відкриває його картку: спрайт, назва, тір, слот, набір (<code>item_defs.collection</code>), кількість (якщо є дублікати) і <strong>текстовий опис</strong>. Опис є в кожного предмета, пишеться в markdown (<code>item_defs.description_md</code>, db-schema.md §2) і рендериться в картці: абзаци, жирний, курсив, списки, посилання; сирий HTML і картинки не показуються. У сітках і списках опису немає - лише в картці, щоб не роздувати екран. Дії в картці залежать від того, звідки її відкрили: зі Складу - продати на P2P чи зняти з продажу, з Гардеробу - приміряти, з Магазину - купити.</p>
 <p>Елемент одягу можна продати на P2P маркеті через ідентичну механіку як продаж кавенятка. Потрібно вказати ціну в монетах або кавових бобах. Інфо про те як працює продаж - при лістингу елемент одягу заморожується, поки не купили, можна зняти з продажу. Комісія - див. gamification_economy.md §9 (стартово 10%). Виставлений на продаж предмет - в окремій секції.</p>
 <h4 id="gamification-ui-магазин"><a class="anchor" href="#gamification-ui-магазин" aria-hidden="true">#</a>Магазин</h4>
 <p>Містить покупки за монети та кавові боби відповідно до gamification_economy.md. 3 підрозділи:</p>
@@ -6169,6 +6174,11 @@ ICP проєкту (<a class="doclink" href="#roadmap"><code>roadmap.md</code></
 </tr>
 </tbody></table>
 </div>
+<p>📝 <em>19.09.2026: назви, коди й прототипи markdown-описів усіх 75 предметів —
+у <code>db/seeds/item_defs.json</code> (сіди, <a class="doclink" href="#db"><code>db-schema.md</code></a> §7). Предмети, які в
+таблиці вище називаються однаково в різних наборах (карго-шорти, червоні
+кеди, авіатори, джинси), там отримали різні назви: у гравця на Складі вони
+лежать поруч, і однакова назва їх не розрізняє.</em></p>
 <p>🔄 <em>12.09.2026 (12): усі 15 наборів (75 предметів) малюються З НУЛЯ —
 раніше надані референс-фото (перший концепт і чат) були лише
 прикладами ідей/натхнення для стилю й композиції, НЕ вихідним артом для
@@ -8358,7 +8368,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 269deb2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b61abd8 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
