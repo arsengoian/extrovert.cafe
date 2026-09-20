@@ -168,11 +168,11 @@ export default async function routes(app) {
     const draft = req.body?.draft ?? null;
     const { rows } = await query(
       `update plants
-        set appearance = case when $3::jsonb is null
-                          then appearance - 'draft'
-                          else jsonb_set(appearance, '{draft}', $3::jsonb, true) end
-      where id = $1 and owner_id = $2
-      returning appearance -> 'draft' as draft`,
+          set appearance = case when $3::jsonb is null
+                                then appearance - 'draft'
+                                else jsonb_set(appearance, '{draft}', $3::jsonb, true) end
+        where id = $1 and owner_id = $2
+        returning appearance -> 'draft' as draft`,
       [req.params.id, user.id, draft ? JSON.stringify(draft) : null]
     );
     if (!rows.length) fail(404, "no_such_plant");

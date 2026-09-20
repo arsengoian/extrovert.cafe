@@ -12,6 +12,7 @@ import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
+import { beansWord, notifyPlant } from "../notify.js";
 
 const SLOTS = economy.set.slots;                 // head, body, pants, feet, acc_1
 const TIERS = ["common", "uncommon", "rare", "epic"];
@@ -65,22 +66,22 @@ export default async function routes(app) {
     // на продаж. Дублікати теж годяться — вони різні рядки user_items.
     const available = await many(
       `select ui.id as user_item_id, d.slot, d.code, d.name, d.tier, d.sprite_id, d.collection
-       from user_items ui
-       join item_defs d on d.id = ui.item_def_id
-      where ui.user_id = $1
-        and ui.listing_id is null
-        and not ui.locked
-        and (ui.set_id is null or ui.set_id = $2)
-      order by d.slot, d.tier desc, d.name`,
+         from user_items ui
+         join item_defs d on d.id = ui.item_def_id
+        where ui.user_id = $1
+          and ui.listing_id is null
+          and not ui.locked
+          and (ui.set_id is null or ui.set_id = $2)
+        order by d.slot, d.tier desc, d.name`,
       [user.id, plant.worn_set_id]
     );
 
     // Раніше подаровані комплекти цього кавенятка — їх можна вдягнути назад.
     const ready = await many(
       `select ws.id, ws.tier, ws.beans_awarded, ws.gifted_at
-       from wardrobe_sets ws
-      where ws.plant_id = $1 and ws.gifted
-      order by ws.gifted_at desc`,
+         from wardrobe_sets ws
+        where ws.plant_id = $1 and ws.gifted
+        order by ws.gifted_at desc`,
       [plant.id]
     );
 
@@ -95,13 +96,13 @@ export default async function routes(app) {
       available,
       ready,
       gift: {
-      beans: tier ? economy.set.beans_by_tier[tier] : null,
-      tier,
-      // Найслабший предмет називаємо поіменно — так видно, що саме тягне
-      // комплект донизу.
-      weakest_item: slots.find((s) => s.item?.tier === tier)?.item?.name ?? null,
-      can: Boolean(set && set.complete && !set.gifted),
-      missing: SLOTS.length - filled,
+        beans: tier ? economy.set.beans_by_tier[tier] : null,
+        tier,
+        // Найслабший предмет називаємо поіменно — так видно, що саме тягне
+        // комплект донизу.
+        weakest_item: slots.find((s) => s.item?.tier === tier)?.item?.name ?? null,
+        can: Boolean(set && set.complete && !set.gifted),
+        missing: SLOTS.length - filled,
       },
     };
   });
@@ -132,7 +133,7 @@ export default async function routes(app) {
       }
       if (!setId) {
         const { rows } = await client.query(
-        "insert into wardrobe_sets (plant_id) values ($1) returning id", [plant.id]
+          "insert into wardrobe_sets (plant_id) values ($1) returning id", [plant.id]
         );
         setId = rows[0].id;
         await client.query("update plants set worn_set_id = $2 where id = $1", [plant.id, setId]);
@@ -147,10 +148,10 @@ export default async function routes(app) {
 
       if (itemId !== null) {
         const { rows: items } = await client.query(
-        `select ui.id, ui.locked, ui.set_id, ui.listing_id, d.slot
-           from user_items ui join item_defs d on d.id = ui.item_def_id
-          where ui.id = $1 and ui.user_id = $2 for update`,
-        [itemId, user.id]
+          `select ui.id, ui.locked, ui.set_id, ui.listing_id, d.slot
+             from user_items ui join item_defs d on d.id = ui.item_def_id
+            where ui.id = $1 and ui.user_id = $2 for update`,
+          [itemId, user.id]
         );
         const item = items[0];
         if (!item) fail(404, "no_such_item");
@@ -160,8 +161,8 @@ export default async function routes(app) {
         if (item.set_id && item.set_id !== setId) fail(409, "item_in_set");
 
         await client.query(
-        "insert into wardrobe_set_items (set_id, slot, user_item_id) values ($1, $2, $3)",
-        [setId, slot, itemId]
+          "insert into wardrobe_set_items (set_id, slot, user_item_id) values ($1, $2, $3)",
+          [setId, slot, itemId]
         );
         await client.query("update user_items set set_id = $2 where id = $1", [itemId, setId]);
       }
@@ -189,8 +190,8 @@ export default async function routes(app) {
 
       if (!sets[0]?.gifted) {
         await client.query(
-        "update user_items set set_id = null where id in (select user_item_id from wardrobe_set_items where set_id = $1)",
-        [sets[0].id]
+          "update user_items set set_id = null where id in (select user_item_id from wardrobe_set_items where set_id = $1)",
+          [sets[0].id]
         );
         await client.query("delete from wardrobe_set_items where set_id = $1", [sets[0].id]);
         await client.query("delete from wardrobe_sets where id = $1", [sets[0].id]);
@@ -214,15 +215,15 @@ export default async function routes(app) {
       // Поточний незібраний комплект при цьому розбирається: предмети з
       // нього не мають зависати замкненими в нікуди.
       if (plant.worn_set_id && plant.worn_set_id !== setId) {
-      const { rows } = await client.query("select gifted from wardrobe_sets where id = $1", [plant.worn_set_id]);
-      if (!rows[0]?.gifted) {
-        await client.query(
-        "update user_items set set_id = null where id in (select user_item_id from wardrobe_set_items where set_id = $1)",
-        [plant.worn_set_id]
-        );
-        await client.query("delete from wardrobe_set_items where set_id = $1", [plant.worn_set_id]);
-        await client.query("delete from wardrobe_sets where id = $1", [plant.worn_set_id]);
-      }
+        const { rows } = await client.query("select gifted from wardrobe_sets where id = $1", [plant.worn_set_id]);
+        if (!rows[0]?.gifted) {
+          await client.query(
+            "update user_items set set_id = null where id in (select user_item_id from wardrobe_set_items where set_id = $1)",
+            [plant.worn_set_id]
+          );
+          await client.query("delete from wardrobe_set_items where set_id = $1", [plant.worn_set_id]);
+          await client.query("delete from wardrobe_sets where id = $1", [plant.worn_set_id]);
+        }
       }
       await client.query("update plants set worn_set_id = $2 where id = $1", [plant.id, setId]);
     });
@@ -270,6 +271,7 @@ export default async function routes(app) {
         [user.id, beans, { plant_id: plant.id, set_id: set.id, tier: state.tier }]
       );
 
+      await notifyPlant(user.id, `Дякую за комплект! Тримай ${beansWord(beans)} — заслужено.`, { client });
       return { ok: true, beans, tier: state.tier };
     });
   });

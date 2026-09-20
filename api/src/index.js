@@ -16,6 +16,7 @@ import quizRoutes from "./routes/quiz.js";
 import repostRoutes from "./routes/repost.js";
 import plantingRoutes from "./routes/planting.js";
 import wardrobeRoutes from "./routes/wardrobe.js";
+import chatRoutes from "./routes/chat.js";
 
 const app = Fastify({ logger: true });
 registerErrorHandler(app);
@@ -49,6 +50,7 @@ await app.register(quizRoutes, { prefix: "/api/v1" });
 await app.register(repostRoutes, { prefix: "/api/v1" });
 await app.register(plantingRoutes, { prefix: "/api/v1" });
 await app.register(wardrobeRoutes, { prefix: "/api/v1" });
+await app.register(chatRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

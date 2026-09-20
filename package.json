@@ -20,7 +20,11 @@
     "seed:apply": "bun scripts/seed.mjs apply",
     "planting:data": "bun scripts/build-planting-data.mjs",
     "dev:seed": "bun scripts/dev-seed.mjs",
-    "dev:plant": "bun scripts/dev-plant.mjs"
+    "dev:plant": "bun scripts/dev-plant.mjs",
+    "kb:check": "bun scripts/kb.mjs check",
+    "kb:embed": "bun scripts/kb.mjs embed",
+    "kb:push": "bun scripts/kb.mjs push",
+    "kb:ask": "bun scripts/kb.mjs ask"
   },
   "devDependencies": {
     "marked": "^18.0.13",
