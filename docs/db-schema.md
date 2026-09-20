@@ -61,6 +61,29 @@ Checkbox і оплати mono pay, на які рядок посилається
 звіти. Саме цю межу найлегше розмити пізніше «за компанію», тому вона
 записана явно.
 
+### Форма `plants.appearance` (version 2)
+
+Координати — у сцені зрілого куща 1000×1300 (той самий простір, що й
+`client/public/assets/tree_layout.json`); зростання під стадію клієнт
+застосовує на рендері, а не в даних:
+
+```json
+{
+  "version": 2,
+  "leaves_bg": [{ "id": 1, "skin": 3, "x": 512.4, "y": 601.2, "rotation": -12.4, "scale": 1.08, "root": {"x": 500, "y": 590} }],
+  "leaves_fg": [ … ],
+  "branches":  [{ "id": 1, "skin": 2, "t": 0.31, … }],
+  "buds":      [{ "id": 1, "owner": "body|branch:<id>:<крива>", "t": 0.42, … }],
+  "draft":     { "kind": "leaves", "phase": "leafBg", "items": { … }, "count": 8 }
+}
+```
+
+`x/y/rotation/scale` — те, що малює рушій (center-anchored), `root/t/offset` —
+авторський запис, з якого воно пораховане (docs/bush_planting_ui.md §2).
+`draft` — незавершена посадка: живе тут, поки гравець не натиснув
+«Посадити», тому переживає вихід із застосунку й видно з іншого пристрою.
+Препарат при цьому не списаний.
+
 ### Ідемпотентність на кожному вході ззовні
 
 Вебхуки ПРРО, опитування Checkbox, телеметрія з малини, заливка
@@ -493,12 +516,13 @@ erDiagram
         smallint growth_stage "0..10"
         int face_set_id "набір обличчя, назавжди"
         timestamptz last_stage_transition_at "гейт: 1 перехід на добу"
+        smallint stage_progress "скільки разів уже застосували препарат цього переходу"
         timestamptz last_watered_at "mood рахується, не зберігається"
         text cycle_phase "initial|regrowth"
         int lifetime_beans_gifted
         uuid worn_set_id FK
         bigint listing_id FK "заморожене на маркеті"
-        jsonb appearance "листя/гілки/плоди - див. §0"
+        jsonb appearance "листя/гілки/плоди + чернетка посадки - див. §0"
         timestamptz created_at
     }
     PLANT_STAGE_TRANSITIONS {

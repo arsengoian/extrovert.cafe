@@ -72,6 +72,7 @@ export const api = {
   get: (path) => request(path),
   post: (path, body) => request(path, { method: "POST", body }),
   patch: (path, body) => request(path, { method: "PATCH", body }),
+  put: (path, body) => request(path, { method: "PUT", body }),
 
   // Поки немає Google/Apple: вхід одним запитом, лише в local.
   devLogin: (nickname) =>

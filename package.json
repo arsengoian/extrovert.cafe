@@ -17,7 +17,10 @@
     "docs:map": "bun scripts/build-data-map.mjs",
     "docs:map:check": "bun scripts/build-data-map.mjs --check",
     "seed:pull": "bun scripts/seed.mjs pull",
-    "seed:apply": "bun scripts/seed.mjs apply"
+    "seed:apply": "bun scripts/seed.mjs apply",
+    "planting:data": "bun scripts/build-planting-data.mjs",
+    "dev:seed": "bun scripts/dev-seed.mjs",
+    "dev:plant": "bun scripts/dev-plant.mjs"
   },
   "devDependencies": {
     "marked": "^18.0.13",

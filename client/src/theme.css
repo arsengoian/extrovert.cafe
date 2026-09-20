@@ -160,3 +160,42 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .btn-icon { flex: none; width: 46px; height: 46px; padding: 0; color: var(--muted) }
+
+/* Екрани посадки: сцена на весь простір, панель керування знизу */
+.planting { position: absolute; inset: 0; display: flex; flex-direction: column }
+.planting-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none }
+.planting-sheet {
+  flex: none; background: var(--panel); border-top: 1px solid var(--line);
+  border-radius: 20px 20px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  box-shadow: 0 -12px 26px rgba(6, 8, 10, .35);
+}
+.planting-sheet .steps { margin-top: 10px }
+.planting-sheet .steps li { padding-bottom: 12px }
+
+.plant-chip {
+  position: absolute; left: 12px; top: 12px; z-index: 10; min-width: 148px;
+  padding: 10px 12px; border-radius: 16px; border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(6px);
+}
+.plant-chip > .row > img { width: 26px; height: 26px; object-fit: contain }
+.plant-bar { position: relative; height: 6px; border-radius: 999px; background: var(--panel2); overflow: hidden; margin-top: 5px }
+.plant-bar > div { height: 100%; background: var(--grad) }
+/* Позначка мінімуму: до неї кнопка «далі» неактивна */
+.plant-bar > b { position: absolute; top: -2px; width: 2px; height: 10px; background: var(--muted); opacity: .8 }
+.plant-bar-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 3px }
+.plant-dots { display: flex; gap: 4px; margin-top: 6px }
+.plant-dots i { width: 9px; height: 9px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line) }
+.plant-dots i.on { background: var(--grad); border-color: transparent }
+
+.plant-dial { flex: none; width: 88px; text-align: center; touch-action: none; user-select: none }
+.plant-range { margin-top: 10px }
+.plant-range input[type="range"] { width: 100%; margin: 6px 0 0; accent-color: var(--accent) }
+
+.skin-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px }
+.skin-cell {
+  aspect-ratio: 1 / 1; border-radius: 14px; border: 1px solid var(--line); background: var(--panel2);
+  display: flex; align-items: center; justify-content: center; padding: 6px;
+}
+.skin-cell.on { border-color: var(--accent); background: rgba(254, 129, 11, .16) }
+.skin-cell img { max-width: 100%; max-height: 100%; object-fit: contain }
+.btn-danger { color: #FF6B78; border-color: rgba(255, 107, 120, .45) }

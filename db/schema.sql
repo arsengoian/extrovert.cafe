@@ -743,9 +743,11 @@ CREATE TABLE public.plants (
     listing_id bigint,
     appearance jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    stage_progress smallint DEFAULT 0 NOT NULL,
     CONSTRAINT plants_cycle_phase_check CHECK ((cycle_phase = ANY (ARRAY['initial'::text, 'regrowth'::text]))),
     CONSTRAINT plants_growth_stage_check CHECK (((growth_stage >= 0) AND (growth_stage <= 10))),
-    CONSTRAINT plants_lifetime_beans_gifted_check CHECK ((lifetime_beans_gifted >= 0))
+    CONSTRAINT plants_lifetime_beans_gifted_check CHECK ((lifetime_beans_gifted >= 0)),
+    CONSTRAINT plants_stage_progress_check CHECK ((stage_progress >= 0))
 );
 
 
@@ -2998,4 +3000,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920200900'),
     ('20260920201000'),
     ('20260920210000'),
-    ('20260920220000');
+    ('20260920220000'),
+    ('20260920230000');

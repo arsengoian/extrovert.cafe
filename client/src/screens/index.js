@@ -14,6 +14,7 @@ import { Problem } from "./Problem.jsx";
 import { QuizProfile } from "./QuizProfile.jsx";
 import { QuizDrink } from "./QuizDrink.jsx";
 import { Repost } from "./Repost.jsx";
+import { Planting } from "../plant/Planting.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -43,4 +44,5 @@ export const SCREENS = {
   quizProfile: { component: QuizProfile, title: "Розкажи про себе" },
   quizDrink: { component: QuizDrink, title: "Опитування про напій" },
   repost: { component: Repost, title: "Репост у соцмережі" },
+  planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true },
 };

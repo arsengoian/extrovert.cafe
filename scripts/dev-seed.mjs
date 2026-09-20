@@ -62,25 +62,38 @@ if (delta.yellow || delta.silver || delta.beans) {
 }
 
 // Кавенятко: стадія 5, обличчя з набору 3 — рівно те, що показує дизайн.
+// Вигляд беремо з еталонного макета (client/public/assets/tree_layout.json):
+// дев-кущ має виглядати так само, як кущ у дизайні, інакше на екранах
+// посадки нема з чим порівняти результат.
+const layout = JSON.parse(readFileSync(new URL("../client/public/assets/tree_layout.json", import.meta.url), "utf8"));
+const skinOf = (sprite) => Number(sprite.match(/skin(d+)/)?.[1] ?? 1);
+const place = (i) => ({ x: round(i.x), y: round(i.y), rotation: round(i.rotation ?? 0), scale: round(i.scale) });
+const round = (v) => Math.round(v * 100) / 100;
+const leaves = layout.instances.filter((i) => i.group === "leaves_batch_normal").sort((a, b) => a.z - b.z);
+const bodyZ = layout.instances.find((i) => i.group === "body_stage1_sphere").z;
+
+const appearance = {
+  version: 2,
+  // Листя переднього плану — те, що в макеті лежить вище тіла.
+  leaves_bg: leaves.filter((l) => l.z < bodyZ).map((l, n) => ({ id: n + 1, skin: skinOf(l.sprite), ...place(l) })),
+  leaves_fg: leaves.filter((l) => l.z > bodyZ).map((l, n) => ({ id: n + 1, skin: skinOf(l.sprite), ...place(l) })),
+  branches: layout.instances.filter((i) => i.group === "branch_skins_custom")
+    .sort((a, b) => a.z - b.z).map((b, n) => ({ id: n + 1, skin: skinOf(b.sprite), ...place(b) })),
+  buds: layout.instances.filter((i) => i.group === "fruit_bud_greenbean")
+    .sort((a, b) => a.z - b.z).map((b, n) => ({ id: n + 1, owner: "body", t: null, ...place(b) })),
+};
+
 let [plant] = await sql`select * from plants where owner_id = ${user.id} order by created_at limit 1`;
 if (!plant) {
   [plant] = await sql`
     insert into plants (owner_id, name, growth_stage, face_set_id, cycle_phase,
                         last_watered_at, last_stage_transition_at, appearance)
     values (${user.id}, 'Барні', 5, 3, 'initial', now() - interval '1 day',
-            now() - interval '2 days', ${{
-              leaves: [
-                { leaf_id: "leaf_01", zone: "top", x: 0.41, y: 0.18, sprite_id: "leaf_skin1_normal", locked: true },
-                { leaf_id: "leaf_02", zone: "left", x: 0.16, y: 0.42, sprite_id: "leaf_skin3_normal", locked: true },
-                { leaf_id: "leaf_03", zone: "right", x: 0.82, y: 0.40, sprite_id: "leaf_skin5_normal", locked: true },
-              ],
-              branches: [
-                { branch_id: "arm_left", zone: "arm_left", x: 0.06, y: 0.55, sprite_id: "branch_custom_skin1", locked: true },
-                { branch_id: "arm_right", zone: "arm_right", x: 0.94, y: 0.55, sprite_id: "branch_custom_skin2", locked: true },
-              ],
-              fruits: [{ fruit_id: "bud_01", zone: "crown", x: 0.52, y: 0.30, state: "bud", sprite_id: "fruit_bud" }],
-            }}
+            now() - interval '2 days', ${appearance})
     returning *`;
+} else if ((plant.appearance?.version ?? 1) < 2) {
+  // Стара форма appearance (частки сцени) більше не рендериться — оновлюємо.
+  [plant] = await sql`update plants set appearance = ${appearance} where id = ${plant.id} returning *`;
 }
 
 // Одяг: кілька предметів із каталогу, зокрема повний ковбойський набір.

@@ -1,0 +1,160 @@
+{
+ "$comment": "Згенеровано scripts/build-planting-data.mjs із points.json і самих спрайтів. Руками не редагувати.",
+ "generated": "2026-09-20",
+ "sprites": {
+  "leaves_batch_normal:leaf_skin1_normal.png": {
+   "root": {
+    "x": 73.5,
+    "y": 188
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -68.73
+  },
+  "leaves_batch_normal:leaf_skin2_normal.png": {
+   "root": {
+    "x": 80,
+    "y": 188
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -71.18
+  },
+  "leaves_batch_normal:leaf_skin3_normal.png": {
+   "root": {
+    "x": 69,
+    "y": 188
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -66.92
+  },
+  "leaves_batch_normal:leaf_skin4_normal.png": {
+   "root": {
+    "x": 81,
+    "y": 188
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -73.24
+  },
+  "leaves_batch_normal:leaf_skin5_normal.png": {
+   "root": {
+    "x": 94,
+    "y": 170
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -56.12
+  },
+  "leaves_batch_normal:leaf_skin6_normal.png": {
+   "root": {
+    "x": 76.5,
+    "y": 189
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -69.34
+  },
+  "leaves_batch_normal:leaf_skin7_normal.png": {
+   "root": {
+    "x": 109,
+    "y": 162
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -128.03
+  },
+  "leaves_batch_normal:leaf_skin8_normal.png": {
+   "root": {
+    "x": 105.5,
+    "y": 188
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -84
+  },
+  "leaves_batch_normal:leaf_skin9_normal.png": {
+   "root": {
+    "x": 84.5,
+    "y": 186
+   },
+   "natural": [
+    200,
+    200
+   ],
+   "angle": -84.91
+  },
+  "branch_skins_custom:branch_custom_skin1.png": {
+   "root": {
+    "x": 159.2,
+    "y": 461.6
+   },
+   "natural": [
+    512,
+    512
+   ],
+   "angle": -62.03
+  },
+  "branch_skins_custom:branch_custom_skin2.png": {
+   "root": {
+    "x": 96.2,
+    "y": 450
+   },
+   "natural": [
+    512,
+    512
+   ],
+   "angle": -57.74
+  },
+  "branch_skins_custom:branch_custom_skin3.png": {
+   "root": {
+    "x": 168.7,
+    "y": 456.6
+   },
+   "natural": [
+    512,
+    512
+   ],
+   "angle": -54.41
+  },
+  "branch_skins_custom:branch_custom_skin4.png": {
+   "root": {
+    "x": 396.9,
+    "y": 51.1
+   },
+   "natural": [
+    512,
+    512
+   ],
+   "angle": 123.23
+  },
+  "fruit_bud_greenbean:fruit_bud.png": {
+   "root": {
+    "x": 161.5,
+    "y": 241
+   },
+   "natural": [
+    256,
+    256
+   ],
+   "angle": -98.39
+  }
+ }
+}

@@ -1,0 +1,160 @@
+{
+  "saved_at": "2026-09-19T09:43:07.678Z",
+  "note": "Крок 1 — кореневі точки посадки (root/attachment points). x/y у пікселях оригінального PNG, (0,0) — верхній лівий кут. Рушій крутить спрайт навколо цієї точки, не навколо центру bbox.",
+  "points": {
+    "leaves_batch_normal:leaf_skin1_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 73.5,
+      "y": 188,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin2_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin2_normal.png",
+      "x": 80,
+      "y": 188,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin3_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 69,
+      "y": 188,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin4_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 81,
+      "y": 188,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin5_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin5_normal.png",
+      "x": 94,
+      "y": 170,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin6_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 76.5,
+      "y": 189,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin7_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin7_normal.png",
+      "x": 109,
+      "y": 162,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin8_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin8_normal.png",
+      "x": 105.5,
+      "y": 188,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "leaves_batch_normal:leaf_skin9_normal.png": {
+      "group": "leaves_batch_normal",
+      "sprite": "leaf_skin9_normal.png",
+      "x": 84.5,
+      "y": 186,
+      "canvas": [
+        200,
+        200
+      ],
+      "touched": false
+    },
+    "branch_skins_custom:branch_custom_skin1.png": {
+      "group": "branch_skins_custom",
+      "sprite": "branch_custom_skin1.png",
+      "x": 159.2,
+      "y": 461.6,
+      "canvas": [
+        512,
+        512
+      ],
+      "touched": true
+    },
+    "branch_skins_custom:branch_custom_skin2.png": {
+      "group": "branch_skins_custom",
+      "sprite": "branch_custom_skin2.png",
+      "x": 96.2,
+      "y": 450,
+      "canvas": [
+        512,
+        512
+      ],
+      "touched": false
+    },
+    "branch_skins_custom:branch_custom_skin3.png": {
+      "group": "branch_skins_custom",
+      "sprite": "branch_custom_skin3.png",
+      "x": 168.7,
+      "y": 456.6,
+      "canvas": [
+        512,
+        512
+      ],
+      "touched": false
+    },
+    "branch_skins_custom:branch_custom_skin4.png": {
+      "group": "branch_skins_custom",
+      "sprite": "branch_custom_skin4.png",
+      "x": 396.9,
+      "y": 51.1,
+      "canvas": [
+        512,
+        512
+      ],
+      "touched": false
+    },
+    "fruit_bud_greenbean:fruit_bud.png": {
+      "group": "fruit_bud_greenbean",
+      "sprite": "fruit_bud.png",
+      "x": 161.5,
+      "y": 241,
+      "canvas": [
+        256,
+        256
+      ],
+      "touched": false
+    }
+  }
+}

@@ -3,6 +3,7 @@
 // не в клієнті: інакше двоє клієнтів покажуть різне.
 import { many, one } from "../db.js";
 import { requireUser } from "../auth.js";
+import { growthState } from "./planting.js";
 
 const DAYS = 24 * 60 * 60 * 1000;
 const SAD_AFTER_DAYS = 3;
@@ -34,6 +35,8 @@ const view = (p) => ({
   appearance: p.appearance,
   mood: moodOf(p),
   can_grow: canGrow(p),
+  growth: growthState(p),
+  draft: p.appearance?.draft ? { kind: p.appearance.draft.kind, count: p.appearance.draft.count ?? null } : null,
   on_sale: Boolean(p.listing_id),
   worn_set_id: p.worn_set_id,
   last_watered_at: p.last_watered_at,
