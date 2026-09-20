@@ -10,6 +10,7 @@ import { ItemCard } from "./ItemCard.jsx";
 import { CratePreview, CrateResult } from "./Crate.jsx";
 import { Profile } from "./Profile.jsx";
 import { NicknameChange } from "./NicknameChange.jsx";
+import { Problem } from "./Problem.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -34,4 +35,6 @@ export const SCREENS = {
   // Шторки: показуються поверх поточної вкладки, back-топбар їм не потрібен
   profile: { component: Profile, presentation: "sheet" },
   nicknameChange: { component: NicknameChange, presentation: "sheet" },
+
+  problem: { component: Problem, title: "Що не працює?" },
 };

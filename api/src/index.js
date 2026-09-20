@@ -10,6 +10,7 @@ import shopRoutes from "./routes/shop.js";
 import plantRoutes from "./routes/plants.js";
 import crateRoutes from "./routes/crate.js";
 import devRoutes from "./routes/dev.js";
+import problemRoutes from "./routes/problems.js";
 
 const app = Fastify({ logger: true });
 
@@ -37,6 +38,7 @@ await app.register(shopRoutes, { prefix: "/api/v1" });
 await app.register(plantRoutes, { prefix: "/api/v1" });
 await app.register(crateRoutes, { prefix: "/api/v1" });
 await app.register(devRoutes, { prefix: "/api/v1" });
+await app.register(problemRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

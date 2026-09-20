@@ -130,10 +130,19 @@ function diffRows(rows, dbRows, columns, key) {
   return diff;
 }
 
-// numeric із бази приходить рядком, jsonb — обʼєктом; звіряємо по суті
+// numeric із бази приходить рядком, jsonb — обʼєктом, і ключі в ньому
+// Postgres тримає у своєму порядку. Тому перед звіркою і числа зводимо до
+// чисел, і обʼєкти — до сортованих ключів: інакше кожен прогін показував
+// би «змінено» на рівному місці.
 const normalize = (v) => {
   if (v === null || v === undefined) return null;
   if (typeof v === "string" && v !== "" && !Number.isNaN(Number(v))) return Number(v);
+  if (Array.isArray(v)) return v.map(normalize);
+  if (typeof v === "object") {
+    return Object.fromEntries(
+      Object.keys(v).sort().map((k) => [k, normalize(v[k])])
+    );
+  }
   return v;
 };
 
