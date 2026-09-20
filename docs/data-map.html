@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 7c2fb58</p>
+  <p class="eyebrow">extrovert.cafe · джерело 9266eb4</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1841,8 +1841,18 @@ docker-compose, і якщо міграції живуть у котромусь 
 коду ламає базу.</li>
 <li><strong>Жодного <code>drop</code>/<code>rename</code> у тому ж релізі, що й код, який це потребує.</strong>
 Видалення — окремим, пізнішим релізом, коли відкочуватись уже нема куди.</li>
-<li><strong><code>schema.sql</code> комітиться.</strong> Рев&#39;ю читає диф схеми, а не перебирає
-міграції очима.</li>
+<li><strong><code>schema.sql</code> комітиться — і містить лише структуру.</strong> Рев&#39;ю читає диф
+схеми, а не перебирає міграції очима. Жодних рядків таблиць: контент
+живе в <code>db/seeds</code> (§7), дані гравців — тільки в базі. Єдиний виняток
+ставить сам dbmate: у кінці дампа є
+<code>INSERT INTO schema_migrations (version)</code> з версіями накочених
+міграцій — без них відновлена база не знає, на чому спинилась. Будь-який
+інший <code>INSERT</code> чи <code>COPY</code> у дифі означає, що хтось дампив із даними.
+<strong>Прав у дампі теж немає:</strong> перевірено 20.09.2026 на dbmate 2.36.0 —
+<code>grant</code> на роль <code>seeder</code> (§7) у <code>schema.sql</code> не потрапляє, бо dbmate
+дампить без привілеїв і власників. Отже, роль і її права накочуються
+міграцією, а <code>dbmate load</code> підіймає структуру без них — цей шлях
+годиться для тестів, а не для відтворення стейджа.</li>
 <li><strong>CI: чиста база → <code>dbmate up</code> → диф <code>schema.sql</code> порожній → <code>dbmate rollback</code> → <code>dbmate up</code>.</strong> Повторний <code>up</code> сам по собі нічого не
 перевіряє: dbmate памʼятає накочені версії й просто нічого не робить.
 Порожній диф ловить забутий дамп, а <code>rollback</code> + <code>up</code> — зламаний <code>down</code>,
@@ -1965,7 +1975,8 @@ manifest: зайва чи відсутня — помилка, а не тихе 
 або потягло б їх за собою. Прибрати з гри — <code>&quot;active&quot;: false</code> у JSON. Це
 правило тримає й сама база: роль <code>seeder</code>, якою ходить інструмент, має на
 контентні таблиці <code>select, insert, update</code> — без <code>delete</code> і без доступу до
-решти.</p>
+решти. Роль і ці права заводяться <strong>міграцією</strong>: у <code>schema.sql</code> привілеїв
+немає (§6, правило 3).</p>
 <h3 id="db-pull"><a class="anchor" href="#db-pull" aria-hidden="true">#</a><code>pull</code></h3>
 <p>Вибирає колонки з manifest, сортує за натуральним ключем і пише файли
 завжди однаково: відступ 2 пробіли, ключі в порядку manifest, текст із
@@ -9117,7 +9128,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 7c2fb58 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 9266eb4 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
