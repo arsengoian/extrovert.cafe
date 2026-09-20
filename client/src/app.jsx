@@ -3,7 +3,8 @@
 //
 // Навігація своя, без роутера: у застосунку п'ять вкладок і стек екранів
 // поверх них. Бібліотека тут коштувала б кілобайти на телефоні заради
-// одного pushState.
+// одного pushState. Екрани бувають двох видів: повні (зі своїм топбаром) і
+// шторки (поверх поточної вкладки) — як у макетах.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, getToken, setToken } from "./api.js";
 import { Hud } from "./ui/Hud.jsx";
@@ -12,6 +13,7 @@ import { TopbarBack } from "./ui/TopbarBack.jsx";
 import { connectEvents } from "./ws.js";
 import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
+import "./theme.js";
 
 export function App() {
   const [me, setMe] = useState(null);
@@ -26,8 +28,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (!getToken()) { setBooting(false); return; }
-    refreshMe().catch(() => setToken(null)).finally(() => setBooting(false));
+    // Токен у памʼяті може бути протухлим, зате кука жива — тоді застосунок
+    // має відкритись без екрана входу.
+    const boot = getToken()
+      ? refreshMe().catch(() => api.restore().then(refreshMe))
+      : api.restore().then(refreshMe);
+    boot.catch(() => setToken(null)).finally(() => setBooting(false));
   }, [refreshMe]);
 
   const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
@@ -69,18 +75,27 @@ export function App() {
     );
   }
 
+  // Верхній екран стеку. Шторки не ховають вкладку під собою — вони
+  // лягають поверх неї, тож малюємо і те, і те.
   const top = stack[stack.length - 1] ?? null;
-  const current = top ? SCREENS[top.name] : SCREENS[TAB_SCREEN[tab]];
-  const Screen = current?.component ?? (() => <div className="stage-pad">Екран у роботі</div>);
-  const title = typeof current?.title === "function" ? current.title(top?.props ?? {}) : current?.title;
+  const topScreen = top ? SCREENS[top.name] : null;
+  const asSheet = topScreen?.presentation === "sheet";
+
+  const baseName = TAB_SCREEN[tab];
+  const base = SCREENS[baseName];
+  const shown = !top || asSheet ? base : topScreen;
+  const Shown = shown?.component ?? (() => <div className="stage-pad">Екран у роботі</div>);
+  const Sheet = asSheet ? topScreen.component : null;
+  const title = typeof topScreen?.title === "function" ? topScreen.title(top?.props ?? {}) : topScreen?.title;
 
   return (
     <div className="app">
-      {top ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
-      <div className="stage" key={top ? `${top.name}:${stack.length}` : tab}>
-        <Screen {...(top?.props ?? {})} ctx={ctx} />
+      {top && !asSheet ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
+      <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
+        <Shown {...(asSheet || !top ? {} : top.props)} ctx={ctx} />
       </div>
-      {current?.hideNav ? null : (
+      {Sheet ? <Sheet {...(top.props ?? {})} ctx={ctx} /> : null}
+      {(top && !asSheet ? topScreen?.hideNav : false) ? null : (
         <Nav tab={tab} onTab={openTab} badges={me.badges} />
       )}
     </div>

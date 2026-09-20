@@ -4,7 +4,7 @@ import Fastify from "fastify";
 import { pool } from "./db.js";
 import { ephemeralKey } from "./auth.js";
 import authRoutes from "./routes/auth.js";
-import meRoutes from "./routes/me.js";
+import meRoutes, { nicknameRoutes } from "./routes/me.js";
 import catalogRoutes from "./routes/catalog.js";
 import shopRoutes from "./routes/shop.js";
 import plantRoutes from "./routes/plants.js";
@@ -31,6 +31,7 @@ app.get("/healthz", async () => ({ ok: true }));
 
 await app.register(authRoutes, { prefix: "/api/v1" });
 await app.register(meRoutes, { prefix: "/api/v1" });
+await app.register(nicknameRoutes, { prefix: "/api/v1" });
 await app.register(catalogRoutes, { prefix: "/api/v1" });
 await app.register(shopRoutes, { prefix: "/api/v1" });
 await app.register(plantRoutes, { prefix: "/api/v1" });

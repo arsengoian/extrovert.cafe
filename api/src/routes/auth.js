@@ -1,11 +1,22 @@
-// Вхід. У проді це Google/Apple (docs/services.md §3); поки їх немає,
-// працює лише девелоперський вхід, і він вимкнений скрізь, крім local.
+// Вхід і оновлення сесії. У проді вхід буде через Google/Apple
+// (docs/services.md §3); поки їх немає, працює девелоперський вхід — і він
+// вимкнений скрізь, крім local.
 import { randomUUID } from "node:crypto";
 import { one } from "../db.js";
 import { signToken } from "../auth.js";
 import { generateNickname } from "../nickname.js";
+import { clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie } from "../session.js";
 
 const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
+
+async function issue(reply, user) {
+  const { id, ttl } = await createSession(user.id);
+  reply.header("set-cookie", sessionCookie(id, ttl));
+  return {
+    token: signToken(`user:${user.id}`, "player"),
+    user: { id: user.id, nickname: user.nickname },
+  };
+}
 
 export default async function routes(app) {
   // Девелоперський вхід: створює гравця з metadata.dev = true, щоб скрипти
@@ -24,9 +35,33 @@ export default async function routes(app) {
         [randomUUID(), nickname]
       ));
 
+    return issue(reply, user);
+  });
+
+  // Обмін куки на свіжий access-токен. Клієнт кличе це сам, коли впіймав
+  // 401: для гравця оновлення сесії має бути непомітним.
+  app.post("/auth/refresh", async (req, reply) => {
+    const sid = cookieFrom(req);
+    const session = await readSession(sid);
+    if (!session) {
+      reply.header("set-cookie", clearCookie());
+      return reply.code(401).send({ error: "no_session" });
+    }
+    const user = await one("select id, nickname from users where id = $1", [session.user]);
+    if (!user) {
+      await dropSession(sid);
+      reply.header("set-cookie", clearCookie());
+      return reply.code(401).send({ error: "no_such_user" });
+    }
     return {
       token: signToken(`user:${user.id}`, "player"),
       user: { id: user.id, nickname: user.nickname },
     };
+  });
+
+  app.post("/auth/logout", async (req, reply) => {
+    await dropSession(cookieFrom(req));
+    reply.header("set-cookie", clearCookie());
+    return { ok: true };
   });
 }

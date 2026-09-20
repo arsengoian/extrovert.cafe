@@ -1,7 +1,12 @@
 // Профіль гравця: усе, що показує HUD і вкладки «Гаманець», «Склад»,
 // «Покупки». Баланси й інвентар догляду — колонки users (db-schema §1).
-import { many, one } from "../db.js";
+import { many, one, query } from "../db.js";
 import { requireUser } from "../auth.js";
+import { generateNickname } from "../nickname.js";
+
+// Нікнейм видно іншим гравцям на маркеті, тож формат тримаємо вузьким:
+// букви (будь-якої мови), цифри, підкреслення й дефіс.
+const NICKNAME_RE = /^[\p{L}\p{N}_-]{3,24}$/u;
 
 const profile = (row) => ({
   id: row.id,
@@ -31,7 +36,17 @@ export default async function routes(app) {
       [user.id]
     );
 
-    return { ...profile(row), badges: { orders: unseen.n } };
+    // Провайдер входу показується в профілі: «Google · пошта».
+    const identity = await one(
+      "select provider from user_identities where user_id = $1 order by created_at limit 1",
+      [user.id]
+    );
+
+    return {
+      ...profile(row),
+      identity: { provider: identity?.provider ?? "dev", email: row.email },
+      badges: { orders: unseen.n },
+    };
   });
 
   // Склад: інвентар одягу з лічильником дублів (gamification_ui.md, Склад).
@@ -87,5 +102,29 @@ export default async function routes(app) {
       [user.id]
     );
     return { entries: rows };
+  });
+}
+
+export async function nicknameRoutes(app) {
+  // Підказка для екрана зміни нікнейма: та сама генерація, що й при
+  // реєстрації, тож гравець бачить звичний формат.
+  app.get("/me/nickname/suggest", async (req, reply) => {
+    if (!requireUser(req, reply)) return;
+    return { nickname: await generateNickname() };
+  });
+
+  app.patch("/me/nickname", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const nickname = String(req.body?.nickname ?? "").trim();
+
+    if (!NICKNAME_RE.test(nickname)) {
+      return reply.code(400).send({ error: "bad_nickname" });
+    }
+    const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
+    if (taken) return reply.code(409).send({ error: "nickname_taken" });
+
+    await query("update users set nickname = $2 where id = $1", [user.id, nickname]);
+    return { nickname };
   });
 }

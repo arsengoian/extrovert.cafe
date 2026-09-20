@@ -1,10 +1,12 @@
-// Тонкий клієнт до api. Токен живе в памʼяті + localStorage: refresh-кука
-// зʼявиться разом зі справжнім входом (docs/services.md §3), поки що це
-// девелоперський вхід.
+// Тонкий клієнт до api. Access-токен живе в памʼяті й у localStorage, а
+// refresh — httpOnly-кука, яку ставить сервер (docs/services.md §3).
+// Токен короткий (15 хв), тож 401 — це нормальна подія, а не помилка:
+// один раз міняємо куку на новий токен і повторюємо запит.
 const BASE = import.meta.env.VITE_API ?? "/api/v1";
 const TOKEN_KEY = "extrovert.token";
 
 let token = localStorage.getItem(TOKEN_KEY) || null;
+let refreshing = null;              // спільна обіцянка: паралельні 401 чекають одну
 
 export const getToken = () => token;
 export function setToken(next) {
@@ -21,16 +23,41 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { method = "GET", body, auth = true } = {}) {
+async function refresh() {
+  refreshing ??= fetch(`${BASE}/auth/refresh`, { method: "POST", credentials: "include" })
+    .then(async (res) => {
+      if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
+      const data = await res.json();
+      setToken(data.token);
+      return data;
+    })
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+async function send(path, { method, body, auth }) {
   const headers = {};
   if (body) headers["content-type"] = "application/json";
   if (auth && token) headers.authorization = `Bearer ${token}`;
-
-  const res = await fetch(`${BASE}${path}`, {
+  return fetch(`${BASE}${path}`, {
     method,
     headers,
+    credentials: "include",
     body: body ? JSON.stringify(body) : undefined,
   });
+}
+
+async function request(path, { method = "GET", body, auth = true, retry = true } = {}) {
+  let res = await send(path, { method, body, auth });
+
+  if (res.status === 401 && auth && retry) {
+    try {
+      await refresh();
+      res = await send(path, { method, body, auth });
+    } catch {
+      setToken(null);
+    }
+  }
 
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
@@ -52,4 +79,10 @@ export const api = {
       setToken(r.token);
       return r.user;
     }),
+
+  logout: () => request("/auth/logout", { method: "POST", auth: false }).finally(() => setToken(null)),
+
+  // Спроба підняти сесію без екрана входу: якщо кука жива, застосунок
+  // відкриється одразу.
+  restore: () => refresh().then((r) => r.user),
 };
