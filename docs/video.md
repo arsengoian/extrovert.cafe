@@ -264,7 +264,9 @@ extrovert-video/<point>/<camera>/2026/08/17/14/20260817T142300.ts
 extrovert-evidence/<point>/<event_id>/{clip.mp4,frame_00.jpg}
 ```
 
-Година в ключі — щоб префіксний листинг за період був дешевим.
+Година в ключі — щоб префіксний листинг за період був дешевим. Ключі доказів
+воркер ще й записує в `video_events.evidence`: бакет приватний, і адмінці
+потрібні точні імена, щоб видати підписане посилання, не лістячи префікс.
 
 Бакети створювати з **EU jurisdiction**, щоб дані не роз'їжджались за межі ЄС.
 
@@ -357,7 +359,8 @@ create table video_events (
   started_at timestamptz not null,
   ended_at   timestamptz,
   segment_id bigint references video_segments(id),
-  receipt_id bigint,                        -- чек, коли зійшовся по часу
+  likely_receipt_id bigint references receipts(id),  -- найкращий збіг за часом, не факт
+  evidence   jsonb,                        -- ключі кадрів і кліпа в R2; null - їх немає
   meta       jsonb       not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
@@ -447,8 +450,10 @@ ffmpeg -i seg.ts -vf fps=2 -f rawvideo -pix_fmt rgb24 -
 - скільки простояли до і після взаємодії
 
 Що беремо **не з відео, а з POS**: власне ідентичність. Подія `approach`
-звʼязується з чеком за таймстемпом → `video_events.receipt_id`. Для того, хто
-купив, це справжній стабільний ID з точністю близькою до 100 %, без біометрії.
+звʼязується з чеком за таймстемпом → `video_events.likely_receipt_id`
+(«ймовірний» у назві — навмисно: це найкращий збіг за часом, який воркер
+порахував один раз, а не факт; `db-schema.md` §4). Для того, хто купив, це
+справжній стабільний ID з точністю близькою до 100 %, без біометрії.
 Для того, хто підійшов і не купив, лишається анонімна подія — а саме вона й
 цікава, бо дає конверсію підхід → покупка.
 

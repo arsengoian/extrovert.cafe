@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 770e48c</p>
+  <p class="eyebrow">extrovert.cafe · джерело b32b605</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1050,7 +1050,7 @@ erDiagram
 <article class="entity" id="t-receipts">
   <header><h4>receipts</h4><span class="entity-count">12 кол.</span></header>
   <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">checkbox_receipt_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">ідемпотентність: вебхук і опитування</td></tr><tr><td class="c-name">checkbox_shift_id</td><td class="c-type">uuid</td><td class="c-keys"></td><td class="c-note">з чека; таблиці змін немає</td></tr><tr><td class="c-name">fiscal_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">fiscal_date</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">total_sum</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">payments</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">tax_url</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">сторінка чека в ДПС</td></tr><tr><td class="c-name">source</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">webhook|poll - хто записав першим</td></tr><tr><td class="c-name">raw</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">нарахування за чек</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-video_events">video_events</a><span class="rel-label">звід за таймстемпом</span></li></ul>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">нарахування за чек</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-video_events">video_events</a><span class="rel-label">ймовірний чек події</span></li></ul>
 </article>
 <article class="entity" id="t-receipt_items">
   <header><h4>receipt_items</h4><span class="entity-count">8 кол.</span></header>
@@ -1509,7 +1509,7 @@ erDiagram
 erDiagram
     POINTS ||--o{ VIDEO_SEGMENTS : &quot;запис&quot;
     VIDEO_SEGMENTS ||--o{ VIDEO_EVENTS : &quot;що знайшов воркер&quot;
-    RECEIPTS ||--o| VIDEO_EVENTS : &quot;звід за таймстемпом&quot;
+    RECEIPTS ||--o| VIDEO_EVENTS : &quot;ймовірний чек події&quot;
     POINTS ||--o{ PROBLEM_REPORTS : &quot;скарги з форми&quot;
     ADMIN_USERS ||--o{ MENU_DEPLOYMENTS : &quot;хто викотив ціни&quot;
     ADMIN_USERS ||--o{ NEWS_BROADCASTS : &quot;розсилка в чат кавенятка&quot;
@@ -1535,7 +1535,8 @@ erDiagram
         timestamptz started_at
         timestamptz ended_at
         bigint segment_id FK
-        bigint receipt_id FK &quot;ідентичність з чека, не з обличчя&quot;
+        bigint likely_receipt_id FK &quot;ймовірний чек: зведено за часом, не з обличчя&quot;
+        jsonb evidence &quot;ключі кадрів і кліпа в R2; null - воркер нічого не зберіг&quot;
         jsonb meta &quot;GIN-індекс&quot;
     }
     HEALTH_SAMPLES {
@@ -1616,9 +1617,9 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_events">video_events</a><span class="rel-label">що знайшов воркер</span></li></ul>
 </article>
 <article class="entity" id="t-video_events">
-  <header><h4>video_events</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">approach|queue|idle</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ended_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">segment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">ідентичність з чека, не з обличчя</td></tr><tr><td class="c-name">meta</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">GIN-індекс</td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-video_segments">video_segments</a><span class="rel-label">що знайшов воркер</span></li><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">звід за таймстемпом</span></li></ul>
+  <header><h4>video_events</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">approach|queue|idle</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ended_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">segment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">likely_receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">ймовірний чек: зведено за часом, не з обличчя</td></tr><tr><td class="c-name">evidence</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">ключі кадрів і кліпа в R2; null - воркер нічого не зберіг</td></tr><tr><td class="c-name">meta</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">GIN-індекс</td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-video_segments">video_segments</a><span class="rel-label">що знайшов воркер</span></li><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">ймовірний чек події</span></li></ul>
 </article>
 <article class="entity" id="t-health_samples">
   <header><h4>health_samples</h4><span class="entity-count">6 кол.</span></header>
@@ -1661,7 +1662,23 @@ erDiagram
   
 </article></div>
 <p><code>VIDEO_SEGMENTS</code>/<code>VIDEO_EVENTS</code> — дослівно зі схеми у <a class="doclink" href="#video"><code>video.md</code></a>, включно з
-чергою через <code>SKIP LOCKED</code>. <code>HEALTH_SAMPLES</code> одразу зберігається
+чергою через <code>SKIP LOCKED</code>.</p>
+<p><strong>Чек у події — гіпотеза, і колонка так і зветься</strong> (20.09.2026).
+<code>likely_receipt_id</code> — не «чий це чек», а «чек, який за часом найкраще
+підходить під цей підхід до автомата». Зводить його воркер один раз, при
+розборі сегмента, і записує; запит потім не збігає таймстемпи наново — з
+двох підходів у те саме вікно вийшли б різні відповіді на різних прогонах.
+Якщо у вікно потрапило кілька чеків і жоден не виграє впевнено, колонка
+лишається <code>null</code>, а кандидати — у <code>meta</code>. Правило, яке з цього випливає:
+на <code>likely_receipt_id</code> не вішається нічого, що рухає гроші чи бонуси —
+бонус нараховує сам чек (§1), а відео дає лише конверсію «підійшов →
+купив».</p>
+<p><strong>Докази — ключі в самій події.</strong> <code>evidence</code> містить ключі кадрів і кліпа,
+які воркер поклав у <code>extrovert-evidence</code>. Раніше звʼязок існував лише як
+домовленість про імена (<code>&lt;point&gt;/&lt;event_id&gt;/…</code> у <a class="doclink" href="#video"><code>video.md</code></a>), а з неї не
+відповісти на просте «чи є докази до цієї події» — довелося б лістити
+бакет. Кадрів до того ж буває різна кількість, а бакет приватний: адмінці
+потрібні точні ключі, щоб видати на них підписане посилання. <code>HEALTH_SAMPLES</code> одразу зберігається
 півгодинними відрами: адмінка просить тиждень історії з такою
 гранулярністю, і зберігати сирі проби, щоб потім їх агрегувати, немає
 навіщо — старше за тиждень усе одно затирається.</p>
@@ -2694,7 +2711,9 @@ ONVIF у C100 має лише Profile S, автоматичного дозали
 <pre><code>extrovert-video/&lt;point&gt;/&lt;camera&gt;/2026/08/17/14/20260817T142300.ts
 extrovert-evidence/&lt;point&gt;/&lt;event_id&gt;/{clip.mp4,frame_00.jpg}
 </code></pre>
-<p>Година в ключі — щоб префіксний листинг за період був дешевим.</p>
+<p>Година в ключі — щоб префіксний листинг за період був дешевим. Ключі доказів
+воркер ще й записує в <code>video_events.evidence</code>: бакет приватний, і адмінці
+потрібні точні імена, щоб видати підписане посилання, не лістячи префікс.</p>
 <p>Бакети створювати з <strong>EU jurisdiction</strong>, щоб дані не роз&#39;їжджались за межі ЄС.</p>
 <blockquote>
 <p>⚠️ <strong>Пастка.</strong> Lifecycle видаляє за розкладом і не питає, чи ми встигли
@@ -2791,7 +2810,8 @@ create table video_events (
   started_at timestamptz not null,
   ended_at   timestamptz,
   segment_id bigint references video_segments(id),
-  receipt_id bigint,                        -- чек, коли зійшовся по часу
+  likely_receipt_id bigint references receipts(id),  -- найкращий збіг за часом, не факт
+  evidence   jsonb,                        -- ключі кадрів і кліпа в R2; null - їх немає
   meta       jsonb       not null default &#39;{}&#39;::jsonb,
   created_at timestamptz not null default now()
 );
@@ -2879,8 +2899,10 @@ ffmpeg -i seg.ts -vf fps=2 -f rawvideo -pix_fmt rgb24 -
 <li>скільки простояли до і після взаємодії</li>
 </ul>
 <p>Що беремо <strong>не з відео, а з POS</strong>: власне ідентичність. Подія <code>approach</code>
-звʼязується з чеком за таймстемпом → <code>video_events.receipt_id</code>. Для того, хто
-купив, це справжній стабільний ID з точністю близькою до 100 %, без біометрії.
+звʼязується з чеком за таймстемпом → <code>video_events.likely_receipt_id</code>
+(«ймовірний» у назві — навмисно: це найкращий збіг за часом, який воркер
+порахував один раз, а не факт; <a class="doclink" href="#db"><code>db-schema.md</code></a> §4). Для того, хто купив, це
+справжній стабільний ID з точністю близькою до 100 %, без біометрії.
 Для того, хто підійшов і не купив, лишається анонімна подія — а саме вона й
 цікава, бо дає конверсію підхід → покупка.</p>
 <p>Якщо колись знадобиться справжнє впізнавання облич — це <strong>інша камера</strong>: на
@@ -9204,7 +9226,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 770e48c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b32b605 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
