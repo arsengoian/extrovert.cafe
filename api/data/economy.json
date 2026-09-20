@@ -84,18 +84,18 @@
     "price_coins": 1
   },
   "quiz": {
-    "profile_coins": null,
-    "drink_coins": null,
+    "profile_coins": 40,
+    "drink_coins": 40,
     "drink_credit_milestones": [
       1,
       4,
       10
     ],
     "drink_credit_every": 10,
-    "$": "кредити за мілстоунами лічильника напоїв, §2.4; суми нарахувань — у XLSX"
+    "$": "кредити за мілстоунами лічильника напоїв, §2.4; суми нарахувань — у XLSX · 40 монет за квіз і 80 за репост — рішення власника 20.09.2026, тимчасові до перерахунку"
   },
   "repost": {
-    "coins": null,
+    "coins": 80,
     "min_days_between": 10,
     "max_per_account": 5
   },

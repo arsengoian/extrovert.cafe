@@ -95,6 +95,28 @@ if (owned === 0) {
   }
 }
 
+// Чек із покупкою: без нього немає ні «Покупок», ні квіза про напій.
+// Той самий шлях, що й у проді: чек → bonus_grant → гравець його забрав.
+const [receipts] = await sql`select count(*)::int as n from receipts`;
+if (receipts.n === 0) {
+  const drinks = await sql`select system_code, name, price_uah from drinks where active order by sort_order limit 2`;
+  const [receipt] = await sql`
+    insert into receipts (point_id, checkbox_receipt_id, fiscal_date, total_sum, source, tax_url)
+    values ('kyiv-01', gen_random_uuid(), now() - interval '2 hours',
+            ${drinks.reduce((s, d) => s + Number(d.price_uah), 0)}, 'poll',
+            'https://cabinet.tax.gov.ua/cashregs/check')
+    returning id`;
+  for (const d of drinks) {
+    await sql`insert into receipt_items (receipt_id, system_code, name, qty, price_uah, sum_uah)
+              values (${receipt.id}, ${d.system_code}, ${d.name}, 1, ${d.price_uah}, ${d.price_uah})`;
+  }
+  await sql`insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, expires_at,
+                                      claimed_at, redeemed_by, redeemed_at, status)
+            values (${receipt.id}, 'kyiv-01', 26, ${"dev-" + Math.random().toString(36).slice(2)},
+                    now() + interval '2 minutes', now(), ${user.id}, now(), 'redeemed')`;
+  console.log("✓ чек із двома напоями й забраним бонусом");
+}
+
 const [summary] = await sql`
   select u.nickname, u.coins_yellow, u.coins_silver, u.beans,
          (select count(*)::int from plants where owner_id = u.id) as plants,

@@ -42,6 +42,7 @@ export function Wallet({ ctx }) {
       <div className="sectionTitle">Заробити</div>
       <div className="grid2">
         <button className="btn" onClick={() => ctx.push("quizProfile")}>Розкажи про себе</button>
+        <button className="btn" onClick={() => ctx.push("quizDrink")}>Квіз про напій</button>
         <button className="btn" onClick={() => ctx.push("repost")}>Репост</button>
         <button className="btn" onClick={() => ctx.push("coinPacks")}>Купити монети</button>
         <button className="btn" onClick={() => ctx.push("transfer")}>Переказати</button>

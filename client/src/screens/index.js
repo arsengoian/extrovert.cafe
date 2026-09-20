@@ -11,6 +11,8 @@ import { CratePreview, CrateResult } from "./Crate.jsx";
 import { Profile } from "./Profile.jsx";
 import { NicknameChange } from "./NicknameChange.jsx";
 import { Problem } from "./Problem.jsx";
+import { QuizProfile } from "./QuizProfile.jsx";
+import { QuizDrink } from "./QuizDrink.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -37,4 +39,6 @@ export const SCREENS = {
   nicknameChange: { component: NicknameChange, presentation: "sheet" },
 
   problem: { component: Problem, title: "Що не працює?" },
+  quizProfile: { component: QuizProfile, title: "Розкажи про себе" },
+  quizDrink: { component: QuizDrink, title: "Опитування про напій" },
 };
