@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело a3d7209</p>
+  <p class="eyebrow">extrovert.cafe · джерело d17d6ef</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2269,10 +2269,19 @@ npm run prices:sync -w checkbox -- --prod         # увійти справжн�
 <h2 id="checkbox-посилання"><a class="anchor" href="#checkbox-посилання" aria-hidden="true">#</a>Посилання</h2>
 <ul>
 <li>Вебхуки: <a href="https://wiki.checkbox.ua/uk/api/webhook">https://wiki.checkbox.ua/uk/api/webhook</a></li>
-<li>Специфікація: <a href="https://wiki.checkbox.ua/uk/api/specification">https://wiki.checkbox.ua/uk/api/specification</a></li>
 <li>Товари (goods): <a href="https://wiki.checkbox.ua/uk/api/goods">https://wiki.checkbox.ua/uk/api/goods</a></li>
-<li>OpenAPI: <a href="https://api.checkbox.ua/api/openapi.json">https://api.checkbox.ua/api/openapi.json</a> · Swagger: <a href="https://api.checkbox.ua/api/docs">https://api.checkbox.ua/api/docs</a></li>
+<li>OpenAPI: <a href="https://api.checkbox.ua/api/openapi.json">https://api.checkbox.ua/api/openapi.json</a> · Swagger: <a href="https://api.checkbox.ua/api/docs">https://api.checkbox.ua/api/docs</a> ·
+ReDoc: <a href="https://api.checkbox.ua/api/redoc">https://api.checkbox.ua/api/redoc</a></li>
+<li>Ціна на філію (<code>branches_info</code>) — звірено 20.09.2026 на версії 2.107.0:<ul>
+<li>створення товара: <a href="https://api.checkbox.ua/api/redoc#operation/create_new_good_api_v1_goods_post">https://api.checkbox.ua/api/redoc#operation/create_new_good_api_v1_goods_post</a></li>
+<li>редагування: <a href="https://api.checkbox.ua/api/redoc#operation/edit_exists_good_api_v1_goods__good_id__put">https://api.checkbox.ua/api/redoc#operation/edit_exists_good_api_v1_goods__good_id__put</a></li>
+<li>список філій: <a href="https://api.checkbox.ua/api/redoc#operation/get_all_branches_api_v1_branches_get">https://api.checkbox.ua/api/redoc#operation/get_all_branches_api_v1_branches_get</a></li>
+<li>у схемі це <code>BranchInfoPayload</code>: <code>{branch_id (uuid, обовʼязково), price (копійки)}</code></li>
 </ul>
+</li>
+</ul>
+<p>Посилання на wiki-специфікацію (<code>/uk/api/specification</code>) прибрано: 404 станом
+на 20.09.2026.</p>
 
 </section>
 <section class="doc" id="video">
@@ -9024,7 +9033,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел a3d7209 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел d17d6ef — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -195,6 +195,14 @@ npm run prices:sync -w checkbox -- --prod         # увійти справжн�
 ## Посилання
 
 - Вебхуки: https://wiki.checkbox.ua/uk/api/webhook
-- Специфікація: https://wiki.checkbox.ua/uk/api/specification
 - Товари (goods): https://wiki.checkbox.ua/uk/api/goods
-- OpenAPI: https://api.checkbox.ua/api/openapi.json · Swagger: https://api.checkbox.ua/api/docs
+- OpenAPI: https://api.checkbox.ua/api/openapi.json · Swagger: https://api.checkbox.ua/api/docs ·
+  ReDoc: https://api.checkbox.ua/api/redoc
+- Ціна на філію (`branches_info`) — звірено 20.09.2026 на версії 2.107.0:
+  - створення товара: https://api.checkbox.ua/api/redoc#operation/create_new_good_api_v1_goods_post
+  - редагування: https://api.checkbox.ua/api/redoc#operation/edit_exists_good_api_v1_goods__good_id__put
+  - список філій: https://api.checkbox.ua/api/redoc#operation/get_all_branches_api_v1_branches_get
+  - у схемі це `BranchInfoPayload`: `{branch_id (uuid, обовʼязково), price (копійки)}`
+
+Посилання на wiki-специфікацію (`/uk/api/specification`) прибрано: 404 станом
+на 20.09.2026.
