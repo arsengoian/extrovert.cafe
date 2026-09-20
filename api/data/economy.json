@@ -13,8 +13,7 @@
   },
   "crate": {
     "price_coins": 85,
-    "price_uah": null,
-    "$price_uah": "99-129 грн у доках, точне число — питання",
+    "price_uah": 129,
     "odds": {
       "common": 0.55,
       "uncommon": 0.27,
@@ -56,23 +55,29 @@
     "price_beans": 15
   },
   "care": {
+    "$": "ціна одиниці — з таблиці переходів §3.2; пачка = кількість × ціна одиниці",
     "water": {
       "batch_liters": 5,
-      "price_coins": 5
+      "price_coins": 5,
+      "unit_price_coins": 1,
+      "free_first": 3,
+      "$": "перші 3 поливи безкоштовні (§3.2)"
     },
     "compost": {
       "batch_units": 3,
-      "price_coins": null
+      "unit_price_coins": 8,
+      "price_coins": 24
     },
     "fertilizer": {
       "batch_units": 3,
-      "price_coins": null
+      "unit_price_coins": 12,
+      "price_coins": 36
     },
     "insecticide": {
       "batch_units": 3,
-      "price_coins": null
-    },
-    "$": "пачки по 3 од. = 3× ціни одного застосування (§3.2); сама ціна застосування — у XLSX, не в доках"
+      "unit_price_coins": 20,
+      "price_coins": 60
+    }
   },
   "chat": {
     "free_messages": 10,
@@ -98,25 +103,25 @@
     {
       "code": "sprout",
       "coins": 100,
-      "price_uah": null,
+      "price_uah": 149,
       "label": "Паросток"
     },
     {
       "code": "bush",
       "coins": 500,
-      "price_uah": null,
+      "price_uah": 599,
       "label": "Кущик"
     },
     {
       "code": "bloom",
       "coins": 1100,
-      "price_uah": null,
+      "price_uah": 999,
       "label": "Цвіт"
     },
     {
       "code": "harvest",
       "coins": 3000,
-      "price_uah": null,
+      "price_uah": 2199,
       "label": "Врожай",
       "best": true
     }
@@ -159,5 +164,70 @@
     "sapling": {
       "beans": 15
     }
-  }
+  },
+  "growth_transitions": [
+    {
+      "from": 0,
+      "to": 1,
+      "need": "water",
+      "applications": 3,
+      "cost_coins": 0
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "need": "compost",
+      "cost_coins": 8
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "need": "compost",
+      "cost_coins": 8
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "need": "fertilizer",
+      "cost_coins": 12
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "need": "fertilizer",
+      "cost_coins": 12
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "need": "fertilizer|insecticide",
+      "random": true,
+      "cost_coins": 16
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "need": "fertilizer|insecticide",
+      "random": true,
+      "cost_coins": 16
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "need": "insecticide",
+      "cost_coins": 20
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "need": "insecticide",
+      "cost_coins": 20
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "need": "insecticide",
+      "cost_coins": 20
+    }
+  ]
 }

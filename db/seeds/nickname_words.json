@@ -1,0 +1,362 @@
+[
+  {
+    "kind": "noun",
+    "word": "арабіка",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "ароматний",
+    "forms": {
+      "m": "ароматний",
+      "f": "ароматна",
+      "n": "ароматне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "бадьорий",
+    "forms": {
+      "m": "бадьорий",
+      "f": "бадьора",
+      "n": "бадьоре"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "бариста",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "веселий",
+    "forms": {
+      "m": "веселий",
+      "f": "весела",
+      "n": "веселе"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "горнятко",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "гіркуватий",
+    "forms": {
+      "m": "гіркуватий",
+      "f": "гіркувата",
+      "n": "гіркувате"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "джезва",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "димний",
+    "forms": {
+      "m": "димний",
+      "f": "димна",
+      "n": "димне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "дріп",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "еспресо",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "жвавий",
+    "forms": {
+      "m": "жвавий",
+      "f": "жвава",
+      "n": "жваве"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "зерно",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "золотий",
+    "forms": {
+      "m": "золотий",
+      "f": "золота",
+      "n": "золоте"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "какао",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "капучино",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "карамельний",
+    "forms": {
+      "m": "карамельний",
+      "f": "карамельна",
+      "n": "карамельне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "крема",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "лате",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "легкий",
+    "forms": {
+      "m": "легкий",
+      "f": "легка",
+      "n": "легке"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "мандрівний",
+    "forms": {
+      "m": "мандрівний",
+      "f": "мандрівна",
+      "n": "мандрівне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "мокко",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "міцний",
+    "forms": {
+      "m": "міцний",
+      "f": "міцна",
+      "n": "міцне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "ніжний",
+    "forms": {
+      "m": "ніжний",
+      "f": "ніжна",
+      "n": "ніжне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "обсмажка",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "оксамитовий",
+    "forms": {
+      "m": "оксамитовий",
+      "f": "оксамитова",
+      "n": "оксамитове"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "помел",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "пінистий",
+    "forms": {
+      "m": "пінистий",
+      "f": "пініста",
+      "n": "пінисте"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "пінка",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "ранковий",
+    "forms": {
+      "m": "ранковий",
+      "f": "ранкова",
+      "n": "ранкове"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "ристрето",
+    "forms": null,
+    "gender": "n",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "смаглявий",
+    "forms": {
+      "m": "смаглявий",
+      "f": "смаглява",
+      "n": "смагляве"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "сонний",
+    "forms": {
+      "m": "сонний",
+      "f": "сонна",
+      "n": "сонне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "спокійний",
+    "forms": {
+      "m": "спокійний",
+      "f": "спокійна",
+      "n": "спокійне"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "темпер",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "теплий",
+    "forms": {
+      "m": "теплий",
+      "f": "тепла",
+      "n": "тепле"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "турка",
+    "forms": null,
+    "gender": "f",
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "фільтр",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  },
+  {
+    "kind": "adjective",
+    "word": "хитрий",
+    "forms": {
+      "m": "хитрий",
+      "f": "хитра",
+      "n": "хитре"
+    },
+    "gender": null,
+    "active": true
+  },
+  {
+    "kind": "noun",
+    "word": "цикорій",
+    "forms": null,
+    "gender": "m",
+    "active": true
+  }
+]

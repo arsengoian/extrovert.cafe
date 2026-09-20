@@ -39,5 +39,16 @@
       "price_coins",
       "active"
     ]
+  },
+  "nickname_words": {
+    "key": "word",
+    "owner": "git",
+    "columns": [
+      "word",
+      "kind",
+      "forms",
+      "gender",
+      "active"
+    ]
   }
 }
