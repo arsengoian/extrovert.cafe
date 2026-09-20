@@ -371,7 +371,7 @@ CREATE TABLE public.ledger_entries (
     meta jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT ledger_entries_check CHECK (((delta_yellow <> 0) OR (delta_silver <> 0) OR (delta_beans <> 0))),
-    CONSTRAINT ledger_entries_reason_check CHECK ((reason = ANY (ARRAY['purchase'::text, 'quiz'::text, 'repost'::text, 'crate'::text, 'care'::text, 'chat'::text, 'transfer'::text, 'market'::text, 'exchange'::text, 'pos_discount'::text, 'delivery'::text, 'sapling'::text, 'admin'::text]))),
+    CONSTRAINT ledger_entries_reason_check CHECK ((reason = ANY (ARRAY['purchase'::text, 'quiz'::text, 'repost'::text, 'crate'::text, 'care'::text, 'chat'::text, 'transfer'::text, 'market'::text, 'exchange'::text, 'pos_discount'::text, 'delivery'::text, 'sapling'::text, 'wardrobe_set'::text, 'harvest'::text, 'admin'::text]))),
     CONSTRAINT ledger_entries_ref_type_check CHECK ((ref_type = ANY (ARRAY['receipt'::text, 'crate_opening'::text, 'market_trade'::text, 'coin_transfer'::text, 'redemption'::text])))
 );
 
@@ -3001,4 +3001,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920201000'),
     ('20260920210000'),
     ('20260920220000'),
-    ('20260920230000');
+    ('20260920230000'),
+    ('20260920240000');

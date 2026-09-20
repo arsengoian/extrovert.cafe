@@ -7,14 +7,20 @@ import { buildScene } from "./scene.js";
 import { Scene } from "./Scene.jsx";
 import { usePlantAssets } from "./assets.js";
 
-export function PlantView({ plant, appearance, stage, mood, width = 250, height, platform = true, pad = 18 }) {
+export function PlantView({ plant, appearance, stage, mood, worn, width = 250, height, platform = true, pad = 18 }) {
   const assets = usePlantAssets();
   const h = height ?? width * 1.15;
   if (!assets) return <div style={{ width, height: h, margin: "0 auto" }} />;
 
   const s = stage ?? plant?.growth_stage ?? 0;
   const m = mood ?? plant?.mood ?? "healthy";
-  let instances = buildScene({ layout: assets.layout, appearance: appearance ?? plant?.appearance, stage: s, mood: m });
+  let instances = buildScene({
+    layout: assets.layout,
+    appearance: appearance ?? plant?.appearance,
+    stage: s,
+    mood: m,
+    worn,
+  });
   if (!platform) instances = instances.filter((i) => i.group !== "platform" && i.group !== "ground_shadow");
 
   const points = [];

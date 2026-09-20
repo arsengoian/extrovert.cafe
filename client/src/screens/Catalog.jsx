@@ -1,6 +1,7 @@
 // «Весь одяг»: каталог усіх тірів, ціна рахується з тіру (economy §5.1).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { ItemIcon } from "../ui/ItemIcon.jsx";
 
 const TIERS = [
   { id: null, label: "Усі" },
@@ -33,8 +34,7 @@ export function Catalog({ ctx }) {
       <div className="grid2" style={{ marginTop: 10 }}>
         {data?.items.map((item) => (
           <button key={item.code} className="panel" style={{ textAlign: "left" }} onClick={() => ctx.push("itemCard", { item })}>
-            <img src={`/assets/ui/${item.sprite_id}.png`} alt="" style={{ width: "100%", height: 74, objectFit: "contain" }}
-                 onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+            <ItemIcon sprite={item.sprite_id} size={74} />
             <div style={{ fontWeight: 700, fontSize: 13, marginTop: 6 }}>{item.name}</div>
             <div className={`tag tag-${item.tier}`} style={{ marginTop: 4 }}>{item.collection}</div>
             <div className="price" style={{ marginTop: 6 }}>{item.price_coins}<img src="/assets/ui/coin_gold.png" alt="монет" /></div>

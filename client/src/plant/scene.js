@@ -164,8 +164,48 @@ export function playerInstances(appearance, stage, mood) {
   return out;
 }
 
-export function buildScene({ layout, appearance, stage, mood = "healthy", extra = [] }) {
+// Одяг: карта «спрайт предмета → шари в макеті». Повної мапи ще немає
+// (питання в questions.md), тому малюємо те, що намальоване — ковбойський
+// комплект; решта поки видно лише в слотах примірочної.
+const CLOTHING = {
+  cowboy_head: ["clothing_cowboy_head/clothing_cowboy_head.png"],
+  cowboy_body: ["clothing_cowboy/clothing_cowboy_body.png"],
+  cowboy_pants: ["clothing_cowboy/clothing_cowboy_pants.png"],
+  cowboy_feet: ["clothing_cowboy/clothing_cowboy_feet_L.png", "clothing_cowboy/clothing_cowboy_feet_R.png"],
+  cowboy_acc: ["clothing_cowboy_acc1/clothing_cowboy_acc1.png"],
+};
+
+// Речі в макеті лежать у координатах дорослого куща. Якщо просто підрости
+// їх разом зі сценою, на стадії 1 капелюх повисне над головою: тіло там
+// іншого розміру й ще й зсунуте вгору по стовбуру. Тому кожну річ кладемо
+// ВІДНОСНО тіла — так вона сидить на будь-якій стадії.
+export function wornInstances(layout, worn, body) {
+  if (!worn?.length || !body) return [];
+  const matureBody = layout.instances.find((i) => i.group === "body_stage1_sphere");
+  if (!matureBody) return [];
+  const k = body.scale / matureBody.scale;
+
+  const out = [];
+  for (const item of worn) {
+    for (const path of CLOTHING[item.sprite_id] ?? []) {
+      const [group, sprite] = path.split("/");
+      const inst = layout.instances.find((i) => i.group === group && i.sprite === sprite);
+      if (!inst) continue;
+      out.push({
+        ...inst,
+        x: body.x + (inst.x - matureBody.x) * k,
+        y: body.y + (inst.y - matureBody.y) * k,
+        scale: inst.scale * k,
+      });
+    }
+  }
+  return out;
+}
+
+export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [] }) {
   if (!layout) return [];
-  return [...baseInstances(layout, stage, mood), ...playerInstances(appearance, stage, mood), ...extra]
+  const base = baseInstances(layout, stage, mood);
+  const body = base.find((i) => /^body_stage1/.test(i.group));
+  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body), ...extra]
     .sort((a, b) => a.z - b.z);
 }

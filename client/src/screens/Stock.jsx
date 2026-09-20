@@ -1,6 +1,7 @@
 // Склад: інвентар одягу, згрупований за наборами, з лічильником дублів.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { ItemIcon } from "../ui/ItemIcon.jsx";
 
 export function Stock({ ctx }) {
   const [items, setItems] = useState(null);
@@ -32,8 +33,7 @@ export function Stock({ ctx }) {
             {list.map((it) => (
               <button key={it.code} className="panel" style={{ textAlign: "left", position: "relative" }}
                       onClick={() => ctx.push("itemCard", { item: it, owned: true })}>
-                <img src={`/assets/ui/${it.sprite_id}.png`} alt="" style={{ width: "100%", height: 70, objectFit: "contain" }}
-                     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                <ItemIcon sprite={it.sprite_id} size={70} />
                 <div style={{ fontWeight: 700, fontSize: 13, marginTop: 6 }}>{it.name}</div>
                 <div className={`tag tag-${it.tier}`} style={{ marginTop: 4 }}>{it.slot}</div>
                 {it.owned > 1 && (

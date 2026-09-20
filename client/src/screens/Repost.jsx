@@ -3,6 +3,7 @@
 // нічого не зараховує, і текст на екрані це чесно проговорює.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { days } from "../ui/plural.js";
 
 const STEPS = [
   ["Скопіюй своє посилання",
@@ -54,7 +55,7 @@ export function Repost() {
   const hint = state.limit_reached
     ? "Це всі репости, які зараховуємо за акаунт. Дякуємо!"
     : state.days_left
-      ? `Наступний репост можна зарахувати за ${state.days_left} ${state.days_left === 1 ? "день" : "днів"}`
+      ? `Наступний репост можна зарахувати за ${days(state.days_left)}`
       : "Посилання активне: наступний перехід зарахує монети";
 
   return (

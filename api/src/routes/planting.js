@@ -14,6 +14,7 @@
 // власний баг клієнта.
 import { one, query, tx } from "../db.js";
 import { requireUser } from "../auth.js";
+import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -82,8 +83,8 @@ async function loadPlant(client, id, userId) {
 async function advance(client, plant, state, { consumed, appearance }) {
   await client.query(
     `update plants
-        set growth_stage = $2, stage_progress = 0, last_stage_transition_at = now(),
-            appearance = $3
+      set growth_stage = $2, stage_progress = 0, last_stage_transition_at = now(),
+        appearance = $3
       where id = $1`,
     [plant.id, state.to, appearance ?? plant.appearance]
   );
@@ -101,50 +102,45 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const kind = String(req.body?.kind ?? "");
-    if (!CARE_COLUMN[kind]) return reply.code(400).send({ error: "bad_care" });
+    if (!CARE_COLUMN[kind]) fail(400, "bad_care");
 
-    try {
-      return await tx(async (client) => {
-        const plant = await loadPlant(client, req.params.id, user.id);
-        if (!plant) return reply.code(404).send({ error: "no_such_plant" });
-        if (plant.listing_id) return reply.code(409).send({ error: "on_sale" });
+    return tx(async (client) => {
+      const plant = await loadPlant(client, req.params.id, user.id);
+      if (!plant) fail(404, "no_such_plant");
+      if (plant.listing_id) fail(409, "on_sale");
 
-        // Полив — єдина дія, доступна завжди: сумний кущ п'є і поза переходом.
-        const state = growthState(plant);
-        const watering = kind === "water";
-        if (!watering) {
-          if (state.done) return reply.code(409).send({ error: "fully_grown" });
-          if (kind !== state.need) return reply.code(409).send({ error: "wrong_care", need: state.need });
-          if (state.ready_at) return reply.code(409).send({ error: "too_soon", ready_at: state.ready_at });
-          if (state.planting) return reply.code(409).send({ error: "needs_planting", planting: state.planting });
-        }
+      // Полив — єдина дія, доступна завжди: сумний кущ п'є і поза переходом.
+      const state = growthState(plant);
+      const watering = kind === "water";
+      if (!watering) {
+        if (state.done) fail(409, "fully_grown");
+        if (kind !== state.need) fail(409, "wrong_care", { need: state.need });
+        if (state.ready_at) fail(409, "too_soon", { ready_at: state.ready_at });
+        if (state.planting) fail(409, "needs_planting", { planting: state.planting });
+      }
 
-        const column = CARE_COLUMN[kind];
-        const { rows: spent } = await client.query(
-          `update users set ${column} = ${column} - 1 where id = $1 and ${column} > 0 returning ${column} as left`,
-          [user.id]
-        );
-        if (!spent.length) return reply.code(409).send({ error: "no_supply", kind });
+      const column = CARE_COLUMN[kind];
+      const { rows: spent } = await client.query(
+        `update users set ${column} = ${column} - 1 where id = $1 and ${column} > 0 returning ${column} as left`,
+        [user.id]
+      );
+      if (!spent.length) fail(409, "no_supply", { kind });
 
-        if (watering) await client.query("update plants set last_watered_at = now() where id = $1", [plant.id]);
+      if (watering) await client.query("update plants set last_watered_at = now() where id = $1", [plant.id]);
 
-        // Полив поза переходом (кущ просто хоче пити) стадію не рухає.
-        const counts = !state.done && kind === state.need && !state.ready_at;
-        if (!counts) return { ok: true, grown: false, left: spent[0].left };
+      // Полив поза переходом (кущ просто хоче пити) стадію не рухає.
+      const counts = !state.done && kind === state.need && !state.ready_at;
+      if (!counts) return { ok: true, grown: false, left: spent[0].left };
 
-        const progress = (plant.stage_progress ?? 0) + 1;
-        if (progress < state.applications) {
-          await client.query("update plants set stage_progress = $2 where id = $1", [plant.id, progress]);
-          return { ok: true, grown: false, progress, applications: state.applications, left: spent[0].left };
-        }
+      const progress = (plant.stage_progress ?? 0) + 1;
+      if (progress < state.applications) {
+        await client.query("update plants set stage_progress = $2 where id = $1", [plant.id, progress]);
+        return { ok: true, grown: false, progress, applications: state.applications, left: spent[0].left };
+      }
 
-        await advance(client, plant, state, { consumed: kind });
-        return { ok: true, grown: true, stage: state.to, left: spent[0].left };
-      });
-    } catch (e) {
-      app.log.error(e);
-      return reply.code(500).send({ error: "care_failed" });
-    }
+      await advance(client, plant, state, { consumed: kind });
+      return { ok: true, grown: true, stage: state.to, left: spent[0].left };
+    });
   });
 
   // Стан екрана посадки: що садимо, скільки лишилось, що в чернетці.
@@ -152,7 +148,7 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const plant = await one("select * from plants where id = $1 and owner_id = $2", [req.params.id, user.id]);
-    if (!plant) return reply.code(404).send({ error: "no_such_plant" });
+    if (!plant) fail(404, "no_such_plant");
 
     const state = growthState(plant);
     const supply = await one("select water_liters, compost_kg, fertilizer_kg, insecticide_bottles from users where id = $1", [user.id]);
@@ -172,14 +168,14 @@ export default async function routes(app) {
     const draft = req.body?.draft ?? null;
     const { rows } = await query(
       `update plants
-          set appearance = case when $3::jsonb is null
-                                then appearance - 'draft'
-                                else jsonb_set(appearance, '{draft}', $3::jsonb, true) end
-        where id = $1 and owner_id = $2
+        set appearance = case when $3::jsonb is null
+                          then appearance - 'draft'
+                          else jsonb_set(appearance, '{draft}', $3::jsonb, true) end
+      where id = $1 and owner_id = $2
       returning appearance -> 'draft' as draft`,
       [req.params.id, user.id, draft ? JSON.stringify(draft) : null]
     );
-    if (!rows.length) return reply.code(404).send({ error: "no_such_plant" });
+    if (!rows.length) fail(404, "no_such_plant");
     return { ok: true, draft: rows[0].draft };
   });
 
@@ -189,51 +185,46 @@ export default async function routes(app) {
     if (!user) return;
     const items = req.body?.items ?? {};
 
-    try {
-      return await tx(async (client) => {
-        const plant = await loadPlant(client, req.params.id, user.id);
-        if (!plant) return reply.code(404).send({ error: "no_such_plant" });
-        if (plant.listing_id) return reply.code(409).send({ error: "on_sale" });
+    return tx(async (client) => {
+      const plant = await loadPlant(client, req.params.id, user.id);
+      if (!plant) fail(404, "no_such_plant");
+      if (plant.listing_id) fail(409, "on_sale");
 
-        const state = growthState(plant);
-        if (state.done || !state.planting) return reply.code(409).send({ error: "nothing_to_plant" });
-        if (state.ready_at) return reply.code(409).send({ error: "too_soon", ready_at: state.ready_at });
+      const state = growthState(plant);
+      if (state.done || !state.planting) fail(409, "nothing_to_plant");
+      if (state.ready_at) fail(409, "too_soon", { ready_at: state.ready_at });
 
-        // Кількості — єдине, що перевіряємо: геометрію рахує клієнт (§9).
-        for (const [key, [min, max]] of Object.entries(state.limits)) {
-          const n = (items[key] ?? []).length;
-          if (n < min || n > max) return reply.code(400).send({ error: "bad_count", key, min, max, got: n });
-        }
+      // Кількості — єдине, що перевіряємо: геометрію рахує клієнт (§9).
+      for (const [key, [min, max]] of Object.entries(state.limits)) {
+        const n = (items[key] ?? []).length;
+        if (n < min || n > max) fail(400, "bad_count", { key, min, max, got: n });
+      }
 
-        const column = CARE_COLUMN[state.need];
-        const { rows: spent } = await client.query(
-          `update users set ${column} = ${column} - 1 where id = $1 and ${column} > 0 returning ${column} as left`,
-          [user.id]
-        );
-        if (!spent.length) return reply.code(409).send({ error: "no_supply", kind: state.need });
+      const column = CARE_COLUMN[state.need];
+      const { rows: spent } = await client.query(
+        `update users set ${column} = ${column} - 1 where id = $1 and ${column} > 0 returning ${column} as left`,
+        [user.id]
+      );
+      if (!spent.length) fail(409, "no_supply", { kind: state.need });
 
-        // Посаджене дописується до наявного: гілки додаються до гілок,
-        // бутони — до бутонів, і нічого з минулих стадій не зникає.
-        const appearance = { ...(plant.appearance ?? {}) };
-        delete appearance.draft;
-        appearance.version = 2;
-        const append = (key, list) => {
-          if (!list?.length) return;
-          const before = appearance[key] ?? [];
-          const base = before.reduce((m, it) => Math.max(m, it.id ?? 0), 0);
-          appearance[key] = [...before, ...list.map((it, n) => ({ ...it, id: base + n + 1 }))];
-        };
-        append("leaves_bg", items.bg);
-        append("leaves_fg", items.fg);
-        append("branches", items.branches);
-        append("buds", items.buds);
+      // Посаджене дописується до наявного: гілки додаються до гілок,
+      // бутони — до бутонів, і нічого з минулих стадій не зникає.
+      const appearance = { ...(plant.appearance ?? {}) };
+      delete appearance.draft;
+      appearance.version = 2;
+      const append = (key, list) => {
+        if (!list?.length) return;
+        const before = appearance[key] ?? [];
+        const base = before.reduce((m, it) => Math.max(m, it.id ?? 0), 0);
+        appearance[key] = [...before, ...list.map((it, n) => ({ ...it, id: base + n + 1 }))];
+      };
+      append("leaves_bg", items.bg);
+      append("leaves_fg", items.fg);
+      append("branches", items.branches);
+      append("buds", items.buds);
 
-        await advance(client, plant, state, { consumed: state.need, appearance });
-        return { ok: true, stage: state.to, left: spent[0].left };
-      });
-    } catch (e) {
-      app.log.error(e);
-      return reply.code(500).send({ error: "planting_failed" });
-    }
+      await advance(client, plant, state, { consumed: state.need, appearance });
+      return { ok: true, stage: state.to, left: spent[0].left };
+    });
   });
 }

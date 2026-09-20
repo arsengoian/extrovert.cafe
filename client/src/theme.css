@@ -199,3 +199,22 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .skin-cell.on { border-color: var(--accent); background: rgba(254, 129, 11, .16) }
 .skin-cell img { max-width: 100%; max-height: 100%; object-fit: contain }
 .btn-danger { color: #FF6B78; border-color: rgba(255, 107, 120, .45) }
+
+/* Примірочна: п'ять слотів у ряд, як у дизайні */
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.slot-row { display: flex; gap: 8px }
+.slot-cell {
+  flex: 1; aspect-ratio: 1 / 1; position: relative; border-radius: 16px;
+  border: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; justify-content: center; padding: 8px;
+}
+.slot-cell.on { border-color: var(--accent); background: rgba(254, 129, 11, .12) }
+/* Іконка слота — підкладка: коли слот заповнений, вона блідне під предметом */
+.slot-cell .slot-bg { position: absolute; inset: 14%; width: 72%; height: 72%; object-fit: contain; opacity: .5 }
+.slot-cell.on .slot-bg { opacity: .18 }
+.panel.on { border-color: var(--accent) }
+.item-stub {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  padding: 4px; border-radius: 12px; background: var(--panel2);
+  font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.15;
+}

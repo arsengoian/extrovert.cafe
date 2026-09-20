@@ -3,6 +3,7 @@
 import Fastify from "fastify";
 import { pool } from "./db.js";
 import { ephemeralKey } from "./auth.js";
+import { registerErrorHandler } from "./errors.js";
 import authRoutes from "./routes/auth.js";
 import meRoutes, { nicknameRoutes } from "./routes/me.js";
 import catalogRoutes from "./routes/catalog.js";
@@ -14,8 +15,10 @@ import problemRoutes from "./routes/problems.js";
 import quizRoutes from "./routes/quiz.js";
 import repostRoutes from "./routes/repost.js";
 import plantingRoutes from "./routes/planting.js";
+import wardrobeRoutes from "./routes/wardrobe.js";
 
 const app = Fastify({ logger: true });
+registerErrorHandler(app);
 
 // Клієнт живе на extrovert.cafe, api на піддомені; локально — різні порти.
 // Дозволяємо лише те, що справді ходить: інакше CORS перетворюється на
@@ -45,6 +48,7 @@ await app.register(problemRoutes, { prefix: "/api/v1" });
 await app.register(quizRoutes, { prefix: "/api/v1" });
 await app.register(repostRoutes, { prefix: "/api/v1" });
 await app.register(plantingRoutes, { prefix: "/api/v1" });
+await app.register(wardrobeRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {
