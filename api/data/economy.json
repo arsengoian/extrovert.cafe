@@ -1,0 +1,163 @@
+{
+  "$comment": "Параметри економіки живуть у коді, а не в базі (docs/db-schema.md §7). Числа — з docs/gamification_economy.md; там, де в доках лише посилання на XLSX, стоїть null і питання в questions.md.",
+  "updated": "2026-09-20",
+  "coins": {
+    "k": 1,
+    "$k": "coins = round(маржа × k), §7"
+  },
+  "beans": {
+    "rate_coins_min": 13,
+    "rate_coins_max": 17,
+    "rate_coins": 15,
+    "$rate": "1 зерно → 13-17 монет, §6; беремо середину, доки не затверджено точне"
+  },
+  "crate": {
+    "price_coins": 85,
+    "price_uah": null,
+    "$price_uah": "99-129 грн у доках, точне число — питання",
+    "odds": {
+      "common": 0.55,
+      "uncommon": 0.27,
+      "rare": 0.12,
+      "epic": 0.06
+    },
+    "coins": {
+      "min": 5,
+      "max": 25,
+      "mu": 15,
+      "sigma": 3.33
+    },
+    "$coins": "завжди і предмет, і монети; зрізаний нормальний розподіл, §4.2"
+  },
+  "clothing_direct_price_coins": {
+    "common": 93,
+    "uncommon": 189,
+    "rare": 425,
+    "epic": 850,
+    "$": "пряма покупка всіх тірів, §5.1"
+  },
+  "shadow_drop": {
+    "chance": 0.15,
+    "tier": "common",
+    "$": "кожна покупка звичайного напою, лише Common, §4.1"
+  },
+  "market": {
+    "offer_bias_k": 1,
+    "offer_limit_default": 10,
+    "offer_limit_max": 10,
+    "commission_pct": {
+      "item": 10,
+      "plant": 2
+    },
+    "$": "вага лота = ціна^-k, services.md §4; комісія §9"
+  },
+  "sapling": {
+    "price_coins": 1000,
+    "price_beans": 15
+  },
+  "care": {
+    "water": {
+      "batch_liters": 5,
+      "price_coins": 5
+    },
+    "compost": {
+      "batch_units": 3,
+      "price_coins": null
+    },
+    "fertilizer": {
+      "batch_units": 3,
+      "price_coins": null
+    },
+    "insecticide": {
+      "batch_units": 3,
+      "price_coins": null
+    },
+    "$": "пачки по 3 од. = 3× ціни одного застосування (§3.2); сама ціна застосування — у XLSX, не в доках"
+  },
+  "chat": {
+    "free_messages": 10,
+    "price_coins": 1
+  },
+  "quiz": {
+    "profile_coins": null,
+    "drink_coins": null,
+    "drink_credit_milestones": [
+      1,
+      4,
+      10
+    ],
+    "drink_credit_every": 10,
+    "$": "кредити за мілстоунами лічильника напоїв, §2.4; суми нарахувань — у XLSX"
+  },
+  "repost": {
+    "coins": null,
+    "min_days_between": 10,
+    "max_per_account": 5
+  },
+  "coin_packs": [
+    {
+      "code": "sprout",
+      "coins": 100,
+      "price_uah": null,
+      "label": "Паросток"
+    },
+    {
+      "code": "bush",
+      "coins": 500,
+      "price_uah": null,
+      "label": "Кущик"
+    },
+    {
+      "code": "bloom",
+      "coins": 1100,
+      "price_uah": null,
+      "label": "Цвіт"
+    },
+    {
+      "code": "harvest",
+      "coins": 3000,
+      "price_uah": null,
+      "label": "Врожай",
+      "best": true
+    }
+  ],
+  "set": {
+    "slots": [
+      "head",
+      "body",
+      "pants",
+      "feet",
+      "acc_1"
+    ],
+    "beans_by_tier": {
+      "common": 3,
+      "uncommon": 6,
+      "rare": 9,
+      "epic": 15
+    }
+  },
+  "shop_beans": {
+    "$": "ціни в зернах — з gamification_ui.md (Магазин, за кавові боби); там вони приблизні («~»), точні числа рахуються з собівартості за §6",
+    "pos_discount": {
+      "beans": 6,
+      "uah": 20,
+      "label": "Знижка на POS"
+    },
+    "coffee_250g": {
+      "beans": 30
+    },
+    "merch_cup": {
+      "beans": 15
+    },
+    "custom_print": {
+      "beans": 40,
+      "range": [
+        36,
+        45
+      ]
+    },
+    "sapling": {
+      "beans": 15
+    }
+  }
+}

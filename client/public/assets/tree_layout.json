@@ -1,0 +1,704 @@
+{
+  "saved_at": "2026-09-16T15:02:42.182Z",
+  "stage": {
+    "width": 1000,
+    "height": 1300,
+    "ground_y": 1120
+  },
+  "shadow": {
+    "enabled": true,
+    "offsetX": 6,
+    "offsetY": 6,
+    "blur": 6,
+    "opacity": 0.8
+  },
+  "faceShadow": {
+    "enabled": true,
+    "offset": 5,
+    "blur": 0.8,
+    "opacity": 0.41
+  },
+  "instances": [
+    {
+      "group": "platform",
+      "version": "v1",
+      "sprite": "platform_ground.png",
+      "x": 505.8183149857954,
+      "y": 1114.181795987216,
+      "scale": 3.5745450106534085,
+      "rotation": 0,
+      "z": 3
+    },
+    {
+      "group": "ground_shadow",
+      "version": null,
+      "sprite": null,
+      "x": 498.9642252842819,
+      "y": 1035.636319247159,
+      "scale": 1.3927268288352272,
+      "rotation": 2,
+      "z": 5,
+      "color": "0,40,0",
+      "opacity": 0.73,
+      "blur": 24
+    },
+    {
+      "group": "trunk_tiers",
+      "version": "v4",
+      "sprite": "trunk_tier4_thickest.png",
+      "x": 506.23695255700915,
+      "y": 917.1143502900095,
+      "scale": 1.3927268288352272,
+      "rotation": 0,
+      "z": 33
+    },
+    {
+      "group": "branch_arms_fixed",
+      "version": "v1",
+      "sprite": "branch_arm_R.png",
+      "x": 647.2187964177436,
+      "y": 824.4070137449022,
+      "scale": 1,
+      "rotation": 64,
+      "z": 37
+    },
+    {
+      "group": "branch_arms_fixed",
+      "version": "v1",
+      "sprite": "branch_arm_L.png",
+      "x": 357.1764877781724,
+      "y": 849.8074452389952,
+      "scale": 1,
+      "rotation": -71,
+      "z": 36
+    },
+    {
+      "group": "branch_skins_custom",
+      "version": "v1",
+      "sprite": "branch_custom_skin1.png",
+      "x": 215.56563468536535,
+      "y": 324.24079945927554,
+      "scale": 1.7177066667277825,
+      "rotation": -87,
+      "z": 39
+    },
+    {
+      "group": "branch_skins_custom",
+      "version": "v1",
+      "sprite": "branch_custom_skin3.png",
+      "x": 787.3898658491415,
+      "y": 311.6713660157204,
+      "scale": 1.7854542125355113,
+      "rotation": 0,
+      "z": 42
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 793.8180264559659,
+      "y": 781.8181263316764,
+      "scale": 1.3345458984375,
+      "rotation": 114,
+      "z": 4
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 873.818359375,
+      "y": 485.09099786931824,
+      "scale": 1.2181795987215907,
+      "rotation": 87,
+      "z": 6
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin5_normal.png",
+      "x": 578.9945340714467,
+      "y": 205.1999470295645,
+      "scale": 1.506122199856505,
+      "rotation": 22,
+      "z": 7
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 822.9831085488173,
+      "y": 581.6251555886914,
+      "scale": 1.1454545454545455,
+      "rotation": 107,
+      "z": 9
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 252.72727272727278,
+      "y": 812.3636696555398,
+      "scale": 1.290909090909091,
+      "rotation": 218,
+      "z": 10
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 312.91275845387867,
+      "y": 265.48432415624285,
+      "scale": 1,
+      "rotation": -82,
+      "z": 11
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 362.8570556640625,
+      "y": 871.8366973254145,
+      "scale": 1.4571430439851722,
+      "rotation": 197,
+      "z": 12
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 225.71429817044003,
+      "y": 666.1223742426658,
+      "scale": 1,
+      "rotation": 237,
+      "z": 13
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 369.38775510204084,
+      "y": 346.9388066505899,
+      "scale": 1,
+      "rotation": 248,
+      "z": 14
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 711.4285216039541,
+      "y": 271.8367440359933,
+      "scale": 1,
+      "rotation": 42,
+      "z": 15
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 585.2839629504145,
+      "y": 298.84972170686456,
+      "scale": 1,
+      "rotation": 56,
+      "z": 17
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 815.1021529217156,
+      "y": 389.38776133011794,
+      "scale": 1,
+      "rotation": 80,
+      "z": 18
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin2_normal.png",
+      "x": 739.1836361009248,
+      "y": 841.6326406050702,
+      "scale": 1,
+      "rotation": 130,
+      "z": 20
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin2_normal.png",
+      "x": 611.020395707111,
+      "y": 905.306134905134,
+      "scale": 1,
+      "rotation": 125,
+      "z": 21
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 538.7234831121724,
+      "y": 885.0018525698632,
+      "scale": 1,
+      "rotation": 146,
+      "z": 22
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 673.8775759327168,
+      "y": 891.2505214599156,
+      "scale": 1,
+      "rotation": 128,
+      "z": 23
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 232.69014206357264,
+      "y": 615.4211267248377,
+      "scale": 1.4363636363636363,
+      "rotation": 200,
+      "z": 24
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 412.6530861367985,
+      "y": 213.87754167829235,
+      "scale": 1.3020410343092315,
+      "rotation": -68,
+      "z": 25
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 828.5342979077284,
+      "y": 675.9330973156308,
+      "scale": 1.146938401825574,
+      "rotation": 111,
+      "z": 27
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 281.22446488360976,
+      "y": 708.571515764509,
+      "scale": 1,
+      "rotation": 224,
+      "z": 28
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 176.73470633370536,
+      "y": 534.6938775510205,
+      "scale": 1.2367341956313775,
+      "rotation": 225,
+      "z": 29
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 230.90909090909093,
+      "y": 517.0909534801136,
+      "scale": 1.494545676491477,
+      "rotation": 216,
+      "z": 30
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_mouth.png",
+      "x": 494.51267150699914,
+      "y": 715.7042535239302,
+      "scale": 0.71199951171875,
+      "rotation": 2,
+      "z": 56
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_brow_L.png",
+      "x": 364.71205916269554,
+      "y": 483.5601258338488,
+      "scale": 0.49599914550781254,
+      "rotation": 5,
+      "z": 46
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_pupil_L.png",
+      "x": 387.7315621324765,
+      "y": 608.9784562007422,
+      "scale": 0.5304060457141986,
+      "rotation": 0,
+      "z": 48
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_pupil_R.png",
+      "x": 622.7956978905743,
+      "y": 612.1639023050885,
+      "scale": 0.563331339494364,
+      "rotation": 0,
+      "z": 51
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_brow_R.png",
+      "x": 651.502830945385,
+      "y": 486.83047374975183,
+      "scale": 0.48363519841974434,
+      "rotation": -1,
+      "z": 58
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 600.9805035334762,
+      "y": 375.50965668052754,
+      "scale": 1,
+      "rotation": 91,
+      "z": 49
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin1_normal.png",
+      "x": 455.599853515625,
+      "y": 376.79998779296875,
+      "scale": 0.7839999389648438,
+      "rotation": 199,
+      "z": 52
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin4_normal.png",
+      "x": 519.2000732421875,
+      "y": 405.60015869140625,
+      "scale": 0.7720001220703125,
+      "rotation": 153,
+      "z": 53
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin5_normal.png",
+      "x": 516.8000377308239,
+      "y": 296.5454795143821,
+      "scale": 0.64,
+      "rotation": 11,
+      "z": 54
+    },
+    {
+      "group": "body_stage1_sphere",
+      "version": "v4",
+      "sprite": "body_stage1_with_face_slot.png",
+      "x": 505.9822805932306,
+      "y": 598.7093361475136,
+      "scale": 3.3078012117775537,
+      "rotation": 0,
+      "z": 45
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 698.709729922715,
+      "y": 344.51615528393813,
+      "scale": 1.1419349588373655,
+      "rotation": 0,
+      "z": 16
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 416.1290978872648,
+      "y": 314.8386965515793,
+      "scale": 1.4387095461609543,
+      "rotation": -52,
+      "z": 1
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 297.4193285870296,
+      "y": 401.2903357064852,
+      "scale": 1,
+      "rotation": -57,
+      "z": 19
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 543.8710202452957,
+      "y": 287.74197486139116,
+      "scale": 1,
+      "rotation": 0,
+      "z": 2
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 739.9998818674395,
+      "y": 423.2257145707325,
+      "scale": 1,
+      "rotation": 0,
+      "z": 8
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin2_normal.png",
+      "x": 454.8387753066196,
+      "y": 873.5482820900537,
+      "scale": 1,
+      "rotation": 181,
+      "z": 35
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin3_normal.png",
+      "x": 515.4837659610215,
+      "y": 870.9676106770834,
+      "scale": 1,
+      "rotation": 151,
+      "z": 34
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_eye_L.png",
+      "x": 375.367670530914,
+      "y": 593.3419150075605,
+      "scale": 0.8220984662336573,
+      "rotation": 0,
+      "z": 47
+    },
+    {
+      "group": "face_setA_normal",
+      "version": "v3",
+      "sprite": "face_A_normal_eye_R.png",
+      "x": 630.79585325279,
+      "y": 600.8909863782419,
+      "scale": 0.8482397749946823,
+      "rotation": 0,
+      "z": 50
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 713.8181374289773,
+      "y": 797.8182151100852,
+      "scale": 1,
+      "rotation": 128,
+      "z": 0
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 300.7274280894887,
+      "y": 818.1818736683239,
+      "scale": 1.3345453435724433,
+      "rotation": 205,
+      "z": 26
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 229.45440118963072,
+      "y": 605.8183704723012,
+      "scale": 0.9418185147372159,
+      "rotation": 233,
+      "z": 31
+    },
+    {
+      "group": "leaves_batch_normal",
+      "version": "v2",
+      "sprite": "leaf_skin6_normal.png",
+      "x": 742.9090465198863,
+      "y": 778.9091352982955,
+      "scale": 1,
+      "rotation": 96,
+      "z": 32
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 232.36383611505687,
+      "y": 725.0910533558239,
+      "scale": 0.5490911310369319,
+      "rotation": 255,
+      "z": 55
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 204.7272838245739,
+      "y": 563.6363636363636,
+      "scale": 0.5927284934303978,
+      "rotation": -60,
+      "z": 57
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 291.9999556107955,
+      "y": 389.09090909090907,
+      "scale": 0.5636358087713069,
+      "rotation": -29,
+      "z": 59
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 488.3637029474432,
+      "y": 284.3637362393466,
+      "scale": 0.6363636363636365,
+      "rotation": 0,
+      "z": 60
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 735.636319247159,
+      "y": 381.8181818181818,
+      "scale": 0.723636141690341,
+      "rotation": 55,
+      "z": 61
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 795.2727716619318,
+      "y": 531.6364080255682,
+      "scale": 0.5636363636363636,
+      "rotation": 79,
+      "z": 62
+    },
+    {
+      "group": "fruit_bud_greenbean",
+      "version": "v2",
+      "sprite": "fruit_bud.png",
+      "x": 805.4546564275568,
+      "y": 687.2727272727273,
+      "scale": 0.6799998890269887,
+      "rotation": 127,
+      "z": 63
+    },
+    {
+      "group": "clothing_cowboy_head",
+      "version": "v1",
+      "sprite": "clothing_cowboy_head.png",
+      "x": 520.5276241656737,
+      "y": 290.31722302164104,
+      "scale": 1.922763911226075,
+      "rotation": 0,
+      "z": 64
+    },
+    {
+      "group": "clothing_cowboy",
+      "version": "v5",
+      "sprite": "clothing_cowboy_body.png",
+      "x": 501.6185998403897,
+      "y": 854.6086230873339,
+      "scale": 0.7873797441200456,
+      "rotation": 0,
+      "z": 44
+    },
+    {
+      "group": "clothing_cowboy",
+      "version": "v5",
+      "sprite": "clothing_cowboy_pants.png",
+      "x": 500.4187485442251,
+      "y": 962.283694899588,
+      "scale": 0.6692564975974834,
+      "rotation": 0,
+      "z": 38
+    },
+    {
+      "group": "clothing_cowboy",
+      "version": "v5",
+      "sprite": "clothing_cowboy_feet_L.png",
+      "x": 453.3277950641114,
+      "y": 1026.3420927846507,
+      "scale": 0.33099573397376325,
+      "rotation": 0,
+      "z": 43
+    },
+    {
+      "group": "clothing_cowboy",
+      "version": "v5",
+      "sprite": "clothing_cowboy_feet_R.png",
+      "x": 550.4189704902475,
+      "y": 1021.9786339778321,
+      "scale": 0.3317639680845088,
+      "rotation": -9,
+      "z": 40
+    },
+    {
+      "group": "clothing_cowboy_acc1",
+      "version": "v1",
+      "sprite": "clothing_cowboy_acc1.png",
+      "x": 503.0818728648634,
+      "y": 607.2982244855149,
+      "scale": 2.560467436565247,
+      "rotation": 2,
+      "z": 65
+    },
+    {
+      "group": "branch_skins_custom",
+      "version": "v1",
+      "sprite": "branch_custom_skin3.png",
+      "x": 252.72716175426137,
+      "y": 407.9999334161932,
+      "scale": 1,
+      "rotation": 239,
+      "z": 41
+    }
+  ],
+  "colorFilters": {
+    "sad": {
+      "saturate": 70,
+      "brightness": 93
+    },
+    "very_sad": {
+      "saturate": 58,
+      "brightness": 86
+    },
+    "fruit_sad": {
+      "saturate": 100,
+      "brightness": 100
+    },
+    "fruit_very_sad": {
+      "saturate": 50,
+      "brightness": 100
+    }
+  }
+}

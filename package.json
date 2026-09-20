@@ -15,7 +15,9 @@
     "down": "docker compose down",
     "logs": "docker compose logs -f --tail=100",
     "docs:map": "bun scripts/build-data-map.mjs",
-    "docs:map:check": "bun scripts/build-data-map.mjs --check"
+    "docs:map:check": "bun scripts/build-data-map.mjs --check",
+    "seed:pull": "bun scripts/seed.mjs pull",
+    "seed:apply": "bun scripts/seed.mjs apply"
   },
   "devDependencies": {
     "marked": "^18.0.13",

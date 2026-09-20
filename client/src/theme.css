@@ -1,0 +1,133 @@
+/* Токени — з дизайну (design/client/Gamification Style.dc.html і Phone.dc.html).
+   Темна тема типова, світла перемикається data-theme="light" на <html>. */
+@font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro400.ttf') format('truetype'); font-weight: 400; font-display: swap }
+@font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro600.ttf') format('truetype'); font-weight: 600; font-display: swap }
+@font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro700.ttf') format('truetype'); font-weight: 700; font-display: swap }
+@font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro900.ttf') format('truetype'); font-weight: 900; font-display: swap }
+
+:root {
+  --bg: #0C0E11; --panel: #15181C; --panel2: #1B1F24; --ink: #F2EFE6; --muted: #8B94A3;
+  --line: rgba(242, 239, 230, .10); --accent: #FE810B; --accent-ink: #1A1206; --accent-text: #FE810B;
+  --grad: linear-gradient(96deg, #FE810B 8%, #FF2D6F 92%);
+  --sky1: #16231C; --sky2: #0C0E11; --nav: #12151A;
+  --radius: 16px; --radius-sm: 12px; --radius-pill: 999px;
+}
+
+:root[data-theme="light"] {
+  --bg: #F7F4EC; --panel: #FFFFFF; --panel2: #F1EDE2; --ink: #14181D; --muted: #525B67;
+  --line: rgba(20, 24, 29, .12); --accent: #C9550A; --accent-ink: #FFFFFF; --accent-text: #9B4008;
+  --grad: linear-gradient(96deg, #C9550A 8%, #C70D4D 92%);
+  --sky1: #DDEBD5; --sky2: #F7F4EC; --nav: #FFFFFF;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
+
+html, body, #root { height: 100% }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Extro', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.35;
+  overscroll-behavior-y: none;
+}
+
+img { display: block }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer }
+
+/* ── каркас: топбар, сцена, навігація ──────────────────────────────────── */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;              /* десктоп поки просто не розтягуємо */
+  margin: 0 auto;
+  background: var(--bg);
+  position: relative;
+}
+
+.stage { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch }
+.stage-pad { padding: 12px 12px 20px }
+
+.hud { flex: none; padding: 10px 12px; display: flex; align-items: center; gap: 8px }
+.hud-pill {
+  flex: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel);
+}
+.hud-val { display: flex; align-items: center; gap: 3px; font-size: 14px; font-weight: 700 }
+.hud-val img { width: 21px; height: 22px }
+.icon-btn {
+  width: 38px; height: 38px; flex: none; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel); color: var(--muted); display: flex; align-items: center; justify-content: center;
+}
+.icon-btn[data-active="true"] { color: var(--ink) }
+
+.topbar-back {
+  flex: none; height: 52px; padding: 0 12px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.topbar-back .title { flex: 1; min-width: 0; font-size: 17px; font-weight: 800; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+.nav {
+  position: relative; z-index: 100; flex: none; height: 76px; padding: 0 6px 0;
+  background: var(--nav); border-top: 1px solid var(--line);
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item { flex: 1; padding: 10px 0 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); position: relative }
+.nav-item[data-active="true"] { color: var(--accent-text) }
+.nav-item img { width: 23px; height: 27px; opacity: .55 }
+.nav-item[data-active="true"] img { opacity: 1 }
+.nav-item span { font-size: 11px; font-weight: 600 }
+.nav-center { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--muted) }
+.nav-center[data-active="true"] { color: var(--ink) }
+.nav-center .bubble {
+  margin-top: -18px; width: 66px; height: 66px; border-radius: var(--radius-pill); background: var(--grad);
+  border: 4px solid var(--nav); display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, .3);
+}
+.nav-center .bubble img { width: 29px; height: 46px; opacity: 1 }
+.nav-badge {
+  position: absolute; top: 6px; left: 50%; margin-left: 7px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink);
+  font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+}
+
+/* ── спільні цеглинки ──────────────────────────────────────────────────── */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px }
+.panel + .panel { margin-top: 10px }
+.muted { color: var(--muted) }
+.h1 { font-size: 22px; font-weight: 900; letter-spacing: -.01em; margin: 0 0 6px }
+.h2 { font-size: 17px; font-weight: 800; margin: 0 0 8px }
+.row { display: flex; align-items: center; gap: 10px }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.sectionTitle { font-size: 13px; font-weight: 700; color: var(--muted); margin: 18px 4px 8px; text-transform: uppercase; letter-spacing: .06em }
+
+.btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; padding: 0 18px; border-radius: var(--radius-sm);
+  background: var(--panel); border: 1px solid var(--line); font-weight: 700; font-size: 15px; width: 100%;
+}
+.btn-primary { background: var(--grad); border: 0; color: var(--accent-ink) }
+.btn:active { transform: scale(.99) }
+.btn[disabled] { opacity: .5 }
+
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--panel2); color: var(--muted) }
+.tag-common { color: #9AA3B0 } .tag-uncommon { color: #4FB477 } .tag-rare { color: #4C8DFF } .tag-epic { color: #B269FF }
+
+.price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800 }
+.price img { width: 18px; height: 19px }
+
+.sheet-backdrop { position: absolute; inset: 0; background: rgba(6, 8, 10, .52); backdrop-filter: blur(7px); z-index: 150 }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 160; background: var(--panel);
+  border-radius: 20px 20px 0 0; border-top: 1px solid var(--line); padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+}
+
+.skeleton { background: var(--panel2); border-radius: var(--radius); height: 88px; animation: pulse 1.2s ease-in-out infinite }
+@keyframes pulse { 0%, 100% { opacity: .5 } 50% { opacity: .85 } }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }

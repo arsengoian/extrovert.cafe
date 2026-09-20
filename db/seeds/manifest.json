@@ -1,0 +1,43 @@
+{
+  "points": {
+    "key": "id",
+    "owner": "git",
+    "columns": [
+      "id",
+      "name",
+      "address",
+      "timezone"
+    ]
+  },
+  "drinks": {
+    "key": "system_code",
+    "owner": "git",
+    "columns": [
+      "system_code",
+      "name",
+      "vol",
+      "price_uah",
+      "coins",
+      "bonus_coins",
+      "sprite",
+      "cup",
+      "active",
+      "sort_order"
+    ]
+  },
+  "item_defs": {
+    "key": "code",
+    "owner": "git",
+    "columns": [
+      "code",
+      "name",
+      "collection",
+      "description_md",
+      "slot",
+      "tier",
+      "sprite_id",
+      "price_coins",
+      "active"
+    ]
+  }
+}
