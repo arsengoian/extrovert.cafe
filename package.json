@@ -26,7 +26,9 @@
     "kb:check": "bun scripts/kb.mjs check",
     "kb:embed": "bun scripts/kb.mjs embed",
     "kb:push": "bun scripts/kb.mjs push",
-    "kb:ask": "bun scripts/kb.mjs ask"
+    "kb:ask": "bun scripts/kb.mjs ask",
+    "deploy:client": "bun scripts/deploy-client.mjs",
+    "deploy:client:dry": "bun scripts/deploy-client.mjs --dry"
   },
   "devDependencies": {
     "marked": "^18.0.13",
