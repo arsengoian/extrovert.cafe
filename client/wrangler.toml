@@ -1,0 +1,17 @@
+# Застосунок гравця — статика на Cloudflare Workers (docs/services.md §2):
+# збірка Vite віддається з Worker'а, дані бере api.extrovert.cafe.
+name = "extrovert-client"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./dist"
+# SPA: будь-який шлях віддає index.html, бо роутинг у застосунку свій
+# (вкладки й стек екранів), а не на сервері.
+not_found_handling = "single-page-application"
+
+# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо його тут
+# закоментованим, щоб випадковий deploy не перехопив прод:
+# routes = [{ pattern = "extrovert.cafe", custom_domain = true }]
+
+[observability]
+enabled = true

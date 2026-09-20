@@ -8,8 +8,12 @@ pg.types.setTypeParser(1700, (v) => (v === null ? null : Number(v)));
 // int8 (bigint) теж рядком за замовчуванням: id-шники в нас у межах Number
 pg.types.setTypeParser(20, (v) => (v === null ? null : Number(v)));
 
+// У контейнері адресу задає compose (DATABASE_URL). Локально ж bun сам
+// читає .env, тож беремо звідти DATABASE_URL_LOCAL — щоб запуск із кореня
+// репозиторію працював без жодних експортів у шелі.
 const url =
   process.env.DATABASE_URL ||
+  (process.env.NODE_ENV !== "production" && process.env.DATABASE_URL_LOCAL) ||
   `postgres://${process.env.POSTGRES_USER || "extrovert"}:${process.env.POSTGRES_PASSWORD}` +
     `@${process.env.PGHOST || "postgres"}:5432/${process.env.POSTGRES_DB || "extrovert"}`;
 

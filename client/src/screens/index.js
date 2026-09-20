@@ -7,6 +7,7 @@ import { Catalog } from "./Catalog.jsx";
 import { Stock } from "./Stock.jsx";
 import { History } from "./History.jsx";
 import { ItemCard } from "./ItemCard.jsx";
+import { CratePreview, CrateResult } from "./Crate.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -25,4 +26,6 @@ export const SCREENS = {
 
   catalog: { component: Catalog, title: "Одяг" },
   itemCard: { component: ItemCard, title: (p) => p.item?.name ?? "Предмет" },
+  shopItem: { component: CratePreview, title: (p) => p.item?.title ?? "Товар" },
+  crateResult: { component: CrateResult, title: "Скриньку відкрито" },
 };

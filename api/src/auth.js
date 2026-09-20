@@ -11,7 +11,13 @@ const unb64url = (s) => Buffer.from(s, "base64url");
 function loadKeys() {
   const pem = process.env.JWT_PRIVATE_KEY;
   if (pem) {
-    const privateKey = createPrivateKey(pem.replace(/\\n/g, "\n"));
+    // У .env ключ лежить одним рядком із \n; PEM без фінального переносу
+    // OpenSSL не читає взагалі — звідси і кінцевий перенос.
+    // У .env ключ лежить одним рядком із \n. Два місця, де це ламається:
+    // екрановані переноси треба розгорнути, а \r від CRLF-файла прибрати —
+    // інакше PEM закінчується не тим символом і OpenSSL його не читає.
+    const text = pem.replace(/\\n/g, "\n").replace(/\r/g, "").trim() + "\n";
+    const privateKey = createPrivateKey(text);
     return { privateKey, publicKey: createPublicKey(privateKey) };
   }
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
