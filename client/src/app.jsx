@@ -15,7 +15,7 @@ import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 import "./theme.js";
 
-export function App() {
+export function App({ bonusToken = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState("plant");
@@ -39,6 +39,14 @@ export function App() {
   const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
   const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
   const openTab = useCallback((next) => { setTab(next); setStack([]); }, []);
+
+  // Бонус із QR: відкриваємо його, щойно гравець увійшов, і прибираємо
+  // токен з адреси — щоб оновлення сторінки не намагалось забрати його ще раз.
+  useEffect(() => {
+    if (!bonusToken || !me) return;
+    push("bonus", { token: bonusToken });
+    window.history.replaceState({}, "", "/");
+  }, [bonusToken, Boolean(me)]);
 
   // Події з ws: після будь-якої зміни в акаунті перечитуємо профіль —
   // баланси в HUD мають оновлюватись без перезаходу.

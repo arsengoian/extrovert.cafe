@@ -99,7 +99,7 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const grant = await one(
-      `select bg.*, r.fiscal_date, r.total_uah, p.name as point_name
+      `select bg.*, r.fiscal_date, r.total_sum, p.name as point_name
          from bonus_grants bg
          join receipts r on r.id = bg.receipt_id
          join points p on p.id = bg.point_id
@@ -112,7 +112,7 @@ export default async function routes(app) {
       items: grant.items,
       point: grant.point_name,
       fiscal_date: grant.fiscal_date,
-      total_uah: grant.total_uah,
+      total_uah: grant.total_sum,
       status: grant.status,
       expired: new Date(grant.expires_at) < new Date(),
       mine: grant.redeemed_by === user.id,

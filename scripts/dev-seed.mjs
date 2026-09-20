@@ -130,6 +130,42 @@ if (receipts.n === 0) {
   console.log("✓ чек із двома напоями й забраним бонусом");
 }
 
+// Довідник Нової Пошти: у проді його щодоби тягне scheduler, локально ключа
+// НП зазвичай немає — тому кілька вигаданих міст і відділень, щоб чекаут
+// можна було пройти цілком. Ref-и навмисно не схожі на справжні.
+const [{ cities }] = await sql`select count(*)::int as cities from np_cities`;
+if (cities === 0) {
+  const fixture = [
+    ["dev-city-kyiv", "Київ", "Київська обл.", [
+      ["dev-wh-k1", 1, "branch", "Відділення №1: вул. Хрещатик, 22", null],
+      ["dev-wh-k12", 12, "branch", "Відділення №12: вул. Миколи Мишуги, 8", null],
+      ["dev-wh-k77", 77, "postomat", "Поштомат №77: вул. Миколи Мишуги, 8 (магазин)",
+        { length_cm: 40, width_cm: 35, height_cm: 17 }],
+      ["dev-wh-k91", 91, "postomat", "Поштомат №91: просп. Науки, 1 (маленький)",
+        { length_cm: 20, width_cm: 15, height_cm: 8 }],
+    ]],
+    ["dev-city-lviv", "Львів", "Львівська обл.", [
+      ["dev-wh-l3", 3, "branch", "Відділення №3: вул. Городоцька, 100", null],
+      ["dev-wh-l45", 45, "postomat", "Поштомат №45: вул. Стрийська, 30",
+        { length_cm: 40, width_cm: 35, height_cm: 17 }],
+    ]],
+    ["dev-city-odesa", "Одеса", "Одеська обл.", [
+      ["dev-wh-o7", 7, "branch", "Відділення №7: вул. Дерибасівська, 5", null],
+    ]],
+  ];
+  for (const [ref, name, area, warehouses] of fixture) {
+    await sql`insert into np_cities (ref, name, area, settlement_type)
+              values (${ref}, ${name}, ${area}, 'місто')`;
+    for (const [wRef, number, category, description, limits] of warehouses) {
+      await sql`insert into np_warehouses (ref, city_ref, number, category, description,
+                                           short_address, place_max_weight_kg, dimension_limits, status)
+                values (${wRef}, ${ref}, ${number}, ${category}, ${description}, ${description},
+                        ${category === "postomat" ? 20 : 1000}, ${limits}, 'Working')`;
+    }
+  }
+  console.log("✓ довідник НП: 3 міста, 7 відділень (вигадані, лише local)");
+}
+
 const [summary] = await sql`
   select u.nickname, u.coins_yellow, u.coins_silver, u.beans,
          (select count(*)::int from plants where owner_id = u.id) as plants,
