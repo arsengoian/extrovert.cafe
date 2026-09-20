@@ -10,7 +10,7 @@
 правиться в дифі рядок за рядком. Окремої картинки, яку доведеться
 перемальовувати, свідомо немає. Для читання поза редактором цей файл
 разом із `services.md` збирається в `docs/data-map.html` — з меню до
-окремих таблиць (`npm run docs:map`).
+окремих таблиць (`bun run docs:map`).
 
 ---
 
@@ -931,16 +931,16 @@ db/seeds/
 (`bush_graphics_customization.md` §7.1) з прототипами назв і описів. Код —
 `<набір>_<слот>`, `sprite_id` поки збігається з кодом.
 
-Сам інструмент — `scripts/seed.mjs` у корені, поруч із `build-data-map.mjs`:
+Сам інструмент — `scripts/seed.mjs` (запуск `bun`) у корені, поруч із `build-data-map.mjs`:
 у `db/` навмисно немає `package.json` (§6). Його ще немає.
 
 ### Команди
 
 ```bash
-npm run seed:pull  -- --env prod             # база → db/seeds/*.json, далі git diff
-npm run seed:apply -- --env stage            # показати, що зміниться; нічого не пише
-npm run seed:apply -- --env stage --apply    # записати
-npm run seed:apply -- --env prod --apply --table item_defs
+bun run seed:pull  --env prod             # база → db/seeds/*.json, далі git diff
+bun run seed:apply --env stage            # показати, що зміниться; нічого не пише
+bun run seed:apply --env stage --apply    # записати
+bun run seed:apply --env prod --apply --table item_defs
 ```
 
 Оточення — `DATABASE_URL_LOCAL`, `DATABASE_URL_STAGE`, `DATABASE_URL_PROD` у

@@ -1,6 +1,6 @@
 // Заливає реліз малини в R2 під releases/pi/.
-//   node scripts/push-release.mjs                     → з ../dist/manifest.json
-//   node scripts/push-release.mjs ../dist             → інша тека
+//   bun scripts/push-release.mjs                     → з ../dist/manifest.json
+//   bun scripts/push-release.mjs ../dist             → інша тека
 //
 // Порядок навмисно жорсткий: спершу архів, маніфест ОСТАННІМ. Навпаки —
 // і точка прочитає маніфест, піде по архів, якого ще немає, а після трьох

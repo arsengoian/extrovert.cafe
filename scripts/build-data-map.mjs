@@ -5,10 +5,10 @@
 // версія сторінки жила окремою копією діаграм, і той самий баг у mermaid
 // довелось виправляти у двох місцях (15.09.2026). Тепер копії немає.
 //
-//   node scripts/build-data-map.mjs                  # перегенерувати docs/data-map.html
-//   node scripts/build-data-map.mjs --check          # код 1: html застарів, реєстр дірявий або ER битий
-//   node scripts/build-data-map.mjs --artifact <out> # варіант для claude.ai, без mermaid-скрипта
-//   node scripts/build-data-map.mjs --hook           # PostToolUse-хук Claude Code (stdin JSON)
+//   bun scripts/build-data-map.mjs                  # перегенерувати docs/data-map.html
+//   bun scripts/build-data-map.mjs --check          # код 1: html застарів, реєстр дірявий або ER битий
+//   bun scripts/build-data-map.mjs --artifact <out> # варіант для claude.ai, без mermaid-скрипта
+//   bun scripts/build-data-map.mjs --hook           # PostToolUse-хук Claude Code (stdin JSON)
 //
 // Які доки потрапляють на сторінку, вирішує реєстр docs/README.md, а не цей
 // скрипт: ## група → таблиця з файлами.
@@ -641,7 +641,7 @@ if (args.includes("--check")) {
   const existing = existsSync(outPath) ? readFileSync(outPath, "utf8").replace(/\r\n/g, "\n") : "";
   warnings.forEach((w) => console.error(`увага: ${w}`));
   if (existing !== html) {
-    console.error(`${OUT} застарів — запустіть: npm run docs:map`);
+    console.error(`${OUT} застарів — запустіть: bun run docs:map`);
     process.exit(1);
   }
   if (warnings.length) process.exit(1);

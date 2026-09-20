@@ -5,8 +5,12 @@
   "version": "0.0.1",
   "description": "сервер подій WebSocket",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "dev": "bun --watch src/index.js",
+    "start": "bun src/index.js"
   },
-  "dependencies": {"ws":"^8.18.0","ioredis":"^5.4.1","@sentry/node":"^8.0.0"}
+  "dependencies": {
+    "ws": "^8.18.0",
+    "ioredis": "^5.4.1",
+    "@sentry/node": "^8.0.0"
+  }
 }

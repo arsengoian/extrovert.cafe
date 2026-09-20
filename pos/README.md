@@ -11,8 +11,8 @@ scripts/push-prices.mjs  заливка меню в R2 (AWS SigV4 вручну, 
 ## Заливка меню
 
 ```bash
-node scripts/push-prices.mjs                  # kyiv-01
-node scripts/push-prices.mjs kyiv-02 ./m.json # інша точка й інший файл
+bun scripts/push-prices.mjs                  # kyiv-01
+bun scripts/push-prices.mjs kyiv-02 ./m.json # інша точка й інший файл
 ```
 
 Ключ у бакеті — `points/<point>/menu.json`, публічна адреса —

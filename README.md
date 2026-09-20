@@ -39,7 +39,7 @@ docker compose ps
 ```bash
 pos-native/docker/build.sh       # один раз: образ із тулчейном
 pos-native/docker/make.sh        # нативний кіоск для ПК; на малині — make pi
-npm run dev -w pos               # Worker локально: меню, релізи, запасна сторінка
+bun run --filter @extrovert/pos prices:push   # меню точки в публічний бакет R2
 ```
 
 Як реліз кіоска потрапляє на точку — `docs/raspberry-pi.md`.
@@ -47,8 +47,8 @@ npm run dev -w pos               # Worker локально: меню, реліз
 ## Документація
 
 ```bash
-npm run docs:map          # зібрати docs/data-map.html з усіх доків реєстру
-npm run docs:map:check    # код 1, якщо сторінка застаріла або в реєстрі дірка
+bun run docs:map          # зібрати docs/data-map.html з усіх доків реєстру
+bun run docs:map:check    # код 1, якщо сторінка застаріла або в реєстрі дірка
 ```
 
 ## Головна домовленість про URL

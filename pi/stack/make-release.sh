@@ -86,4 +86,4 @@ echo "  $DIST/manifest.json"
 echo
 # Ключі до R2 лежать у pos/.env і на точку не потрапляють ніколи: пристрій
 # стоїть у публічному коридорі, а бакет публічний лише на читання.
-echo "далі: npm run release:push -w pos    (архів, потім маніфест)"
+echo "далі: bun run --filter @extrovert/pos release:push    (архів, потім маніфест)"

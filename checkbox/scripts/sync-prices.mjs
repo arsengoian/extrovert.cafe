@@ -1,8 +1,8 @@
 // sync-prices.mjs — ціни з pos/data/prices.json → каталог товарів Checkbox.
 //
-//   node scripts/sync-prices.mjs                  # показати різницю
-//   node scripts/sync-prices.mjs --apply          # записати ціни
-//   node scripts/sync-prices.mjs --prod [--apply] # увійти справжнім касиром
+//   bun scripts/sync-prices.mjs                  # показати різницю
+//   bun scripts/sync-prices.mjs --apply          # записати ціни
+//   bun scripts/sync-prices.mjs --prod [--apply] # увійти справжнім касиром
 //
 // ⚠️ `--apply` міняє СПРАВЖНІ ціни, яким би касиром ми не входили. Каталог
 // належить організації, а не касиру: тестовий касир бачить ті самі товари

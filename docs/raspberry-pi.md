@@ -288,7 +288,7 @@ curl -sI https://pos.extrovert.cafe/releases/pi/manifest.json   # до перш�
 зловити тут, ніж на точці.
 
 ```bash
-npm run release:push -w pos
+bun run --filter @extrovert/pos release:push
 curl -s https://pos.extrovert.cafe/releases/pi/manifest.json
 ```
 

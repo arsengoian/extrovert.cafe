@@ -1,7 +1,7 @@
 // Заливає меню точки в R2 під ключем points/<point>/menu.json.
-//   node scripts/push-prices.mjs                  → точка kyiv-01, файл data/prices.json
-//   node scripts/push-prices.mjs kyiv-02          → інша точка, той самий файл
-//   node scripts/push-prices.mjs kyiv-02 ./m.json → інша точка, інший файл
+//   bun scripts/push-prices.mjs                  → точка kyiv-01, файл data/prices.json
+//   bun scripts/push-prices.mjs kyiv-02          → інша точка, той самий файл
+//   bun scripts/push-prices.mjs kyiv-02 ./m.json → інша точка, інший файл
 import { readFileSync } from "node:fs";
 import { loadEnv, put } from "./lib/r2.mjs";
 

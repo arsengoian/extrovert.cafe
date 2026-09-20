@@ -181,9 +181,9 @@ GET    /api/v1/goods/by-code/{code}       ⚠️ 404 «Облік товарів
 ціною змінилось щось іще.
 
 ```
-npm run prices:sync -w checkbox                   # показати різницю
-npm run prices:sync -w checkbox -- --apply        # записати
-npm run prices:sync -w checkbox -- --prod         # увійти справжнім касиром
+bun run --filter @extrovert/checkbox prices:sync                   # показати різницю
+bun run --filter @extrovert/checkbox prices:sync --apply        # записати
+bun run --filter @extrovert/checkbox prices:sync --prod         # увійти справжнім касиром
 ```
 
 `--prod` потрібен, лише якщо тестовому касиру заборонено правити товари
