@@ -627,15 +627,9 @@ erDiagram
         timestamptz published_at "null - ще не в Redis"
         smallint attempts
     }
-    CHECKBOX_SYNC_CURSORS {
-        text name PK "receipts"
-        timestamptz cursor_at "до якого моменту чеки забрано"
-        timestamptz run_at
-        text last_error
-    }
-    NP_SYNC_CURSORS {
-        text name PK "directory|tracking"
-        timestamptz cursor_at "до якого моменту забрано"
+    SYNC_CURSORS {
+        text name PK "checkbox:receipts|np:directory|np:tracking"
+        timestamptz cursor_at "до якого моменту все забрано"
         timestamptz run_at
         text last_error
     }
@@ -672,12 +666,12 @@ erDiagram
 й сама зміна, а публікатор у `scheduler` уже потім шле його в Redis, звідки
 подію бере `ws` (§0 «Подія пишеться в тій самій транзакції»).
 
-Курсорів два, і кожен належить своєму сервісу: `CHECKBOX_SYNC_CURSORS` —
-опитування чеків, пише `checkbox`; `NP_SYNC_CURSORS` — нічна синхронізація
-довідника й трекінг відправлень, пише `scheduler`. Одна таблиця на двох
-власників була б зручнішою рівно доти, доки хтось не почав би чистити
-«свої» рядки. Курсор у базі, а не в памʼяті процесу: перезапуск не має ні
-пропустити вікно, ні перечитати тиждень.
+`SYNC_CURSORS` — де зупинилось кожне фонове забирання: опитування чеків
+Checkbox (пише `checkbox`), нічна синхронізація довідника й трекінг
+відправлень НП (пише `scheduler`). Таблиця одна на два сервіси свідомо:
+рядки розділені ключем `name`, і жодному з них нема чого робити в чужому.
+Курсор у базі, а не в памʼяті процесу: перезапуск не має ні пропустити
+вікно, ні перечитати тиждень.
 
 `SUPPORT_THREADS` і `SUPPORT_MESSAGES` — уся підтримка (`services.md` §4):
 тред на чат у Telegram, повідомлення в обидва боки. `user_id` заповнюється
