@@ -45,6 +45,21 @@ const view = (p) => ({
 });
 
 export default async function routes(app) {
+  // Імʼя кавенятка: бачить його лише власник, тому обмеження мʼякі —
+  // тільки довжина й заборона порожнього рядка з пробілів.
+  app.patch("/me/plants/:id", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const name = String(req.body?.name ?? "").trim().slice(0, 24);
+    if (!name) return reply.code(400).send({ error: "empty_name" });
+    const row = await one(
+      "update plants set name = $3 where id = $1 and owner_id = $2 returning id, name",
+      [req.params.id, user.id, name]
+    );
+    if (!row) return reply.code(404).send({ error: "no_such_plant" });
+    return { ok: true, name: row.name };
+  });
+
   app.get("/me/plants", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;

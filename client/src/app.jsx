@@ -92,7 +92,9 @@ export function App() {
     <div className="app">
       {top && !asSheet ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
       <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
-        <Shown {...(asSheet || !top ? {} : top.props)} ctx={ctx} />
+        {/* props із реєстру — значення за замовчуванням: ними один компонент
+            обслуговує кілька екранів (умови, приватність, підтримка). */}
+        <Shown {...(shown?.props ?? {})} {...(asSheet || !top ? {} : top.props)} ctx={ctx} />
       </div>
       {Sheet ? <Sheet {...(top.props ?? {})} ctx={ctx} /> : null}
       {(top && !asSheet ? topScreen?.hideNav : false) ? null : (

@@ -23,6 +23,10 @@ import { WearItem } from "./WearItem.jsx";
 import { Listings } from "./Listings.jsx";
 import { SellPlant } from "./SellPlant.jsx";
 import { PlantMarket } from "./PlantMarket.jsx";
+import { Transfer } from "./Transfer.jsx";
+import { CoinPacks } from "./CoinPacks.jsx";
+import { PlantName } from "./PlantName.jsx";
+import { Legal } from "./Legal.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -61,4 +65,10 @@ export const SCREENS = {
   listings: { component: Listings, title: "На продажу" },
   sellPlant: { component: SellPlant, title: "Продати кавенятко" },
   plantMarket: { component: PlantMarket, title: "Нове кавенятко" },
+  transfer: { component: Transfer, title: "Переказати монети" },
+  coinPacks: { component: CoinPacks, title: "Купити монети" },
+  plantName: { component: PlantName, title: "Імʼя кавенятка" },
+  terms: { component: Legal, title: "Умови користування" },
+  privacy: { component: Legal, title: "Політика приватності", props: { doc: "privacy" } },
+  support: { component: Legal, title: "Підтримка", props: { doc: "support" } },
 };
