@@ -101,6 +101,7 @@ erDiagram
         text address
         text timezone
         text status "planned|live|paused"
+        text checkbox_branch_id "філія в Checkbox: через неї ціна на точку"
         text key_hash "sha256 ключа з config/point.key на малині"
         text next_key_hash "ротація: видано, малина ще не підхопила"
         timestamptz key_rotated_at
@@ -178,7 +179,7 @@ erDiagram
         bigserial id PK
         bigint deployment_id FK
         text kind "r2|checkbox|jetinno"
-        text point_id FK "null для checkbox: каталог спільний"
+        text point_id FK "чия ціна їде; для checkbox — чию філію оновлюємо"
         text status "queued|deploying|done|failed|skipped"
         timestamptz done_at
         timestamptz acked_at "кіоск підтвердив, що показує"
@@ -222,9 +223,9 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 **Деплой меню — на всі точки одразу, якщо не вибрано інше.** Статус
 тримається на кожній цілі окремо: одна малина офлайн чи портал Jetinno
 впав — це `partial`, а не провал усього деплою. На кожну активну точку
-створюється ціль `r2` (меню, яке тягне кіоск), одна `checkbox` (каталог
-спільний на організацію, `checkbox.md`) і, якщо підтвердиться потреба,
-`jetinno` на точку (`services.md` §4). `acked_at` ставить сам кіоск, коли
+створюється ціль `r2` (меню, яке тягне кіоск), ціль `checkbox` (ціна філії
+цієї точки через `branches_info`, `checkbox.md`) і, якщо підтвердиться
+потреба, `jetinno` на точку (`services.md` §4). `acked_at` ставить сам кіоск, коли
 вже показує нові ціни, — «викотили в R2» і «висить на екрані» різні речі.
 
 **Точка і її малина — один рядок** (18.09.2026). Окремої таблиці пристроїв
