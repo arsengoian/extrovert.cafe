@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b32b605</p>
+  <p class="eyebrow">extrovert.cafe · джерело 745031c</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -866,6 +866,9 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 <p>Три баланси (<code>coins_yellow</code>, <code>coins_silver</code>, <code>beans</code>) лежать прямо в <code>users</code>
 з <code>check (… &gt;= 0)</code>. Окрема таблиця <code>wallets</code> 1:1 до користувача нічого не
 давала, крім зайвого join (рішення 17.09.2026).</p>
+<p>Там само лежить інвентар догляду — вода у відрі, компост, добриво,
+інсектицид (20.09.2026). Це теж баланси: купуються за монети, витрачаються
+поштучно й не можуть піти в мінус.</p>
 <p><code>ledger_entries</code> — незмінний журнал, де <strong>один рядок — це одна операція з
 трьома знаковими дельтами</strong>: <code>delta_yellow</code>, <code>delta_silver</code>, <code>delta_beans</code>.
 Обмін зерна на монети — один рядок <code>delta_beans = -1, delta_yellow = +15</code>,
@@ -940,6 +943,10 @@ erDiagram
         int coins_yellow &quot;check &gt;= 0, передаються між гравцями&quot;
         int coins_silver &quot;check &gt;= 0, НЕ передаються&quot;
         int beans &quot;check &gt;= 0&quot;
+        int water_liters &quot;відро: check &gt;= 0&quot;
+        int compost_kg &quot;check &gt;= 0&quot;
+        int fertilizer_kg &quot;check &gt;= 0&quot;
+        int insecticide_bottles &quot;check &gt;= 0&quot;
         timestamptz consent_at &quot;терми + обробка даних&quot;
         text terms_version
         jsonb metadata &quot;приховані службові змінні, у UI не показуються&quot;
@@ -1038,8 +1045,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployment_targets">menu_deployment_targets</a><span class="rel-label">яке меню стоїть</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-device_telemetry">device_telemetry</a><span class="rel-label">що шле залізо</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_segments">video_segments</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-problem_reports">problem_reports</a><span class="rel-label">скарги з форми</span></li></ul>
 </article>
 <article class="entity" id="t-users">
-  <header><h4>users</h4><span class="entity-count">11 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">nickname</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">унікальний, автоген при реєстрації</td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">метч між провайдерами</td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, передаються між гравцями</td></tr><tr><td class="c-name">coins_silver</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, НЕ передаються</td></tr><tr><td class="c-name">beans</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">consent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">терми + обробка даних</td></tr><tr><td class="c-name">terms_version</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">metadata</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">приховані службові змінні, у UI не показуються</td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>users</h4><span class="entity-count">15 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">nickname</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">унікальний, автоген при реєстрації</td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">метч між провайдерами</td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, передаються між гравцями</td></tr><tr><td class="c-name">coins_silver</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, НЕ передаються</td></tr><tr><td class="c-name">beans</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">water_liters</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">відро: check &gt;= 0</td></tr><tr><td class="c-name">compost_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">fertilizer_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">insecticide_bottles</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">consent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">терми + обробка даних</td></tr><tr><td class="c-name">terms_version</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">metadata</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">приховані службові змінні, у UI не показуються</td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-user_identities">user_identities</a><span class="rel-label">google/apple</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">хто заредімив</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">кожна операція</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-user_items">user_items</a><span class="rel-label">склад</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-crate_openings">crate_openings</a><span class="rel-label">відкриття крейтів</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-market_listings">market_listings</a><span class="rel-label">продає</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-coin_transfers">coin_transfers</a><span class="rel-label">переказ жовтих</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemptions">redemptions</a><span class="rel-label">доставки Новою Поштою</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_profile_responses">quiz_profile_responses</a><span class="rel-label">анкета, одноразово</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-repost_verifications">repost_verifications</a><span class="rel-label">репости</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plants">plants</a><span class="rel-label">необмежено кавенят</span></li></ul>
 </article>
 <article class="entity" id="t-user_identities">
@@ -1418,13 +1425,9 @@ erDiagram
         uuid owner_id FK
         text name
         smallint growth_stage &quot;0..10&quot;
-        smallint face_set_id &quot;1..5, назавжди&quot;
+        int face_set_id &quot;набір обличчя, назавжди&quot;
         timestamptz last_stage_transition_at &quot;гейт: 1 перехід на добу&quot;
         timestamptz last_watered_at &quot;mood рахується, не зберігається&quot;
-        int water_bucket_liters
-        int compost_kg
-        int fertilizer_kg
-        int insecticide_bottles
         text cycle_phase &quot;initial|regrowth&quot;
         int lifetime_beans_gifted
         uuid worn_set_id FK
@@ -1469,8 +1472,8 @@ erDiagram
     }</pre></div>
 </figure>
 <div class="dict"><article class="entity" id="t-plants">
-  <header><h4>plants</h4><span class="entity-count">17 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">1..5, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">water_bucket_liters</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">compost_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">fertilizer_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">insecticide_bottles</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>plants</h4><span class="entity-count">13 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
 </article>
 <article class="entity" id="t-plant_stage_transitions">
@@ -1499,6 +1502,14 @@ erDiagram
 (<a class="doclink" href="#gamification-economy"><code>gamification_economy.md</code></a> §3.1) — і дає адмінці історію без реконструкції
 з журналу валют. <code>unique (plant_id, to_stage)</code> заразом робить подвійний
 перехід неможливим, а не лише незручним.</p>
+<p><strong>Інвентар догляду — у гравця, не в куща</strong> (20.09.2026). Відро з водою,
+компост, добриво й інсектицид — колонки <code>users</code>. Кавенят у гравця може бути
+скільки завгодно, а відро й поличка на головному екрані одні: тримати
+лічильники на кущі означало б пʼять відер на пʼять кущів і питання «кому
+саме» на кожній купівлі води. На кущі лишається те, що справді його:
+<code>last_watered_at</code>, з якого рахується настрій, і лічильники стадій. Що саме
+витратили на конкретний кущ, видно з <code>plant_stage_transitions.consumed</code> —
+там же й ціна того переходу.</p>
 <p><code>WARDROBE_SET_ITEMS</code> окремою таблицею, а не пʼятьма колонками: слоти
 перелічені в доку як 5, але «acc_3» коштуватиме міграції даних, а не
 рядка в enum.</p>
@@ -6520,28 +6531,26 @@ ICP проєкту (<a class="doclink" href="#roadmap"><code>roadmap.md</code></
   &quot;last_stage_transition_at&quot;: &quot;2026-08-22T14:03:00Z&quot;,
 
   &quot;face_set_id&quot;: 3,
-  // 12.09.2026 (10): 1-5, обране ВИПАДКОВО (з пріоритетом на набори,
+  // 12.09.2026 (10): номер набору облич (зараз їх 5, §10.2; у схемі —
+  // звичайний int, бо наборів згодом побільшає), обраний ВИПАДКОВО
+  // (з пріоритетом на набори,
   // яких ще нема серед інших кавенят цього owner_id, §10.2) в момент
   // створення, НЕЗМІННЕ назавжди. Рендерер підставляє відповідні
   // 7 деталей (§10.2) × 3 стани настрою для цього face_set_id.
 
   &quot;care&quot;: {
-    &quot;last_watered_at&quot;: &quot;2026-09-05T08:00:00Z&quot;,
-    &quot;water_bucket_liters&quot;: 4,
-    // 🔄 12.09.2026 (9): відро-інвентар (§10.7 doc графіки, §3.2 доку
-    // економіки) — 1 літр = 1 полив, купівля батчами по
-    // Inputs!B25 л за Inputs!B26 монет. mood НЕ зберігається тут —
-    // рендерер рахує &quot;healthy&quot;/&quot;sad&quot;/&quot;very_sad&quot; з
-    // days_since(last_watered_at) проти Inputs!B27/B28 (3/7 днів)
-
-    &quot;compost_kg&quot;: 1,
-    &quot;fertilizer_kg&quot;: 2,
-    &quot;insecticide_bottles&quot;: 0
-    // 12.09.2026 (12): батч-інвентар компосту/добрива/інсектициду
-    // (§3.2 доку економіки, §10.6 doc графіки) — за аналогією з
-    // water_bucket_liters вище. 1 кг компосту/добрива = 1 застосування
-    // (1 перехід стадії), 1 пляшка інсектициду = 1 застосування.
-    // Купівля батчами по 3 (кг або пляшки), ціна = 3× чинна ціна
+    &quot;last_watered_at&quot;: &quot;2026-09-05T08:00:00Z&quot;
+    // 🔄 20.09.2026: сам інвентар догляду (вода, компост, добриво,
+    // інсектицид) тут БІЛЬШЕ НЕ ЛЕЖИТЬ — він на акаунті гравця
+    // (`users`, db-schema.md §1 і §3): кавенят багато, а відро й
+    // поличка на екрані одні. У стані куща лишається лише
+    // last_watered_at, бо з нього рендерер рахує &quot;healthy&quot;/&quot;sad&quot;/
+    // &quot;very_sad&quot; — mood не зберігається (Inputs!B27/B28, 3/7 днів).
+    //
+    // Правила витрати, які від переїзду не змінились: 1 літр = 1 полив,
+    // 1 кг компосту/добрива = 1 застосування (1 перехід стадії),
+    // 1 пляшка інсектициду = 1 застосування. Купівля батчами: вода по
+    // Inputs!B25 л за Inputs!B26 монет, решта по 3 одиниці за 3× ціни
     // одиничного застосування (Growth_Sets xlsx, не дублюється тут).
     // Лічильники відображаються на поличці (§10.6) тими самими
     // іконками, що й &quot;хоче X&quot; у хмаринці (§10.8) — без нового арту.
@@ -6641,9 +6650,9 @@ ICP проєкту (<a class="doclink" href="#roadmap"><code>roadmap.md</code></
 кількість/межі зон, тривалість таймера regrowth). Сама структура JSON
 (зона+x/y замість одноточкового слота, <code>locked</code>-прапорці, <code>attached_to</code>
 для плодів, обчислюваний <code>mood</code>, <code>rewards_barrel</code> окремо від
-<code>fruit_cycle</code>, <code>face_set_id</code> фіксований назавжди, <code>water_bucket_liters</code>
-інвентар, <code>skin_id</code> для квітки/боба) — усталена і не залежить від
-фінальних чисел.</p>
+<code>fruit_cycle</code>, <code>face_set_id</code> фіксований назавжди, <code>skin_id</code> для квітки/боба)
+— усталена і не залежить від фінальних чисел. Інвентар догляду з неї
+переїхав на акаунт гравця (20.09.2026, §9).</p>
 <h2 id="bush-graphics-customization-10-вичерпний-перелік-спрайтів-та-анімацій-для-промальовки"><a class="anchor" href="#bush-graphics-customization-10-вичерпний-перелік-спрайтів-та-анімацій-для-промальовки" aria-hidden="true">#</a>10. Вичерпний перелік спрайтів та анімацій для промальовки</h2>
 <p><strong>Принцип: анімація = transform існуючого спрайта, плюс ОДИН спільний
 &quot;магічний&quot; ефект.</strong> Жодна анімація нижче не потребує окремо намальованої
@@ -9226,7 +9235,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел b32b605 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 745031c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

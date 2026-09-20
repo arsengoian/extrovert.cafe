@@ -29,6 +29,10 @@
 з `check (… >= 0)`. Окрема таблиця `wallets` 1:1 до користувача нічого не
 давала, крім зайвого join (рішення 17.09.2026).
 
+Там само лежить інвентар догляду — вода у відрі, компост, добриво,
+інсектицид (20.09.2026). Це теж баланси: купуються за монети, витрачаються
+поштучно й не можуть піти в мінус.
+
 `ledger_entries` — незмінний журнал, де **один рядок — це одна операція з
 трьома знаковими дельтами**: `delta_yellow`, `delta_silver`, `delta_beans`.
 Обмін зерна на монети — один рядок `delta_beans = -1, delta_yellow = +15`,
@@ -116,6 +120,10 @@ erDiagram
         int coins_yellow "check >= 0, передаються між гравцями"
         int coins_silver "check >= 0, НЕ передаються"
         int beans "check >= 0"
+        int water_liters "відро: check >= 0"
+        int compost_kg "check >= 0"
+        int fertilizer_kg "check >= 0"
+        int insecticide_bottles "check >= 0"
         timestamptz consent_at "терми + обробка даних"
         text terms_version
         jsonb metadata "приховані службові змінні, у UI не показуються"
@@ -481,13 +489,9 @@ erDiagram
         uuid owner_id FK
         text name
         smallint growth_stage "0..10"
-        smallint face_set_id "1..5, назавжди"
+        int face_set_id "набір обличчя, назавжди"
         timestamptz last_stage_transition_at "гейт: 1 перехід на добу"
         timestamptz last_watered_at "mood рахується, не зберігається"
-        int water_bucket_liters
-        int compost_kg
-        int fertilizer_kg
-        int insecticide_bottles
         text cycle_phase "initial|regrowth"
         int lifetime_beans_gifted
         uuid worn_set_id FK
@@ -538,6 +542,15 @@ erDiagram
 (`gamification_economy.md` §3.1) — і дає адмінці історію без реконструкції
 з журналу валют. `unique (plant_id, to_stage)` заразом робить подвійний
 перехід неможливим, а не лише незручним.
+
+**Інвентар догляду — у гравця, не в куща** (20.09.2026). Відро з водою,
+компост, добриво й інсектицид — колонки `users`. Кавенят у гравця може бути
+скільки завгодно, а відро й поличка на головному екрані одні: тримати
+лічильники на кущі означало б пʼять відер на пʼять кущів і питання «кому
+саме» на кожній купівлі води. На кущі лишається те, що справді його:
+`last_watered_at`, з якого рахується настрій, і лічильники стадій. Що саме
+витратили на конкретний кущ, видно з `plant_stage_transitions.consumed` —
+там же й ціна того переходу.
 
 `WARDROBE_SET_ITEMS` окремою таблицею, а не пʼятьма колонками: слоти
 перелічені в доку як 5, але «acc_3» коштуватиме міграції даних, а не
