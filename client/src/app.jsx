@@ -9,6 +9,7 @@ import { api, getToken, setToken } from "./api.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
 import { TopbarBack } from "./ui/TopbarBack.jsx";
+import { connectEvents } from "./ws.js";
 import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 
@@ -32,6 +33,15 @@ export function App() {
   const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
   const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
   const openTab = useCallback((next) => { setTab(next); setStack([]); }, []);
+
+  // Події з ws: після будь-якої зміни в акаунті перечитуємо профіль —
+  // баланси в HUD мають оновлюватись без перезаходу.
+  useEffect(() => {
+    if (!me) return undefined;
+    return connectEvents((msg) => {
+      if (msg.event && msg.event !== "hello") refreshMe().catch(() => {});
+    });
+  }, [me?.id, refreshMe]);
 
   // Апаратна «назад» на телефоні має закривати екран, а не виходити із
   // застосунку: кладемо запис в історію на кожен push.
