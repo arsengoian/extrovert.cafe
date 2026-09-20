@@ -419,6 +419,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK "unique: анкета одноразова"
         jsonb answers
+        text free_text "відкрите питання в кінці, може бути порожнім"
         int coins_awarded
         timestamptz created_at
     }
@@ -427,7 +428,7 @@ erDiagram
         uuid user_id FK
         bigint receipt_item_id FK
         jsonb answers "оцінки складників + чистота"
-        text free_text
+        text free_text "те саме поле, що в анкеті профіля"
         int coins_awarded
         timestamptz created_at
     }

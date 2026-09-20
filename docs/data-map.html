@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 745031c</p>
+  <p class="eyebrow">extrovert.cafe · джерело ebdf9a0</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1285,6 +1285,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK &quot;unique: анкета одноразова&quot;
         jsonb answers
+        text free_text &quot;відкрите питання в кінці, може бути порожнім&quot;
         int coins_awarded
         timestamptz created_at
     }
@@ -1293,7 +1294,7 @@ erDiagram
         uuid user_id FK
         bigint receipt_item_id FK
         jsonb answers &quot;оцінки складників + чистота&quot;
-        text free_text
+        text free_text &quot;те саме поле, що в анкеті профіля&quot;
         int coins_awarded
         timestamptz created_at
     }
@@ -1368,13 +1369,13 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">знижка на POS</span></li></ul>
 </article>
 <article class="entity" id="t-quiz_profile_responses">
-  <header><h4>quiz_profile_responses</h4><span class="entity-count">5 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: анкета одноразова</td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>quiz_profile_responses</h4><span class="entity-count">6 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: анкета одноразова</td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">відкрите питання в кінці, може бути порожнім</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">анкета, одноразово</span></li></ul>
 </article>
 <article class="entity" id="t-quiz_drink_responses">
   <header><h4>quiz_drink_responses</h4><span class="entity-count">7 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">оцінки складників + чистота</td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_item_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">оцінки складників + чистота</td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">те саме поле, що в анкеті профіля</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">← 1</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">про яке замовлення</span></li></ul>
 </article>
 <article class="entity" id="t-repost_verifications">
@@ -5629,6 +5630,7 @@ AI-чат) — жодних реальних COGS нижче по ланцюгу
 <p>4 картки наборів - Паросток / Кущик / Цвіт / Врожай (100 / 500 / 1 100 / 3 000 монет, gamification_economy.md §9.1), арт - стопки / купа зі стопками / наш крейт зі стопами / бочка монет зі стопами (bush_graphics_customization.md §10.18): кількість монет, ціна в грн, дрібним текстом ціна за монету, бейдж зі знижкою у % від базового набору. На найвигіднішому наборі (Врожай) - акцентний бейдж &quot;найкраща ціна&quot;. Тап по картці - чекаут через mono pay, без форми й без доставки (товар суто віртуальний) - лише підтвердження оплати. Після оплати - попап з короткою анімацією нарахування монет, баланс у шапці оновлюється одразу.</p>
 <h5 id="gamification-ui-екран-квізу-профіля"><a class="anchor" href="#gamification-ui-екран-квізу-профіля" aria-hidden="true">#</a>Екран квізу профіля</h5>
 <p>Збираємо демографічні дані і інформацію про споживання кави: яку каву любить, які бренди любить, як часто п&#39;є, які напої любить, які не любить, чи використовує палички, цукор, кришечки тощо.</p>
+<p>Наприкінці - поле вільного тексту, як у квізі про напій <em>(20.09.2026, з дизайну)</em>: місце сказати те, чого немає у варіантах. Необов&#39;язкове, на нарахування монет не впливає; лягає в <code>quiz_profile_responses.free_text</code> і читається в адмінці разом із рештою субмітів.</p>
 <h4 id="gamification-ui-склад"><a class="anchor" href="#gamification-ui-склад" aria-hidden="true">#</a>Склад</h4>
 <p>Інвентар одягу, відсортований за комплектами з порожніми місцями та лутбоксів. Продубльовані предмети відображаються лічильником. Лутбокс можна відкрити з інвентаря після чого відбувається попап, показуються отримані айтеми і оновлюється контент. Однакові предмети (дублікати) не мають жодної спецмеханіки понад лічильник - рішення 18.09.2026: дублі залишаються просто на складі, без авто-конвертації в монети/зерна й без pity-захисту в крейт-ролі. Спосіб отримати з дубліката цінність - продати на P2P-маркеті (нижче) або зібрати ним другий повний комплект (кавенятко може мати кілька подарованих комплектів одночасно, gamification_economy.md §3.4)</p>
 <p><strong>Картка предмета одягу</strong> <em>(19.09.2026)</em>. Тап по предмету - на Складі, в Гардеробі й примірочній, у прев&#39;ю Магазину, у P2P-лістингу чи в попапі відкриття крейта - відкриває його картку: спрайт, назва, тір, слот, набір (<code>item_defs.collection</code>), кількість (якщо є дублікати) і <strong>текстовий опис</strong>. Опис є в кожного предмета, пишеться в markdown (<code>item_defs.description_md</code>, db-schema.md §2) і рендериться в картці: абзаци, жирний, курсив, списки, посилання; сирий HTML і картинки не показуються. У сітках і списках опису немає - лише в картці, щоб не роздувати екран. Дії в картці залежать від того, звідки її відкрили: зі Складу - продати на P2P чи зняти з продажу, з Гардеробу - приміряти, з Магазину - купити.</p>
@@ -9235,7 +9237,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 745031c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ebdf9a0 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
