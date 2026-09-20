@@ -13,6 +13,7 @@
       "name": "@extrovert/api",
       "version": "0.0.1",
       "dependencies": {
+        "@extrovert/lib": "workspace:*",
         "@sentry/node": "^8.0.0",
         "fastify": "^5.0.0",
         "ioredis": "^5.4.1",
@@ -23,6 +24,7 @@
       "name": "@extrovert/checkbox",
       "version": "0.0.1",
       "dependencies": {
+        "@extrovert/lib": "workspace:*",
         "@sentry/node": "^8.0.0",
         "fastify": "^5.0.0",
         "ioredis": "^5.4.1",
@@ -41,10 +43,19 @@
         "vite": "^6.0.0",
       },
     },
+    "lib": {
+      "name": "@extrovert/lib",
+      "version": "0.0.1",
+      "dependencies": {
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
     "overseer": {
       "name": "@extrovert/overseer",
       "version": "0.0.1",
       "dependencies": {
+        "@extrovert/lib": "workspace:*",
         "@sentry/node": "^8.0.0",
         "ioredis": "^5.4.1",
         "pg": "^8.13.0",
@@ -54,10 +65,20 @@
       "name": "@extrovert/pos",
       "version": "0.1.0",
     },
+    "scheduler": {
+      "name": "@extrovert/scheduler",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
     "ws": {
       "name": "@extrovert/ws",
       "version": "0.0.1",
       "dependencies": {
+        "@extrovert/lib": "workspace:*",
         "@sentry/node": "^8.0.0",
         "ioredis": "^5.4.1",
         "ws": "^8.18.0",
@@ -161,9 +182,13 @@
 
     "@extrovert/client": ["@extrovert/client@workspace:client"],
 
+    "@extrovert/lib": ["@extrovert/lib@workspace:lib"],
+
     "@extrovert/overseer": ["@extrovert/overseer@workspace:overseer"],
 
     "@extrovert/pos": ["@extrovert/pos@workspace:pos"],
+
+    "@extrovert/scheduler": ["@extrovert/scheduler@workspace:scheduler"],
 
     "@extrovert/ws": ["@extrovert/ws@workspace:ws"],
 

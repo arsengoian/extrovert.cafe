@@ -9,6 +9,7 @@
     "start": "bun src/index.js"
   },
   "dependencies": {
+    "@extrovert/lib": "workspace:*",
     "fastify": "^5.0.0",
     "pg": "^8.13.0",
     "ioredis": "^5.4.1",

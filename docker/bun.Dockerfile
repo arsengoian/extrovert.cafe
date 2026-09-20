@@ -18,10 +18,12 @@ WORKDIR /app
 # не змінились. Маніфести всіх воркспейсів потрібні, бо lock описує монорепо
 # цілком — без них bun не зіставить його з деревом.
 COPY package.json bun.lock ./
+COPY lib/package.json ./lib/
 COPY api/package.json ./api/
 COPY ws/package.json ./ws/
 COPY checkbox/package.json ./checkbox/
 COPY overseer/package.json ./overseer/
+COPY scheduler/package.json ./scheduler/
 COPY pos/package.json ./pos/
 COPY client/package.json ./client/
 
@@ -29,6 +31,10 @@ COPY client/package.json ./client/
 # lock. --filter: ставимо залежності лише потрібного сервісу.
 RUN bun install --frozen-lockfile --production --filter "./${SVC}"
 
+# Спільна бібліотека (Postgres, Redis, outbox, логер) їде з кожним сервісом:
+# у монорепо вона не публікується, тому в образі має бути її код, а не лише
+# запис у lock.
+COPY lib/ ./lib/
 COPY ${SVC}/ ./${SVC}/
 WORKDIR /app/${SVC}
 ENV NODE_ENV=production

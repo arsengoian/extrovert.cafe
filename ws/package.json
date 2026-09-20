@@ -9,6 +9,7 @@
     "start": "bun src/index.js"
   },
   "dependencies": {
+    "@extrovert/lib": "workspace:*",
     "ws": "^8.18.0",
     "ioredis": "^5.4.1",
     "@sentry/node": "^8.0.0"

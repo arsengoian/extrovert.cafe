@@ -74,6 +74,17 @@ services:
       redis:    { condition: service_healthy }
     restart: unless-stopped
 
+  # Фонові роботи за розкладом: публікатор outbox, покази маркету, довідник
+  # і трекінг Нової Пошти (docs/services.md §2).
+  scheduler:
+    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: scheduler } }
+    env_file: [.env]
+    depends_on:
+      migrate:  { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+
   overseer:
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: overseer } }
     env_file: [.env]

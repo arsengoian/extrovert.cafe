@@ -3,12 +3,14 @@
   "private": true,
   "version": "0.0.1",
   "workspaces": [
+    "lib",
     "api",
     "ws",
     "checkbox",
     "overseer",
     "pos",
-    "client"
+    "client",
+    "scheduler"
   ],
   "scripts": {
     "up": "docker compose up -d",

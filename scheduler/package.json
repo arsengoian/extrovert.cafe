@@ -1,9 +1,9 @@
 {
-  "name": "@extrovert/overseer",
+  "name": "@extrovert/scheduler",
   "private": true,
   "type": "module",
   "version": "0.0.1",
-  "description": "telegram-бот звітності",
+  "description": "фонові роботи за розкладом: outbox, покази маркету, довідник і трекінг НП",
   "scripts": {
     "dev": "bun --watch src/index.js",
     "start": "bun src/index.js"
@@ -11,7 +11,6 @@
   "dependencies": {
     "@extrovert/lib": "workspace:*",
     "pg": "^8.13.0",
-    "ioredis": "^5.4.1",
-    "@sentry/node": "^8.0.0"
+    "ioredis": "^5.4.1"
   }
 }

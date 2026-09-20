@@ -1,0 +1,18 @@
+{
+  "name": "@extrovert/lib",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "спільне для сервісів: Postgres, Redis, outbox, логер",
+  "exports": {
+    "./db.js": "./src/db.js",
+    "./redis.js": "./src/redis.js",
+    "./outbox.js": "./src/outbox.js",
+    "./log.js": "./src/log.js",
+    "./jobs.js": "./src/jobs.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.0",
+    "ioredis": "^5.4.1"
+  }
+}

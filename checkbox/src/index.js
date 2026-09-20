@@ -1,32 +1,78 @@
-// Приймач вебхуків ПРРО Checkbox.
-// ВАЖЛИВО: підпис перевіряти завжди — інакше будь-хто накрутить нам «продажі».
-// Формула з документації: base64(HmacSHA256(secret, тіло_UTF8)).
-import Fastify from "fastify";
+// Сервіс ПРРО Checkbox: приймач вебхука + опитування чеків раз на хвилину.
+//
+// Обидва шляхи ведуть в один ingest() — і саме тому другий прихід того
+// самого чека нічого не робить (docs/checkbox.md). Тут же перевірка
+// підпису: без неї будь-хто накрутив би нам «продажі» й бонуси.
 import crypto from "node:crypto";
+import Fastify from "fastify";
+import { pool } from "@extrovert/lib/db.js";
+import { redisClient } from "@extrovert/lib/redis.js";
+import { makeLog } from "@extrovert/lib/log.js";
+import { every, withLock } from "@extrovert/lib/jobs.js";
+import { ingest } from "./receipts.js";
+import { pollReceipts } from "./poll.js";
 
-const app = Fastify({ logger: true });
-const PORT = process.env.PORT || 3003;
+const log = makeLog("checkbox");
+const redis = redisClient();
+const app = Fastify({ logger: false });
+const PORT = Number(process.env.PORT || 3003);
 const SECRET = process.env.CHECKBOX_WEBHOOK_KEY || "";
+
+// Тіло потрібне байт-у-байт: підпис рахується від сирого тексту, а не від
+// перезібраного JSON (пробіли й порядок ключів зруйнували б збіг).
+app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+  req.rawBody = body;
+  try { done(null, JSON.parse(body)); } catch (e) { done(e); }
+});
+
+const timingSafeEq = (a, b) => {
+  const A = Buffer.from(a), B = Buffer.from(b);
+  return A.length === B.length && crypto.timingSafeEqual(A, B);
+};
 
 app.get("/healthz", async () => ({ ok: true, service: "checkbox" }));
 
-app.post("/webhook/checkbox", {
-  config: { rawBody: true }
-}, async (req, reply) => {
-  const raw = req.rawBody ?? JSON.stringify(req.body);
-  const sig = req.headers["x-signature"] || req.headers["X-Signature"];
-  const mine = crypto.createHmac("sha256", SECRET).update(raw, "utf8").digest("base64");
-  if (!SECRET || !sig || !timingSafeEq(String(sig), mine)) {
-    req.log.warn("підпис не збігся");
-    return reply.code(401).send({ error: "bad signature" });
+app.post("/webhook/checkbox", async (req, reply) => {
+  const raw = req.rawBody ?? "";
+  const signature = String(req.headers["x-signature"] ?? "");
+  const mine = SECRET ? crypto.createHmac("sha256", SECRET).update(raw, "utf8").digest("base64") : "";
+  if (!SECRET || !signature || !timingSafeEq(signature, mine)) {
+    log.warn("підпис не збігся", { ip: req.ip });
+    return reply.code(401).send({ error: "bad_signature" });
   }
-  // TODO ідемпотентність за receipt.id, запис у Postgres, publish у Redis
-  return { ok: true };
+
+  const body = req.body ?? {};
+  // Вебхук шле не лише чеки: зміни, службові внесення. Нас цікавлять чеки.
+  const receipt = body.receipt ?? (body.id && body.goods ? body : null);
+  if (!receipt) return { ok: true, ignored: body.type ?? "unknown" };
+
+  try {
+    const { duplicate } = await ingest(receipt, { source: "webhook", log });
+    return { ok: true, duplicate };
+  } catch (e) {
+    log.error("чек із вебхука не записався", e);
+    // 500 — навмисно: Checkbox повторить, а last_error_date у них покаже,
+    // що ми падали (docs/checkbox.md, «Вебхук»).
+    return reply.code(500).send({ error: "ingest_failed" });
+  }
 });
 
-function timingSafeEq(a, b) {
-  const A = Buffer.from(a), B = Buffer.from(b);
-  return A.length === B.length && crypto.timingSafeEqual(A, B);
-}
+// Опитування — теж під блокуванням: у двох копіях сервісу воно ходило б у
+// Checkbox удвічі частіше без жодної користі.
+const stop = every(60_000, "checkbox-poll", async () => {
+  const { skipped, result } = await withLock(redis, "checkbox-poll", 55_000, () => pollReceipts({ log }));
+  if (!skipped && result?.done) log.info(result.done);
+}, log);
 
-app.listen({ port: PORT, host: "0.0.0.0" });
+await app.listen({ port: PORT, host: "0.0.0.0" });
+log.info("checkbox піднявся", { port: PORT, poll: "раз на хвилину" });
+
+const shutdown = async () => {
+  stop();
+  await app.close().catch(() => {});
+  await redis.quit().catch(() => {});
+  await pool.end().catch(() => {});
+  process.exit(0);
+};
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
