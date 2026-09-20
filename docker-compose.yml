@@ -31,6 +31,11 @@ services:
   migrate:
     build: ./db
     env_file: [.env]
+    # Тека міграцій ще й монтується поверх тієї, що в образі: інакше кожен
+    # новий файл вимагав би --build, а `compose run migrate up` мовчки
+    # застосовував би стару копію. Заодно dbmate кладе schema.sql на хост,
+    # де його й комітять.
+    volumes: ["./db:/app/db"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-extrovert}?sslmode=disable
     depends_on:

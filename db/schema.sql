@@ -587,6 +587,42 @@ ALTER SEQUENCE public.news_broadcasts_id_seq OWNED BY public.news_broadcasts.id;
 
 
 --
+-- Name: nickname_words; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.nickname_words (
+    id bigint NOT NULL,
+    kind text NOT NULL,
+    word text NOT NULL,
+    forms jsonb,
+    gender text,
+    active boolean DEFAULT true NOT NULL,
+    CONSTRAINT nickname_words_check CHECK ((((kind = 'adjective'::text) AND (forms IS NOT NULL)) OR ((kind = 'noun'::text) AND (gender IS NOT NULL)))),
+    CONSTRAINT nickname_words_gender_check CHECK ((gender = ANY (ARRAY['m'::text, 'f'::text, 'n'::text]))),
+    CONSTRAINT nickname_words_kind_check CHECK ((kind = ANY (ARRAY['adjective'::text, 'noun'::text])))
+);
+
+
+--
+-- Name: nickname_words_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.nickname_words_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: nickname_words_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.nickname_words_id_seq OWNED BY public.nickname_words.id;
+
+
+--
 -- Name: np_cities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1039,11 +1075,12 @@ ALTER SEQUENCE public.redemptions_id_seq OWNED BY public.redemptions.id;
 CREATE TABLE public.repost_verifications (
     id bigint NOT NULL,
     user_id uuid NOT NULL,
-    network text NOT NULL,
+    network text,
     redirect_token text NOT NULL,
     clicked_at timestamp with time zone,
     verified_at timestamp with time zone,
     coins_awarded integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT repost_verifications_coins_awarded_check CHECK ((coins_awarded >= 0))
 );
 
@@ -1485,6 +1522,13 @@ ALTER TABLE ONLY public.news_broadcasts ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: nickname_words id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nickname_words ALTER COLUMN id SET DEFAULT nextval('public.nickname_words_id_seq'::regclass);
+
+
+--
 -- Name: outbox id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -1808,6 +1852,22 @@ ALTER TABLE ONLY public.menu_deployments
 
 ALTER TABLE ONLY public.news_broadcasts
     ADD CONSTRAINT news_broadcasts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: nickname_words nickname_words_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nickname_words
+    ADD CONSTRAINT nickname_words_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: nickname_words nickname_words_word_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.nickname_words
+    ADD CONSTRAINT nickname_words_word_key UNIQUE (word);
 
 
 --
@@ -2256,6 +2316,13 @@ CREATE INDEX menu_deployment_targets_status_idx ON public.menu_deployment_target
 
 
 --
+-- Name: nickname_words_kind_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX nickname_words_kind_idx ON public.nickname_words USING btree (kind) WHERE active;
+
+
+--
 -- Name: np_cities_name_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2358,6 +2425,13 @@ CREATE INDEX redemptions_status_idx ON public.redemptions USING btree (status) W
 --
 
 CREATE INDEX redemptions_user_id_created_at_idx ON public.redemptions USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: repost_verifications_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX repost_verifications_user_id_idx ON public.repost_verifications USING btree (user_id) WHERE (verified_at IS NULL);
 
 
 --
@@ -2922,4 +2996,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920200700'),
     ('20260920200800'),
     ('20260920200900'),
-    ('20260920201000');
+    ('20260920201000'),
+    ('20260920210000'),
+    ('20260920220000');

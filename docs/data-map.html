@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело fb1b233</p>
+  <p class="eyebrow">extrovert.cafe · джерело 62911e2</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1314,11 +1314,12 @@ erDiagram
     REPOST_VERIFICATIONS {
         bigserial id PK
         uuid user_id FK
-        text network
-        text redirect_token UK
+        text network &quot;з Referer першого переходу, часто null&quot;
+        text redirect_token UK &quot;слаг у посиланні extrovert.cafe/r/…&quot;
         timestamptz clicked_at
-        timestamptz verified_at
+        timestamptz verified_at &quot;null = посилання видали, перехід ще не зарахував&quot;
         int coins_awarded
+        timestamptz created_at
     }</pre></div>
 </figure>
 <div class="dict"><article class="entity" id="t-ledger_entries">
@@ -1392,8 +1393,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">← 1</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">про яке замовлення</span></li></ul>
 </article>
 <article class="entity" id="t-repost_verifications">
-  <header><h4>repost_verifications</h4><span class="entity-count">7 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">network</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">redirect_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">clicked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">verified_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>repost_verifications</h4><span class="entity-count">8 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">network</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">з Referer першого переходу, часто null</td></tr><tr><td class="c-name">redirect_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">слаг у посиланні extrovert.cafe/r/…</td></tr><tr><td class="c-name">clicked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">verified_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">null = посилання видали, перехід ще не зарахував</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">репости</span></li></ul>
 </article></div>
 <p>Два правила економіки, які <strong>мають жити в схемі, а не лише в коді</strong>:</p>
@@ -4467,6 +4468,17 @@ Telegram тощо, ми просто виконуємо технічний тр�
 </ul>
 <p>Тобто максимум Silver-монет із цього джерела на акаунт — фіксована, кінцева
 сума (5 репостів), а не постійний дохід, як із квізом про напій.</p>
+<p>Як це працює в коді (<code>api/src/routes/repost.js</code>, 20.09.2026): гравцю
+видається посилання <code>extrovert.cafe/r/&lt;нікнейм&gt;</code> — рядок у
+<code>REPOST_VERIFICATIONS</code> без <code>verified_at</code>. Репост зараховує <strong>перший чужий
+перехід</strong> за цим посиланням: своя ж сесія не рахується, інакше «репост»
+робився б в один тап. Клік під час кулдауну лишає спробу відкритою — вона
+спрацює, коли 10 днів минуть. Сторінка <code>/r/&lt;token&gt;</code> стукає в
+<code>POST /repost/visit/&lt;token&gt;</code> і веде гостя в застосунок; відповідь однакова
+для всіх, щоб із неї не можна було вичитати чужий стан.</p>
+<p>Чого перевірка <strong>не</strong> ловить: гравець може відкрити власне посилання в
+інкогніто або з іншого пристрою. Без прив’язки до IP чи фінгерпринта це
+приймаємо свідомо — ліміт у 5 репостів робить фарм малоцікавим.</p>
 <h2 id="gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу"><a class="anchor" href="#gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу" aria-hidden="true">#</a>3. Скільки стадій росту й скільки предметів у комплекті одягу</h2>
 <h3 id="gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле"><a class="anchor" href="#gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле" aria-hidden="true">#</a>3.1 Стадії росту кавенятка — 11 станів (0-10) 🔄 ПОВНІСТЮ ПЕРЕРОБЛЕНО</h3>
 <p><strong>Головна зміна: кавенятко &quot;впускає каву&quot; (видає Coffee Beans) ЛИШЕ коли
@@ -9296,7 +9308,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел fb1b233 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 62911e2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

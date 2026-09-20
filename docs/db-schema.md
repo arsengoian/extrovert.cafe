@@ -435,11 +435,12 @@ erDiagram
     REPOST_VERIFICATIONS {
         bigserial id PK
         uuid user_id FK
-        text network
-        text redirect_token UK
+        text network "з Referer першого переходу, часто null"
+        text redirect_token UK "слаг у посиланні extrovert.cafe/r/…"
         timestamptz clicked_at
-        timestamptz verified_at
+        timestamptz verified_at "null = посилання видали, перехід ще не зарахував"
         int coins_awarded
+        timestamptz created_at
     }
 ```
 

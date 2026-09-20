@@ -13,6 +13,7 @@ import { NicknameChange } from "./NicknameChange.jsx";
 import { Problem } from "./Problem.jsx";
 import { QuizProfile } from "./QuizProfile.jsx";
 import { QuizDrink } from "./QuizDrink.jsx";
+import { Repost } from "./Repost.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -41,4 +42,5 @@ export const SCREENS = {
   problem: { component: Problem, title: "Що не працює?" },
   quizProfile: { component: QuizProfile, title: "Розкажи про себе" },
   quizDrink: { component: QuizDrink, title: "Опитування про напій" },
+  repost: { component: Repost, title: "Репост у соцмережі" },
 };

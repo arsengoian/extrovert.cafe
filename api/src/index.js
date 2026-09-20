@@ -12,6 +12,7 @@ import crateRoutes from "./routes/crate.js";
 import devRoutes from "./routes/dev.js";
 import problemRoutes from "./routes/problems.js";
 import quizRoutes from "./routes/quiz.js";
+import repostRoutes from "./routes/repost.js";
 
 const app = Fastify({ logger: true });
 
@@ -41,6 +42,7 @@ await app.register(crateRoutes, { prefix: "/api/v1" });
 await app.register(devRoutes, { prefix: "/api/v1" });
 await app.register(problemRoutes, { prefix: "/api/v1" });
 await app.register(quizRoutes, { prefix: "/api/v1" });
+await app.register(repostRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

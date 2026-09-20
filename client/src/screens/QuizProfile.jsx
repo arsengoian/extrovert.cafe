@@ -37,7 +37,10 @@ export function QuizProfile({ ctx }) {
 
   const current = quiz.steps[step];
   const last = step === quiz.steps.length - 1;
-  const set = (id, value) => setAnswers((a) => ({ ...a, [id]: value }));
+  // value може бути функцією — так мультивибір оновлюється від попереднього
+  // стану, а не від того, що встиг долетіти в пропси.
+  const set = (id, value) =>
+    setAnswers((a) => ({ ...a, [id]: typeof value === "function" ? value(a[id]) : value }));
 
   const next = async () => {
     if (!last) { setStep(step + 1); return; }

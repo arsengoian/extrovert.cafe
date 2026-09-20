@@ -3,10 +3,14 @@
 // кожен екран малював би свої кружечки.
 export function Choice({ options, value, onChange, multi = false }) {
   const picked = (o) => (multi ? (value ?? []).includes(o) : value === o);
+  // Мультивибір віддає функцію, а не готовий масив: два швидкі тапи підряд
+  // бачать однаковий value з пропсів, і другий затирав би перший.
   const toggle = (o) => {
     if (!multi) return onChange(o);
-    const list = value ?? [];
-    onChange(list.includes(o) ? list.filter((x) => x !== o) : [...list, o]);
+    onChange((prev) => {
+      const list = prev ?? [];
+      return list.includes(o) ? list.filter((x) => x !== o) : [...list, o];
+    });
   };
 
   return (

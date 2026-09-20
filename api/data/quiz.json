@@ -3,8 +3,7 @@
   "updated": "2026-09-20",
 
   "profile": {
-    "reward_silver": 150,
-    "$reward": "з екрана «Розкажи про себе 5»: +150 за опитування",
+    "$rewards": "суми нарахувань — в api/data/economy.json (quiz.profile_coins, quiz.drink_coins), щоб економіка жила в одному файлі",
     "steps": [
       {
         "id": "about",
@@ -68,8 +67,6 @@
   },
 
   "drink": {
-    "reward_silver": 40,
-    "$reward": "з екрана «Опитування про напій»: +40",
     "scales": [
       { "id": "coffee", "title": "Кава", "options": ["слабка", "якраз", "заміцна"] },
       { "id": "milk", "title": "Молоко", "options": ["водянисте", "ідеальне", "густе"] },

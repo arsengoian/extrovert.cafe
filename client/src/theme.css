@@ -131,3 +131,32 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @keyframes pulse { 0%, 100% { opacity: .5 } 50% { opacity: .85 } }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+
+/* Кроки-«таймлайн» і посилання-репост (екран «Репост у соцмережі») */
+.badge-coin {
+  flex: none; width: 52px; height: 52px; border-radius: 14px;
+  background: var(--panel2); border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+}
+.badge-coin img { width: 24px; height: 25px; object-fit: contain }
+.badge-coin span { font-size: 10px; font-weight: 800; line-height: 1 }
+
+.steps { list-style: none; margin: 16px 0 0; padding: 0 }
+.steps li { display: flex; gap: 12px; padding-bottom: 16px; position: relative }
+.steps li:last-child { padding-bottom: 0 }
+/* Вертикальна лінія між кроками — псевдоелемент, щоб не плодити порожні div */
+.steps li:not(:last-child)::before {
+  content: ""; position: absolute; left: 12px; top: 30px; bottom: 2px; width: 2px; background: var(--line);
+}
+.steps-num {
+  flex: none; width: 26px; height: 26px; border-radius: var(--radius-pill);
+  background: var(--grad); color: var(--accent-ink); font-size: 13px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.link-box {
+  flex: 1; min-width: 0; height: 46px; margin: 0; padding: 0 13px;
+  display: flex; align-items: center; font-size: 13px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.btn-icon { flex: none; width: 46px; height: 46px; padding: 0; color: var(--muted) }

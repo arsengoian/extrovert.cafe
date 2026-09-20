@@ -59,7 +59,7 @@ export default async function routes(app) {
       ),
     }));
 
-    return { done: Boolean(done), completed_at: done?.created_at ?? null, reward: quiz.profile.reward_silver, steps };
+    return { done: Boolean(done), completed_at: done?.created_at ?? null, reward: economy.quiz.profile_coins, steps };
   });
 
   app.post("/quiz/profile", async (req, reply) => {
@@ -77,15 +77,15 @@ export default async function routes(app) {
            values ($1, $2, $3, $4)
            on conflict (user_id) do nothing
            returning id`,
-          [user.id, answers, freeText, quiz.profile.reward_silver]
+          [user.id, answers, freeText, economy.quiz.profile_coins]
         );
         if (!rows.length) return null;                   // анкета вже була
-        await award(client, user.id, quiz.profile.reward_silver, "quiz", { quiz: "profile" });
+        await award(client, user.id, economy.quiz.profile_coins, "quiz", { quiz: "profile" });
         return rows[0].id;
       });
 
       if (!saved) return reply.code(409).send({ error: "already_done" });
-      return { ok: true, awarded_silver: quiz.profile.reward_silver };
+      return { ok: true, awarded_silver: economy.quiz.profile_coins };
     } catch (e) {
       app.log.error(e);
       return reply.code(500).send({ error: "save_failed" });
@@ -116,7 +116,7 @@ export default async function routes(app) {
       [user.id]
     );
 
-    return { credits, drinks, reward: quiz.drink.reward_silver, scales: quiz.drink.scales,
+    return { credits, drinks, reward: economy.quiz.drink_coins, scales: quiz.drink.scales,
              free_text: quiz.drink.free_text, items };
   });
 
@@ -148,15 +148,15 @@ export default async function routes(app) {
            values ($1, $2, $3, $4, $5)
            on conflict (receipt_item_id) do nothing
            returning id`,
-          [user.id, itemId, answers, freeText, quiz.drink.reward_silver]
+          [user.id, itemId, answers, freeText, economy.quiz.drink_coins]
         );
         if (!rows.length) return null;                   // про це замовлення вже відповідали
-        await award(client, user.id, quiz.drink.reward_silver, "quiz", { quiz: "drink", receipt_item_id: itemId });
+        await award(client, user.id, economy.quiz.drink_coins, "quiz", { quiz: "drink", receipt_item_id: itemId });
         return rows[0].id;
       });
 
       if (!saved) return reply.code(409).send({ error: "already_answered" });
-      return { ok: true, awarded_silver: quiz.drink.reward_silver };
+      return { ok: true, awarded_silver: economy.quiz.drink_coins };
     } catch (e) {
       app.log.error(e);
       return reply.code(500).send({ error: "save_failed" });
