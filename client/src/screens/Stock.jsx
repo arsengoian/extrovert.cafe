@@ -24,8 +24,15 @@ export function Stock({ ctx }) {
     return acc;
   }, {});
 
+  const listed = items.reduce((n, it) => n + (it.listed ?? 0), 0);
+
   return (
     <div className="stage-pad">
+      {listed > 0 && (
+        <button className="btn" style={{ marginBottom: 12 }} onClick={() => ctx.push("listings")}>
+          На продажу: {listed}
+        </button>
+      )}
       {Object.entries(byCollection).map(([collection, list]) => (
         <div key={collection}>
           <div className="sectionTitle">{collection}</div>

@@ -38,7 +38,9 @@ export function Shop({ ctx }) {
 
   const open = (item) => {
     if (item.code === "clothing") return ctx.push("catalog");
-    ctx.push("shopItem", { item });
+    // Скринька має власний екран — із шансами й анімацією; решта товарів
+    // відкривається спільним прев'ю.
+    ctx.push(item.kind === "crate" ? "shopItem" : "shopProduct", { item });
   };
 
   const tabStyle = (on) => ({ height: 40, background: on ? "var(--grad)" : "var(--panel)", color: on ? "var(--accent-ink)" : "var(--ink)", border: on ? 0 : "1px solid var(--line)" });

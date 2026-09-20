@@ -17,6 +17,8 @@ import repostRoutes from "./routes/repost.js";
 import plantingRoutes from "./routes/planting.js";
 import wardrobeRoutes from "./routes/wardrobe.js";
 import chatRoutes from "./routes/chat.js";
+import purchaseRoutes from "./routes/purchases.js";
+import marketRoutes from "./routes/market.js";
 
 const app = Fastify({ logger: true });
 registerErrorHandler(app);
@@ -51,6 +53,8 @@ await app.register(repostRoutes, { prefix: "/api/v1" });
 await app.register(plantingRoutes, { prefix: "/api/v1" });
 await app.register(wardrobeRoutes, { prefix: "/api/v1" });
 await app.register(chatRoutes, { prefix: "/api/v1" });
+await app.register(purchaseRoutes, { prefix: "/api/v1" });
+await app.register(marketRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

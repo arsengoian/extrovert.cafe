@@ -17,6 +17,10 @@ import { Repost } from "./Repost.jsx";
 import { Planting } from "../plant/Planting.jsx";
 import { Wardrobe } from "./Wardrobe.jsx";
 import { Chat } from "./Chat.jsx";
+import { ShopItem } from "./ShopItem.jsx";
+import { SellItem } from "./SellItem.jsx";
+import { WearItem } from "./WearItem.jsx";
+import { Listings } from "./Listings.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -49,4 +53,8 @@ export const SCREENS = {
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true },
   wardrobe: { component: Wardrobe, title: "Гардероб" },
   chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко", hideNav: true },
+  shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
+  sellItem: { component: SellItem, title: "Продати на P2P" },
+  wearItem: { component: WearItem, title: "Кому вдягнути" },
+  listings: { component: Listings, title: "На продажу" },
 };

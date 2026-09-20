@@ -11,3 +11,4 @@ export function plural(n, one, few, many) {
 export const beans = (n) => `${n} ${plural(n, "зерно", "зерна", "зерен")}`;
 export const items = (n) => `${n} ${plural(n, "предмета", "предметів", "предметів")}`;
 export const days = (n) => `${n} ${plural(n, "день", "дні", "днів")}`;
+export const coins = (n) => `${n} ${plural(n, "монета", "монети", "монет")}`;

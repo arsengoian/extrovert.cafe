@@ -57,7 +57,10 @@ export default async function routes(app) {
       `select d.code, d.name, d.collection, d.slot, d.tier, d.sprite_id, d.description_md,
               count(*)::int as owned,
               count(*) filter (where ui.listing_id is not null)::int as listed,
-              min(ui.id) as user_item_id
+              -- «вільна» копія — та, яку можна продати чи вдягнути: не
+              -- замкнена комплектом, не на маркеті й не в чужому наборі
+              count(*) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null)::int as free,
+              min(ui.id) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null) as user_item_id
          from user_items ui
          join item_defs d on d.id = ui.item_def_id
         where ui.user_id = $1
