@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 16e1f1a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 770e48c</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 18 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -382,7 +382,7 @@ graph LR
 <li><strong>Підписує лише <code>api</code></strong> (Ed25519), <code>ws</code> лише перевіряє публічним ключем.
 Злам <code>ws</code> не дає випускати токени.</li>
 <li><strong>Access JWT живе 15 хвилин</strong> і лежить у памʼяті застосунку. Claims:
-<code>sub</code> (<code>user:&lt;uuid&gt;</code>, <code>admin:&lt;uuid&gt;</code> або <code>device:&lt;id&gt;</code>), <code>role</code>, <code>point</code>
+<code>sub</code> (<code>user:&lt;uuid&gt;</code>, <code>admin:&lt;uuid&gt;</code> або <code>point:&lt;id&gt;</code>), <code>role</code>, <code>point</code>
 для пристрою, <code>exp</code>.</li>
 <li><strong>Refresh-сесія</strong> — httpOnly-кука на <code>api.extrovert.cafe</code> і рядок
 <code>sess:&lt;id&gt;</code> у Redis: 30 діб для гравця, 12 годин для адміна. Клієнт на
@@ -391,8 +391,26 @@ graph LR
 доступ зникне сам.</li>
 </ul>
 <p>Логін гравця — лише Google/Apple (<a class="doclink" href="#gamification-ui"><code>gamification_ui.md</code></a>), метч за email між
-провайдерами; тому <code>user_identities</code> окремою таблицею. Пароля в нас немає
-взагалі: це свідоме зняття з себе зберігання секретів.</p>
+провайдерами; тому <code>user_identities</code> окремою таблицею. <strong>Пароля у гравців
+немає взагалі:</strong> це свідоме зняття з себе зберігання секретів.</p>
+<p><strong>А от адмін заходить поштою й паролем</strong> (20.09.2026). Адмінів двоє-троє, і
+піднімати заради них OAuth-застосунок з окремим доменом — більше роботи, ніж
+користі; лінк на пошту щоразу теж не варіант, бо тоді пошта стає єдиним
+ключем від усього. Тому:</p>
+<ul>
+<li>пароль лежить у <code>admin_users.password_hash</code> як <code>scrypt</code> у PHC-рядку
+(<code>scrypt$N=65536,r=8,p=1$&lt;сіль&gt;$&lt;хеш&gt;</code>) — параметри поруч із хешем, щоб їх
+можна було підняти, не зламавши старі; звіряння — <code>timingSafeEqual</code>;</li>
+<li>форми «зареєструватися» немає ніде: адміна заводить і пароль йому ставить
+<code>scripts/admin.mjs</code> (<a class="doclink" href="#roadmap"><code>roadmap.md</code></a>, крок 0-біс), причому на проді — лише з
+дроплета;</li>
+<li>перебір впирається в лічильник у Redis (<code>admin:login:fail:&lt;email&gt;</code>, вікно
+15 хвилин), а не в базу;</li>
+<li>далі все як вище: той самий JWT на 15 хвилин і refresh-сесія на 12 годин;</li>
+<li>вимкнений адмін (<code>disabled_at</code>) не заходить і не оновлює сесію, а його
+<code>sess:admin:&lt;id&gt;</code> видаляється відразу;</li>
+<li>2FA лишається відкритим питанням (<a class="doclink" href="#roadmap"><code>roadmap.md</code></a> §4).</li>
+</ul>
 <h3 id="svc-вебсокет-jwt-у-sec-websocket-protocol"><a class="anchor" href="#svc-вебсокет-jwt-у-sec-websocket-protocol" aria-hidden="true">#</a>Вебсокет: JWT у <code>Sec-WebSocket-Protocol</code></h3>
 <p>Браузер не дає поставити на <code>WebSocket</code> заголовок <code>Authorization</code>, але дає
 перелік підпротоколів — і це заголовок, а не URL:</p>
@@ -1550,6 +1568,9 @@ erDiagram
         uuid id PK
         citext email UK
         text role &quot;owner|ops&quot;
+        text password_hash &quot;scrypt, PHC-рядок; null - входу ще немає&quot;
+        timestamptz password_set_at
+        timestamptz disabled_at &quot;вимкнений; рядок лишається заради історії&quot;
         timestamptz last_login_at
     }
     OUTBOX {
@@ -1615,8 +1636,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-admin_users">admin_users</a><span class="rel-label">розсилка в чат кавенятка</span></li></ul>
 </article>
 <article class="entity" id="t-admin_users">
-  <header><h4>admin_users</h4><span class="entity-count">4 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">role</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">owner|ops</td></tr><tr><td class="c-name">last_login_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>admin_users</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">role</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">owner|ops</td></tr><tr><td class="c-name">password_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">scrypt, PHC-рядок; null - входу ще немає</td></tr><tr><td class="c-name">password_set_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">disabled_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">вимкнений; рядок лишається заради історії</td></tr><tr><td class="c-name">last_login_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployments">menu_deployments</a><span class="rel-label">хто викотив ціни</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-news_broadcasts">news_broadcasts</a><span class="rel-label">розсилка в чат кавенятка</span></li></ul>
 </article>
 <article class="entity" id="t-outbox">
@@ -1644,6 +1665,14 @@ erDiagram
 півгодинними відрами: адмінка просить тиждень історії з такою
 гранулярністю, і зберігати сирі проби, щоб потім їх агрегувати, немає
 навіщо — старше за тиждень усе одно затирається.</p>
+<p><strong>Адміна не видаляють, а вимикають</strong> (20.09.2026). На <code>admin_users</code>
+посилаються деплої цін, розсилки в чат кавенятка й відповіді підтримки —
+видалений рядок забрав би з історії того, хто це зробив. <code>disabled_at</code> гасить
+вхід негайно, а рядок лишається. Пароль лежить як <code>scrypt</code>-хеш у
+PHC-рядку — параметри поруч із самим хешем, щоб підняти їх пізніше й не
+зламати старі. Заводить адмінів і міняє паролі <code>scripts/admin.mjs</code>
+(<a class="doclink" href="#roadmap"><code>roadmap.md</code></a>, крок 0-біс); <code>password_hash = null</code> означає, що рядок є, а
+зайти ним ще не можна.</p>
 <p><code>OUTBOX</code> — пошта для подій: рядок у неї пишеться в тій самій транзакції, що
 й сама зміна, а публікатор у <code>scheduler</code> уже потім шле його в Redis, звідки
 подію бере <code>ws</code> (§0 «Подія пишеться в тій самій транзакції»).</p>
@@ -1689,6 +1718,14 @@ Checkbox (пише <code>checkbox</code>), нічна синхронізація
 <td>api</td>
 <td>api</td>
 <td>refresh-сесія адміна, коротша</td>
+</tr>
+<tr>
+<td><code>admin:login:fail:&lt;email&gt;</code></td>
+<td>string <code>INCR</code></td>
+<td>15 хв</td>
+<td>api</td>
+<td>api</td>
+<td>перебір пароля адміна впирається в лічильник, а не в базу (<a class="doclink" href="#svc"><code>services.md</code></a> §3)</td>
 </tr>
 <tr>
 <td><code>revoked:point:&lt;id&gt;</code></td>
@@ -8707,6 +8744,11 @@ Stretch під armv6 через QEMU: ті самі gcc 6.3 і glibc 2.24, що 
 <td>access-токен гравця чи адміна для curl</td>
 <td>підписує ключем вибраного оточення</td>
 </tr>
+<tr>
+<td><code>admin.mjs</code></td>
+<td>завести адміна, поставити чи змінити пароль, вимкнути й повернути, показати список</td>
+<td><code>scrypt</code> у PHC-рядок (<a class="doclink" href="#svc"><code>services.md</code></a> §3). Пароль читається зі stdin, не з аргументів: аргументи видно в <code>ps</code> і в історії шела. Видалення немає — лише <code>disabled_at</code>, бо на адміна посилається історія</td>
+</tr>
 </tbody></table>
 </div>
 <p>Спільні правила:</p>
@@ -8719,7 +8761,10 @@ Stretch під armv6 через QEMU: ті самі gcc 6.3 і glibc 2.24, що 
 це не лише код скрипта. Ключа підпису JWT проду в <code>.env</code> розробника
 немає, а <code>DATABASE_URL_PROD</code> там — це роль <code>seeder</code>, якій видно лише
 контентні таблиці (<a class="doclink" href="#db"><code>db-schema.md</code></a> §7). Навіть із помилкою в коді скрипт
-не прикинеться гравцем чи адміном на проді й не дістане його кавенят.</li>
+не прикинеться гравцем чи адміном на проді й не дістане його кавенят.
+<strong>Виняток — <code>admin.mjs</code>:</strong> адмінів доводиться заводити саме на проді, тому
+його запускають <strong>з дроплета</strong>, де в <code>.env</code> лежить справжній
+<code>DATABASE_URL</code>. На ноутбуці розробника від цього нічого не додається.</li>
 <li><strong>Лише тестовий касир.</strong> Справжній у <code>.env</code> є (його бере
 <code>sync-prices.mjs --prod</code>), але <code>dev-sale</code> читає тільки <code>CHECKBOX_TEST_*</code> і
 перед чеком перевіряє <code>cashier/me.is_test</code>.</li>
@@ -9159,7 +9204,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 16e1f1a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 770e48c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
