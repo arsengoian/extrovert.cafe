@@ -612,12 +612,6 @@ erDiagram
         text role "owner|ops"
         timestamptz last_login_at
     }
-    ECONOMY_PARAMS {
-        text key PK "k_coins|bean_rate|rarity|crate_price|market_offer_bias"
-        jsonb value
-        uuid updated_by FK
-        timestamptz updated_at
-    }
     OUTBOX {
         bigserial id PK
         text channel "point:kyiv-01|user:uuid"
@@ -806,7 +800,7 @@ db/
 ## 7. Сіди: контент — JSON у репозиторії
 
 Контентні таблиці — це каталоги, які пишемо ми, а не гравці: предмети
-одягу, напої, параметри економіки, опис точок. Поки керувати ними з адмінки
+одягу, напої, опис точок. Поки керувати ними з адмінки
 нікому, **джерело правди для них — git** (19.09.2026): папка `db/seeds/`, по
 JSON на таблицю. Інструмент уміє рівно дві речі — **скачати** таблиці з
 бази в JSON і **застосувати** JSON до бази — у вибраному оточенні. Коли
@@ -820,12 +814,18 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 | `points` | `id` | `status`, ключі, `last_seen_at`: це стан точки, а не її опис |
 | `drinks` | `system_code` | `id` |
 | `item_defs` | `code` | `id` |
-| `economy_params` | `key` | `updated_by`, `updated_at` |
 
 Точний перелік колонок — у `manifest.json`. Не контент і в сіди не
 потрапляє ніколи: усе, що створюють гравці й події (чеки, журнал,
 інвентар, кавенятка, маркет), довідник НП (його щоночі синхронізує
 `scheduler`), `admin_users` і будь-які секрети.
+
+**Параметри економіки в базі не лежать взагалі** (20.09.2026). Множник
+монет, курс зерен, таблиця рідкості, ціна крейта, `market_offer_bias` — це
+`api/data/economy.json` поруч із `shop-products.json`, який `api` читає на
+старті. Змінити курс — коміт і реліз, а не рядок у базі: крутити ці числа
+однаково нікому, крім нас, а таблиця під них означала б ще й екран в
+адмінці, аудит і сід — три шари навколо десятка констант.
 
 Таблиця може бути контентною, лише якщо в неї є **натуральний ключ** і код
 посилається на нього, а не на `id`. Сурогатні `id` в різних оточеннях
@@ -839,16 +839,14 @@ db/seeds/
 ├── manifest.json        -- таблиці, ключі, колонки, власник; порядок = порядок apply
 ├── points.json
 ├── drinks.json
-├── item_defs.json
-└── economy_params.json
+└── item_defs.json
 ```
 
 ```json
 {
   "points":         { "key": "id",          "owner": "git", "columns": ["id", "name", "address", "timezone"] },
   "drinks":         { "key": "system_code", "owner": "git", "columns": ["system_code", "name", "vol", "price_uah", "coins", "bonus_coins", "sprite", "cup", "active", "sort_order"] },
-  "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "collection", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] },
-  "economy_params": { "key": "key",         "owner": "git", "columns": ["key", "value"] }
+  "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "collection", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] }
 }
 ```
 
