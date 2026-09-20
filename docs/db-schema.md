@@ -319,9 +319,9 @@ erDiagram
         text source "coins|cash|bonus_drink|shadow_drop"
         text paid_currency
         numeric paid_amount
-        text result_type "item|coins"
-        bigint result_item_id FK
-        int result_coins
+        bigint result_item_id FK "завжди є: порожніх крейтів немає"
+        int result_coins "5..25, зрізаний нормальний розподіл"
+        boolean was_duplicate "такий предмет у гравця вже був"
         text rolled_tier
         timestamptz opened_at
     }
@@ -543,6 +543,15 @@ erDiagram
 (`gamification_economy.md` §3.1) — і дає адмінці історію без реконструкції
 з журналу валют. `unique (plant_id, to_stage)` заразом робить подвійний
 перехід неможливим, а не лише незручним.
+
+**Крейт завжди дає і предмет, і монети** (20.09.2026). Тому в
+`crate_openings` немає `result_type`: `result_item_id` і `result_coins`
+заповнені обидва завжди, а `rolled_tier` каже, з якого тіру прийшов
+предмет. Монети того ж відкриття йдуть і рядком у `ledger_entries` з
+`reason = 'crate'` — баланс і журнал як завжди в одній транзакції (§0).
+`was_duplicate` не виводиться з інших таблиць заднім числом (інвентар до
+моменту відкриття вже не відновити), а частка дублів — перше, на що
+подивишся, коли вирішуватимеш, чи потрібен pity-захист.
 
 **Інвентар догляду — у гравця, не в куща** (20.09.2026). Відро з водою,
 компост, добриво й інсектицид — колонки `users`. Кавенят у гравця може бути
