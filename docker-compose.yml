@@ -9,7 +9,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
-    ports: ["5432:5432"]
+    # 5442, а не 5432: на машині може крутитись інший локальний постгрес.
+    # Усередині мережі compose сервіси ходять на 5432, міняється лише хост.
+    ports: ["5442:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-extrovert}"]
       interval: 10s
@@ -19,11 +21,22 @@ services:
     image: redis:7-alpine
     command: redis-server --appendonly yes
     volumes: [redisdata:/data]
-    ports: ["6379:6379"]
+    ports: ["6389:6379"]   # той самий мотив, що й у постгреса вище
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       retries: 5
+
+  # Одноразова робота, не сервіс: накотити схему й вийти.
+  migrate:
+    build: ./db
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-extrovert}?sslmode=disable
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["--no-dump-schema", "up"]
+    restart: "no"
 
   api:
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: api } }
@@ -31,6 +44,7 @@ services:
     environment: { PORT: 3001 }
     ports: ["3001:3001"]
     depends_on:
+      migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
     restart: unless-stopped
@@ -50,6 +64,7 @@ services:
     environment: { PORT: 3003 }
     ports: ["3003:3003"]
     depends_on:
+      migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
     restart: unless-stopped
@@ -58,6 +73,7 @@ services:
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: overseer } }
     env_file: [.env]
     depends_on:
+      migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
     restart: unless-stopped
 
