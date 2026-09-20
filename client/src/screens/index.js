@@ -21,6 +21,8 @@ import { ShopItem } from "./ShopItem.jsx";
 import { SellItem } from "./SellItem.jsx";
 import { WearItem } from "./WearItem.jsx";
 import { Listings } from "./Listings.jsx";
+import { SellPlant } from "./SellPlant.jsx";
+import { PlantMarket } from "./PlantMarket.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -57,4 +59,6 @@ export const SCREENS = {
   sellItem: { component: SellItem, title: "Продати на P2P" },
   wearItem: { component: WearItem, title: "Кому вдягнути" },
   listings: { component: Listings, title: "На продажу" },
+  sellPlant: { component: SellPlant, title: "Продати кавенятко" },
+  plantMarket: { component: PlantMarket, title: "Нове кавенятко" },
 };

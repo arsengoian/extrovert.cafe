@@ -276,8 +276,8 @@ export default async function routes(app) {
         [listing.id, user.id, listing.seller_id, gross, commission, net, listing.price_currency]
       );
 
-      const what = listing.kind === "item" ? "річ" : "кавенятко";
-      await notifyPlant(listing.seller_id, `Твоє ${what} продано на маркеті: +${net} після комісії.`, { client });
+      const what = listing.kind === "item" ? "Твою річ" : "Твоє кавенятко";
+      await notifyPlant(listing.seller_id, `${what} продано на маркеті: +${net} після комісії.`, { client });
 
       return { ok: true, paid: gross, kind: listing.kind };
     });

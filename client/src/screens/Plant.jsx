@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { PlantView } from "../plant/PlantView.jsx";
+import { Sheet } from "../ui/Sheet.jsx";
 
 const SHELF = [
   { kind: "water", key: "water_liters", title: "Лійка", unit: "л", full: "/assets/ui/bucket.png", empty: "/assets/ui/bucket_empty.png" },
@@ -44,15 +45,25 @@ const WITHERED_LINE = "Мене не поливали тиждень. Води, 
 const CLOUD_INK = "#3A2412";
 
 export function Plant({ ctx }) {
-  const [plant, setPlant] = useState(null);
+  const [plants, setPlants] = useState(null);
+  const [index, setIndex] = useState(0);
   const [error, setError] = useState(null);
   const [note, setNote] = useState(null);
+  const [menu, setMenu] = useState(false);
   const care = ctx.me?.care ?? {};
 
-  const reload = () => api.get("/me/plants").then((r) => setPlant(r.plants[0] ?? null));
+  // Кавенят може бути скільки завгодно (gamification_ui §MVP), тому екран
+  // тримає список і показує те, що зараз у каруселі.
+  const reload = () => api.get("/me/plants").then((r) => {
+    setPlants(r.plants);
+    setIndex((i) => Math.min(i, Math.max(0, r.plants.length - 1)));
+  });
   useEffect(() => { reload().catch((e) => setError(e.message)); }, []);
 
+  const plant = plants?.[index] ?? null;
+
   if (error) return <div className="stage-pad"><div className="panel">Не вдалось завантажити: {error}</div></div>;
+  if (!plants) return <div className="stage-pad"><div className="skeleton" /></div>;
   if (!plant) {
     return (
       <div className="stage-pad">
@@ -60,7 +71,7 @@ export function Plant({ ctx }) {
           <img src="/assets/ui/sprout.png" alt="" style={{ width: 48, margin: "8px auto 12px" }} />
           <div className="h2">Кавенятка ще немає</div>
           <p className="muted">Саджанець можна купити в Магазині — за монети або за зерна.</p>
-          <button className="btn btn-primary" onClick={() => ctx.openTab("shop")}>У Магазин</button>
+          <button className="btn btn-primary" onClick={() => ctx.push("plantMarket")}>Обрати кавенятко</button>
         </div>
       </div>
     );
@@ -105,14 +116,45 @@ export function Plant({ ctx }) {
 
   return (
     <div style={{ position: "relative", minHeight: "100%", background: "linear-gradient(180deg, var(--sky1), var(--sky2))" }}>
-      <div style={{ padding: "8px 12px 0", textAlign: "center" }}>
-        <button style={{ fontSize: 17, fontWeight: 800 }} onClick={() => ctx.push("plantName", { plant })}>
-          {plant.name || "Без імені"}
-        </button>
-        <div className="muted" style={{ fontSize: 13 }}>
-          стадія {plant.growth_stage} з 10 · {plant.mood === "healthy" ? "усе добре" : plant.mood === "sad" ? "хоче пити" : "зовсім засумував"}
+      {/* Карусель кавенят: стрілки зʼявляються лише коли є між чим ходити,
+          а праворуч від останнього — плюс на нове кавенятко. */}
+      <div className="row" style={{ padding: "8px 12px 0", gap: 8 }}>
+        <button className="icon-btn" aria-label="Попереднє кавенятко" disabled={index === 0}
+                style={{ opacity: plants.length > 1 ? 1 : 0, pointerEvents: plants.length > 1 ? "auto" : "none" }}
+                onClick={() => setIndex((i) => Math.max(0, i - 1))}>‹</button>
+        <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
+          <button style={{ fontSize: 17, fontWeight: 800 }} onClick={() => setMenu(true)}>
+            {plant.name || "Без імені"}
+          </button>
+          <div className="muted" style={{ fontSize: 13 }}>
+            стадія {plant.growth_stage} з 10 · {plant.on_sale ? "на маркеті"
+              : plant.mood === "healthy" ? "усе добре" : plant.mood === "sad" ? "хоче пити" : "зовсім засумував"}
+          </div>
         </div>
+        <button className="icon-btn" aria-label={index < plants.length - 1 ? "Наступне кавенятко" : "Нове кавенятко"}
+                onClick={() => (index < plants.length - 1 ? setIndex(index + 1) : ctx.push("plantMarket"))}>
+          {index < plants.length - 1 ? "›" : "+"}
+        </button>
       </div>
+
+      {menu && (
+        <Sheet title={plant.name || "Кавенятко"} onClose={() => setMenu(false)}>
+          <div style={{ display: "grid", gap: 10 }}>
+            <button className="btn" onClick={() => { setMenu(false); ctx.push("plantName", { plant }); }}>
+              Змінити імʼя
+            </button>
+            <button className="btn" onClick={() => { setMenu(false); ctx.push("wardrobe", { plant }); }}>Гардероб</button>
+            <button className="btn" onClick={() => { setMenu(false); ctx.push("chat", { plant }); }}>Поговорити</button>
+            {plant.on_sale ? (
+              <button className="btn" onClick={() => { setMenu(false); ctx.push("listings"); }}>Зняти з продажу</button>
+            ) : (
+              <button className="btn" onClick={() => { setMenu(false); ctx.push("sellPlant", { plant }); }}>
+                Продати кавенятко
+              </button>
+            )}
+          </div>
+        </Sheet>
+      )}
 
       {plant.draft && (
         <button className="panel row" onClick={openPlanting}
