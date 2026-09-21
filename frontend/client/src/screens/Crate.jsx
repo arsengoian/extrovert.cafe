@@ -16,7 +16,7 @@ export function CrateOpened({ result, nickname, onClose, onStock, onSell }) {
   const [first, ...rest] = item.name.split("-");
   return (
     <ResultPopup
-      decor={<img className="crate-glow" src="/assets/sprites/crate_parts/crate_glow.png" alt="" />}
+      decor={<img className="crate-glow" src="/assets/ui/crate_glow.png" alt="" />}
       title="Скриньку відкрито"
       offset={88}
       side={16}

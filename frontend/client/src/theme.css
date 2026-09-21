@@ -108,8 +108,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .h1 { font-size: 22px; font-weight: 900; letter-spacing: -.01em; margin: 0 0 6px }
 .h2 { font-size: 17px; font-weight: 800; margin: 0 0 8px }
 .row { display: flex; align-items: center; gap: 10px }
-.row-between { display: flex; align-items: center; justify-content: space-between; gap: 10px }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
 /* Заголовок блока й сам блок — з макета: 12px/700, letter-spacing .14em,
    відступи дає gap контейнера, а не маргіни. */
 .section { display: flex; flex-direction: column; gap: 10px }
@@ -124,7 +122,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .btn:active { transform: scale(.99) }
 .btn[disabled] { opacity: .5 }
 
-.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--panel2); color: var(--muted) }
 /* Кольори рідкості — з макета (Common/Uncommon/Rare/Epic). */
 :root { --tier-common: 168, 178, 192; --tier-uncommon: 63, 191, 111; --tier-rare: 90, 169, 255; --tier-epic: 176, 124, 255 }
 .tag-common { color: rgb(var(--tier-common)) } .tag-uncommon { color: rgb(var(--tier-uncommon)) }
@@ -161,16 +158,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: flex; align-items: center; justify-content: center;
 }
 
-.link-box {
-  flex: 1; min-width: 0; height: 46px; margin: 0; padding: 0 13px;
-  display: flex; align-items: center; font-size: 13px; font-weight: 700;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.btn-icon { flex: none; width: 46px; height: 46px; padding: 0; color: var(--muted) }
 
 .btn-danger { color: #FF6B78; border-color: rgba(255, 107, 120, .45) }
 
-.panel.on { border-color: var(--accent) }
 .item-stub {
   display: flex; align-items: center; justify-content: center; text-align: center;
   padding: 4px; border-radius: 12px; background: var(--panel2);
