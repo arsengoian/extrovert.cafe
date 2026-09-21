@@ -1,119 +1,98 @@
-// «Продати кавенятко»: лот із живої рослини — з її виглядом, стадією й
-// подарованим одягом.
+// «Продати кавенятко» — кадр «P2P · продаж кавенятка»: картка з мініатюрою,
+// ціна в монетах або зернах, комісія й мінімум, як працює продаж і
+// «Виставити на маркет».
 //
-// Комісія на кавенят менша, ніж на одяг (2 % проти 10 %): це рідкісна
-// угода на великі суми, і десятина з неї виглядала б як штраф за продаж.
+// Комісія на кавенят менша, ніж на одяг: це рідкісна угода на великі суми,
+// і десятина з неї виглядала б як штраф за продаж.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { PlantView } from "../plant/PlantView.jsx";
-import { coins as coinsWord } from "../ui/plural.js";
+import { plural } from "../ui/plural.js";
 
-const MIN = { yellow: 10, beans: 2 };
+const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
+const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: w, height: h }} />;
+const Bean = ({ w = 12, h = 14 }) => <img src="/assets/ui/bean.png" alt="кавові боби" style={{ width: w, height: h }} />;
 
 export function SellPlant({ plant, ctx }) {
   const [currency, setCurrency] = useState("yellow");
-  const [price, setPrice] = useState("500");
-  const [summary, setSummary] = useState(null);
+  const [price, setPrice] = useState("1800");
+  const [wardrobe, setWardrobe] = useState(null);
+  const [rules, setRules] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [listed, setListed] = useState(false);
 
   useEffect(() => {
-    api.get(`/me/plants/${plant.id}/wardrobe`).then(setSummary).catch(() => setSummary(null));
+    api.get(`/me/plants/${plant.id}/wardrobe`).then(setWardrobe).catch(() => setWardrobe(null));
+    api.get("/market/rules").then(setRules).catch(() => setRules({}));
   }, [plant.id]);
 
+  const pct = rules?.commission_pct?.plant ?? 2;
+  const min = rules?.min_price ?? { yellow: 10, beans: 2 };
   const value = Math.trunc(Number(price) || 0);
-  const commission = Math.round((value * 2) / 100);
+  const commission = Math.round((value * pct) / 100);
+
   const appearance = plant.appearance ?? {};
-  const skins = new Set((appearance.leaves_bg ?? []).map((l) => l.skin)).size;
+  const skins = new Set([...(appearance.leaves_bg ?? []), ...(appearance.leaves_fg ?? [])].map((l) => l.skin)).size;
+  const branches = (appearance.branches ?? []).length;
+  const sets = (wardrobe?.ready?.length ?? 0) + (wardrobe?.set?.gifted ? 1 : 0);
+  const facts = [`Стадія ${plant.growth_stage}`, sets ? `${sets} ${plural(sets, "повний комплект", "повні комплекти", "повних комплектів")}` : null].filter(Boolean).join(" · ");
+  const look = [skins ? `${skins} ${plural(skins, "скін", "скіни", "скінів")} листя` : null, branches ? `${branches} ${plural(branches, "гілка", "гілки", "гілок")}` : null].filter(Boolean).join(" · ");
 
   const list = async () => {
     setBusy(true);
     setError(null);
     try {
       await api.post("/market/listings", { kind: "plant", plant_id: plant.id, price: value, currency });
-      setListed(true);
+      ctx.pop();
     } catch (e) {
       const code = e.body?.error;
       setError(code === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
         : code === "already_listed" ? "Кавенятко вже на маркеті"
+        : code === "price_too_low" ? `Мінімальна ціна – ${min[currency]}`
         : code ?? e.message);
     } finally {
       setBusy(false);
     }
   };
 
-  if (listed) {
-    return (
-      <div className="stage-pad">
-        <div className="panel" style={{ textAlign: "center" }}>
-          <PlantView plant={plant} width={180} />
-          <div className="h2">Лот на маркеті</div>
-          <p className="muted">
-            Поки кавенятко продається, воно заморожене: ні догляду, ні посадки, ні чату.
-            Зняти лот можна на екрані «На продажу».
-          </p>
-          <button className="btn btn-primary" onClick={ctx.pop}>Готово</button>
-        </div>
-      </div>
-    );
-  }
-
+  const Coin = currency === "beans" ? Bean : Gold;
   return (
-    <div className="stage-pad">
-      <div className="panel row" style={{ gap: 12 }}>
-        <div style={{ width: 92, flex: "none" }}>
-          <PlantView plant={plant} width={92} pad={4} platform={false} />
+    <div className="stage-pad" style={{ gap: 14 }}>
+      <div className="sell-card">
+        <div className="sell-plant">
+          <PlantView plant={plant} worn={plant.worn} width={68} height={84} fit="stage" />
         </div>
-        <div>
-          <div style={{ fontWeight: 800 }}>{plant.name || "Без імені"}</div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            Стадія {plant.growth_stage}
-            {summary?.set?.gifted ? " · подарований комплект" : ""}
-          </div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            {skins ? `${skins} скіни листя · ` : ""}{(appearance.branches ?? []).length} гілки
-          </div>
+        <div className="lot-body">
+          <b className="sell-name">{plant.name || "Без імені"}</b>
+          <small className="sell-stock">{facts}</small>
+          {look && <small className="sell-stock">{look}</small>}
         </div>
       </div>
 
-      <div className="sectionTitle">Ціна</div>
-      <div className="row" style={{ gap: 8, marginBottom: 8 }}>
-        {["yellow", "beans"].map((c) => (
-          <button key={c} className="btn" style={{ flex: 1, height: 42, ...(currency === c
-            ? { background: "var(--grad)", color: "var(--accent-ink)", border: 0 } : {}) }}
-                  onClick={() => setCurrency(c)}>
-            <img src={c === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt=""
-                 style={{ width: 18 }} />
-            {c === "beans" ? "зерна" : "монети"}
-          </button>
-        ))}
-      </div>
-      <div className="panel row" style={{ gap: 10 }}>
-        <input className="price-input" inputMode="numeric" value={price}
-               onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 6))} />
-        <img src={currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" style={{ width: 22 }} />
-      </div>
-      <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-        Комісія 2 % – {commission}. Мінімальна ціна – {MIN[currency]}{currency === "beans" ? " зерна" : " монет"}.
-      </p>
-
-      <div className="panel">
-        <div className="h2">Як працює продаж</div>
-        <p className="muted" style={{ fontSize: 13, lineHeight: 1.45 }}>
-          Кавенятко піде до покупця в тому одязі, який ти йому подарував. Те, що просто примірялось,
-          повернеться на склад.
-        </p>
-        <p className="muted" style={{ fontSize: 13, lineHeight: 1.45, marginBottom: 0 }}>
-          Поки кавенятко на маркеті, доглядати за ним неможливо – але й сумувати воно не буде.
-          Дешевші лоти маркет пропонує покупцям частіше.
-        </p>
+      <div className="field" style={{ gap: 10 }}>
+        <div className="sectionTitle">Ціна</div>
+        <div className="seg">
+          <button data-on={currency === "yellow"} onClick={() => setCurrency("yellow")}><Gold w={16} h={17} /></button>
+          <button data-on={currency === "beans"} onClick={() => setCurrency("beans")}><Bean w={15} h={17} /></button>
+        </div>
+        <label className="sell-price">
+          <input inputMode="numeric" value={value ? fmt(value) : ""} onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} />
+          <span>комісія {pct}% · {fmt(commission)} <Coin /></span>
+        </label>
+        <div className="sell-note">Мінімальна ціна – {min.yellow} <Gold w={13} h={14} /> або {min.beans} <Bean />.</div>
       </div>
 
-      {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
+      <div className="why sell">
+        <b>Як працює продаж</b>
+        <p>Кавенятко піде до покупця в тому одязі, який ти йому подарував. Те, що просто примірялось, повернеться на склад.</p>
+        <p>Поки кавенятко на маркеті, доглядати за ним неможливо – але й сумувати воно не буде. Якщо ти знімеш його з продажу, все піде далі, як було.</p>
+        <p>Твій лот показують поруч із тим самим товаром від кафе, і чим дешевший він за сусідів, тим частіше його бачать покупці. Якщо хочеш, щоб купили швидко, став ціну в нижній частині діапазону і дешевше, ніж продає кафе.</p>
+      </div>
 
-      <button className="btn btn-primary" disabled={busy || value < MIN[currency]} onClick={list}>
-        {busy ? "Виставляємо…" : `Виставити за ${currency === "beans" ? `${value} зерен` : coinsWord(value)}`}
+      {error && <div className="sell-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
+
+      <button className="cta wide" style={{ marginTop: "auto", height: 52 }} disabled={busy || value < min[currency]} onClick={list}>
+        Виставити на маркет
       </button>
     </div>
   );

@@ -70,7 +70,7 @@ export const SCREENS = {
   // «Незавершена посадка» — ще на вкладці (HUD і меню), редактор — з «Назад».
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true, keepChrome: (p) => Boolean(p.resume) },
   wardrobe: { component: Wardrobe, title: "Гардероб" },
-  chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко", hideNav: true },
+  chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко" },
   shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
   sellItem: { component: SellItem, title: "Продати одяг" },
   listings: { component: Listings, title: "На продаж" },

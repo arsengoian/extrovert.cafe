@@ -58,7 +58,7 @@ const listingView = (row) => ({
   created_at: row.created_at,
   item: row.item_name ? { name: row.item_name, tier: row.tier, slot: row.slot, sprite_id: row.sprite_id } : null,
   plant: row.plant_name !== undefined && row.kind === "plant"
-    ? { name: row.plant_name, growth_stage: row.growth_stage, appearance: row.appearance }
+    ? { name: row.plant_name, growth_stage: row.growth_stage, appearance: row.appearance, full_sets: row.full_sets, worn: row.worn }
     : null,
 });
 
@@ -122,7 +122,14 @@ export default async function routes(app) {
     if (!user) return;
     const limit = clampLimit(req.query?.limit);
     const rows = await many(
-      `select l.*, u.nickname as seller, p.name as plant_name, p.growth_stage, p.appearance
+      `select l.*, u.nickname as seller, p.name as plant_name, p.growth_stage, p.appearance,
+              -- «Стадія 10 · 2 повні комплекти» і мініатюра в одязі, як у кадрі
+              (select count(*)::int from wardrobe_sets ws where ws.plant_id = p.id and ws.gifted) as full_sets,
+              coalesce((select json_agg(json_build_object('slot', wsi.slot, 'sprite_id', d.sprite_id))
+                          from wardrobe_set_items wsi
+                          join user_items ui on ui.id = wsi.user_item_id
+                          join item_defs d on d.id = ui.item_def_id
+                         where wsi.set_id = p.worn_set_id), '[]') as worn
          from market_listings l
          join plants p on p.id = l.plant_id
          join users u on u.id = l.seller_id

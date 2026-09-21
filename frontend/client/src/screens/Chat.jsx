@@ -1,7 +1,7 @@
 // Чат із кавенятком. Окрім розмови, це ще й стрічка сповіщень акаунта:
 // продажі, нарахування, статуси замовлень приходять сюди системними
 // репліками (gamification_ui §«Сповіщення» — пушів ми не робимо).
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 
 const BLOCKED = {
@@ -72,7 +72,7 @@ export function Chat({ ctx, plant }) {
     <div className="chat">
       <div className="chat-log">
         {data.messages.length === 0 && (
-          <div className="panel muted" style={{ fontSize: 13 }}>
+          <div className="chat-msg chat-plant">
             Кавенятко знає, скільки в тебе монет, чого воно хоче далі й що ти купував.
             Спитай його – наприклад, «що мені робити зараз?».
           </div>
@@ -81,32 +81,26 @@ export function Chat({ ctx, plant }) {
           const day = dayLabel(m.created_at);
           const separator = day !== lastDay ? (lastDay = day) : null;
           return (
-            <div key={m.id}>
+            <Fragment key={m.id}>
               {separator && <div className="chat-day">{separator}</div>}
               <div className={`chat-msg chat-${m.role}`}>{m.body}</div>
-            </div>
+            </Fragment>
           );
         })}
         {sending && <div className="chat-msg chat-plant chat-typing">думає…</div>}
         <div ref={endRef} />
       </div>
 
+      {error && error !== "no_coins" && <div className="chat-error">{error}</div>}
       {data.blocked ? (
-        <div className="chat-input panel muted" style={{ fontSize: 13, lineHeight: 1.4 }}>
-          {BLOCKED[data.blocked]}
-        </div>
+        <div className="chat-input"><p>{BLOCKED[data.blocked]}</p></div>
       ) : (
         <div className="chat-input">
           {error === "no_coins" ? (
-            <div className="row" style={{ gap: 10, width: "100%" }}>
-              <div className="muted" style={{ flex: 1, fontSize: 12.5 }}>
-                Не вистачає монет на повідомлення.
-              </div>
-              <button className="btn btn-primary" style={{ width: "auto", padding: "0 16px", height: 40 }}
-                      onClick={() => ctx.openTab("shop")}>
-                Поповнити
-              </button>
-            </div>
+            <>
+              <p>Не вистачає монет на повідомлення.</p>
+              <button className="pill pill-primary" onClick={() => ctx.openTab("shop")}>Поповнити</button>
+            </>
           ) : (
             <>
               <textarea
@@ -116,17 +110,15 @@ export function Chat({ ctx, plant }) {
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               />
-              <button className="btn btn-primary chat-send" disabled={!text.trim() || sending} onClick={send}>
+              <button className="chat-send" title="Надіслати" onClick={send}>
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15" /><path d="M13 6l6 6-6 6" /></svg>
                 {data.price > 0
-                  ? <span className="price">{data.price}<img src="/assets/ui/coin_gold.png" alt="монета" /></span>
-                  : <span style={{ fontSize: 12, fontWeight: 800 }}>{data.free_left} безкоштовних</span>}
+                  ? <span>{data.price}<img src="/assets/ui/coin_gold.png" alt="золота монета" /></span>
+                  : <span>{data.free_left} безкоштовно</span>}
               </button>
             </>
           )}
         </div>
-      )}
-      {error && error !== "no_coins" && (
-        <div className="muted" style={{ fontSize: 12, padding: "0 16px 8px", color: "var(--accent-text)" }}>{error}</div>
       )}
     </div>
   );
