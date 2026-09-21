@@ -70,6 +70,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   flex: none; height: 52px; padding: 0 12px; display: flex; align-items: center; gap: 10px;
   border-bottom: 1px solid var(--line);
 }
+/* Кнопка «назад» у макеті 36x36 — на два пікселі менша за кнопки HUD, щоб
+   поруч із заголовком 17px не виглядати важкою. */
+.back-btn { width: 36px; height: 36px }
 .topbar-back .title { flex: 1; min-width: 0; font-size: 17px; font-weight: 800; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 
 .nav {
@@ -444,3 +447,30 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px;
 }
 .order-cta img { width: 17px; height: 18px }
+
+/* ── купити монети ─────────────────────────────────────────────────────
+   Кадр «Купити монети»: пачки картками з радіусом 18 (не 16 — у макеті
+   вони навмисно м'якші за решту карток), найвигідніша — з рамкою 2px і
+   бейджем, що звисає над краєм. */
+.pack {
+  position: relative; width: 100%; text-align: left; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--panel); padding: 13px 14px; display: flex; align-items: center; gap: 13px;
+}
+.pack.best { border: 2px solid var(--accent); padding: 15px 14px 13px }
+.pack > img { flex: none; object-fit: contain }
+.pack-main { flex: 1; min-width: 0 }
+.pack-name { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800 }
+.pack-name i {
+  padding: 3px 8px; border-radius: var(--radius-pill); background: var(--panel2); border: 1px solid var(--line);
+  font-size: 10.5px; font-weight: 800; font-style: normal; color: var(--ink);
+}
+.pack-coins { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 700 }
+.pack-coins img { width: 15px; height: 16px }
+.pack-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px }
+.pack-price b { font-size: 17px; font-weight: 900 }
+.pack-price small { font-size: 11px; color: var(--muted) }
+.pack-flag {
+  position: absolute; left: 14px; top: -10px; padding: 3px 10px; border-radius: var(--radius-pill);
+  background: var(--grad); color: var(--accent-ink); font-size: 10.5px; font-weight: 800; white-space: nowrap;
+}
+.lead { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); text-wrap: pretty }

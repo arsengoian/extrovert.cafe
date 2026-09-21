@@ -59,33 +59,52 @@ export function CoinPacks({ ctx }) {
     );
   }
 
-  // Найвигідніша пачка — та, де монета коштує найменше; її й позначаємо,
-  // щоб не рахувати курс в умі на касі.
-  const best = packs.reduce((b, p) => (!b || p.price_uah / p.coins < b.price_uah / b.coins ? p : b), null);
+  // Картинка пачки й знижка — з макета: чим більша пачка, тим «врожайніша»
+  // картинка. Знижку рахуємо від ціни монети в найменшій пачці, а не
+  // вписуємо руками — інакше вона розійдеться з цінами першою ж правкою.
+  const ART = {
+    sprout: { src: "pack_stacks", w: 36, h: 39 },
+    bush: { src: "pack_heap", w: 58, h: 43 },
+    bloom: { src: "pack_crate", w: 59, h: 52 },
+    harvest: { src: "pack_barrel", w: 52, h: 60 },
+  };
+  const base = Math.max(...packs.map((p) => p.price_uah / p.coins));
+  const perCoin = (p) => (p.price_uah / p.coins).toFixed(2).replace(".", ",");
+  const discount = (p) => Math.round((1 - p.price_uah / p.coins / base) * 100);
+  const best = packs.find((p) => p.best) ??
+    packs.reduce((b, p) => (!b || p.price_uah / p.coins < b.price_uah / b.coins ? p : b), null);
+  const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
 
   return (
     <div className="stage-pad">
-      {packs.map((pack) => (
-        <button key={pack.code} className="panel row" style={{ gap: 12, width: "100%", textAlign: "left" }}
-                disabled={busy} onClick={() => pay(pack)}>
-          <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 38 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800 }}>{pack.coins} монет</div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              {(pack.price_uah / pack.coins).toFixed(2)} ₴ за монету
-              {best?.code === pack.code ? " · найвигідніше" : ""}
-            </div>
-          </div>
-          <span className="price">{pack.price_uah} ₴</span>
-        </button>
-      ))}
+      <div className="lead">Монети зараховуються одразу після оплати.</div>
+
+      {packs.map((pack) => {
+        const art = ART[pack.code] ?? ART.sprout;
+        const off = discount(pack);
+        const isBest = best?.code === pack.code;
+        return (
+          <button key={pack.code} className={`pack${isBest ? " best" : ""}`} disabled={Boolean(busy)} onClick={() => pay(pack)}>
+            {isBest && <span className="pack-flag">Найкраща ціна{off > 0 ? ` · −${off}%` : ""}</span>}
+            <img src={`/assets/ui/${art.src}.png`} alt="набір монет" style={{ width: art.w, height: art.h }} />
+            <span className="pack-main">
+              <span className="pack-name">
+                {pack.label ?? `${pack.coins} монет`}
+                {!isBest && off > 0 && <i>−{off}%</i>}
+              </span>
+              <span className="pack-coins">
+                {fmt(pack.coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+              </span>
+            </span>
+            <span className="pack-price">
+              <b>{busy === pack.code ? "…" : `${fmt(pack.price_uah)} ₴`}</b>
+              <small>{perCoin(pack)} ₴ / монета</small>
+            </span>
+          </button>
+        );
+      })}
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
-
-      <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-        Куплені монети — звичайні жовті: ними платять за все, що коштує монети, і їх можна переказати.
-        Зерна за гривні не продаються принципово.
-      </p>
     </div>
   );
 }
