@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
+import { StockItemSheet } from "./StockItem.jsx";
 
 // Порядок слотів у ряду — як у примірочній: голова, тіло, штани, взуття,
 // аксесуар. Порожній слот — пунктирна клітинка.
@@ -76,7 +77,7 @@ export function Stock({ ctx }) {
                 const it = bySlot[slot];
                 if (!it) return <div key={slot} className="cell empty" />;
                 return (
-                  <button key={slot} className="cell" onClick={() => ctx.push("itemCard", { item: it, owned: true })}>
+                  <button key={slot} className="cell" onClick={() => ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} />)}>
                     <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: 36 }} />
                     {it.owned > 1 && <i>×{it.owned}</i>}
                   </button>

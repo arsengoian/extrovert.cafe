@@ -12,7 +12,7 @@ export const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare"
 export const SLOT_OF = { head: "слот голови", body: "слот тіла", pants: "слот штанів", feet: "слот взуття", acc_1: "слот аксесуара" };
 const SET_BEANS = { common: 3, uncommon: 6, rare: 9, epic: 15 };
 
-export function ItemCard({ item, owned, ctx }) {
+export function ItemCard({ item, ctx }) {
   const [offers, setOffers] = useState(null);
   const [stock, setStock] = useState(null);
   const [all, setAll] = useState(false);
@@ -132,22 +132,13 @@ export function ItemCard({ item, owned, ctx }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <div className="buy-row">
-        {owned ? (
-          <>
-            <button className="cta" onClick={() => ctx.push("wearItem", { item })}>Вдягнути</button>
-            <button className="cta ghost" disabled={!item.free} onClick={() => ctx.push("sellItem", { item })}>
-              {item.free ? "Продати на P2P" : "Вільних копій немає"}
-            </button>
-          </>
-        ) : (
-          <button className="cta" disabled={busy || !price} onClick={buyFromShop}>
-            <span className="coins2">
-              <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
-              <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
-            </span>
-            {price ?? "—"}
-          </button>
-        )}
+        <button className="cta" disabled={busy || !price} onClick={buyFromShop}>
+          <span className="coins2">
+            <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
+            <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
+          </span>
+          {price ?? "—"}
+        </button>
       </div>
     </div>
   );

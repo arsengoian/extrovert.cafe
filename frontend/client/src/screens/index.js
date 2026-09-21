@@ -19,7 +19,6 @@ import { Wardrobe } from "./Wardrobe.jsx";
 import { Chat } from "./Chat.jsx";
 import { ShopItem } from "./ShopItem.jsx";
 import { SellItem } from "./SellItem.jsx";
-import { WearItem } from "./WearItem.jsx";
 import { Listings } from "./Listings.jsx";
 import { SellPlant } from "./SellPlant.jsx";
 import { PlantMarket } from "./PlantMarket.jsx";
@@ -74,7 +73,6 @@ export const SCREENS = {
   chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко", hideNav: true },
   shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
   sellItem: { component: SellItem, title: "Продати одяг" },
-  wearItem: { component: WearItem, title: "Кому вдягнути" },
   listings: { component: Listings, title: "На продаж" },
   sellPlant: { component: SellPlant, title: "Продати кавенятко" },
   plantMarket: { component: PlantMarket, title: "Нове кавенятко" },

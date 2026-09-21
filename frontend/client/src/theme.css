@@ -1074,3 +1074,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .sell-similar b { display: inline-flex; align-items: center; gap: 4px; font-weight: 800 }
 .why.sell { gap: 10px }
 .why.sell > p { line-height: 1.4 }
+
+/* Попап предмета зі складу й «Кому вдягнути». */
+.stock-item { display: flex; align-items: center; gap: 14px }
+.stock-item-tile { flex: none; width: 96px; height: 96px; border-radius: 20px; background: radial-gradient(circle at 50% 35%, rgba(var(--t), .5) 0%, rgba(var(--t), .14) 70%); border: 1.5px solid rgb(var(--t)); display: flex; align-items: center; justify-content: center }
+.stock-item > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px }
+.stock-item > div > b { font-size: 12px; font-weight: 800 }
+.stock-item > div > span { font-size: 13px; color: var(--muted) }
+.stock-item-count { display: flex; align-items: center; gap: 7px; margin-top: 2px }
+.stock-item-count i { font-style: normal; padding: 5px 10px; border-radius: var(--radius-pill); background: var(--panel2); font-size: 12px; font-weight: 800 }
+.stock-item-count small { font-size: 12px; color: var(--muted) }
+.stock-item-actions { display: flex; flex-direction: column; gap: 9px }
+.stock-item-actions .cta { height: 50px }
+.wear-info { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 14px; background: var(--panel2) }
+.wear-info > span:last-child { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); text-wrap: pretty }
+.wear-tile { flex: none; width: 46px; height: 46px; border-radius: 12px; background: radial-gradient(circle at 50% 35%, rgba(var(--t), .5) 0%, rgba(var(--t), .14) 70%); border: 1.5px solid rgb(var(--t)); display: flex; align-items: center; justify-content: center }
+.pick-list.static { flex: none; overflow: hidden }
+.wear-row { gap: 12px; padding: 11px 12px }
+.wear-thumb { flex: none; width: 58px; height: 70px; border-radius: 12px; background: radial-gradient(120% 80% at 50% 70%, var(--sky1) 0%, var(--sky2) 74%); overflow: hidden; position: relative }
+.wear-row > span:last-child { flex: 1; min-width: 0 }
+.wear-row b { font-weight: 800 }
