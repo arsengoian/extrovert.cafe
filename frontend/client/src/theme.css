@@ -437,9 +437,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .order { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 12px; display: flex; flex-direction: column; gap: 10px }
 .order-top { display: flex; align-items: flex-start; gap: 10px }
 .order-top > img { width: 44px; height: 44px; object-fit: contain }
-.order-top b { display: block; font-size: 15px; font-weight: 700 }
-.order-top small { font-size: 12px; color: var(--muted) }
-.order-top small em { font-style: normal; font-weight: 600 }
+.orders { display: flex; flex-direction: column; gap: 10px }
+.order-main { flex: 1; min-width: 0 }
+.order-main b { display: block; font-size: 15px; font-weight: 700 }
+.order-main small { display: block; font-size: 12px; color: var(--muted) }
+.order-main small em { font-style: normal; font-weight: 600 }
+.order-main strong { display: block; font-size: 12px; font-weight: 700; color: var(--accent-text); margin-top: 2px }
+.order[data-bonus] .order-main b, .order[data-bonus] .order-main small { color: var(--accent-text) }
+.order-badges { flex: none; display: flex; align-items: flex-start; gap: 8px }
 .coin-badge { flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px }
 .coin-badge > span {
   width: 44px; height: 44px; border-radius: 11px; background: var(--panel2); border: 1px solid var(--line);
@@ -447,6 +452,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .coin-badge img { width: 32px; height: 34px; object-fit: contain }
 .coin-badge > b { font-size: 11px; font-weight: 800; line-height: 1 }
+.order[data-bonus] .coin-badge:not(.item) > span { border-color: var(--accent) }
+.order[data-bonus] .coin-badge > b { color: var(--accent-text) }
+.coin-badge > small { font-size: 9px; font-weight: 600; color: var(--muted); line-height: 1; text-align: center }
+.coin-badge > span[class^="tier-"] img { width: 38px; height: 38px }
+.order-done { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted) }
+.order-done img { width: 15px; height: 16px }
+.orders-note { font-size: 12px; color: var(--muted); text-align: center; text-wrap: pretty }
 .order-cta {
   height: 40px; border-radius: var(--radius-sm); background: var(--grad); color: var(--accent-ink);
   font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -487,6 +499,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .quiz-progress { display: flex; align-items: center; gap: 10px }
 .quiz-progress > b { font-size: 12px; font-weight: 700; color: var(--muted) }
 .quiz-q { font-size: 20px; font-weight: 900; line-height: 1.2; text-wrap: pretty }
+.quiz-hint { font-size: 12px; color: var(--muted); margin-top: -6px }
 .field { display: flex; flex-direction: column; gap: 8px }
 
 /* Один варіант — великий рядок із кружечком. */
@@ -509,7 +522,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .segs button { flex: 1 }
 .chips button { padding: 0 14px; white-space: nowrap }
 .segs button[aria-pressed="true"], .chips button[aria-pressed="true"] {
-  background: var(--grad); color: var(--accent-ink); font-weight: 800; border-color: transparent;
+  background: var(--grad); color: var(--accent-ink); font-weight: 800; border: 0;
 }
 
 .textarea {
@@ -517,6 +530,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   padding: 11px 13px; font: inherit; font-size: 13.5px; color: var(--ink); resize: vertical;
 }
 .textarea::placeholder { color: var(--muted) }
+.textarea.tall { height: 118px; border-radius: var(--radius); padding: 13px; font-size: 14px; line-height: 1.4; resize: none }
 
 .quiz-foot { margin-top: auto; display: flex; align-items: center; gap: 12px }
 .quiz-foot > span { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted) }
@@ -594,7 +608,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   flex: 1; height: 36px; border-radius: 11px; border: 1px solid var(--line);
   display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted);
 }
-.quick button[aria-pressed="true"] { background: var(--grad); color: var(--accent-ink); font-weight: 800; border-color: transparent }
+.quick button[aria-pressed="true"] { background: var(--grad); color: var(--accent-ink); font-weight: 800; border: 0 }
 .warn {
   display: flex; gap: 10px; align-items: flex-start; padding: 12px 13px; border-radius: 14px;
   background: rgba(254, 129, 11, .14); border: 1px solid rgba(254, 129, 11, .5);
@@ -680,14 +694,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .bonus-row { display: flex; align-items: flex-start; justify-content: center; gap: 14px }
 .bonus-tile { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px }
 .bonus-tile > span { width: 54px; height: 54px; border-radius: 13px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
-.bonus-tile > span.tier-common { --t: var(--tier-common) }
-.bonus-tile > span.tier-uncommon { --t: var(--tier-uncommon) }
-.bonus-tile > span.tier-rare { --t: var(--tier-rare) }
-.bonus-tile > span.tier-epic { --t: var(--tier-epic) }
-.bonus-tile > span[class^="tier-"] {
+.tier-common { --t: var(--tier-common) }
+.tier-uncommon { --t: var(--tier-uncommon) }
+.tier-rare { --t: var(--tier-rare) }
+.tier-epic { --t: var(--tier-epic) }
+.bonus-tile > span[class^="tier-"], .coin-badge > span[class^="tier-"] {
   background: radial-gradient(circle at 50% 35%, rgba(var(--t), .55) 0%, rgba(var(--t), .16) 70%);
   border: 1.5px solid rgb(var(--t)); box-shadow: 0 6px 16px rgba(var(--t), .34);
 }
+.coin-badge > span[class^="tier-"] { box-shadow: none }
 .bonus-tile > b { font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center }
 .bonus-tile > small { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.15; text-align: center }
 .start-btns { align-self: stretch; display: flex; flex-direction: column; gap: 12px; align-items: center }

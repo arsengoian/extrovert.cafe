@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { PROFILE_DRAFT } from "./QuizProfile.jsx";
+import { days } from "../ui/plural.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
@@ -119,7 +120,8 @@ export function Wallet({ ctx }) {
             title="Опитування про напій"
             note={drink?.credits ? `${drink.credits} кредит · про будь-який напій` : "Кредити витрачено"}
             action={drink?.credits ? { label: "Обрати" } : { label: "Недоступно", kind: "off" }}
-            onClick={drink?.credits ? () => ctx.push("quizDrink") : undefined}
+            // «Обрати» — про який напій: вибір у «Покупках», на картці напою.
+            onClick={drink?.credits ? () => ctx.openTab("history") : undefined}
             off={!drink?.credits}
           />
 
@@ -130,7 +132,7 @@ export function Wallet({ ctx }) {
             note={repost?.limit_reached
               ? `${repost.counted} з ${repost.max} · більше не рахується`
               : repost?.days_left
-                ? `${repost.counted} з ${repost.max} · ще ${repost.days_left} днів до наступного`
+                ? `${repost.counted} з ${repost.max} · ще ${days(repost.days_left)} до наступного`
                 : `${repost?.counted ?? 0} з ${repost?.max ?? 5} · можна зараз`}
             action={repost && !repost.limit_reached && !repost.days_left
               ? { label: "Поділитись", kind: "primary" }

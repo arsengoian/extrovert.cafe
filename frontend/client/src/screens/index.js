@@ -59,7 +59,14 @@ export const SCREENS = {
 
   problem: { component: Problem, title: "Що не працює?", hideNav: true },
   quizProfile: { component: QuizProfile, title: "Розкажи про себе", hideNav: true },
-  quizDrink: { component: QuizDrink, title: "Опитування про напій", hideNav: true },
+  // Заголовок — напій і дата покупки, як у кадрі: «Лате · 17.09».
+  quizDrink: {
+    component: QuizDrink,
+    title: (p) => p.item
+      ? `${p.item.name} · ${new Date(p.item.fiscal_date).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" })}`
+      : "Опитування про напій",
+    hideNav: true,
+  },
   repost: { component: Repost, title: "Репост у соцмережі" },
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true },
   wardrobe: { component: Wardrobe, title: "Гардероб" },

@@ -97,7 +97,7 @@ export function QuizProfile({ ctx }) {
       </div>
 
       <div className="quiz-q">{current.title}</div>
-      {current.hint && <div className="muted" style={{ fontSize: 13 }}>{current.hint}</div>}
+      {current.hint && <div className="quiz-hint">{current.hint}</div>}
 
       {current.questions.map((q) => {
         const control =
@@ -105,7 +105,7 @@ export function QuizProfile({ ctx }) {
           : q.type === "multi" ? <Choice options={q.options} multi value={answers[q.id] ?? []} onChange={(v) => set(q.id, v)} />
           : q.type === "segment" ? <Segment options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
           : q.type === "drinks" ? <DrinkGrid options={q.options} sprites={q.sprites} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
-          : <TextField value={answers[q.id] ?? ""} placeholder={q.placeholder} onChange={(v) => set(q.id, v)} />;
+          : <TextField value={answers[q.id] ?? ""} placeholder={q.placeholder} tall={q.tall} onChange={(v) => set(q.id, v)} />;
         // Питання без підпису — головне питання кроку (його заголовок уже
         // вище), з підписом — підпитання з сірим заголовком-розділом.
         return q.title

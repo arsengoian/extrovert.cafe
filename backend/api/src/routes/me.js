@@ -83,22 +83,48 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const rows = await many(
+      // Позиція з id і позначкою опитування: картка напою в «Покупках» веде в
+      // опитування саме про неї або показує «Опитування пройдено» (кадр
+      // «Покупки кави»). Спрайт — з каталога, у чеку його немає.
       `select r.id, r.fiscal_date, r.total_sum, r.tax_url, p.name as point_name,
-              bg.coins_yellow as bonus_coins, bg.status as bonus_status,
+              bg.coins_yellow as bonus_coins, bg.status as bonus_status, bg.items as bonus_items,
               coalesce(json_agg(json_build_object(
-                  'name', ri.name, 'qty', ri.qty, 'sum', ri.sum_uah,
-                  'system_code', ri.system_code, 'is_bonus', ri.is_bonus_drink
+                  'id', ri.id, 'name', ri.name, 'qty', ri.qty, 'sum', ri.sum_uah,
+                  'system_code', ri.system_code, 'is_bonus', ri.is_bonus_drink,
+                  'sprite', d.sprite, 'answered', q.id is not null
               ) order by ri.id) filter (where ri.id is not null), '[]') as items
          from receipts r
          join points p on p.id = r.point_id
          join bonus_grants bg on bg.receipt_id = r.id and bg.redeemed_by = $1
          left join receipt_items ri on ri.receipt_id = r.id
-        group by r.id, p.name, bg.coins_yellow, bg.status
+         left join drinks d on d.system_code = ri.system_code
+         left join quiz_drink_responses q on q.receipt_item_id = ri.id
+        group by r.id, p.name, bg.coins_yellow, bg.status, bg.items
         order by r.fiscal_date desc
         limit 50`,
       [user.id]
     );
-    return { receipts: rows };
+
+    // Лутдроп бонусного напою лежить у бонусі кодами — картці потрібні
+    // назва, рідкість і спрайт для плитки поруч із монетами.
+    const codes = [...new Set(rows.flatMap((r) => (Array.isArray(r.bonus_items) ? r.bonus_items : [])))];
+    const defs = codes.length
+      ? await many("select code, name, collection, tier, sprite_id from item_defs where code = any($1)", [codes])
+      : [];
+    const def = Object.fromEntries(defs.map((d) => [d.code, d]));
+    const receipts = rows.map(({ bonus_items: items, ...r }) => ({
+      ...r,
+      bonus_items: (Array.isArray(items) ? items : []).map((code) => def[code]).filter(Boolean),
+    }));
+    // Скільки напоїв усього й монет за них — для заголовка «34 напої · 780».
+    const totals = await one(
+      `select (select count(*)::int from receipt_items ri
+                 join bonus_grants bg on bg.receipt_id = ri.receipt_id
+                where bg.redeemed_by = $1) as drinks,
+              (select coalesce(sum(coins_yellow), 0)::int from bonus_grants where redeemed_by = $1) as coins`,
+      [user.id]
+    );
+    return { receipts, totals };
   });
 
   // Журнал операцій — «історія транзакцій» у Гаманці.

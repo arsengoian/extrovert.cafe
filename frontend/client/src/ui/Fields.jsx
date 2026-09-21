@@ -41,10 +41,11 @@ export function Segment({ options, value, onChange }) {
   );
 }
 
-export function TextField({ value, onChange, placeholder, rows = 2 }) {
+// tall — велике поле останнього кроку анкети (118 px, як у макеті).
+export function TextField({ value, onChange, placeholder, rows = 2, tall = false }) {
   return (
     <textarea
-      className="textarea"
+      className={tall ? "textarea tall" : "textarea"}
       value={value}
       rows={rows}
       placeholder={placeholder ?? "Напиши своїми словами"}
