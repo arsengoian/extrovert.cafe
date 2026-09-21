@@ -5,7 +5,7 @@
 // Чому підпис переїхав: 20.09.2026 `prices:push` із робочої машини поклав
 // меню в живий бакет. Лікується це не уважністю, а тим, що ім'я бакета
 // більше не береться з env: його дає bucketFor('pos'), і поза
-// APP_ENV=production воно закінчується на `-dev` (lib/src/r2.js).
+// APP_ENV=production воно закінчується на `-dev` (backend/lib/src/r2.js).
 import { readFileSync } from "node:fs";
 import { appEnv, bucketFor, put as putObject } from "@extrovert/lib/r2.js";
 

@@ -59,8 +59,8 @@ function slugger() {
     used.set(base, n);
     return n === 1 ? base : `${base}-${n}`;
   };
-  // Ключі доків займаються наперед: розділ «stack» у pi/README.md інакше
-  // отримав би id «pi-stack» — той самий, що й док pi/stack/README.md.
+  // Ключі доків займаються наперед: розділ «stack» у raspberry/pi/README.md інакше
+  // отримав би id «pi-stack» — той самий, що й док raspberry/pi/stack/README.md.
   slug.reserve = (id) => used.set(id, (used.get(id) || 0) + 1);
   return slug;
 }
@@ -177,8 +177,8 @@ const docKey = (file) =>
     .replace(/^-+|-+$/g, "");
 
 // `raspberry-pi.md` у тексті — посилання на цей док на сторінці. Шлях
-// пробуємо відносно самого дока, від кореня й від docs/: у pi/README.md
-// пишуть `stack/README.md`, у доках — `pi/stack/README.md` або `services.md`.
+// пробуємо відносно самого дока, від кореня й від docs/: у raspberry/pi/README.md
+// пишуть `stack/README.md`, у доках — `raspberry/pi/stack/README.md` або `services.md`.
 function resolveDocRef(fromFile, ref, keys) {
   const clean = ref.trim().replace(/\\/g, "/");
   for (const cand of [path.posix.join(path.posix.dirname(fromFile), clean), clean, path.posix.join("docs", clean)]) {
@@ -610,7 +610,7 @@ if (args.includes("--hook")) {
   const file = payload?.tool_input?.file_path || payload?.tool_response?.filePath;
   if (!file) process.exit(0);
   // Стріляємо на реєстр, на будь-який док у docs/ (щоб новий файл одразу дав
-  // попередження «нема в реєстрі») і на доки реєстру поза docs/ (pi/README.md).
+  // попередження «нема в реєстрі») і на доки реєстру поза docs/ (raspberry/pi/README.md).
   const isDocsMd = /\.md$/i.test(file) && samePath(path.dirname(path.resolve(file)), path.join(ROOT, "docs"));
   const inRegistry = () => [...readRegistry().listed].some((f) => samePath(file, path.join(ROOT, f)));
   if (!isDocsMd && !inRegistry()) process.exit(0);

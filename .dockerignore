@@ -15,7 +15,7 @@ keys
 infra
 
 # Артефакти збірок і тимчасове.
-client/dist
+frontend/*/dist
 pos/dist
 **/.wrangler
 **/*.log

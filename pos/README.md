@@ -1,6 +1,6 @@
 # pos — меню точки
 
-Дані меню й заливка їх у R2. Ніякого сервера тут немає: кіоск (`pos-native/`)
+Дані меню й заливка їх у R2. Ніякого сервера тут немає: кіоск (`raspberry/kiosk/`)
 читає меню прямо з публічного бакета, а не через наш API.
 
 ```
@@ -30,4 +30,4 @@ Cloudflare і так віддає його з кеша, з `ETag` і `Range`. Т
 потрібен ні токен, ні наш бекенд, щоб показати ціни (`../docs/services.md` §3).
 
 Ціни в каталозі Checkbox звіряє окремий скрипт —
-`checkbox/scripts/sync-prices.mjs` (`../docs/checkbox.md`).
+`backend/checkbox/scripts/sync-prices.mjs` (`../docs/checkbox.md`).

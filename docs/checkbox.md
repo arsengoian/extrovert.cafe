@@ -90,7 +90,7 @@ base64(HmacSHA256(key, тіло_запиту_як_UTF8_байти))
 
 Ціни в каталозі мають збігатися з `pos/data/prices.json`, інакше кіоск
 показує одну ціну, а чек пробиває іншу. Звіряє й оновлює
-`checkbox/scripts/sync-prices.mjs`.
+`backend/checkbox/scripts/sync-prices.mjs`.
 
 ```
 GET    /api/v1/goods?limit=100&offset=0   → results[]: id, code, name, price, group_id, taxes, …

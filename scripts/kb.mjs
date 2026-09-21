@@ -1,16 +1,16 @@
 // База знань чату: перевірка, ембединги й заливка в OpenAI.
 //
 //   bun run kb:check    — що лежить у базі, дублі id, довжини, пошук
-//   bun run kb:embed    — рахує вектори в api/data/knowledge/embeddings.json
+//   bun run kb:embed    — рахує вектори в backend/api/data/knowledge/embeddings.json
 //   bun run kb:push     — заливає документи у vector store OpenAI
 //   bun run kb:ask "…"  — що знайде пошук на такий запит
 //
-// Тексти живуть у репозиторії (api/data/knowledge/*.json) і саме звідси
+// Тексти живуть у репозиторії (backend/api/data/knowledge/*.json) і саме звідси
 // їдуть в OpenAI — щоб «те, що знає кавенятко» можна було прочитати в
 // гіті, а не лише в чужій панелі.
 import { writeFileSync } from "node:fs";
 import path from "node:path";
-import { documents, embed, plainText, search, KB_DIR, EMBEDDING_MODEL } from "../api/src/chat/knowledge.js";
+import { documents, embed, plainText, search, KB_DIR, EMBEDDING_MODEL } from "../backend/api/src/chat/knowledge.js";
 
 const [command, ...rest] = process.argv.slice(2);
 

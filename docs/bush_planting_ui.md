@@ -309,14 +309,14 @@ z=28, що лежав явно глибше решти) — тобто зона 
 
 | Що | Де |
 |---|---|
-| Зони, криві, діапазони | `client/public/assets/planting/placement.json` — копія `planting_placement.json` із Кроку 3.2 |
-| Кореневі точки спрайтів | `client/public/assets/planting/points.json` (Крок 1) |
-| Природний кут спрайту | `client/public/assets/planting/sprites.json` — `bun run planting:data`, рахує `scripts/build-planting-data.mjs` |
-| Математика (корінь↔центр, криві, зони, камера) | `client/src/plant/geometry.js` |
-| Правила типів і жести | `client/src/plant/placement.js` |
-| Складання сцени з макета + appearance | `client/src/plant/scene.js`, малювання — `Scene.jsx` |
-| Екран посадки | `client/src/plant/Planting.jsx` (один на всі чотири типи) |
-| Догляд, чернетка, підтвердження | `api/src/routes/planting.js` |
+| Зони, криві, діапазони | `frontend/client/public/assets/planting/placement.json` — копія `planting_placement.json` із Кроку 3.2 |
+| Кореневі точки спрайтів | `frontend/client/public/assets/planting/points.json` (Крок 1) |
+| Природний кут спрайту | `frontend/client/public/assets/planting/sprites.json` — `bun run planting:data`, рахує `scripts/build-planting-data.mjs` |
+| Математика (корінь↔центр, криві, зони, камера) | `frontend/client/src/plant/geometry.js` |
+| Правила типів і жести | `frontend/client/src/plant/placement.js` |
+| Складання сцени з макета + appearance | `frontend/client/src/plant/scene.js`, малювання — `Scene.jsx` |
+| Екран посадки | `frontend/client/src/plant/Planting.jsx` (один на всі чотири типи) |
+| Догляд, чернетка, підтвердження | `backend/api/src/routes/planting.js` |
 
 Природний кут спрайту в Кроці 1 не зберігається, тому його рахує скрипт:
 напрямок від кореня до найдальшого непрозорого пікселя — той самий

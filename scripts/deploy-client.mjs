@@ -13,7 +13,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CLIENT = path.join(ROOT, "client");
+const CLIENT = path.join(ROOT, "frontend", "client");
 const DIST = path.join(CLIENT, "dist");
 const dry = process.argv.includes("--dry");
 
@@ -31,16 +31,16 @@ function fail(message) {
 // 1. Адреса api. Її бере Vite з .env.production — перевіряємо до збірки,
 // щоб не витрачати хвилину на бандл, який однаково не можна викочувати.
 const envFile = path.join(CLIENT, ".env.production");
-if (!existsSync(envFile)) fail("немає client/.env.production — нізвідки взяти VITE_API");
+if (!existsSync(envFile)) fail("немає frontend/client/.env.production — нізвідки взяти VITE_API");
 const apiUrl = (readFileSync(envFile, "utf8").match(/^VITE_API=(.+)$/m) ?? [])[1]?.trim();
-if (!apiUrl) fail("у client/.env.production немає VITE_API");
+if (!apiUrl) fail("у frontend/client/.env.production немає VITE_API");
 if (!/^https:\/\//.test(apiUrl)) fail(`VITE_API має бути https, а не «${apiUrl}»`);
 
 // Те саме про ws, і з тієї ж причини. Без VITE_WS клієнт мовчки бере
 // ws://<хост>:3002 — порт, якого в проді не існує; застосунок при цьому
 // виглядає робочим і просто ніколи не отримує подій.
 const wsUrl = (readFileSync(envFile, "utf8").match(/^VITE_WS=(.+)$/m) ?? [])[1]?.trim();
-if (!wsUrl) fail("у client/.env.production немає VITE_WS");
+if (!wsUrl) fail("у frontend/client/.env.production немає VITE_WS");
 if (!/^wss:\/\//.test(wsUrl)) fail(`VITE_WS має бути wss, а не «${wsUrl}»`);
 
 console.log(`api для збірки: ${apiUrl}`);

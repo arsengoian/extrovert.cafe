@@ -1,0 +1,16 @@
+# Адмінка — така сама статика на Workers, як і застосунок гравця: свого
+# сервіса в бекенді вона не має й не потребує, усе бере роутами /admin/*
+# (backend/api/src/routes/admin.js, docs/services.md §4).
+name = "extrovert-admin"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+# Домен привʼязується один раз у дашборді Cloudflare. Закоментований, щоб
+# випадковий deploy не перехопив прод:
+# routes = [{ pattern = "admin.extrovert.cafe", custom_domain = true }]
+
+[observability]
+enabled = true

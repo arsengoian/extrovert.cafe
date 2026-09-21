@@ -9,7 +9,66 @@
         "pngjs": "^7.0.0",
       },
     },
-    "admin": {
+    "backend/api": {
+      "name": "@extrovert/api",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "@sentry/node": "^8.0.0",
+        "fastify": "^5.0.0",
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
+    "backend/checkbox": {
+      "name": "@extrovert/checkbox",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "@sentry/node": "^8.0.0",
+        "fastify": "^5.0.0",
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
+    "backend/lib": {
+      "name": "@extrovert/lib",
+      "version": "0.0.1",
+      "dependencies": {
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
+    "backend/overseer": {
+      "name": "@extrovert/overseer",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "@sentry/node": "^8.0.0",
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
+    "backend/scheduler": {
+      "name": "@extrovert/scheduler",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "ioredis": "^5.4.1",
+        "pg": "^8.13.0",
+      },
+    },
+    "backend/ws": {
+      "name": "@extrovert/ws",
+      "version": "0.0.1",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+        "@sentry/node": "^8.0.0",
+        "ioredis": "^5.4.1",
+        "ws": "^8.18.0",
+      },
+    },
+    "frontend/admin": {
       "name": "@extrovert/admin",
       "version": "0.0.1",
       "dependencies": {
@@ -21,29 +80,7 @@
         "vite": "^6.0.0",
       },
     },
-    "api": {
-      "name": "@extrovert/api",
-      "version": "0.0.1",
-      "dependencies": {
-        "@extrovert/lib": "workspace:*",
-        "@sentry/node": "^8.0.0",
-        "fastify": "^5.0.0",
-        "ioredis": "^5.4.1",
-        "pg": "^8.13.0",
-      },
-    },
-    "checkbox": {
-      "name": "@extrovert/checkbox",
-      "version": "0.0.1",
-      "dependencies": {
-        "@extrovert/lib": "workspace:*",
-        "@sentry/node": "^8.0.0",
-        "fastify": "^5.0.0",
-        "ioredis": "^5.4.1",
-        "pg": "^8.13.0",
-      },
-    },
-    "client": {
+    "frontend/client": {
       "name": "@extrovert/client",
       "version": "0.0.1",
       "dependencies": {
@@ -55,52 +92,15 @@
         "vite": "^6.0.0",
       },
     },
-    "lib": {
-      "name": "@extrovert/lib",
+    "frontend/redirect": {
+      "name": "@extrovert/redirect",
       "version": "0.0.1",
-      "dependencies": {
-        "ioredis": "^5.4.1",
-        "pg": "^8.13.0",
-      },
-    },
-    "overseer": {
-      "name": "@extrovert/overseer",
-      "version": "0.0.1",
-      "dependencies": {
-        "@extrovert/lib": "workspace:*",
-        "@sentry/node": "^8.0.0",
-        "ioredis": "^5.4.1",
-        "pg": "^8.13.0",
-      },
     },
     "pos": {
       "name": "@extrovert/pos",
       "version": "0.1.0",
       "dependencies": {
         "@extrovert/lib": "workspace:*",
-      },
-    },
-    "redirect": {
-      "name": "@extrovert/redirect",
-      "version": "0.0.1",
-    },
-    "scheduler": {
-      "name": "@extrovert/scheduler",
-      "version": "0.0.1",
-      "dependencies": {
-        "@extrovert/lib": "workspace:*",
-        "ioredis": "^5.4.1",
-        "pg": "^8.13.0",
-      },
-    },
-    "ws": {
-      "name": "@extrovert/ws",
-      "version": "0.0.1",
-      "dependencies": {
-        "@extrovert/lib": "workspace:*",
-        "@sentry/node": "^8.0.0",
-        "ioredis": "^5.4.1",
-        "ws": "^8.18.0",
       },
     },
   },
@@ -195,25 +195,25 @@
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.25.12", "", { "os": "win32", "cpu": "x64" }, "sha512-alJC0uCZpTFrSL0CCDjcgleBXPnCrEAhTBILpeAp7M/OFgoqtAetfBzX0xM00MUsVVPpVjlPuMbREqnZCXaTnA=="],
 
-    "@extrovert/admin": ["@extrovert/admin@workspace:admin"],
+    "@extrovert/admin": ["@extrovert/admin@workspace:frontend/admin"],
 
-    "@extrovert/api": ["@extrovert/api@workspace:api"],
+    "@extrovert/api": ["@extrovert/api@workspace:backend/api"],
 
-    "@extrovert/checkbox": ["@extrovert/checkbox@workspace:checkbox"],
+    "@extrovert/checkbox": ["@extrovert/checkbox@workspace:backend/checkbox"],
 
-    "@extrovert/client": ["@extrovert/client@workspace:client"],
+    "@extrovert/client": ["@extrovert/client@workspace:frontend/client"],
 
-    "@extrovert/lib": ["@extrovert/lib@workspace:lib"],
+    "@extrovert/lib": ["@extrovert/lib@workspace:backend/lib"],
 
-    "@extrovert/overseer": ["@extrovert/overseer@workspace:overseer"],
+    "@extrovert/overseer": ["@extrovert/overseer@workspace:backend/overseer"],
 
     "@extrovert/pos": ["@extrovert/pos@workspace:pos"],
 
-    "@extrovert/redirect": ["@extrovert/redirect@workspace:redirect"],
+    "@extrovert/redirect": ["@extrovert/redirect@workspace:frontend/redirect"],
 
-    "@extrovert/scheduler": ["@extrovert/scheduler@workspace:scheduler"],
+    "@extrovert/scheduler": ["@extrovert/scheduler@workspace:backend/scheduler"],
 
-    "@extrovert/ws": ["@extrovert/ws@workspace:ws"],
+    "@extrovert/ws": ["@extrovert/ws@workspace:backend/ws"],
 
     "@fastify/ajv-compiler": ["@fastify/ajv-compiler@4.0.6", "", { "dependencies": { "ajv": "^8.12.0", "ajv-formats": "^3.0.1", "fast-uri": "^4.0.0" } }, "sha512-NtuzM0SfaMJbGlnjr9LWQUN5LzgSrbB8tf/wRZNas+4E1O/Nmzl53e7ruT61HDZyRCJGC6FxIogmNZO1c5ETBA=="],
 

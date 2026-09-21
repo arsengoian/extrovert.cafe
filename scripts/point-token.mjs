@@ -39,7 +39,7 @@ if (!pem) {
   process.exit(1);
 }
 
-// Той самий розбір, що в api/src/auth.js: у .env ключ лежить одним рядком.
+// Той самий розбір, що в backend/api/src/auth.js: у .env ключ лежить одним рядком.
 const privateKey = createPrivateKey(pem.replace(/\\n/g, "\n").replace(/\r/g, "").trim() + "\n");
 
 const now = Math.floor(Date.now() / 1000);
@@ -57,4 +57,4 @@ const until = new Date((now + days * 24 * 60 * 60) * 1000).toISOString().slice(0
 console.log(`точка: point:${point}`);
 console.log(`дійсний до: ${until}`);
 console.log(`\n${token}\n`);
-console.log("На кіоску це змінна WS_TOKEN (pos-native/docs — «Що задається оточенням»).");
+console.log("На кіоску це змінна WS_TOKEN (raspberry/kiosk/docs — «Що задається оточенням»).");

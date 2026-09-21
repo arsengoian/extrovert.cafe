@@ -8,11 +8,11 @@ Linux-контейнері, але **не на самому пристрої** �
 
 | Де | Що |
 |---|---|
-| `pi/README.md` | стан пристрою, заміри, граблі |
-| `pi/stack/README.md` | нутрощі стеку: розкладка, кроки апдейтера, overlap-підміна |
-| `pos-native/` | сам кіоск (C, Cairo, GLES2, dispmanx) і контейнер, що його збирає |
+| `raspberry/pi/README.md` | стан пристрою, заміри, граблі |
+| `raspberry/pi/stack/README.md` | нутрощі стеку: розкладка, кроки апдейтера, overlap-підміна |
+| `raspberry/kiosk/` | сам кіоск (C, Cairo, GLES2, dispmanx) і контейнер, що його збирає |
 
-Кіоск на точці один — нативний `pos-native`. Браузера на пристрої немає:
+Кіоск на точці один — нативний `kiosk`. Браузера на пристрої немає:
 ні як прод, ні як запасний варіант, ні як сторінка, яку можна відкрити.
 Запасний варіант — статична картинка (§6).
 
@@ -26,9 +26,9 @@ Linux-контейнері, але **не на самому пристрої** �
 | ОС | Raspbian 9 Stretch, ядро 4.14.79, **systemd 232**, gcc 6.3 / glibc 2.24 |
 | Монітор | Asus VP227HF, 1080p (`display-hardware.md`) |
 | Графіка | **без X**: `systemctl set-default multi-user.target`, кіоск малює в dispmanx-шар |
-| Мережа | `ssh pi@192.168.5.45`, ключ `pos-native/.deploy/id_ed25519` (у `.gitignore`) |
+| Мережа | `ssh pi@192.168.5.45`, ключ `raspberry/kiosk/.deploy/id_ed25519` (у `.gitignore`) |
 
-`/boot/config.txt` (`pi/config.txt.snippet`) — кожен рядок тут через
+`/boot/config.txt` (`raspberry/pi/config.txt.snippet`) — кожен рядок тут через
 конкретну поломку:
 
 - `hdmi_group=1`, `hdmi_mode=16` — 1080p60, як монітор віддає в EDID;
@@ -40,7 +40,7 @@ Linux-контейнері, але **не на самому пристрої** �
   потрібно дві такі поверхні одночасно — §7.
 
 **Watchdog.** `dtparam=watchdog=on` + systemd тримає апаратний BCM2835.
-⚠️ У `pi/watchdog.conf.snippet` записано `RuntimeWatchdogUSec=14s` — саме так
+⚠️ У `raspberry/pi/watchdog.conf.snippet` записано `RuntimeWatchdogUSec=14s` — саме так
 параметр показує `systemctl show`, а ключ у `/etc/systemd/system.conf`
 зветься `RuntimeWatchdogSec`. Невідомий ключ systemd мовчки ігнорує.
 Звірити на пристрої: `systemctl show -p RuntimeWatchdogUSec` має віддати
@@ -66,7 +66,7 @@ Getty на `tty1` лишається — це єдині двері з клав�
 
 **Годинник.** RTC немає, після знеструмлення час береться з `fake-hwclock`.
 Дата, що зʼїхала, ламає HTTPS — і меню, і апдейтер виглядатимуть як
-«немає мережі». Лікується `pi/fix-clock.sh`.
+«немає мережі». Лікується `raspberry/pi/fix-clock.sh`.
 
 **apt.** Stretch — EOL, репозиторії в архіві: `deb.debian.org` →
 `archive.debian.org` у `/etc/apt/sources.list` і
@@ -165,14 +165,14 @@ graph TB
 | `DISPMANX_LAYER`, `TELEMETRY_SOCK` | супервізор → кіоск (оточення) | нова копія стартує на сусідньому шарі поруч зі старою |
 | `WS_URL`, `WS_TOKEN_FILE` | супервізор → кіоск (оточення) | адреса подій прошита в збірку (`wss://ws.extrovert.cafe` для малинової цілі), але лишається перебивною; токен — файлом, бо його міняють без перевикочування |
 | `config/point.key` | адмінка → малина (ротація через обмін токена, перший ключ — по SSH) → кіоск, recorder | ключ можна відкликати й замінити без поїздки; у релізі й `config/env` його немає, бо релізи публічні (`services.md` §3) |
-| вебсокет `point:<id>` | `ws` → кіоск | ціни, акції, QR бонусу й його зникнення приходять одразу, а після обриву кіоск бере знімок стану (`services.md` §4). Клієнт — `pos-native/src/ws.c`, токен у `config/point.key` |
+| вебсокет `point:<id>` | `ws` → кіоск | ціни, акції, QR бонусу й його зникнення приходять одразу, а після обриву кіоск бере знімок стану (`services.md` §4). Клієнт — `raspberry/kiosk/src/ws.c`, токен у `config/point.key` |
 
 ### Що лежить поза `/home/pi/extrovert`
 
 Лише системне, і змінюється вручну, а не релізом:
 
 - `/etc/systemd/system/extrovert.service`;
-- рядок крон-сторожа `stack-watch` (`pi/crontab`);
+- рядок крон-сторожа `stack-watch` (`raspberry/pi/crontab`);
 - `/boot/config.txt`, `/etc/systemd/system.conf` (§1);
 - `~/scripts/start.sh` — гасить світлодіоди, юніт викликає його перед стартом.
 
@@ -187,7 +187,7 @@ graph TB
 ## 3. Деплой: від коміту до екрана
 
 Малина не компілює нічого. ARM-бінарник збирає контейнер на ПК
-(`pos-native/docker/pi.Dockerfile`): усередині той самий Raspbian Stretch
+(`raspberry/kiosk/docker/pi.Dockerfile`): усередині той самий Raspbian Stretch
 під armv6, тобто ті самі gcc 6.3 і glibc 2.24, що на пристрої. Там же
 пакується архів релізу, звідти ж він їде в R2. Точці лишається завантажити,
 перевірити й перемкнути симлінк.
@@ -214,7 +214,7 @@ sequenceDiagram
   participant K as кіоск
 
   PC->>PC: docker/make-pi.sh — armv6-контейнер, bin/pos-native-pi
-  PC->>PC: pi/stack/make-release.sh — архів і маніфест у dist/
+  PC->>PC: raspberry/pi/stack/make-release.sh — архів і маніфест у dist/
   PC->>R2: архів, immutable
   PC->>R2: маніфест, ОСТАННІМ
   loop раз на 15 хв або state/check-now
@@ -270,7 +270,7 @@ curl -sI https://pos.extrovert.cafe/releases/pi/manifest.json   # до перш�
 (кілька хвилин), далі лишається тільки сам gcc під QEMU.
 
 ```bash
-./pos-native/docker/make-pi.sh        # → pos-native/bin/pos-native-pi (ARM)
+./raspberry/kiosk/docker/make-pi.sh        # → raspberry/kiosk/bin/pos-native-pi (ARM)
 ```
 
 **2. Запакувати реліз.** Версію задає ПК — на малині немає git.
@@ -279,7 +279,7 @@ curl -sI https://pos.extrovert.cafe/releases/pi/manifest.json   # до перш�
 читає без `jq`.
 
 ```bash
-./pi/stack/make-release.sh            # → dist/<дата>-<хеш>.tar.gz + manifest.json
+./raspberry/pi/stack/make-release.sh            # → dist/<дата>-<хеш>.tar.gz + manifest.json
 ```
 
 **3. Залити в R2 — архів першим, маніфест останнім.** Навпаки — і точка
@@ -297,7 +297,7 @@ curl -s https://pos.extrovert.cafe/releases/pi/manifest.json
 плюс до хвилини джитера. Щоб не чекати, якщо є SSH:
 
 ```bash
-PI=pi@192.168.5.45; KEY=pos-native/.deploy/id_ed25519
+PI=pi@192.168.5.45; KEY=raspberry/kiosk/.deploy/id_ed25519
 ssh -i $KEY $PI "touch /home/pi/extrovert/state/check-now"   # підхопить за ≤ 5 с
 ssh -i $KEY $PI "tail -f /home/pi/extrovert/logs/updater.log"
 ```
@@ -355,7 +355,7 @@ Selftest і health ловлять різне, і потрібні обидва. 
 `/home/pi/pos-native`. Перехід забирає цей бінарник як реліз `0000-adopted-…`,
 тож першим екраном стеку буде рівно те, що вже висить.
 
-1. Поставити `pi/stack` на малину, як у кроці 1 §3.
+1. Поставити `raspberry/pi/stack` на малину, як у кроці 1 §3.
 2. Розкладка й юніт:
    ```bash
    cd /home/pi/extrovert/build/pi/stack
@@ -367,7 +367,7 @@ Selftest і health ловлять різне, і потрібні обидва. 
    sudo systemctl disable --now pos-native.service
    sudo mv /etc/systemd/system/pos-native.service /etc/systemd/system/pos-native.service.off
    sudo systemctl daemon-reload
-   crontab -e        # kiosk-watch → stack-watch з pi/crontab
+   crontab -e        # kiosk-watch → stack-watch з raspberry/pi/crontab
    ```
    Чому так: крон-рядок `kiosk-watch` робить `systemctl restart pos-native`, а
    `restart` піднімає й вимкнений юніт — поруч зі стеком стартував би другий
@@ -429,7 +429,7 @@ Selftest і health ловлять різне, і потрібні обидва. 
 
 ## 6. Запасний варіант — статична картинка
 
-Один, і це не кіоск: якщо `pos-native` не піднімається взагалі, екран
+Один, і це не кіоск: якщо `kiosk` не піднімається взагалі, екран
 показує PNG з меню. Браузерного запасного кіоска немає — на цьому залізі
 він коштував дорожче, ніж давав (`roadmap.md`).
 

@@ -10,7 +10,7 @@
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry
+        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \n        prices-push release-push
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -46,6 +46,8 @@ help:
 	@echo   make admin               адмінка локально на :5174
 	@echo   make deploy-admin-dry    зібрати адмінку й перевірити, не викочуючи
 	@echo   make deploy-admin        викотити адмінку на Cloudflare Workers
+	@echo   make prices-push         залити меню точок у публічний бакет R2
+	@echo   make release-push        залити реліз кіоска в публічний бакет R2
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
 	@echo   make keys-ssh      ключ доступу до малини й дроплетів, тека keys
@@ -99,22 +101,22 @@ seed-apply:
 ## ── сервіси ─────────────────────────────────────────────────────────────
 
 api:
-	bun --watch api/src/index.js
+	bun --watch backend/api/src/index.js
 
 ws:
-	bun ws/src/index.js
+	bun backend/ws/src/index.js
 
 scheduler:
-	bun scheduler/src/index.js
+	bun backend/scheduler/src/index.js
 
 checkbox:
-	bun checkbox/src/index.js
+	bun backend/checkbox/src/index.js
 
 overseer:
-	bun overseer/src/index.js
+	bun backend/overseer/src/index.js
 
 client:
-	bun --cwd client run dev
+	bun --cwd frontend/client run dev
 
 build:
 	docker compose build api ws checkbox scheduler overseer
@@ -156,6 +158,14 @@ deploy-admin-dry:
 
 deploy-admin:
 	bun run --filter @extrovert/admin deploy
+
+# З кореня, а не з pos/: секрети мають лежати в одному .env, інакше ключі
+# від R2 з часом розходяться між двома файлами.
+prices-push:
+	bun pos/scripts/push-prices.mjs
+
+release-push:
+	bun pos/scripts/push-release.mjs
 
 keys-jwt:
 	bun scripts/keys.mjs jwt

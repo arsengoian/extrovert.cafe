@@ -1,4 +1,4 @@
-// Готує client/public/assets/planting/sprites.json — по спрайту:
+// Готує frontend/client/public/assets/planting/sprites.json — по спрайту:
 // корінь посадки (Крок 1 конвеєра), природний розмір і «природний кут».
 //
 // Природний кут — напрямок від кореня до найдальшого непрозорого пікселя

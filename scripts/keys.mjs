@@ -23,7 +23,7 @@ function jwt() {
   const { privateKey } = generateKeyPairSync("ed25519");
   const pem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
   // .env не розуміє багаторядкових значень, тому переноси екрануються;
-  // api/src/auth.js розгортає їх назад.
+  // backend/api/src/auth.js розгортає їх назад.
   console.log("Додай у .env одним рядком:\n");
   console.log(`JWT_PRIVATE_KEY=${pem.trim().replace(/\n/g, "\\n")}`);
   console.log("\nКлюч не зберігається нікуди більше: якщо загубиш — усі токени протухнуть,");

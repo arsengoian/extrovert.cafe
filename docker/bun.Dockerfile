@@ -21,18 +21,18 @@ WORKDIR /app
 # за змістом: client і redirect живуть на Cloudflare Workers, pos — на
 # малині, у бекендному образі їм немає що робити.
 COPY package.json bun.lock ./
-COPY lib/package.json ./lib/
-COPY ${SVC}/package.json ./${SVC}/
+COPY backend/lib/package.json ./backend/lib/
+COPY backend/${SVC}/package.json ./backend/${SVC}/
 
 # --frozen-lockfile: збірка не має права тихо підняти версію, якої немає в
 # lock. --filter: ставимо залежності лише потрібного сервісу.
-RUN bun install --frozen-lockfile --production --filter "./${SVC}"
+RUN bun install --frozen-lockfile --production --filter "./backend/${SVC}"
 
 # Спільна бібліотека (Postgres, Redis, outbox, логер) їде з кожним сервісом:
 # у монорепо вона не публікується, тому в образі має бути її код, а не лише
 # запис у lock.
-COPY lib/ ./lib/
-COPY ${SVC}/ ./${SVC}/
-WORKDIR /app/${SVC}
+COPY backend/lib/ ./backend/lib/
+COPY backend/${SVC}/ ./backend/${SVC}/
+WORKDIR /app/backend/${SVC}
 ENV NODE_ENV=production
 CMD ["bun", "src/index.js"]

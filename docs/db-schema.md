@@ -64,7 +64,7 @@ Checkbox і оплати mono pay, на які рядок посилається
 ### Форма `plants.appearance` (version 2)
 
 Координати — у сцені зрілого куща 1000×1300 (той самий простір, що й
-`client/public/assets/tree_layout.json`); зростання під стадію клієнт
+`frontend/client/public/assets/tree_layout.json`); зростання під стадію клієнт
 застосовує на рендері, а не в даних:
 
 ```json
@@ -383,7 +383,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         bigint ledger_entry_id FK "списання зерен"
-        text product "id з api/data/shop-products.json"
+        text product "id з backend/api/data/shop-products.json"
         jsonb options "розмір футболки"
         numeric cost_uah_actual "для 10% ліміту бюджету"
         text recipient_name
@@ -902,7 +902,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 
 **Параметри економіки в базі не лежать взагалі** (20.09.2026). Множник
 монет, курс зерен, таблиця рідкості, ціна крейта, `market_offer_bias` — це
-`api/data/economy.json` поруч із `shop-products.json`, який `api` читає на
+`backend/api/data/economy.json` поруч із `shop-products.json`, який `api` читає на
 старті. Змінити курс — коміт і реліз, а не рядок у базі: крутити ці числа
 однаково нікому, крім нас, а таблиця під них означала б ще й екран в
 адмінці, аудит і сід — три шари навколо десятка констант.

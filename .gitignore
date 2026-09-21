@@ -6,15 +6,15 @@ node_modules/
 .wrangler/
 dist/
 build/
-!pos-native/build/
+!raspberry/kiosk/build/
 __pycache__/
 
-# pos-native: тримаємо джерела, не бінарники
-pos-native/bin/
-# pos-native: одноразові тестові бінарники й дампи локальних прогонів
-pos-native/.render-tmp/
-# pos-native: приватний ключ деплою, не для гіту
-pos-native/.deploy/
+# kiosk: тримаємо джерела, не бінарники
+raspberry/kiosk/bin/
+# kiosk: одноразові тестові бінарники й дампи локальних прогонів
+raspberry/kiosk/.render-tmp/
+# kiosk: приватний ключ деплою, не для гіту
+raspberry/kiosk/.deploy/
 
 # Секрети для act: приватний ключ від сервера й токен реєстру.
 # Робиться з локального .env командою `make act-secrets`.

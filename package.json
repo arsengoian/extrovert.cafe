@@ -3,16 +3,16 @@
   "private": true,
   "version": "0.0.1",
   "workspaces": [
-    "lib",
-    "api",
-    "ws",
-    "checkbox",
-    "overseer",
-    "pos",
-    "client",
-    "scheduler",
-    "redirect",
-    "admin"
+    "backend/lib",
+    "backend/api",
+    "backend/ws",
+    "backend/checkbox",
+    "backend/overseer",
+    "backend/scheduler",
+    "frontend/client",
+    "frontend/admin",
+    "frontend/redirect",
+    "pos"
   ],
   "scripts": {
     "up": "docker compose --profile local up -d postgres redis minio minio-buckets",

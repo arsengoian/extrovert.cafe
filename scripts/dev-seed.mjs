@@ -62,10 +62,10 @@ if (delta.yellow || delta.silver || delta.beans) {
 }
 
 // Кавенятко: стадія 5, обличчя з набору 3 — рівно те, що показує дизайн.
-// Вигляд беремо з еталонного макета (client/public/assets/tree_layout.json):
+// Вигляд беремо з еталонного макета (frontend/client/public/assets/tree_layout.json):
 // дев-кущ має виглядати так само, як кущ у дизайні, інакше на екранах
 // посадки нема з чим порівняти результат.
-const layout = JSON.parse(readFileSync(new URL("../client/public/assets/tree_layout.json", import.meta.url), "utf8"));
+const layout = JSON.parse(readFileSync(new URL("../frontend/client/public/assets/tree_layout.json", import.meta.url), "utf8"));
 const skinOf = (sprite) => Number(sprite.match(/skin(d+)/)?.[1] ?? 1);
 const place = (i) => ({ x: round(i.x), y: round(i.y), rotation: round(i.rotation ?? 0), scale: round(i.scale) });
 const round = (v) => Math.round(v * 100) / 100;
