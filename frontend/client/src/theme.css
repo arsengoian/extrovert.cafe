@@ -409,3 +409,38 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .cell img { max-width: 70%; max-height: 70%; object-fit: contain }
 .cell i { position: absolute; right: 4px; bottom: 4px; font-size: 11px; font-weight: 800; font-style: normal; color: var(--muted) }
+
+/* ── покупки ───────────────────────────────────────────────────────────
+   Кадр «Покупки кави»: банер кредиту на опитування, заголовок із підсумком,
+   картка на кожен напій. */
+.credit-banner {
+  display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px;
+  background: var(--panel2); border: 1px solid var(--accent);
+}
+.credit-banner img { flex: none; width: 24px; height: 25px; object-fit: contain }
+.credit-banner div { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); text-wrap: pretty }
+.credit-banner b { font-weight: 800; color: var(--ink) }
+
+.orders-head { display: flex; align-items: baseline; justify-content: space-between }
+.orders-head h1 { font-size: 19px; font-weight: 900; margin: 0 }
+.orders-head span { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted) }
+.orders-head img { width: 15px; height: 16px }
+
+.order { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 12px; display: flex; flex-direction: column; gap: 10px }
+.order-top { display: flex; align-items: flex-start; gap: 10px }
+.order-top > img { width: 44px; height: 44px; object-fit: contain }
+.order-top b { display: block; font-size: 15px; font-weight: 700 }
+.order-top small { font-size: 12px; color: var(--muted) }
+.order-top small em { font-style: normal; font-weight: 600 }
+.coin-badge { flex: none; width: 44px; display: flex; flex-direction: column; align-items: center; gap: 3px }
+.coin-badge > span {
+  width: 44px; height: 44px; border-radius: 11px; background: var(--panel2); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+}
+.coin-badge img { width: 32px; height: 34px; object-fit: contain }
+.coin-badge > b { font-size: 11px; font-weight: 800; line-height: 1 }
+.order-cta {
+  height: 40px; border-radius: var(--radius-sm); background: var(--grad); color: var(--accent-ink);
+  font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.order-cta img { width: 17px; height: 18px }
