@@ -1035,3 +1035,25 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .order-track { flex: 1; height: 48px; border-radius: 14px; background: var(--grad); color: var(--accent-ink); font-size: 14px; font-weight: 800 }
 .order-track:disabled { background: var(--panel2); color: var(--muted) }
 .co-name.plain b { line-height: normal }
+
+/* «На продаж»: лот із плиткою тіру, переглядами й віком, пояснення. */
+.lot { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 11px 12px; display: flex; gap: 11px; align-items: center }
+.lot.flat { border: 0; border-radius: 14px; background: var(--panel2); gap: 12px }
+.lot-tile { flex: none; width: 52px; height: 52px; border-radius: 13px; background: rgba(var(--t), .16); border: 1.5px solid rgba(var(--t), .45); display: flex; align-items: center; justify-content: center }
+.lot-tile.tier-rare, .lot-tile.tier-epic, .lot-tile.tier-uncommon { border-color: rgba(var(--t), .5) }
+.lot-tile.plant { background: var(--panel2); border: 1px solid var(--line) }
+.lot-tile.plant img { width: 26px; height: 40px; object-fit: contain }
+.lot-body { flex: 1; min-width: 0 }
+.lot-body > b { display: block; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.lot-body > strong { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 1px }
+.tier-text { color: rgb(var(--t)) !important }
+.lot-body > small { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); margin-top: 4px }
+.lot-body > small > span:first-child { display: inline-flex; align-items: center; gap: 4px }
+.lot-end { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px }
+.lot-end .pill { padding: 6px 12px; font-size: 11px }
+.lot-price-b { flex: none; display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 900 }
+.lot-price-b img { width: 17px; height: 18px }
+.why { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; flex-direction: column; gap: 9px }
+.why > b { font-size: 13px; font-weight: 800 }
+.why > p { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.confirm-btns.r13 button:last-child { flex: 1.3 }

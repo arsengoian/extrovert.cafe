@@ -75,7 +75,7 @@ export const SCREENS = {
   shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
   sellItem: { component: SellItem, title: "Продати на P2P" },
   wearItem: { component: WearItem, title: "Кому вдягнути" },
-  listings: { component: Listings, title: "На продажу" },
+  listings: { component: Listings, title: "На продаж" },
   sellPlant: { component: SellPlant, title: "Продати кавенятко" },
   plantMarket: { component: PlantMarket, title: "Нове кавенятко" },
   transfer: { component: Transfer, title: "Переказати монети" },

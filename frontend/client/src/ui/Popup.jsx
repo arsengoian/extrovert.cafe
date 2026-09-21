@@ -51,13 +51,13 @@ function useStageBottom(offset) {
 }
 
 // closable — кругла «×» у куті, як у «Попап · не вистачає монет».
-export function ConfirmSheet({ children, onCancel, closable = false, gap }) {
+export function ConfirmSheet({ children, onCancel, closable = false, gap, padding }) {
   const bottom = useStageBottom(14);
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
-      <div className="confirm-sheet" style={{ bottom, gap }}>
+      <div className="confirm-sheet" style={{ bottom, gap, padding }}>
         {closable && (
           <button className="sheet-x" title="Закрити" aria-label="Закрити" onClick={onCancel}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
