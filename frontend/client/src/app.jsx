@@ -20,6 +20,23 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState("plant");
   const [stack, setStack] = useState([]);           // екрани поверх вкладки
+  // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
+  // розділі «Поза авторизацією» — ними користуються ще без акаунта.
+  const [guest, setGuest] = useState(null);
+  // Бонус із QR кіоска, який чекає на вхід: сума й перша річ для стартового
+  // екрана. Без нього — варіант «без бонусів».
+  const [pendingBonus, setPendingBonus] = useState(null);
+
+  useEffect(() => {
+    if (me || !bonusToken) return;
+    api.get(`/bonus/${encodeURIComponent(bonusToken)}/preview`)
+      .then((b) => {
+        if (!b.available) return;
+        const item = b.items?.[0];
+        setPendingBonus({ coins: b.coins, item: item ? { name: item.name, icon: item.sprite_id ?? item.icon } : null });
+      })
+      .catch(() => {});
+  }, [me, bonusToken]);
 
   const refreshMe = useCallback(async () => {
     const data = await api.get("/me");
@@ -84,9 +101,31 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   if (booting) return <div className="app" />;
 
   if (!me) {
+    if (guest) {
+      const def = SCREENS[guest.name];
+      const Guest = def.component;
+      const guestTitle = typeof def.title === "function" ? def.title(guest.props ?? {}) : def.title;
+      const guestCtx = {
+        me: null, refreshMe, tab: null, openTab: () => setGuest(null),
+        pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
+      };
+      return (
+        <div className="app">
+          <TopbarBack title={guestTitle} onBack={() => setGuest(null)} />
+          <div className="stage" key={guest.name}>
+            <Guest {...(def.props ?? {})} {...(guest.props ?? {})} ctx={guestCtx} />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="app">
-        <Start onSignedIn={async () => { await refreshMe(); setBooting(false); }} />
+        <Start
+          bonus={pendingBonus}
+          onSignedIn={async () => { await refreshMe(); setBooting(false); }}
+          onProblem={() => setGuest({ name: "problem" })}
+          onSupport={() => setGuest({ name: "support" })}
+        />
       </div>
     );
   }

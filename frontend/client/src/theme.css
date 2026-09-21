@@ -11,6 +11,7 @@
   --grad: linear-gradient(96deg, #FE810B 8%, #FF2D6F 92%);
   --sky1: #16231C; --sky2: #0C0E11; --nav: #12151A;
   --radius: 16px; --radius-sm: 12px; --radius-pill: 999px;
+  --gbtn: #131314; --gbtn-line: #8E918F; --gbtn-ink: #E3E3E3; --bubble: rgba(21, 24, 28, .55);
 }
 
 :root[data-theme="light"] {
@@ -18,6 +19,7 @@
   --line: rgba(20, 24, 29, .12); --accent: #C9550A; --accent-ink: #FFFFFF; --accent-text: #9B4008;
   --grad: linear-gradient(96deg, #C9550A 8%, #C70D4D 92%);
   --sky1: #DDEBD5; --sky2: #F7F4EC; --nav: #FFFFFF;
+  --gbtn: #FFFFFF; --gbtn-line: #747775; --gbtn-ink: #1F1F1F; --bubble: rgba(255, 255, 255, .72);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
@@ -640,3 +642,58 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .confirm-btns button { height: 48px; border-radius: 14px; font-size: 15px }
 .confirm-btns button:first-child { flex: 1; border: 1px solid var(--line); font-weight: 700; color: var(--muted) }
 .confirm-btns button:last-child { flex: 1.5; background: var(--grad); color: var(--accent-ink); font-weight: 800 }
+
+/* ── стартовий екран ───────────────────────────────────────────────────
+   Кадри «Стартовий екран» і «· без бонусів». */
+.start { position: relative; min-height: 100%; padding: 24px 20px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; overflow: hidden }
+.start-glow {
+  position: absolute; left: 50%; top: 50%; width: 580px; height: 580px; margin: -290px 0 0 -290px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(254, 129, 11, .22) 0%, rgba(255, 45, 111, .12) 42%, rgba(0, 0, 0, 0) 70%);
+  pointer-events: none; z-index: 0;
+}
+/* Сяйво — поза потоком; решта над ним. Без :not сяйво ставало б
+   звичайним блоком на 580px і штовхало лого вниз. */
+.start > :not(.start-glow) { position: relative; z-index: 1 }
+.start-logo { display: flex; flex-direction: column; gap: 20px; align-items: center; padding-top: 2px }
+.start-logo img { width: 262px; height: 53px; object-fit: contain }
+/* Лого два: темне й світле — показуємо те, що пасує темі. */
+.start-logo img[data-logo="light"] { display: none }
+:root[data-theme="light"] .start-logo img[data-logo="dark"] { display: none }
+:root[data-theme="light"] .start-logo img[data-logo="light"] { display: block }
+.start-mid { display: flex; flex-direction: column; gap: 20px; align-items: center }
+.hero { position: relative; flex: none; align-self: stretch; height: 196px }
+.hero > img { position: absolute; left: 24px; top: 0; width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0 12px 22px rgba(0, 0, 0, .45)) }
+.hero-bubble {
+  position: absolute; right: 24px; bottom: 4px; width: 196px; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 6px 18px 18px; background: var(--bubble); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .22);
+  font-size: 12.5px; line-height: 1.32; color: var(--ink); text-wrap: pretty;
+}
+.hero-bubble b { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 4px }
+.start-bonus { align-self: stretch; display: flex; flex-direction: column; gap: 10px; align-items: center }
+.start-bonus > b { font-size: 13.5px; font-weight: 800; text-align: center }
+.bonus-row { display: flex; align-items: flex-start; justify-content: center; gap: 14px }
+.bonus-tile { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px }
+.bonus-tile > span { width: 54px; height: 54px; border-radius: 13px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
+.bonus-tile > span.rare {
+  background: radial-gradient(circle at 50% 35%, rgba(90, 169, 255, .55) 0%, rgba(90, 169, 255, .16) 70%);
+  border: 1.5px solid #5AA9FF; box-shadow: 0 6px 16px rgba(90, 169, 255, .34);
+}
+.bonus-tile > b { font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center }
+.bonus-tile > small { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.15; text-align: center }
+.start-btns { align-self: stretch; display: flex; flex-direction: column; gap: 12px; align-items: center }
+/* Кнопки входу — за правилами бренду Google (і так само Apple): 40px,
+   пігулка, власний шрифт, не на всю ширину. */
+.gbtn {
+  height: 40px; border-radius: 20px; background: var(--gbtn); border: 1px solid var(--gbtn-line); color: var(--gbtn-ink);
+  display: inline-flex; align-items: center; gap: 10px; padding: 0 12px;
+  font-family: "Google Sans Text", "Google Sans", -apple-system, system-ui, sans-serif;
+  font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap;
+}
+.gbtn.apple { font-family: -apple-system, "SF Pro Text", system-ui, sans-serif }
+.gbtn svg { flex: none }
+.ghost-pill {
+  height: 40px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel);
+  display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap;
+}
+.start-foot { display: flex; justify-content: center }
+.start-foot a, .start-foot button { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px }

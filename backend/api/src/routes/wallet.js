@@ -73,6 +73,23 @@ export default async function routes(app) {
   // ── редім бонусу за чек ────────────────────────────────────────────
   // Бонус живе на чеку, а не на гравці: підібрати чужий не можна, бо
   // claim_token друкується на екрані кіоска саме для цієї покупки.
+  // Прев'ю бонусу ДО входу: стартовий екран показує «Увійди, щоб не
+  // втратити бонуси» з реальною сумою (кадр «Стартовий екран»). Токен сам по
+  // собі і є секретом — він світиться лише на екрані кіоска, — тож суму
+  // тому, хто його має, показати можна; хто забрав і коли — ні.
+  app.get("/bonus/:token/preview", async (req) => {
+    const grant = await one(
+      `select coins_yellow, items, status, expires_at from bonus_grants where claim_token = $1`,
+      [String(req.params.token)]
+    );
+    if (!grant) fail(404, "no_such_bonus");
+    return {
+      coins: grant.coins_yellow,
+      items: grant.items ?? [],
+      available: grant.status === "pending" && new Date(grant.expires_at) > new Date(),
+    };
+  });
+
   app.get("/me/bonus/:token", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
