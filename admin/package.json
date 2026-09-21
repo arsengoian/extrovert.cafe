@@ -1,0 +1,16 @@
+{
+  "name": "@extrovert/admin",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "адмінка — поки заглушка, щоб стек був повним",
+  "scripts": {
+    "dev": "bun --watch src/index.js",
+    "start": "bun src/index.js"
+  },
+  "dependencies": {
+    "@extrovert/lib": "workspace:*",
+    "fastify": "^5.0.0",
+    "pg": "^8.13.0"
+  }
+}
