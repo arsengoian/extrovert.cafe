@@ -1,20 +1,34 @@
-// Зміна нікнейма: поле, підказка від сервера й зрозуміла помилка.
+// «Попап · зміна нікнейма»: нове ім'я з позначкою «вільний», генерація,
+// лічильник символів, поточний нікнейм і «Зберегти». Змінювати можна раз
+// на 30 днів — це перевіряє api, а попап лише чесно попереджає.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Sheet } from "../ui/Sheet.jsx";
+import { ConfirmSheet } from "../ui/Popup.jsx";
 
+const MAX = 20;
 const ERRORS = {
-  bad_nickname: "3–24 символи: букви, цифри, підкреслення й дефіс",
+  bad_nickname: "3–20 символів: букви, цифри, підкреслення й дефіс",
   nickname_taken: "Такий нікнейм уже зайнятий",
 };
 
 export function NicknameChange({ ctx }) {
-  const [value, setValue] = useState(ctx.me?.nickname ?? "");
+  const current = ctx.me?.nickname ?? "";
+  const [value, setValue] = useState(current);
+  const [free, setFree] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  const suggest = () => api.get("/me/nickname/suggest").then((r) => { setValue(r.nickname); setError(null); });
-  useEffect(() => { /* підказку не тягнемо одразу: поле вже має поточний нік */ }, []);
+  useEffect(() => {
+    const name = value.trim();
+    if (!name || name === current) { setFree(null); return undefined; }
+    const timer = setTimeout(() => {
+      api.get(`/me/nickname/check?nickname=${encodeURIComponent(name)}`).then((r) => setFree(r.valid && r.free)).catch(() => setFree(null));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [value, current]);
+
+  const next = ctx.me?.nickname_change_at ? new Date(ctx.me.nickname_change_at) : null;
+  const locked = next && next > new Date();
 
   const save = async () => {
     setBusy(true);
@@ -24,37 +38,52 @@ export function NicknameChange({ ctx }) {
       await ctx.refreshMe();
       ctx.pop();
     } catch (e) {
-      setError(ERRORS[e.body?.error] ?? e.message);
+      setError(e.body?.error === "too_soon"
+        ? `Наступна зміна – ${new Date(e.body.next).toLocaleDateString("uk-UA")}`
+        : ERRORS[e.body?.error] ?? e.message);
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <Sheet title="Твій нікнейм" onClose={ctx.pop}>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Його бачать інші гравці на маркеті. Формат такий самий, як у згенерованого:
-        прикметник, підкреслення й кавове слово.
-      </p>
-      <input
-        value={value}
-        onChange={(e) => { setValue(e.target.value); setError(null); }}
-        autoComplete="off"
-        spellCheck={false}
-        style={{
-          width: "100%", height: 48, padding: "0 14px", fontSize: 16, fontFamily: "inherit",
-          borderRadius: "var(--radius-sm)", border: "1px solid var(--line)",
-          background: "var(--panel2)", color: "var(--ink)",
-        }}
-      />
-      {error && <div style={{ color: "var(--accent-text)", fontSize: 13, marginTop: 8 }}>{error}</div>}
-
-      <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
-        <button className="btn" onClick={suggest}>Запропонувати інший</button>
-        <button className="btn btn-primary" disabled={busy || !value.trim()} onClick={save}>
-          {busy ? "Зберігаємо…" : "Зберегти"}
-        </button>
+    <ConfirmSheet onCancel={ctx.pop} closable padding="18px 16px">
+      <div className="short-title" style={{ gap: 0 }}>Змінити нікнейм</div>
+      <div className="short-note" style={{ lineHeight: 1.45, textWrap: "pretty" }}>
+        {locked
+          ? `Нікнейм бачать інші гравці на маркеті. Наступна зміна – ${next.toLocaleDateString("uk-UA")}.`
+          : "Нікнейм бачать інші гравці на маркеті. Змінювати можна раз на 30 днів."}
       </div>
-    </Sheet>
+
+      <div className="field">
+        <div className="profile-label">Новий нікнейм</div>
+        <label className="nick-field compact" data-tone={free === false ? "bad" : "ok"}>
+          <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off"
+                 onChange={(e) => { setValue(e.target.value.replace(/\s/g, "")); setError(null); }} />
+          {free && (
+            <span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12.5 10 17.5 19.5 7" /></svg>
+              вільний
+            </span>
+          )}
+          {free === false && <span>зайнятий</span>}
+        </label>
+        <div className="nick-tools">
+          <button onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 11.5A8 8 0 1 0 12 20" /><path d="M20 5v6.5h-6" /></svg>
+            Згенерувати
+          </button>
+          <span>{value.length} / {MAX}</span>
+        </div>
+      </div>
+
+      <div className="nick-current"><span>Поточний</span><b>{current}</b></div>
+      {error && <div className="short-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
+
+      <div className="confirm-btns r14">
+        <button onClick={ctx.pop}>Скасувати</button>
+        <button disabled={busy || locked || !free} onClick={save}>{busy ? "…" : "Зберегти"}</button>
+      </div>
+    </ConfirmSheet>
   );
 }

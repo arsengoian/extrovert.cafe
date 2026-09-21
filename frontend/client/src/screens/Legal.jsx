@@ -63,6 +63,9 @@ export function Legal({ doc = "terms", ctx }) {
         <div className="doc">
           <p>{support?.body}</p>
           <button className="cta send" onClick={() => ctx.push("problem")}>Повідомити про проблему</button>
+          {/* Шлях до видалення акаунта, який обіцяє політика приватності:
+              профіль → «Підтримка». Гостю (до входу) видаляти нічого. */}
+          {ctx.me && <button className="doc-link delete-link" onClick={() => ctx.push("deleteAccount")}>Видалити акаунт</button>}
         </div>
       ) : !data ? (
         <div className="skeleton" />

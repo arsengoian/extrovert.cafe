@@ -26,7 +26,6 @@ import { Transfer } from "./Transfer.jsx";
 import { CoinPacks } from "./CoinPacks.jsx";
 import { PlantName } from "./PlantName.jsx";
 import { Legal } from "./Legal.jsx";
-import { Bonus } from "./Bonus.jsx";
 import { DeleteAccount } from "./DeleteAccount.jsx";
 import { PaymentResult } from "./PaymentResult.jsx";
 import { Checkout } from "./Checkout.jsx";
@@ -80,7 +79,6 @@ export const SCREENS = {
   coinPacks: { component: CoinPacks, title: "Купити монети" },
   paymentResult: { component: PaymentResult, title: "Оплата" },
   plantName: { component: PlantName, title: "Імʼя кавенятка" },
-  bonus: { component: Bonus, title: "Бонус за покупку" },
   checkout: { component: Checkout, title: "Оформлення" },
   sizeChart: { component: SizeChart, title: "Таблиця розмірів" },
   orders: { component: Orders, title: "Мої замовлення" },

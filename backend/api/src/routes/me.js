@@ -5,6 +5,11 @@ import { requireUser } from "../auth.js";
 import { generateNickname } from "../nickname.js";
 import { TERMS_VERSION } from "./legal.js";
 
+// Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
+const NICKNAME_COOLDOWN_MS = 30 * 864e5;
+const nicknameAvailableAt = (row) =>
+  row.nickname_changed_at ? new Date(new Date(row.nickname_changed_at).getTime() + NICKNAME_COOLDOWN_MS) : null;
+
 // Нікнейм видно іншим гравцям на маркеті, тож формат тримаємо вузьким:
 // букви (будь-якої мови), цифри, підкреслення й дефіс.
 const NICKNAME_RE = /^[\p{L}\p{N}_-]{3,24}$/u;
@@ -21,6 +26,7 @@ const profile = (row) => ({
   },
   // Без згоди з умовами застосунок показує лише екран «Твій нікнейм».
   consent: Boolean(row.consent_at),
+  nickname_change_at: nicknameAvailableAt(row),
   created_at: row.created_at,
 });
 
@@ -187,7 +193,12 @@ export async function nicknameRoutes(app) {
     const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
     if (taken) return reply.code(409).send({ error: "nickname_taken" });
 
-    await query("update users set nickname = $2 where id = $1", [user.id, nickname]);
+    const row = await one("select nickname, nickname_changed_at from users where id = $1", [user.id]);
+    if (row.nickname === nickname) return { nickname };
+    const next = nicknameAvailableAt(row);
+    if (next && next > new Date()) return reply.code(409).send({ error: "too_soon", next });
+
+    await query("update users set nickname = $2, nickname_changed_at = now() where id = $1", [user.id, nickname]);
     return { nickname };
   });
 }

@@ -140,6 +140,7 @@ erDiagram
     USERS {
         uuid id PK
         citext nickname UK "унікальний, автоген при реєстрації"
+        timestamptz nickname_changed_at "зміна з профілю — раз на 30 днів"
         citext email "метч між провайдерами"
         int coins_yellow "check >= 0, передаються між гравцями"
         int coins_silver "check >= 0, НЕ передаються"

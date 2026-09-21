@@ -1340,6 +1340,7 @@ CREATE TABLE public.users (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     deleted_at timestamp with time zone,
     deleted_nickname public.citext,
+    nickname_changed_at timestamp with time zone,
     CONSTRAINT users_beans_check CHECK ((beans >= 0)),
     CONSTRAINT users_coins_silver_check CHECK ((coins_silver >= 0)),
     CONSTRAINT users_coins_yellow_check CHECK ((coins_yellow >= 0)),
@@ -1348,6 +1349,13 @@ CREATE TABLE public.users (
     CONSTRAINT users_insecticide_bottles_check CHECK ((insecticide_bottles >= 0)),
     CONSTRAINT users_water_liters_check CHECK ((water_liters >= 0))
 );
+
+
+--
+-- Name: COLUMN users.nickname_changed_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.users.nickname_changed_at IS 'Остання зміна нікнейма з профілю; наступна — не раніше ніж за 30 днів';
 
 
 --
@@ -3136,4 +3144,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921090000'),
     ('20260921100000'),
     ('20260921120000'),
-    ('20260921130000');
+    ('20260921130000'),
+    ('20260921140000');

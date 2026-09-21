@@ -14,6 +14,7 @@ import { connectEvents } from "./ws.js";
 import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 import { Onboarding } from "./screens/Onboarding.jsx";
+import { BonusPopup } from "./screens/Bonus.jsx";
 import "./theme.js";
 
 export function App({ bonusToken = null, returningFromPayment = false }) {
@@ -63,13 +64,15 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   const replace = useCallback((name, props = {}) => setStack((s) => [...s.slice(0, -1), { name, props }]), []);
   const openTab = useCallback((next) => { setTab(next); setStack([]); }, []);
 
-  // Бонус із QR: відкриваємо його, щойно гравець увійшов, і прибираємо
-  // токен з адреси — щоб оновлення сторінки не намагалось забрати його ще раз.
+  // Бонус із QR: щойно гравець увійшов — попап над «Покупками», як у кадрі
+  // «Попап редіму бонусу». Токен прибираємо з адреси, щоб оновлення
+  // сторінки не намагалось забрати його ще раз.
   useEffect(() => {
-    if (!bonusToken || !me) return;
-    push("bonus", { token: bonusToken });
+    if (!bonusToken || !me?.consent) return;
+    openTab("history");
+    setNotice(<BonusPopup token={bonusToken} ctx={{ me, refreshMe }} onClose={() => setNotice(null)} />);
     window.history.replaceState({}, "", "/");
-  }, [bonusToken, Boolean(me)]);
+  }, [bonusToken, Boolean(me?.consent)]);
 
   // Повернення з банку: показуємо статус оплати й прибираємо ?pay з адреси,
   // щоб перезавантаження сторінки не відкривало той самий екран знову.

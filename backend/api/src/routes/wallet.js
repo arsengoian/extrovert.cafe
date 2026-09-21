@@ -10,6 +10,15 @@ import { notifyPlant } from "../notify.js";
 
 const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
 
+// У бонусі лежать коди предметів; плитці потрібні назва, комплект,
+// рідкість і спрайт — «Капелюх / «Ковбой»» у рамці кольору тіру.
+async function itemsOf(list) {
+  const codes = Array.isArray(list) ? list : [];
+  if (!codes.length) return [];
+  const defs = await many("select code, name, collection, tier, sprite_id from item_defs where code = any($1)", [codes]);
+  return codes.map((code) => defs.find((d) => d.code === code)).filter(Boolean);
+}
+
 export default async function routes(app) {
   // ── переказ монет ──────────────────────────────────────────────────
   // Тільки жовті: срібні за визначенням не переказуються (economy §2.1),
@@ -83,15 +92,9 @@ export default async function routes(app) {
       [String(req.params.token)]
     );
     if (!grant) fail(404, "no_such_bonus");
-    // У бонусі лежать коди предметів; плитці потрібні назва, комплект,
-    // рідкість і спрайт — «Капелюх / «Ковбой»» у рамці кольору тіру.
-    const codes = Array.isArray(grant.items) ? grant.items : [];
-    const defs = codes.length
-      ? await many("select code, name, collection, tier, sprite_id from item_defs where code = any($1)", [codes])
-      : [];
     return {
       coins: grant.coins_yellow,
-      items: codes.map((code) => defs.find((d) => d.code === code)).filter(Boolean),
+      items: await itemsOf(grant.items),
       available: grant.status === "pending" && new Date(grant.expires_at) > new Date(),
     };
   });
@@ -110,7 +113,7 @@ export default async function routes(app) {
     if (!grant) fail(404, "no_such_bonus");
     return {
       coins: grant.coins_yellow,
-      items: grant.items,
+      items: await itemsOf(grant.items),
       point: grant.point_name,
       fiscal_date: grant.fiscal_date,
       total_uah: grant.total_sum,

@@ -20,13 +20,13 @@ function useStageTop(offset) {
 // art — картинка в сяйві над заголовком; decor — абсолютний фон картки
 // (сяйво скриньки); onAction — якщо головна кнопка робить щось інше, ніж
 // просто закрити («На склад»); side — відступ картки від країв.
-export function ResultPopup({ art, glow = 96, decor, title, children, action = "Готово", onAction, onClose, offset = 110, side = 18 }) {
+export function ResultPopup({ art, glow = 96, decor, title, children, action = "Готово", onAction, onClose, offset = 110, side = 18, gap }) {
   const top = useStageTop(offset);
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onClose} />
-      <div className="result-card" style={{ top, left: side, right: side }}>
+      <div className="result-card" style={{ top, left: side, right: side, gap }}>
         {decor}
         {art && <div className="result-glow" style={{ width: glow, height: glow }}>{art}</div>}
         <div className="result-title">{title}</div>

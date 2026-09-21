@@ -1094,3 +1094,28 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wear-thumb { flex: none; width: 58px; height: 70px; border-radius: 12px; background: radial-gradient(120% 80% at 50% 70%, var(--sky1) 0%, var(--sky2) 74%); overflow: hidden; position: relative }
 .wear-row > span:last-child { flex: 1; min-width: 0 }
 .wear-row b { font-weight: 800 }
+
+/* «Попап · профіль» і «· зміна нікнейма». */
+.profile-head { display: flex; align-items: center; gap: 13px; padding-right: 40px }
+.profile-head > img { flex: none; width: 44px; height: 50px; object-fit: contain }
+.profile-head > div { flex: 1; min-width: 0 }
+.profile-head b { display: block; font-size: 18px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.profile-head small { display: block; font-size: 12px; color: var(--muted) }
+.profile-btn { height: 42px; border-radius: var(--radius-sm); border: 1px solid var(--line); font-size: 13px; font-weight: 800 }
+.profile-theme { display: flex; flex-direction: column; gap: 8px }
+.profile-label { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted) }
+.profile-links { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel2); overflow: hidden }
+.profile-links button { width: 100%; display: flex; align-items: center; gap: 11px; padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left }
+.profile-links button:last-child { border-bottom: 0 }
+.profile-links button > span { flex: 1; font-size: 14px; font-weight: 700 }
+.profile-out { height: 48px; border-radius: 14px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 800; color: var(--muted) }
+.nick-field.compact { height: 50px; background: var(--panel2) }
+.nick-field.compact input { font-size: 16px; font-weight: 800 }
+.nick-field.compact span { display: flex; align-items: center; gap: 5px; font-weight: 800 }
+.nick-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted) }
+.nick-tools button { display: flex; align-items: center; gap: 7px; font-weight: 700; color: var(--accent-text); font-size: 12px }
+.nick-current { display: flex; align-items: center; justify-content: space-between; padding: 12px 13px; border-radius: 14px; background: var(--panel2); font-size: 13px }
+.nick-current span { color: var(--muted) }
+.nick-current b { font-weight: 800 }
+.confirm-btns.r14 button:last-child { flex: 1.4 }
+.delete-link { align-self: center; color: var(--muted); font-size: 12px }

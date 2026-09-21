@@ -1,11 +1,13 @@
-// Редім бонусу за чек: екран, на який веде QR з кіоска після покупки.
+// «Попап редіму бонусу»: QR з кіоска відкриває застосунок, і над
+// «Покупками» висить картка — монети й предмет за покупку, на чий акаунт
+// вони ляжуть, «Забрати».
 //
 // Бонус прив'язаний до чека, а не до гравця, тому забрати його може будь-хто,
-// хто першим відкрив посилання — рівно як домовлено в дизайні: QR горить на
-// екрані точки дві хвилини й зникає.
+// хто першим відкрив посилання: QR горить на екрані точки дві хвилини.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { coins as coinsWord } from "../ui/plural.js";
+import { ResultPopup } from "../ui/Popup.jsx";
+import { ItemIcon } from "../ui/ItemIcon.jsx";
 
 const ERRORS = {
   already_taken: "Цей бонус уже забрали",
@@ -14,25 +16,28 @@ const ERRORS = {
   no_such_bonus: "Такого бонусу немає",
 };
 
-export function Bonus({ token, ctx }) {
+export function BonusPopup({ token, ctx, onClose }) {
   const [state, setState] = useState(null);
-  const [claimed, setClaimed] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     api.get(`/me/bonus/${encodeURIComponent(token)}`)
-      .then(setState)
+      .then((s) => {
+        setState(s);
+        if (s.status === "redeemed") setError(s.mine ? ERRORS.already_yours : ERRORS.already_taken);
+        else if (s.expired) setError(ERRORS.expired);
+      })
       .catch((e) => setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message));
   }, [token]);
 
   const take = async () => {
+    if (error) return onClose();
     setBusy(true);
-    setError(null);
     try {
-      const r = await api.post(`/me/bonus/${encodeURIComponent(token)}`);
+      await api.post(`/me/bonus/${encodeURIComponent(token)}`);
       await ctx.refreshMe();
-      setClaimed(r);
+      onClose();
     } catch (e) {
       setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message);
     } finally {
@@ -40,46 +45,29 @@ export function Bonus({ token, ctx }) {
     }
   };
 
-  if (error && !state) return <div className="stage-pad"><div className="panel">{error}</div></div>;
-  if (!state) return <div className="stage-pad"><div className="skeleton" /></div>;
-
-  const coins = claimed?.coins ?? state.coins;
-  const items = claimed?.items ?? state.items ?? [];
-
+  const item = state?.items?.[0];
   return (
-    <div className="stage-pad">
-      <div className="panel" style={{ textAlign: "center" }}>
-        <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 64, margin: "6px auto 10px" }} />
-        <div className="h2">{claimed ? "Бонус зарахований" : "Бонус за покупку"}</div>
-        <div style={{ fontSize: 30, fontWeight: 900 }}>+{coins}</div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          {state.point}
-          {state.fiscal_date ? ` · ${new Date(state.fiscal_date).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
-          {state.total_uah ? ` · ${state.total_uah} ₴` : ""}
-        </p>
-      </div>
-
-      {items.length > 0 && (
-        <div className="panel">
-          <div className="muted" style={{ fontSize: 12 }}>З покупкою випало</div>
-          {items.map((code) => <div key={code} style={{ fontWeight: 700 }}>{code}</div>)}
+    <ResultPopup title="Бонус зарахований" offset={96} gap={18} action={error ? "Зрозуміло" : busy ? "Забираємо…" : "Забрати"}
+                 onAction={take} onClose={onClose}>
+      {state && (
+        <div className="loot">
+          <div className="loot-tile">
+            <span><img src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+            <b>+{state.coins}</b>
+          </div>
+          {item && (
+            <div className="loot-tile">
+              <span className={`tier-${item.tier}`}>
+                <ItemIcon sprite={item.sprite_id} size={66} alt={`${item.name} «${item.collection}»`} style={{ width: 66 }} />
+              </span>
+              <small>{item.name}{item.collection && <><br />«{item.collection}»</>}</small>
+            </div>
+          )}
         </div>
       )}
-
-      {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
-
-      {claimed ? (
-        <>
-          <p className="muted" style={{ fontSize: 13 }}>
-            {coinsWord(coins)} зараховано до акаунту {ctx.me?.nickname}.
-          </p>
-          <button className="btn btn-primary" onClick={() => ctx.openTab("plant")}>До кавенятка</button>
-        </>
-      ) : (
-        <button className="btn btn-primary" disabled={busy || state.expired || state.status === "redeemed"} onClick={take}>
-          {state.status === "redeemed" ? "Уже забрано" : state.expired ? "Бонус згорів" : busy ? "Забираємо…" : "Забрати"}
-        </button>
-      )}
-    </div>
+      <div className="loot-note">
+        {error ?? <>Речі зараховано до акаунту <b>{ctx.me?.nickname}</b></>}
+      </div>
+    </ResultPopup>
   );
 }

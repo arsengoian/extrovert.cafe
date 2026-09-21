@@ -1,7 +1,8 @@
-// Профіль — шторка поверх поточної вкладки: хто ти, тема, документи, вихід.
+// «Попап · профіль»: хто ти, зміна нікнейма, тема, документи й вихід —
+// плаваюча картка внизу поверх поточної вкладки.
 import { useState } from "react";
 import { api } from "../api.js";
-import { Sheet } from "../ui/Sheet.jsx";
+import { ConfirmSheet } from "../ui/Popup.jsx";
 import { getThemeMode, setThemeMode } from "../theme.js";
 
 const PROVIDER = { google: "Google", apple: "Apple", dev: "Девелоперський вхід" };
@@ -11,57 +12,53 @@ const THEMES = [
   { id: "dark", label: "Темна" },
 ];
 
+const Chevron = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
+    <path d="M9.5 6 15.5 12 9.5 18" />
+  </svg>
+);
+
 export function Profile({ ctx }) {
   const [mode, setMode] = useState(getThemeMode());
   const me = ctx.me;
-
   const pick = (id) => { setThemeMode(id); setMode(id); };
 
   return (
-    <Sheet title="Профіль" onClose={ctx.pop}>
-      <div className="row" style={{ marginBottom: 14 }}>
-        <span className="icon-btn" style={{ width: 46, height: 46 }}>
-          <img src="/assets/ui/nav_profile.png" alt="" style={{ width: 22 }} />
-        </span>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 17 }}>{me?.nickname}</div>
-          <div className="muted" style={{ fontSize: 12 }}>
+    <ConfirmSheet onCancel={ctx.pop} closable padding="18px 16px">
+      <div className="profile-head">
+        <img src="/assets/ui/nav_profile.png" alt="" />
+        <div>
+          <b>{me?.nickname}</b>
+          <small>
             {PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}
             {me?.identity?.email ? ` · ${me.identity.email}` : ""}
-          </div>
+          </small>
         </div>
       </div>
 
-      <button className="btn" onClick={() => ctx.push("nicknameChange")}>Змінити нікнейм</button>
+      <button className="profile-btn" onClick={() => ctx.push("nicknameChange")}>Змінити нікнейм</button>
 
-      <div className="sectionTitle" style={{ margin: "16px 4px 8px" }}>Тема</div>
-      <div className="row" style={{ gap: 8 }}>
-        {THEMES.map((t) => (
-          <button key={t.id} className="btn" style={{
-            height: 40, fontSize: 13,
-            background: mode === t.id ? "var(--grad)" : "var(--panel2)",
-            color: mode === t.id ? "var(--accent-ink)" : "var(--ink)",
-            border: mode === t.id ? 0 : "1px solid var(--line)",
-          }} onClick={() => pick(t.id)}>{t.label}</button>
-        ))}
+      <div className="profile-theme">
+        <div className="profile-label">Тема</div>
+        <div className="seg">
+          {THEMES.map((t) => (
+            <button key={t.id} data-on={mode === t.id} onClick={() => pick(t.id)}>{t.label}</button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ display: "grid", gap: 8, marginTop: 16 }}>
-        <button className="btn" onClick={() => ctx.push("terms")}>Умови користування</button>
-        <button className="btn" onClick={() => ctx.push("privacy")}>Політика приватності</button>
-        <button className="btn" onClick={() => ctx.push("support")}>Підтримка</button>
+      <div className="profile-links">
+        <button onClick={() => ctx.push("terms")}><span>Умови користування</span><Chevron /></button>
+        <button onClick={() => ctx.push("privacy")}><span>Політика приватності</span><Chevron /></button>
+        <button onClick={() => ctx.push("support")}><span>Підтримка</span><Chevron /></button>
       </div>
 
-      <button className="btn" style={{ marginTop: 16, color: "var(--accent-text)" }}
-              onClick={() => api.logout().finally(() => location.reload())}>
+      <button className="profile-out" onClick={() => api.logout().finally(() => location.reload())}>
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8" /><path d="M17 15.5 20.5 12 17 8.5" /><path d="M20.5 12H10" />
+        </svg>
         Вийти
       </button>
-      {/* Видалення живе тут, а не серед налаштувань: політика приватності
-          обіцяє його саме в профілі. */}
-      <button className="btn" style={{ marginTop: 8, fontSize: 13, color: "var(--muted)" }}
-              onClick={() => ctx.push("deleteAccount")}>
-        Видалити акаунт
-      </button>
-    </Sheet>
+    </ConfirmSheet>
   );
 }
