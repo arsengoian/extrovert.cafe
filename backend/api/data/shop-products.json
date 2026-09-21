@@ -1,23 +1,14 @@
 {
   "$comment": "Товари за зерна, які їдуть Новою Поштою. Фізичний мерч — лише чашка й одяг, друкує Wolf (wolf.ua). Габарити й вага в упаковці — верхні межі за здоровим глуздом і даними постачальника, а не заміри: з ними фільтр поштоматів на чекауті помиляється лише в безпечний бік (сховає поштомат, у який товар, можливо, і влізе), а в ТТН (OptionsSeat) не буде заниженої ваги. Замінити на заміри, щойно приїде реальний товар. Ціни постачальника — на дату в supplier.checked, вони для контролю собівартості (redemptions.cost_uah_actual), а не для цін у зернах. Де використовується — docs/services.md §4, «Доставка Новою Поштою». name — як у чекауті, short — у списку замовлень («Футболка, M»), description — повна назва для опису відправлення.",
   "updated": "2026-09-17",
-  "units": {
-    "size": "cm",
-    "weight": "kg",
-    "print_area": "mm"
-  },
+  "units": { "size": "cm", "weight": "kg", "print_area": "mm" },
   "products": [
     {
       "id": "coffee_250g",
       "name": "Кава 250 г",
       "short": "Кава 250 г",
       "description": "Кава 250 г",
-      "packed": {
-        "length_cm": 24,
-        "width_cm": 17,
-        "height_cm": 10,
-        "weight_kg": 0.5
-      },
+      "packed": { "length_cm": 24, "width_cm": 17, "height_cm": 10, "weight_kg": 0.5 },
       "basis": "пачка 250 г з клапаном — до 20 × 13 × 8 см і ≈0,27 кг; коробка чи конверт з пухирчастою плівкою додають кілька сантиметрів і до 0,2 кг"
     },
     {
@@ -25,18 +16,8 @@
       "name": "Чашка з принтом",
       "short": "Чашка з принтом",
       "description": "Чашка біла 330 мл з принтом extrovert.cafe",
-      "packed": {
-        "length_cm": 20,
-        "width_cm": 15,
-        "height_cm": 15,
-        "weight_kg": 0.8
-      },
-      "print_area_mm": {
-        "wrap": [
-          220,
-          85
-        ]
-      },
+      "packed": { "length_cm": 20, "width_cm": 15, "height_cm": 15, "weight_kg": 0.8 },
+      "print_area_mm": { "wrap": [220, 85] },
       "supplier": {
         "name": "Wolf",
         "url": "https://wolf.ua/uk/shop/print-white-cup/",
@@ -51,57 +32,16 @@
       "name": "Футболка з принтом кавенятка",
       "short": "Футболка",
       "description": "Кастомний принт кавенятка на футболці",
-      "packed": {
-        "length_cm": 35,
-        "width_cm": 27,
-        "height_cm": 5,
-        "weight_kg": 0.4
-      },
-      "options": {
-        "size": [
-          "S",
-          "M",
-          "L",
-          "XL",
-          "XXL"
-        ]
-      },
+      "packed": { "length_cm": 35, "width_cm": 27, "height_cm": 5, "weight_kg": 0.4 },
+      "options": { "size": ["S", "M", "L", "XL", "XXL"] },
       "size_chart_cm": {
-        "S": {
-          "width": 50,
-          "length": 70
-        },
-        "M": {
-          "width": 53,
-          "length": 72
-        },
-        "L": {
-          "width": 56,
-          "length": 74
-        },
-        "XL": {
-          "width": 59,
-          "length": 76
-        },
-        "XXL": {
-          "width": 62,
-          "length": 78
-        }
+        "S": { "width": 50, "length": 70 },
+        "M": { "width": 53, "length": 72 },
+        "L": { "width": 56, "length": 74 },
+        "XL": { "width": 59, "length": 76 },
+        "XXL": { "width": 62, "length": 78 }
       },
-      "print_area_mm": {
-        "front": [
-          300,
-          200
-        ],
-        "back": [
-          300,
-          400
-        ],
-        "sleeve": [
-          125,
-          100
-        ]
-      },
+      "print_area_mm": { "front": [300, 200], "back": [300, 400], "sleeve": [125, 100] },
       "supplier": {
         "name": "Wolf",
         "url": "https://wolf.ua/uk/shop/muzhskie-futbolki/",
