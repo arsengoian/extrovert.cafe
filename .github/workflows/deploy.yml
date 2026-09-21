@@ -34,7 +34,6 @@ jobs:
           - { svc: checkbox,  context: ".",            file: "docker/bun.Dockerfile" }
           - { svc: scheduler, context: ".",            file: "docker/bun.Dockerfile" }
           - { svc: overseer,  context: ".",            file: "docker/bun.Dockerfile" }
-          - { svc: admin,     context: ".",            file: "docker/bun.Dockerfile" }
           - { svc: migrate,   context: "./db",         file: "db/Dockerfile" }
           - { svc: caddy,     context: "./docker/caddy", file: "docker/caddy/Dockerfile" }
     steps:
@@ -137,7 +136,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        svc: [api, ws, checkbox, scheduler, overseer, admin, migrate, caddy]
+        svc: [api, ws, checkbox, scheduler, overseer, migrate, caddy]
     steps:
       - name: Лишити п'ять останніх версій ${{ matrix.svc }}
         if: ${{ env.ACT != 'true' }}

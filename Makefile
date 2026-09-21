@@ -10,7 +10,7 @@
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy
+        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -43,6 +43,9 @@ help:
 	@echo ---------------------------------------------------------------
 	@echo   make deploy-client-dry   зібрати клієнт і перевірити, не викочуючи
 	@echo   make deploy-client       викотити клієнт на Cloudflare Workers
+	@echo   make admin               адмінка локально на :5174
+	@echo   make deploy-admin-dry    зібрати адмінку й перевірити, не викочуючи
+	@echo   make deploy-admin        викотити адмінку на Cloudflare Workers
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
 	@echo   make keys-ssh      ключ доступу до малини й дроплетів, тека keys
@@ -143,6 +146,16 @@ deploy-client-dry:
 
 deploy-client:
 	bun scripts/deploy-client.mjs
+
+# Адмінка — така сама статика на Workers, як і клієнт (docs/services.md §4).
+admin:
+	bun run --filter @extrovert/admin dev
+
+deploy-admin-dry:
+	bun run --filter @extrovert/admin deploy:dry
+
+deploy-admin:
+	bun run --filter @extrovert/admin deploy
 
 keys-jwt:
 	bun scripts/keys.mjs jwt

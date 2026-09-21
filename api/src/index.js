@@ -25,6 +25,7 @@ import walletRoutes from "./routes/wallet.js";
 import legalRoutes from "./routes/legal.js";
 import deliveryRoutes from "./routes/delivery.js";
 import accountRoutes from "./routes/account.js";
+import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payments.js";
 
 const app = Fastify({ logger: true });
@@ -43,7 +44,7 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, 
 // прикрасу.
 app.addHook("onRequest", async (req, reply) => {
   const origin = req.headers.origin;
-  if (origin && /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/extrovert\.cafe)$/.test(origin)) {
+  if (origin && /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/(extrovert|admin\.extrovert)\.cafe)$/.test(origin)) {
     reply.header("access-control-allow-origin", origin);
     reply.header("vary", "origin");
     reply.header("access-control-allow-headers", "authorization,content-type");
@@ -74,6 +75,7 @@ await app.register(walletRoutes, { prefix: "/api/v1" });
 await app.register(legalRoutes, { prefix: "/api/v1" });
 await app.register(deliveryRoutes, { prefix: "/api/v1" });
 await app.register(accountRoutes, { prefix: "/api/v1" });
+await app.register(adminRoutes, { prefix: "/api/v1" });
 await app.register(paymentRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);

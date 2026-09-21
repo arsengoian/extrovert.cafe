@@ -29,10 +29,12 @@ export const ephemeralKey = Boolean(keys.ephemeral);
 
 const ACCESS_TTL_S = 15 * 60; // 15 хвилин, як у доках
 
-export function signToken(sub, role, extra = {}) {
+// ttlS окремим параметром: у гравця токен короткий і оновлюється кукою, а
+// адмінка поки що куки не має — див. routes/admin.js.
+export function signToken(sub, role, extra = {}, ttlS = ACCESS_TTL_S) {
   const header = b64url(JSON.stringify({ alg: "EdDSA", typ: "JWT" }));
   const now = Math.floor(Date.now() / 1000);
-  const payload = b64url(JSON.stringify({ sub, role, iat: now, exp: now + ACCESS_TTL_S, ...extra }));
+  const payload = b64url(JSON.stringify({ sub, role, iat: now, exp: now + ttlS, ...extra }));
   const data = `${header}.${payload}`;
   return `${data}.${b64url(sign(null, Buffer.from(data), keys.privateKey))}`;
 }
@@ -64,4 +66,24 @@ export function requireUser(req, reply) {
     return null;
   }
   return user;
+}
+
+// Те саме для адмінки. Окремий префікс sub замість прапорця в ролі: адмін і
+// гравець — різні сутності в різних таблицях, і токен одного не має
+// випадково зійти за токен іншого.
+export function adminFromRequest(req) {
+  const header = req.headers.authorization || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  const claims = token ? verifyToken(token) : null;
+  if (!claims || !String(claims.sub).startsWith("admin:")) return null;
+  return { id: String(claims.sub).slice(6), role: claims.role };
+}
+
+export function requireAdmin(req, reply) {
+  const admin = adminFromRequest(req);
+  if (!admin) {
+    reply.code(401).send({ error: "unauthorized" });
+    return null;
+  }
+  return admin;
 }

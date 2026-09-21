@@ -151,20 +151,6 @@ services:
       migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
 
-  # Адмінка. Поки заглушка з лічильниками — існує, щоб стек збирався й
-  # викочувався цілком (admin/src/index.js). У проді назовні не виходить.
-  admin:
-    <<: *bun
-    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: admin } }
-    environment:
-      <<: *net
-      PORT: 3004
-    ports: ["3004:3004"]
-    mem_limit: 256m
-    depends_on:
-      migrate:  { condition: service_completed_successfully }
-      postgres: { condition: service_healthy }
-
   # Збір помилок з усіх сервісів. Свій, щоб не платити за Sentry.
   glitchtip:
     <<: *defaults

@@ -1,16 +1,21 @@
 {
   "name": "@extrovert/admin",
   "private": true,
-  "type": "module",
   "version": "0.0.1",
-  "description": "адмінка — поки заглушка, щоб стек був повним",
+  "description": "Адмінка: статика на Cloudflare Workers, дані з api",
   "scripts": {
-    "dev": "bun --watch src/index.js",
-    "start": "bun src/index.js"
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "preview": "bunx --bun vite preview",
+    "deploy": "bunx wrangler@4 deploy",
+    "deploy:dry": "bunx wrangler@4 deploy --dry-run"
   },
   "dependencies": {
-    "@extrovert/lib": "workspace:*",
-    "fastify": "^5.0.0",
-    "pg": "^8.13.0"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.4"
   }
 }

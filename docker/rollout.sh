@@ -22,7 +22,7 @@ WAIT_HEALTHY="${WAIT_HEALTHY:-90}"
 ROLLING="api ws checkbox"
 # Решта — звичайний перезапуск: у них або немає трафіку ззовні (фонові
 # роботи), або є порт хоста, тобто двох копій одночасно бути не може.
-PLAIN="scheduler overseer admin caddy glitchtip glitchtip-worker"
+PLAIN="scheduler overseer caddy glitchtip glitchtip-worker"
 
 cd "$DIR"
 

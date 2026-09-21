@@ -1,0 +1,36 @@
+/* Мінімум стилів: адмінка ще не має дизайну, і вигадувати його наперед —
+ * спосіб потім переробляти двічі. Темна/світла — за системою. */
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --fg: #1d1b16;
+  --muted: #6b665c;
+  --line: #e0dcd2;
+  --card: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #17160f; --fg: #f2efe6; --muted: #9d968a; --line: #322f26; --card: #201e16; }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+.muted { color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 20px 0; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.n { font-size: 26px; font-weight: 600; }
+.btn {
+  font: inherit; cursor: pointer; padding: 9px 16px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--card); color: var(--fg);
+}
+.btn:hover { border-color: var(--muted); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+ul { padding-left: 18px; }
+li { margin: 6px 0; }

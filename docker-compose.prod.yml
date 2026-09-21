@@ -153,26 +153,6 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
 
-  # Адмінка. Назовні не виходить: порт відкритий лише на петлі, тож зайти
-  # можна тунелем — `ssh -L 3004:127.0.0.1:3004 root@<ip> -p 2222`. Поки це
-  # заглушка без входу, публікувати її в інтернет немає за що.
-  admin:
-    <<: *app
-    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-admin:${TAG:-latest}
-    environment:
-      <<: *net
-      PORT: 3004
-    ports: ["127.0.0.1:3004:3004"]
-    mem_limit: 256m
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3004/healthz"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-    depends_on:
-      postgres: { condition: service_healthy }
-
   # Єдиний, хто дивиться в інтернет. TLS і маршрути — у Caddyfile всередині
   # образу; домени підставляються зі змінних .env.
   caddy:
