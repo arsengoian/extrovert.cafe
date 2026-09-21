@@ -596,3 +596,47 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .warn svg { flex: none; margin-top: 1px }
 .warn div { font-size: 12px; line-height: 1.45; color: #FFB061; text-wrap: pretty }
+
+/* ── попапи ────────────────────────────────────────────────────────────
+   Кадри «Попап · переказ виконано», «· монети зараховано», «· оплата mono
+   pay». Фон — той самий .sheet-backdrop. */
+.result-card {
+  position: absolute; left: 18px; right: 18px; z-index: 160; border: 1px solid var(--line); border-radius: 24px;
+  background: var(--panel); padding: 22px 18px; display: flex; flex-direction: column; gap: 16px;
+  align-items: center; text-align: center; box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+}
+.result-glow {
+  position: relative; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(254, 129, 11, .28) 0%, rgba(254, 129, 11, 0) 70%);
+}
+.result-glow img { position: relative; object-fit: contain }
+.result-title { font-size: 22px; font-weight: 900 }
+.result-sum { display: flex; align-items: center; gap: 7px; font-size: 19px; font-weight: 900 }
+.result-sum img { width: 22px; height: 23px }
+.result-sum small { font-size: 14px; font-weight: 700; color: var(--muted) }
+.result-chip { display: flex; align-items: center; gap: 7px; padding: 10px 15px; border-radius: var(--radius-pill); background: var(--panel2); font-size: 18px; font-weight: 900 }
+.result-chip img { width: 22px; height: 23px }
+.result-note { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); text-wrap: pretty }
+.result-note b { font-weight: 800; color: var(--ink) }
+.result-note img { width: 15px; height: 16px }
+.result-card .cta.wide { align-self: stretch; height: 50px }
+
+.confirm-sheet {
+  position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 160; border: 1px solid var(--line);
+  border-radius: 24px; background: var(--panel); padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+}
+.confirm-row { display: flex; align-items: center; gap: 13px }
+.confirm-row b { display: block; font-size: 19px; font-weight: 900 }
+.confirm-row > strong { flex: none; font-size: 20px; font-weight: 900 }
+.confirm-note {
+  display: flex; align-items: center; justify-content: space-between; padding: 12px 13px; border-radius: 14px;
+  background: var(--panel2); font-size: 13px;
+}
+.confirm-note > span:first-child { color: var(--muted) }
+.confirm-note > span:last-child { display: flex; align-items: center; gap: 5px; font-weight: 800 }
+.confirm-note img { width: 15px; height: 16px }
+.confirm-btns { display: flex; gap: 10px }
+.confirm-btns button { height: 48px; border-radius: 14px; font-size: 15px }
+.confirm-btns button:first-child { flex: 1; border: 1px solid var(--line); font-weight: 700; color: var(--muted) }
+.confirm-btns button:last-child { flex: 1.5; background: var(--grad); color: var(--accent-ink); font-weight: 800 }

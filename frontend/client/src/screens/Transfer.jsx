@@ -5,7 +5,7 @@
 // в тому ж блоці, де кнопка (design «Переказ монет»).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { coins as coinsWord } from "../ui/plural.js";
+import { ResultPopup } from "../ui/Popup.jsx";
 
 const QUICK = [100, 200, 500];
 
@@ -30,19 +30,6 @@ export function Transfer({ ctx }) {
     }, 350);
     return () => clearTimeout(timer);
   }, [nickname]);
-
-  if (done) {
-    return (
-      <div className="stage-pad">
-        <div className="panel" style={{ textAlign: "center" }}>
-          <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
-          <div className="h2">Переказано {coinsWord(done.amount)}</div>
-          <p className="muted">Гравець {done.to} уже бачить їх у себе. Лишилось {coinsWord(done.left)}.</p>
-          <button className="btn btn-primary" onClick={ctx.pop}>Готово</button>
-        </div>
-      </div>
-    );
-  }
 
   const send = async () => {
     setBusy(true);
@@ -110,6 +97,22 @@ export function Transfer({ ctx }) {
       <button className="cta wide" style={{ marginTop: "auto", height: 52, gap: 7 }} disabled={!ready || busy} onClick={send}>
         {busy ? "Переказуємо…" : <>Переказати {fmt(value)} <img src="/assets/ui/coin_gold.png" alt="золотих монет" style={{ width: 20, height: 21 }} /></>}
       </button>
+
+      {done && (
+        <ResultPopup
+          art={<img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 62, height: 65 }} />}
+          title="Переказ виконано"
+          onClose={ctx.pop}
+        >
+          <div className="result-sum">
+            <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{fmt(done.amount)}
+            <small>→ {done.to}</small>
+          </div>
+          <div className="result-note">
+            <span>Твій баланс: <b>{fmt(done.left)}</b>. Операція вже в історії гаманця.</span>
+          </div>
+        </ResultPopup>
+      )}
     </div>
   );
 }

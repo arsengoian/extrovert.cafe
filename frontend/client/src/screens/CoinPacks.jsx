@@ -6,7 +6,7 @@
 // яка мовчки нічого не робить, тут немає.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { coins as coinsWord } from "../ui/plural.js";
+import { ConfirmSheet, ResultPopup } from "../ui/Popup.jsx";
 
 export const PENDING_KEY = "extrovert.pending_invoice";
 
@@ -15,6 +15,9 @@ export function CoinPacks({ ctx }) {
   const [busy, setBusy] = useState(null);
   const [done, setDone] = useState(null);
   const [error, setError] = useState(null);
+  // Пачка, яку збираються купити: спершу шторка підтвердження з балансом
+  // «до → після» (кадр «Попап · оплата mono pay»), лише потім банк.
+  const [picked, setPicked] = useState(null);
 
   useEffect(() => { api.get("/shop/coin-packs").then((r) => setPacks(r.packs)).catch(() => setPacks([])); }, []);
 
@@ -44,21 +47,6 @@ export function CoinPacks({ ctx }) {
     }
   };
 
-  if (done) {
-    return (
-      <div className="stage-pad">
-        <div className="panel" style={{ textAlign: "center" }}>
-          <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
-          <div className="h2">+{coinsWord(done.coins)}</div>
-          <p className="muted">
-            {done.test ? "Тестова оплата: у проді тут буде картка." : `Оплачено ${done.uah} ₴.`}
-          </p>
-          <button className="btn btn-primary" onClick={ctx.pop}>Готово</button>
-        </div>
-      </div>
-    );
-  }
-
   // Картинка пачки й знижка — з макета: чим більша пачка, тим «врожайніша»
   // картинка. Знижку рахуємо від ціни монети в найменшій пачці, а не
   // вписуємо руками — інакше вона розійдеться з цінами першою ж правкою.
@@ -84,7 +72,7 @@ export function CoinPacks({ ctx }) {
         const off = discount(pack);
         const isBest = best?.code === pack.code;
         return (
-          <button key={pack.code} className={`pack${isBest ? " best" : ""}`} disabled={Boolean(busy)} onClick={() => pay(pack)}>
+          <button key={pack.code} className={`pack${isBest ? " best" : ""}`} disabled={Boolean(busy)} onClick={() => setPicked(pack)}>
             {isBest && <span className="pack-flag">Найкраща ціна{off > 0 ? ` · −${off}%` : ""}</span>}
             <img src={`/assets/ui/${art.src}.png`} alt="набір монет" style={{ width: art.w, height: art.h }} />
             <span className="pack-main">
@@ -105,6 +93,52 @@ export function CoinPacks({ ctx }) {
       })}
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
+
+      {picked && !done && (() => {
+        const art = ART[picked.code] ?? ART.sprout;
+        const now = ctx.me?.balances?.yellow ?? 0;
+        return (
+          <ConfirmSheet onCancel={() => setPicked(null)}>
+            <div className="confirm-row">
+              <img src={`/assets/ui/${art.src}.png`} alt="набір монет" style={{ width: 49, height: 56, objectFit: "contain" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <b>{picked.label ?? `${picked.coins} монет`}</b>
+                <span className="pack-coins" style={{ fontSize: 14 }}>
+                  {fmt(picked.coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17 }} />
+                </span>
+              </div>
+              <strong>{fmt(picked.price_uah)} ₴</strong>
+            </div>
+            <div className="confirm-note">
+              <span>Баланс після оплати</span>
+              <span>{fmt(now)} → {fmt(now + picked.coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+            </div>
+            <div className="confirm-btns">
+              <button onClick={() => setPicked(null)}>Скасувати</button>
+              <button disabled={Boolean(busy)} onClick={() => pay(picked)}>
+                {busy ? "…" : `Оплатити ${fmt(picked.price_uah)} ₴`}
+              </button>
+            </div>
+          </ConfirmSheet>
+        );
+      })()}
+
+      {done && (
+        <ResultPopup
+          art={<img src={`/assets/ui/${(ART[done.code] ?? ART.harvest).src}.png`} alt="набір монет" style={{ width: 78, height: 90 }} />}
+          glow={132}
+          offset={96}
+          title="Монети зараховано"
+          onClose={ctx.pop}
+        >
+          <div className="result-chip">
+            +{fmt(done.coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          </div>
+          <div className="result-note">
+            Баланс: {fmt(ctx.me?.balances?.yellow ?? 0)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          </div>
+        </ResultPopup>
+      )}
     </div>
   );
 }
