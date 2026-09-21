@@ -32,7 +32,6 @@ body {
   color: var(--ink);
   font-family: 'Extro', system-ui, -apple-system, sans-serif;
   font-size: 15px;
-  line-height: 1.35;
   overscroll-behavior-y: none;
 }
 
@@ -697,3 +696,47 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .start-foot { display: flex; justify-content: center }
 .start-foot a, .start-foot button { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px }
+
+/* ── скарга «Що не працює?» ────────────────────────────────────────────
+   Кадри «Повідомити про проблему» й «Проблема · заповнено». */
+.form18 { padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 100% }
+.select-field {
+  height: 46px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 15px; font-weight: 700;
+}
+.check-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: 15px }
+.check-row > i {
+  flex: none; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line);
+  display: flex; align-items: center; justify-content: center; color: #fff;
+}
+.check-row[aria-pressed="true"] { font-weight: 700 }
+.check-row[aria-pressed="true"] > i { border: 0; background: var(--grad) }
+.textarea.details { min-height: 72px; border-radius: var(--radius); padding: 13px; font-size: 14px; line-height: 1.35 }
+.file-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel) }
+.file-row > img, .file-row > .thumb {
+  flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line);
+  object-fit: cover; display: flex; align-items: center; justify-content: center; color: var(--muted);
+}
+.file-row b { display: block; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.file-row small { font-size: 11px; color: var(--muted) }
+.file-row > button { flex: none; width: 30px; height: 30px; border-radius: var(--radius-pill); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--muted) }
+.dashed-btn {
+  height: 44px; border: 1px dashed var(--line); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
+  gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); width: 100%;
+}
+.cta.send { width: 100%; margin-top: 4px; height: 52px; font-size: 16px }
+
+/* Юридичні тексти: пігулки-вкладки, суцільний текст без панелей —
+   заголовки 15px/800, абзаци 13px із міжряддям 1.5. */
+.pill-tabs { display: flex; gap: 8px }
+.pill-tabs button { padding: 8px 14px; border-radius: var(--radius-pill); border: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 700 }
+.pill-tabs button[aria-pressed="true"] { background: var(--grad); color: var(--accent-ink); border: 0 }
+.doc { display: flex; flex-direction: column; gap: 10px; font-size: 13px; line-height: 1.5; color: var(--muted) }
+.doc h3 { margin: 4px 0 0; font-size: 15px; font-weight: 800; color: var(--ink) }
+.doc p { margin: 0; text-wrap: pretty }
+.doc-foot { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted) }
+.doc-link { color: var(--accent-text); font: inherit; padding: 0 }
+.doc-coins { display: inline-flex; align-items: center; vertical-align: -4px }
+.doc-coins img { width: 17px; height: 18px }
+.doc-coins img + img { margin-left: -7px }
+.doc-bean { display: inline; width: 16px; height: 18px; vertical-align: -3px }

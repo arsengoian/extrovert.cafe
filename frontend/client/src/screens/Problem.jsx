@@ -2,6 +2,7 @@
 // екрана, тобто працює і без входу (design: «Проблема»).
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
+import { ResultPopup } from "../ui/Popup.jsx";
 
 const CATEGORIES = [
   { id: "coffee_machine", label: "Кавомашина" },
@@ -41,7 +42,7 @@ export function Problem({ ctx }) {
         body: file,
       });
       if (!res.ok) throw new Error(`сховище відповіло ${res.status}`);
-      setPhoto({ key: link.key, name: file.name, preview: URL.createObjectURL(file) });
+      setPhoto({ key: link.key, name: file.name, size: file.size, preview: URL.createObjectURL(file) });
     } catch (e) {
       const code = e.body?.error;
       setError(code === "bad_type" ? "Підійде JPEG, PNG або WebP"
@@ -68,96 +69,82 @@ export function Problem({ ctx }) {
     }
   };
 
-  if (sent) {
-    return (
-      <div className="stage-pad">
-        <div className="panel" style={{ textAlign: "center" }}>
-          <img src="/assets/ui/cloud.png" alt="" style={{ width: 120, margin: "0 auto 8px" }} />
-          <div className="h2">Дякуємо, побачили</div>
-          <p className="muted">
-            Ми читаємо все, що сюди приходить. Якщо знадобляться деталі — напишемо в підтримку.
-          </p>
-          <button className="btn btn-primary" onClick={ctx.pop}>Готово</button>
-        </div>
-      </div>
-    );
-  }
+  const mb = (b) => (b / 1024 / 1024).toFixed(1).replace(".", ",");
 
   return (
-    <div className="stage-pad">
-      <div className="panel">
-        <div className="muted" style={{ fontSize: 12 }}>Точка</div>
-        <div style={{ fontWeight: 700 }}>
+    <div className="form18">
+      <div className="field">
+        <div className="sectionTitle">Точка</div>
+        <div className="select-field">
           {point ? `${point.name} · ${point.address}` : "—"}
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
+            <path d="M6 9.5 12 15.5 18 9.5" />
+          </svg>
         </div>
       </div>
 
-      <div className="panel">
-        <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Що саме</div>
-        {CATEGORIES.map((c) => {
-          const on = picked.includes(c.id);
-          return (
-            <button key={c.id} className="row" style={{ width: "100%", padding: "8px 0", textAlign: "left" }}
-                    onClick={() => toggle(c.id)} aria-pressed={on}>
-              <span style={{
-                width: 22, height: 22, flex: "none", borderRadius: 7,
-                border: on ? 0 : "1px solid var(--line)",
-                background: on ? "var(--grad)" : "var(--panel2)",
-                color: "var(--accent-ink)", display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {on ? (
-                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor"
-                       strokeWidth="3.2" strokeLinecap="round"><path d="M5 12.5 10 17.5 19.5 7" /></svg>
-                ) : null}
-              </span>
-              <span>{c.label}</span>
-            </button>
-          );
-        })}
+      <div className="field">
+        <div className="sectionTitle">Що саме</div>
+        <div className="list-card">
+          {CATEGORIES.map((c) => {
+            const on = picked.includes(c.id);
+            return (
+              <button key={c.id} className="check-row" aria-pressed={on} onClick={() => toggle(c.id)}>
+                <i>
+                  {on && (
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
+                      <path d="M5 12.5 10 17.5 19.5 7" />
+                    </svg>
+                  )}
+                </i>
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="panel">
-        <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Деталі</div>
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Опишіть, що трапилося"
-          rows={4}
-          style={{
-            width: "100%", padding: 12, fontSize: 15, fontFamily: "inherit", resize: "vertical",
-            borderRadius: "var(--radius-sm)", border: "1px solid var(--line)",
-            background: "var(--panel2)", color: "var(--ink)",
-          }}
-        />
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          style={{ display: "none" }}
-          onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }}
-        />
-        {photo ? (
-          <div className="row" style={{ gap: 10, marginTop: 10 }}>
-            <img src={photo.preview} alt="" style={{ width: 54, height: 54, objectFit: "cover", borderRadius: 12 }} />
-            <div className="muted" style={{ flex: 1, minWidth: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis" }}>
-              {photo.name}
+      <div className="field">
+        <div className="sectionTitle">Деталі</div>
+        <textarea className="textarea details" value={body} rows={3}
+                  placeholder="Опиши, що трапилося" onChange={(e) => setBody(e.target.value)} />
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
+               onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+        {photo && (
+          <div className="file-row">
+            <img src={photo.preview} alt="" />
+            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
+              <b>{photo.name}</b>
+              <small>{mb(photo.size)} МБ · завантажено</small>
             </div>
-            <button className="btn" style={{ width: "auto", height: 34, padding: "0 12px", fontSize: 12 }}
-                    onClick={() => setPhoto(null)}>Прибрати</button>
+            <button aria-label="Прибрати фото" onClick={() => setPhoto(null)}>
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+              </svg>
+            </button>
           </div>
-        ) : (
-          <button className="btn" style={{ marginTop: 10 }} disabled={uploading}
-                  onClick={() => fileRef.current?.click()}>
-            {uploading ? "Завантажуємо…" : "Додати фото"}
-          </button>
         )}
+        <button className="dashed-btn" disabled={uploading} onClick={() => fileRef.current?.click()}>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M12 6v12M6 12h12" />
+          </svg>
+          {uploading ? "Завантажуємо…" : photo ? "Ще фото" : "Додати фото"}
+        </button>
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={busy} onClick={send}>
-        {busy ? "Надсилаємо…" : "Надіслати"}
-      </button>
+      <button className="cta send" disabled={busy} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
+
+      {sent && (
+        <ResultPopup
+          art={<img src="/assets/ui/nav_problem.png" alt="" style={{ width: 52, height: 50 }} />}
+          title="Дякуємо, побачили"
+          onClose={ctx.pop}
+        >
+          <div className="result-note">Ми читаємо все, що сюди приходить. Якщо знадобляться деталі — напишемо в підтримку.</div>
+        </ResultPopup>
+      )}
     </div>
   );
 }

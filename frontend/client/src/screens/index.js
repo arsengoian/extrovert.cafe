@@ -57,7 +57,7 @@ export const SCREENS = {
   profile: { component: Profile, presentation: "sheet" },
   nicknameChange: { component: NicknameChange, presentation: "sheet" },
 
-  problem: { component: Problem, title: "Що не працює?" },
+  problem: { component: Problem, title: "Що не працює?", hideNav: true },
   quizProfile: { component: QuizProfile, title: "Розкажи про себе", hideNav: true },
   quizDrink: { component: QuizDrink, title: "Опитування про напій", hideNav: true },
   repost: { component: Repost, title: "Репост у соцмережі" },
@@ -78,7 +78,7 @@ export const SCREENS = {
   checkout: { component: Checkout, title: "Оформлення" },
   orders: { component: Orders, title: "Мої замовлення" },
   deleteAccount: { component: DeleteAccount, title: "Видалити акаунт" },
-  terms: { component: Legal, title: "Умови користування" },
-  privacy: { component: Legal, title: "Політика приватності", props: { doc: "privacy" } },
-  support: { component: Legal, title: "Підтримка", props: { doc: "support" } },
+  terms: { component: Legal, title: "Умови користування", hideNav: true },
+  privacy: { component: Legal, title: "Приватність", props: { doc: "privacy" }, hideNav: true },
+  support: { component: Legal, title: "Підтримка", props: { doc: "support" }, hideNav: true },
 };
