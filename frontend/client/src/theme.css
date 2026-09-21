@@ -925,3 +925,71 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .earn-beans > div:not(.sectionTitle) { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted) }
 .earn-beans > div > b { color: var(--accent-text); font-weight: 800 }
 .buy-row .cta:disabled { border: 0 }
+
+/* Чекаут Нової Пошти: картка товару з залишком, розміри з посиланням,
+   блок НП, поля 44 px і вибір відділення з рамкою-акцентом. */
+.co-product { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 12px; display: flex; align-items: center; gap: 12px }
+.co-product > img { flex: none; width: 46px; height: 46px; object-fit: contain }
+.co-name { flex: 1; min-width: 0 }
+.co-name b { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; text-wrap: pretty }
+.co-name small { display: block; font-size: 12px; color: var(--muted); margin-top: 3px }
+.co-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 2px }
+.co-price b { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 900 }
+.co-price small { font-size: 11px; color: var(--muted) }
+.co-sizes { display: flex; align-items: center; gap: 10px }
+.co-sizes .segs { flex: 1 }
+.co-link { flex: none; font-size: 12px; font-weight: 700; color: var(--accent-text) }
+.co-np { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel) }
+.co-np > span { flex: none; width: 40px; height: 40px; border-radius: var(--radius-pill); background: #fff; display: flex; align-items: center; justify-content: center }
+.co-np > span img { width: 31px; height: 30px; object-fit: contain }
+.co-np > div { flex: 1; min-width: 0 }
+.co-np b { display: block; font-size: 14px; font-weight: 800 }
+.co-np small { display: block; font-size: 12px; color: var(--muted); text-wrap: pretty }
+.co-row { display: flex; gap: 8px }
+.co-row .co-input { flex: 1; min-width: 0 }
+.co-input { height: 44px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel); display: flex; align-items: center; justify-content: space-between; padding: 0 12px; font: inherit; font-size: 14px; font-weight: 700; color: var(--ink); text-align: left; outline: 0 }
+.co-input::placeholder { color: var(--muted); font-weight: 400 }
+.co-wh { height: 52px; gap: 10px }
+.co-wh[data-picked="true"] { border-color: var(--accent) }
+.co-wh > span { min-width: 0; display: flex; flex-direction: column }
+.co-wh b { font-size: 14px; font-weight: 700 }
+.co-wh small { font-size: 11px; font-weight: 400; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+
+/* Шторки «Вибір міста» / «Вибір відділення»: картка на всю сцену з
+   відступом 12, список із радіо й кнопка «Обрати …». */
+.pick-sheet { position: absolute; left: 12px; right: 12px; top: 12px; bottom: 12px; z-index: 160; min-height: 0; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); padding: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 30px 70px rgba(0, 0, 0, .55) }
+.pick-head { flex: none; display: flex; align-items: center; gap: 10px; padding-right: 2px }
+.pick-head b { flex: 1; min-width: 0; font-size: 18px; font-weight: 900 }
+.pick-head button { flex: none; width: 32px; height: 32px; border-radius: var(--radius-pill); background: var(--panel2); display: flex; align-items: center; justify-content: center; color: var(--muted) }
+.pick-search { flex: none; height: 42px; border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 13px; color: var(--muted) }
+.pick-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; color: var(--ink) }
+.pick-search input::placeholder { color: var(--muted) }
+.pick-list { flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow-y: auto; overscroll-behavior: contain }
+.pick-row { width: 100%; text-align: left; display: flex; gap: 11px; align-items: center; padding: 12px 13px; border-bottom: 1px solid var(--line) }
+.pick-row:last-child { border-bottom: 0 }
+.pick-row[data-on] { background: var(--panel2) }
+.pick-row > i { flex: none; width: 18px; height: 18px; border-radius: var(--radius-pill); border: 1.5px solid var(--line) }
+.pick-row[data-on] > i { border: 0; background: var(--grad) }
+.pick-row > span { min-width: 0 }
+.pick-row b { display: block; font-size: 14px; font-weight: 700 }
+.pick-row small { display: block; font-size: 12px; color: var(--muted) }
+.pick-empty { margin: 0; padding: 12px 13px; font-size: 13px; color: var(--muted) }
+.pick-sheet .cta.wide { flex: none; height: 50px }
+
+/* «Таблиця розмірів»: схема, пояснення й таблиця з підсвіченим розміром. */
+.size-art { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; align-items: center; justify-content: center }
+.size-how { display: flex; flex-direction: column; gap: 9px; font-size: 13px; line-height: 1.45; color: var(--muted) }
+.size-how > div { text-wrap: pretty }
+.size-table { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden }
+.size-th, .size-tr { display: flex; align-items: center; width: 100%; border-bottom: 1px solid var(--line) }
+.size-th { padding: 10px 12px; background: var(--panel2); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.size-tr { padding: 11px 12px; font-size: 14px; text-align: left }
+.size-tr:last-child { border-bottom: 0 }
+.size-th > *, .size-tr > * { flex: 1 }
+.size-th > :nth-child(2), .size-tr > :nth-child(2) { text-align: center }
+.size-th > :nth-child(3), .size-tr > :nth-child(3) { text-align: right }
+.size-tr b { font-weight: 700 }
+.size-tr[data-on] { background: var(--panel2) }
+.size-tr[data-on] b { font-weight: 900; color: var(--accent-text) }
+.co-sizes .segs.sm button { font-size: 13px }
+.stage-pad > .seg { flex: none }

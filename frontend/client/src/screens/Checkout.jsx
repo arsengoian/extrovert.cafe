@@ -1,71 +1,91 @@
-// Чекаут для товарів за зерна: розмір, місто, відділення, отримувач.
+// Чекаут за зерна — кадр «Чекаут · Нова Пошта»: товар із залишком після
+// оплати, розмір (таблиця — окремим екраном), доставка, отримувач, місто,
+// відділення чи поштомат. Місто й відділення обираються у шторках
+// «Вибір міста» і «Вибір відділення».
 //
-// Місто й відділення шукаються в локальній копії довідника НП — швидко й
-// без ключа НП у браузері. Поштомати, у які товар не влазить, API не
-// повертає взагалі й каже, скільки їх сховав: інакше гравець шукав би той,
-// що «був учора».
-import { useEffect, useState } from "react";
+// Довідник НП — локальна копія на сервері: швидко й без ключа НП у
+// браузері. Поштомати, у які товар не влазить, api не повертає взагалі.
+import { useEffect, useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { api } from "../api.js";
-import { Sheet } from "../ui/Sheet.jsx";
-import { beans as beansWord } from "../ui/plural.js";
 
-const KIND = { branch: "відділення", postomat: "поштомат" };
+const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+// Таблиця розмірів — окремий екран, тож форма переживає перехід туди й
+// назад у чернетці, а не в стані компонента, який тим часом розмонтовано.
+const drafts = new Map();
+
+const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
+const Chevron = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" style={{ flex: "none" }}>
+    <path d="M6 9.5 12 15.5 18 9.5" />
+  </svg>
+);
+
+// «+380 67 123 45 67» — як у макеті; зберігаємо лише цифри.
+const formatPhone = (digits) => {
+  const d = digits.replace(/\D/g, "").replace(/^380/, "").slice(0, 9);
+  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
+  return `+380 ${parts.join(" ")}`.trimEnd();
+};
+
+// Відділення в рядку: «Відділення №12» і «вул. Хрещатик, 22 · до 20:00».
+const whTitle = (w) => `${KIND_TITLE[w.category] ?? "Відділення"} №${w.number}`;
+const whSub = (w) => {
+  const street = (w.address ?? w.description ?? "").replace(/^[^:]*:\s*/, "");
+  const close = w.schedule?.[DAYS[new Date().getDay()]]?.split("-")[1];
+  return close ? `${street} · до ${close}` : street;
+};
 
 export function Checkout({ item, ctx }) {
   const productId = item?.code;
   const [product, setProduct] = useState(null);
-  const [size, setSize] = useState(null);
-  const [city, setCity] = useState(null);
-  const [warehouse, setWarehouse] = useState(null);
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("+380");
-  const [picker, setPicker] = useState(null);       // city | warehouse | sizes
+  const [form, setForm] = useState(() => drafts.get(productId) ?? {
+    size: null, first: "", last: "", phone: "+380", city: null, kind: "branch", warehouse: null,
+  });
+  const [picker, setPicker] = useState(null);       // city | warehouse
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [done, setDone] = useState(null);
+
+  const set = (patch) => setForm((f) => {
+    const next = { ...f, ...patch };
+    drafts.set(productId, next);
+    return next;
+  });
 
   useEffect(() => {
     api.get(`/shop/products/${productId}`).then((p) => {
       setProduct(p);
-      if (p.options?.size) setSize(p.options.size[1] ?? p.options.size[0]);
+      if (p.options?.size && !form.size) set({ size: p.options.size[1] ?? p.options.size[0] });
     }).catch((e) => setError(e.body?.error ?? e.message));
   }, [productId]);
 
   if (error && !product) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!product) return <div className="stage-pad"><div className="skeleton" /></div>;
 
-  if (done) {
-    return (
-      <div className="stage-pad">
-        <div className="panel" style={{ textAlign: "center" }}>
-          <img src={`/${item.icon}`} alt="" style={{ width: 80, margin: "6px auto 10px" }} />
-          <div className="h2">Замовлення прийнято</div>
-          <p className="muted">
-            {product.name} поїде на {done.address}. Статус приходитиме в чат кавенятка.
-          </p>
-          <button className="btn btn-primary" onClick={() => { ctx.pop(); ctx.push("orders"); }}>Мої замовлення</button>
-        </div>
-      </div>
-    );
-  }
+  const beans = ctx.me?.balances?.beans ?? 0;
+  const digits = form.phone.replace(/\D/g, "");
+  const ready = form.warehouse && form.first.trim() && form.last.trim() && digits.length === 12 && (!product.options?.size || form.size);
 
   const order = async () => {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.post("/me/redemptions", {
+      await api.post("/me/redemptions", {
         product: productId,
-        options: size ? { size } : {},
-        recipient_name: name.trim(),
-        recipient_phone: phone,
-        warehouse_ref: warehouse.ref,
+        options: form.size ? { size: form.size } : {},
+        recipient_name: `${form.first.trim()} ${form.last.trim()}`,
+        recipient_phone: `+${digits}`,
+        warehouse_ref: form.warehouse.ref,
       });
+      drafts.delete(productId);
       await ctx.refreshMe();
-      setDone(r);
+      ctx.replace("orders");
     } catch (e) {
       const code = e.body?.error;
       setError(code === "not_enough" ? `Не вистачає зерен: треба ${e.body.need}`
-        : code === "bad_phone" ? "Телефон у форматі +380XXXXXXXXX"
+        : code === "bad_phone" ? "Телефон у форматі +380 XX XXX XX XX"
         : code === "bad_name" ? "Вкажи імʼя й прізвище"
         : code ?? e.message);
     } finally {
@@ -73,161 +93,191 @@ export function Checkout({ item, ctx }) {
     }
   };
 
-  const ready = warehouse && name.trim().length >= 3 && /^\+?\d{10,13}$/.test(phone) && (!product.options?.size || size);
+  const sizes = product.options?.size ?? [];
 
   return (
     <div className="stage-pad">
-      <div className="panel row" style={{ gap: 12 }}>
-        <img src={`/${item.icon}`} alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: 14 }}>{product.name}</div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            {product.packed.length_cm}×{product.packed.width_cm}×{product.packed.height_cm} см · {product.packed.weight_kg} кг
+      <div className="co-product">
+        <img src={`/${item.icon}`} alt="" />
+        <div className="co-name">
+          <b>{product.name}</b>
+          <small>{item.subtitle}</small>
+        </div>
+        <div className="co-price">
+          <b><Bean />{product.price_beans}</b>
+          <small>лишиться {Math.max(0, beans - product.price_beans)}</small>
+        </div>
+      </div>
+
+      {sizes.length > 0 && (
+        <div className="field">
+          <div className="sectionTitle">Розмір</div>
+          <div className="co-sizes">
+            <div className="segs sm">
+              {sizes.map((s) => (
+                <button key={s} aria-pressed={form.size === s} onClick={() => set({ size: s })}>{s}</button>
+              ))}
+            </div>
+            <button className="co-link" onClick={() => ctx.push("sizeChart", {
+              chart: product.size_chart_cm, selected: form.size, onPick: (s) => set({ size: s }),
+            })}>таблиця розмірів</button>
           </div>
         </div>
-        <span className="price">{product.price_beans}<img src="/assets/ui/bean.png" alt="зерен" /></span>
-      </div>
-
-      {product.options?.size && (
-        <>
-          <div className="row-between" style={{ margin: "18px 4px 8px" }}>
-            <span className="sectionTitle" style={{ margin: 0 }}>Розмір</span>
-            <button className="muted" style={{ fontSize: 12, textDecoration: "underline" }}
-                    onClick={() => setPicker("sizes")}>таблиця розмірів</button>
-          </div>
-          <div className="row" style={{ gap: 6 }}>
-            {product.options.size.map((s) => (
-              <button key={s} className="btn" style={{ flex: 1, height: 40, fontSize: 13,
-                ...(size === s ? { background: "var(--grad)", color: "var(--accent-ink)", border: 0 } : {}) }}
-                      onClick={() => setSize(s)}>{s}</button>
-            ))}
-          </div>
-        </>
       )}
 
-      <div className="sectionTitle">Куди</div>
-      <button className="panel row-between" style={{ width: "100%" }} onClick={() => setPicker("city")}>
-        <span style={{ fontWeight: 700 }}>{city?.name ?? "Обрати місто"}</span>
-        <span className="muted">›</span>
-      </button>
-      <button className="panel row-between" style={{ width: "100%" }} disabled={!city}
-              onClick={() => setPicker("warehouse")}>
-        <span style={{ fontWeight: 700, textAlign: "left" }}>
-          {warehouse ? warehouse.description : city ? "Обрати відділення" : "Спершу місто"}
-        </span>
-        <span className="muted">›</span>
+      <div className="field" style={{ gap: 10 }}>
+        <div className="sectionTitle">Доставка</div>
+        <div className="co-np">
+          <span><img src="/assets/ui/nova_poshta_mark.svg" alt="Нова Пошта" /></span>
+          <div>
+            <b>Нова Пошта</b>
+            <small>
+              {productId === "custom_print" ? "Друк принта – тиждень, далі відправка. " : ""}Доставку оплачуєш при отриманні.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div className="co-row">
+        <input className="co-input" value={form.first} placeholder="Імʼя" onChange={(e) => set({ first: e.target.value.slice(0, 30) })} />
+        <input className="co-input" value={form.last} placeholder="Прізвище" onChange={(e) => set({ last: e.target.value.slice(0, 30) })} />
+      </div>
+      <input className="co-input" value={formatPhone(form.phone)} inputMode="tel"
+             onChange={(e) => set({ phone: e.target.value })} />
+      <button className="co-input co-select" onClick={() => setPicker("city")}>
+        <span className={form.city ? undefined : "muted"}>{form.city?.name ?? "Місто"}</span><Chevron />
       </button>
 
-      <div className="sectionTitle">Отримувач</div>
-      <div className="panel" style={{ display: "grid", gap: 8 }}>
-        <input className="price-input" style={{ fontSize: 15 }} value={name} placeholder="Імʼя та прізвище"
-               onChange={(e) => setName(e.target.value.slice(0, 60))} />
-        <input className="price-input" style={{ fontSize: 15 }} value={phone} inputMode="tel"
-               onChange={(e) => setPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 13))} />
+      <div className="seg">
+        {["branch", "postomat"].map((k) => (
+          <button key={k} data-on={form.kind === k}
+                  onClick={() => set({ kind: k, warehouse: form.warehouse?.category === k ? form.warehouse : null })}>
+            {KIND_TITLE[k]}
+          </button>
+        ))}
       </div>
-      <p className="muted" style={{ fontSize: 12.5 }}>
-        Доставку оплачує отримувач при отриманні. Імʼя й телефон їдуть у Нову Пошту й більше нікуди.
-      </p>
+
+      <button className="co-input co-wh" data-picked={Boolean(form.warehouse)} disabled={!form.city} onClick={() => setPicker("warehouse")}>
+        <span>
+          <b>{form.warehouse ? whTitle(form.warehouse) : form.city ? `Обрати ${KIND_TITLE[form.kind].toLowerCase()}` : "Спершу місто"}</b>
+          {form.warehouse && <small>{whSub(form.warehouse)}</small>}
+        </span>
+        <Chevron />
+      </button>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="btn btn-primary" disabled={!ready || busy} onClick={order}>
-        {busy ? "Оформлюємо…" : `Замовити за ${beansWord(product.price_beans)}`}
+      <button className="cta wide" style={{ height: 52 }} disabled={!ready || busy} onClick={order}>
+        {busy ? "Оформлюємо…" : <>Замовити за {product.price_beans} <Bean w={18} h={20} /></>}
       </button>
 
-      {picker === "sizes" && (
-        <Sheet title="Таблиця розмірів" onClose={() => setPicker(null)}>
-          <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-            Виміряй обхват грудей і поділи на два – це напівобхват (A). Щоб футболка сиділа вільно,
-            додай 2–5 см. Довжина (B) – від плеча до нижнього краю.
-          </p>
-          <div className="panel" style={{ padding: 0, overflow: "hidden" }}>
-            {Object.entries(product.size_chart_cm ?? {}).map(([s, v]) => (
-              <button key={s} className="row-between" style={{ width: "100%", padding: "10px 12px" }}
-                      onClick={() => { setSize(s); setPicker(null); }}>
-                <span style={{ fontWeight: 800 }}>{s}</span>
-                <span className="muted" style={{ fontSize: 13 }}>ширина {v.width} см · довжина {v.length} см</span>
-              </button>
-            ))}
-          </div>
-        </Sheet>
-      )}
-
       {picker === "city" && (
-        <CityPicker onClose={() => setPicker(null)} onPick={(c) => { setCity(c); setWarehouse(null); setPicker("warehouse"); }} />
+        <CityPicker current={form.city} onClose={() => setPicker(null)}
+                    onPick={(c) => { set({ city: c, warehouse: null }); setPicker("warehouse"); }} />
       )}
-
-      {picker === "warehouse" && city && (
-        <WarehousePicker city={city} product={productId} onClose={() => setPicker(null)}
-                         onPick={(w) => { setWarehouse(w); setPicker(null); }} />
+      {picker === "warehouse" && form.city && (
+        <WarehousePicker city={form.city} kind={form.kind} product={productId} current={form.warehouse}
+                         onClose={() => setPicker(null)} onPick={(w) => { set({ warehouse: w }); setPicker(null); }} />
       )}
     </div>
   );
 }
 
-function CityPicker({ onPick, onClose }) {
+// Шторка вибору — картка на 12 px від країв сцени, як у кадрах «Вибір
+// міста» і «Вибір відділення»: заголовок, пошук, список із радіо, кнопка.
+function PickSheet({ title, placeholder, query, onQuery, action, onAction, onClose, children }) {
+  const [box, setBox] = useState(null);
+  useLayoutEffect(() => {
+    const app = document.querySelector(".app");
+    const stage = document.querySelector(".stage");
+    if (!app || !stage) return;
+    const a = app.getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
+    setBox({ top: s.top - a.top + 12, bottom: a.bottom - s.bottom + 12 });
+  }, []);
+  const host = document.querySelector(".app") ?? document.body;
+  return createPortal(
+    <>
+      <div className="sheet-backdrop" onClick={onClose} />
+      <div className="pick-sheet" style={box ?? undefined} role="dialog" aria-label={title}>
+        <div className="pick-head">
+          <b>{title}</b>
+          <button aria-label="Закрити" onClick={onClose}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
+            </svg>
+          </button>
+        </div>
+        <label className="pick-search">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <circle cx="11" cy="11" r="6.5" /><path d="M16 16l4 4" />
+          </svg>
+          <input value={query} placeholder={placeholder} onChange={(e) => onQuery(e.target.value)} />
+        </label>
+        <div className="pick-list">{children}</div>
+        <button className="cta wide" disabled={!action} onClick={onAction}>{action ?? "Обрати"}</button>
+      </div>
+    </>,
+    host
+  );
+}
+
+function PickRow({ on, title, sub, onClick }) {
+  return (
+    <button className="pick-row" data-on={on || undefined} onClick={onClick}>
+      <i />
+      <span><b>{title}</b><small>{sub}</small></span>
+    </button>
+  );
+}
+
+function CityPicker({ current, onPick, onClose }) {
   const [q, setQ] = useState("");
   const [cities, setCities] = useState([]);
+  const [chosen, setChosen] = useState(current);
 
   useEffect(() => {
-    if (q.trim().length < 2) { setCities([]); return undefined; }
     const timer = setTimeout(() => {
       api.get(`/np/cities?q=${encodeURIComponent(q.trim())}`).then((r) => setCities(r.cities)).catch(() => setCities([]));
-    }, 250);
+    }, q ? 250 : 0);
     return () => clearTimeout(timer);
   }, [q]);
 
   return (
-    <Sheet title="Місто" onClose={onClose}>
-      <input className="price-input" style={{ width: "100%", fontSize: 15 }} value={q} placeholder="Почни вводити"
-             onChange={(e) => setQ(e.target.value)} autoFocus />
-      <div style={{ maxHeight: 280, overflowY: "auto", marginTop: 10 }}>
-        {cities.map((c) => (
-          <button key={c.ref} className="row-between" style={{ width: "100%", padding: "10px 4px" }} onClick={() => onPick(c)}>
-            <span style={{ fontWeight: 700 }}>{c.name}</span>
-            <span className="muted" style={{ fontSize: 12 }}>{c.area}</span>
-          </button>
-        ))}
-        {q.trim().length >= 2 && cities.length === 0 && (
-          <p className="muted" style={{ fontSize: 13 }}>Нічого не знайшли. Перевір написання.</p>
-        )}
-      </div>
-    </Sheet>
+    <PickSheet title="Місто" placeholder="Назва міста" query={q} onQuery={setQ} onClose={onClose}
+               action={chosen ? `Обрати ${chosen.name}` : null} onAction={() => onPick(chosen)}>
+      {cities.map((c) => (
+        <PickRow key={c.ref} on={chosen?.ref === c.ref} title={c.name} sub={c.area} onClick={() => setChosen(c)} />
+      ))}
+      {q.trim().length >= 2 && cities.length === 0 && <p className="pick-empty">Нічого не знайшли. Перевір написання.</p>}
+    </PickSheet>
   );
 }
 
-function WarehousePicker({ city, product, onPick, onClose }) {
+function WarehousePicker({ city, kind, product, current, onPick, onClose }) {
   const [q, setQ] = useState("");
   const [data, setData] = useState(null);
+  const [chosen, setChosen] = useState(current);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       api.get(`/np/warehouses?city=${encodeURIComponent(city.ref)}&product=${product}&q=${encodeURIComponent(q.trim())}`)
         .then(setData).catch(() => setData({ warehouses: [], hidden_postomats: 0 }));
-    }, 250);
+    }, q ? 250 : 0);
     return () => clearTimeout(timer);
   }, [city.ref, product, q]);
 
+  const list = (data?.warehouses ?? []).filter((w) => w.category === kind);
   return (
-    <Sheet title={`Відділення · ${city.name}`} onClose={onClose}>
-      <input className="price-input" style={{ width: "100%", fontSize: 15 }} value={q} placeholder="Номер або вулиця"
-             onChange={(e) => setQ(e.target.value)} />
-      <div style={{ maxHeight: 300, overflowY: "auto", marginTop: 10 }}>
-        {!data && <div className="skeleton" />}
-        {data?.warehouses.map((w) => (
-          <button key={w.ref} style={{ display: "block", width: "100%", textAlign: "left", padding: "10px 4px" }}
-                  onClick={() => onPick(w)}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>{w.description}</div>
-            <div className="muted" style={{ fontSize: 12 }}>{KIND[w.category] ?? w.category}</div>
-          </button>
-        ))}
-        {data?.warehouses.length === 0 && <p className="muted" style={{ fontSize: 13 }}>Нічого не знайшли.</p>}
-      </div>
-      {data?.hidden_postomats > 0 && (
-        <p className="muted" style={{ fontSize: 12 }}>
-          Сховано поштоматів: {data.hidden_postomats} – посилка в їхні комірки не влізе.
-        </p>
+    <PickSheet title={`${KIND_TITLE[kind]} · ${city.name}`} placeholder="Номер або вулиця" query={q} onQuery={setQ}
+               onClose={onClose} action={chosen ? `Обрати №${chosen.number}` : null} onAction={() => onPick(chosen)}>
+      {list.map((w) => (
+        <PickRow key={w.ref} on={chosen?.ref === w.ref} title={whTitle(w)} sub={whSub(w)} onClick={() => setChosen(w)} />
+      ))}
+      {data && list.length === 0 && <p className="pick-empty">Нічого не знайшли.</p>}
+      {kind === "postomat" && data?.hidden_postomats > 0 && (
+        <p className="pick-empty">Сховано поштоматів: {data.hidden_postomats} – посилка в їхні комірки не влізе.</p>
       )}
-    </Sheet>
+    </PickSheet>
   );
 }

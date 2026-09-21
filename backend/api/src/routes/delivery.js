@@ -11,6 +11,12 @@ import { economy, shopProducts } from "../economy.js";
 import { notifyPlant } from "../notify.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
+// У замовленнях — коротко й з розміром: «Футболка, M» (кадр «Мої замовлення»).
+const orderName = (id, options) => {
+  const p = product(id);
+  const base = p?.short ?? p?.name ?? id;
+  return options?.size ? `${base}, ${options.size}` : base;
+};
 const priceOf = (id) => economy.shop_beans[id]?.beans ?? null;
 
 export const STATUS_LABEL = {
@@ -44,7 +50,16 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const q = String(req.query?.q ?? "").trim();
-    if (q.length < 2) return { cities: [] };
+    // Без запиту — міста з найбільшою кількістю відділень: шторка вибору
+    // міста в макеті одразу показує список, а не порожнє поле.
+    if (q.length < 2) {
+      const popular = await many(
+        `select c.ref, c.name, c.area, c.settlement_type
+           from np_cities c left join np_warehouses w on w.city_ref = c.ref
+          group by c.ref order by count(w.ref) desc, c.name limit 6`
+      );
+      return { cities: popular };
+    }
     const cities = await many(
       `select ref, name, area, settlement_type from np_cities
         where name ilike $1 order by (name ilike $2) desc, length(name), name limit 20`,
@@ -166,7 +181,7 @@ export default async function routes(app) {
       orders: rows.map((r) => ({
         id: r.id,
         product: r.product,
-        name: product(r.product)?.name ?? r.product,
+        name: orderName(r.product, r.options),
         options: r.options,
         status: r.status,
         status_label: STATUS_LABEL[r.status] ?? r.status,
@@ -194,7 +209,7 @@ export default async function routes(app) {
     return {
       id: row.id,
       product: row.product,
-      name: product(row.product)?.name ?? row.product,
+      name: orderName(row.product, row.options),
       options: row.options,
       status: row.status,
       status_label: STATUS_LABEL[row.status] ?? row.status,

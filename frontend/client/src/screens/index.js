@@ -31,6 +31,7 @@ import { Bonus } from "./Bonus.jsx";
 import { DeleteAccount } from "./DeleteAccount.jsx";
 import { PaymentResult } from "./PaymentResult.jsx";
 import { Checkout } from "./Checkout.jsx";
+import { SizeChart } from "./SizeChart.jsx";
 import { Orders } from "./Orders.jsx";
 
 export const TAB_SCREEN = {
@@ -82,6 +83,7 @@ export const SCREENS = {
   plantName: { component: PlantName, title: "Імʼя кавенятка" },
   bonus: { component: Bonus, title: "Бонус за покупку" },
   checkout: { component: Checkout, title: "Оформлення" },
+  sizeChart: { component: SizeChart, title: "Таблиця розмірів" },
   orders: { component: Orders, title: "Мої замовлення" },
   deleteAccount: { component: DeleteAccount, title: "Видалити акаунт" },
   terms: { component: Legal, title: "Умови користування", hideNav: true },

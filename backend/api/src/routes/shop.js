@@ -107,7 +107,7 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Футболка з принтом",
         name: product("custom_print")?.name ?? "Футболка з принтом",
-        subtitle: "тільки твій – унікальний вигляд саме твого кавенятка",
+        subtitle: "Тільки твій, унікальний вигляд",
         icon: "assets/ui/custom_print.png",
         price: beans.custom_print.beans,
         // Ціна ще в коридорі (§6), і вітрина чесно показує «36-45».
