@@ -1,4 +1,6 @@
-// «Мої замовлення»: список і картка з історією статусів.
+// «Мої замовлення» — кадри «Мої замовлення · список» і «· картка»: вкладки
+// «Активні / Завершені», картка на замовлення зі статусом і ціною, а сама
+// картка замовлення — окремий екран із таймлайном статусів.
 //
 // Лічильник на вкладці Магазину рахує саме непереглянуті зміни статусу
 // (gamification_ui §Лічильник замовлень), тому відкрита картка їх і гасить —
@@ -6,95 +8,88 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-const STEPS = ["new", "printing", "packing", "shipped", "arrived", "received"];
+// Завершені — скасовані, повернуті й отримані понад два тижні тому:
+// щойно отримане ще лишається серед активних, як у макеті.
+const FORTNIGHT = 14 * 864e5;
+const isDone = (o) => o.status === "cancelled" || o.status === "returned"
+  || (o.status === "received" && Date.now() - new Date(o.status_changed_at) > FORTNIGHT);
+// Картинка товару у списку — розміри з макета.
+const ART = {
+  merch_cup: ["/assets/ui/merch.png", 30, 37],
+  custom_print: ["/assets/ui/custom_print.png", 34, 34],
+  coffee_250g: ["/assets/ui/coffee250.png", 28, 37],
+};
+const day = (iso) => new Date(iso).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
+// ТТН групами по чотири: «2045 0912 3344».
+export const ttnOf = (t) => String(t ?? "").replace(/(\d{4})(?=\d)/g, "$1 ");
+
+const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
+
+function statusLine(o) {
+  if (o.status === "shipped" && o.ttn) return `${o.status_label} · ТТН ${ttnOf(o.ttn)}`;
+  if (o.status === "received") return `${o.status_label} · ${day(o.status_changed_at)}`;
+  if (o.status === "arrived" && o.kind === "postomat") return "Прибуло в поштомат";
+  return o.status_label;
+}
+// Крапка статусу: у дорозі — акцент, отримано — зелена, решта — сіра.
+const tone = (s) => (s === "shipped" || s === "arrived" ? "go" : s === "received" ? "ok" : "wait");
 
 export function Orders({ ctx }) {
   const [orders, setOrders] = useState(null);
-  const [open, setOpen] = useState(null);
+  const [tab, setTab] = useState("active");
   const [error, setError] = useState(null);
 
-  const load = () => api.get("/me/redemptions").then((r) => setOrders(r.orders));
-  useEffect(() => { load().catch((e) => setError(e.message)); }, []);
+  useEffect(() => { api.get("/me/redemptions").then((r) => setOrders(r.orders)).catch((e) => setError(e.message)); }, []);
 
   if (error) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!orders) return <div className="stage-pad"><div className="skeleton" /></div>;
 
-  if (open) {
-    const done = STEPS.indexOf(open.status);
-    return (
-      <div className="stage-pad">
-        <button className="btn" style={{ marginBottom: 12 }} onClick={() => { setOpen(null); load(); ctx.refreshMe(); }}>
-          ← До списку
-        </button>
-        <div className="panel">
-          <div style={{ fontWeight: 800 }}>{open.name}</div>
-          {open.options?.size && <div className="muted" style={{ fontSize: 12 }}>розмір {open.options.size}</div>}
-          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{open.address}</div>
-          <div className="muted" style={{ fontSize: 12 }}>{open.recipient?.name} · {open.recipient?.phone}</div>
-          {open.ttn && <div style={{ fontWeight: 700, marginTop: 6 }}>ТТН {open.ttn}</div>}
-        </div>
-
-        <ol className="steps" style={{ marginTop: 16 }}>
-          {STEPS.map((status, i) => {
-            const event = open.events.find((e) => e.status === status);
-            return (
-              <li key={status} style={{ opacity: i <= done ? 1 : 0.45 }}>
-                <span className="steps-num" style={i > done ? { background: "var(--panel2)", color: "var(--muted)" } : undefined}>
-                  {i + 1}
-                </span>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>
-                    {{ new: "Прийнято", printing: "Друкуємо", packing: "Пакуємо", shipped: "У дорозі",
-                       arrived: "У відділенні", received: "Отримано" }[status]}
-                  </div>
-                  {event && (
-                    <div className="muted" style={{ fontSize: 12 }}>
-                      {new Date(event.created_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-        <p className="muted" style={{ fontSize: 12 }}>
-          Зміни статусу приходять у чат кавенятка – окремих листів ми не шлемо.
-        </p>
-      </div>
-    );
-  }
-
-  if (!orders.length) {
-    return (
-      <div className="stage-pad">
-        <div className="panel muted">
-          Замовлень ще немає. Кава, чашка й футболка з принтом купуються за зерна в Магазині.
-        </div>
-        <button className="btn btn-primary" onClick={() => ctx.openTab("shop")}>У Магазин</button>
-      </div>
-    );
-  }
-
-  const show = (id) => api.get(`/me/redemptions/${id}`).then(setOpen).catch((e) => setError(e.message));
+  const shown = orders.filter((o) => (tab === "done") === isDone(o));
 
   return (
     <div className="stage-pad">
-      {orders.map((o) => (
-        <button key={o.id} className="panel row" style={{ gap: 12, width: "100%", textAlign: "left" }}
-                onClick={() => show(o.id)}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>
-              {o.name}{o.options?.size ? ` · ${o.options.size}` : ""}
-            </div>
-            <div className="muted" style={{ fontSize: 12 }}>{o.address}</div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              {new Date(o.created_at).toLocaleDateString("uk-UA")} · {o.status_label}
-            </div>
-          </div>
-          {o.unseen && <span className="nav-badge" style={{ position: "static", margin: 0 }}>!</span>}
-          <span className="muted">›</span>
-        </button>
-      ))}
+      <div className="seg">
+        <button data-on={tab === "active"} onClick={() => setTab("active")}>Активні</button>
+        <button data-on={tab === "done"} onClick={() => setTab("done")}>Завершені</button>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="panel muted">Замовлень ще немає. Кава, чашка й футболка з принтом купуються за зерна в Магазині.</div>
+      ) : shown.length === 0 ? (
+        <div className="panel muted">{tab === "active" ? "Усі замовлення вже отримані." : "Завершених замовлень ще немає."}</div>
+      ) : (
+        <div className="orders">
+          {shown.map((o) => {
+            const [src, w, h] = ART[o.product] ?? ["/assets/ui/coffee250.png", 28, 37];
+            return (
+              <button key={o.id} className="order-row" onClick={() => ctx.push("order", { id: o.id })}>
+                <img src={src} alt="" style={{ width: w, height: h }} />
+                <div className="order-row-main">
+                  <div className="order-row-title">
+                    <b>№{o.id} · {o.name}</b>
+                    {o.unseen && <i>1</i>}
+                  </div>
+                  <small>{o.place}</small>
+                  <span className="order-status" data-tone={tone(o.status)}><i />{statusLine(o)}</span>
+                </div>
+                <div className="order-row-end">
+                  <b><Bean />{o.beans}</b>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
+                    <path d="M9.5 6 15.5 12 9.5 18" />
+                  </svg>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="hint-chip">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+          <circle cx="12" cy="12" r="9" /><path d="M12 11v5.5" /><path d="M12 7.6h.01" />
+        </svg>
+        Статуси оновлюються автоматично, коли Нова Пошта передає дані.
+      </div>
     </div>
   );
 }

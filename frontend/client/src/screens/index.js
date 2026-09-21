@@ -33,6 +33,7 @@ import { PaymentResult } from "./PaymentResult.jsx";
 import { Checkout } from "./Checkout.jsx";
 import { SizeChart } from "./SizeChart.jsx";
 import { Orders } from "./Orders.jsx";
+import { Order } from "./Order.jsx";
 
 export const TAB_SCREEN = {
   wallet: "wallet",
@@ -85,6 +86,7 @@ export const SCREENS = {
   checkout: { component: Checkout, title: "Оформлення" },
   sizeChart: { component: SizeChart, title: "Таблиця розмірів" },
   orders: { component: Orders, title: "Мої замовлення" },
+  order: { component: Order, title: (p) => `Замовлення №${p.id}` },
   deleteAccount: { component: DeleteAccount, title: "Видалити акаунт" },
   terms: { component: Legal, title: "Умови користування", hideNav: true },
   privacy: { component: Legal, title: "Приватність", props: { doc: "privacy" }, hideNav: true },

@@ -993,3 +993,45 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .size-tr[data-on] b { font-weight: 900; color: var(--accent-text) }
 .co-sizes .segs.sm button { font-size: 13px }
 .stage-pad > .seg { flex: none }
+
+/* «Мої замовлення»: картка з номером, місцем, статусом-крапкою й ціною. */
+.order-row { width: 100%; text-align: left; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 12px; display: flex; align-items: center; gap: 12px }
+.order-row > img { flex: none; object-fit: contain }
+.order-row-main { flex: 1; min-width: 0 }
+.order-row-title { display: flex; align-items: center; gap: 7px }
+.order-row-title b { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.order-row-title i { flex: none; min-width: 17px; height: 17px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 10px; font-weight: 800; font-style: normal; display: flex; align-items: center; justify-content: center }
+.order-row-main > small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px }
+.order-status { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--muted) }
+.order-status > i { flex: none; width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--muted) }
+.order-status[data-tone="go"] { color: var(--accent-text) }
+.order-status[data-tone="go"] > i { background: var(--accent) }
+.order-status[data-tone="ok"] > i { background: #3FBF6F }
+.order-row-end { flex: none; display: flex; align-items: center; gap: 8px }
+.order-row-end b { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800 }
+
+/* Картка замовлення: таймлайн і дві дії. */
+.order-meta { display: flex !important; align-items: center; gap: 5px }
+.timeline { display: flex; flex-direction: column }
+.tl-step { display: flex; gap: 12px }
+.tl-rail { width: 22px; display: flex; flex-direction: column; align-items: center }
+.tl-rail > i { flex: none; width: 14px; height: 14px; border-radius: var(--radius-pill); border: 2px solid var(--line) }
+.tl-step[data-state="done"] .tl-rail > i, .tl-step[data-state="now"] .tl-rail > i { border: 0; background: var(--grad) }
+.tl-step[data-state="now"] .tl-rail > i { box-shadow: 0 0 0 5px rgba(254, 129, 11, .18) }
+.tl-rail > span { flex: 1; width: 2px; background: var(--line) }
+.tl-rail > span[data-lit] { background: var(--accent); opacity: .6 }
+.tl-body { padding-bottom: 16px; min-width: 0 }
+.tl-body[data-last] { padding-bottom: 0 }
+.tl-body > b { display: block; font-size: 14px; font-weight: 800 }
+.tl-step[data-state="next"] .tl-body { color: var(--muted) }
+.tl-step[data-state="next"] .tl-body > b { font-weight: 700 }
+.tl-body > small { display: block; font-size: 12px; color: var(--muted) }
+.tl-body > small img { display: inline; vertical-align: -4px }
+.tl-ttn { display: flex; align-items: center; gap: 8px; margin-top: 8px }
+.tl-ttn > span { padding: 7px 11px; border-radius: 10px; background: var(--panel2); font-size: 12px; font-weight: 700 }
+.tl-ttn > button { padding: 7px 11px; border-radius: 10px; border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--accent-text) }
+.order-actions { margin-top: auto; display: flex; gap: 10px }
+.order-problem { flex: 1; min-width: 0; min-height: 48px; padding: 6px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; line-height: 1.25; font-weight: 700; color: var(--muted) }
+.order-track { flex: 1; height: 48px; border-radius: 14px; background: var(--grad); color: var(--accent-ink); font-size: 14px; font-weight: 800 }
+.order-track:disabled { background: var(--panel2); color: var(--muted) }
+.co-name.plain b { line-height: normal }

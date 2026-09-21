@@ -19,16 +19,29 @@ const orderName = (id, options) => {
 };
 const priceOf = (id) => economy.shop_beans[id]?.beans ?? null;
 
+// Назви статусів — як у кадрах «Мої замовлення».
 export const STATUS_LABEL = {
-  new: "прийнято",
-  printing: "друкуємо",
-  packing: "пакуємо",
-  shipped: "у дорозі",
-  arrived: "у відділенні",
-  received: "отримано",
-  returned: "повернуто",
-  cancelled: "скасовано",
+  new: "Нове",
+  printing: "Друкуємо",
+  packing: "Пакуємо",
+  shipped: "Відправлено",
+  arrived: "Прибуло у відділення",
+  received: "Отримано",
+  returned: "Повернуто",
+  cancelled: "Скасовано",
 };
+
+// «Київ, відділення №12» — коротке місце для списку й картки. Беремо з
+// довідника за ref; якщо відділення з довідника зникло — знімок адреси.
+const KIND_WORD = { branch: "відділення", postomat: "поштомат" };
+const placeOf = (r) => (r.wh_number && r.city_name
+  ? `${r.city_name}, ${KIND_WORD[r.np_warehouse_kind] ?? "відділення"} №${r.wh_number}`
+  : r.np_address_snapshot);
+const ORDER_SELECT = `select r.*, w.number as wh_number, c.name as city_name, -le.delta_beans as beans
+     from redemptions r
+     left join np_warehouses w on w.ref = r.np_warehouse_ref
+     left join np_cities c on c.ref = w.city_ref
+     left join ledger_entries le on le.id = r.ledger_entry_id`;
 
 // Поштомат має фізичну межу за габаритами й вагою — товар, який у неї не
 // влазить, туди просто не приймуть. Межі в довіднику бувають порожні:
@@ -171,12 +184,7 @@ export default async function routes(app) {
   app.get("/me/redemptions", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    const rows = await many(
-      `select id, product, options, status, status_changed_at, np_address_snapshot, np_ttn,
-              user_seen_at, created_at
-         from redemptions where user_id = $1 order by created_at desc limit 50`,
-      [user.id]
-    );
+    const rows = await many(`${ORDER_SELECT} where r.user_id = $1 order by r.created_at desc limit 50`, [user.id]);
     return {
       orders: rows.map((r) => ({
         id: r.id,
@@ -186,6 +194,9 @@ export default async function routes(app) {
         status: r.status,
         status_label: STATUS_LABEL[r.status] ?? r.status,
         status_changed_at: r.status_changed_at,
+        place: placeOf(r),
+        kind: r.np_warehouse_kind,
+        beans: r.beans,
         address: r.np_address_snapshot,
         ttn: r.np_ttn,
         unseen: !r.user_seen_at || new Date(r.user_seen_at) < new Date(r.status_changed_at),
@@ -197,7 +208,7 @@ export default async function routes(app) {
   app.get("/me/redemptions/:id", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    const row = await one("select * from redemptions where id = $1 and user_id = $2", [req.params.id, user.id]);
+    const row = await one(`${ORDER_SELECT} where r.id = $1 and r.user_id = $2`, [req.params.id, user.id]);
     if (!row) fail(404, "no_such_order");
     const events = await many(
       "select status, source, created_at from redemption_events where redemption_id = $1 order by created_at",
@@ -213,6 +224,9 @@ export default async function routes(app) {
       options: row.options,
       status: row.status,
       status_label: STATUS_LABEL[row.status] ?? row.status,
+      place: placeOf(row),
+      kind: row.np_warehouse_kind,
+      beans: row.beans,
       address: row.np_address_snapshot,
       recipient: { name: row.recipient_name, phone: row.recipient_phone },
       ttn: row.np_ttn,
