@@ -56,7 +56,10 @@ export default async function routes(app) {
         kind: "care",
         title: { compost: "Компост", fertilizer: "Добриво", insecticide: "Інсектицид" }[code],
         subtitle: `пачка ${e.care[code].batch_units} од.`,
-        icon: `assets/ui/${code}.png`,
+        // Добриво намальоване як мінеральне (assets/ui/mineral.png) — ім'я
+        // файла з дизайну не збігається з кодом товару, і «assets/ui/
+        // fertilizer.png» давало биту картинку в магазині.
+        icon: `assets/ui/${code === "fertilizer" ? "mineral" : code}.png`,
         price: e.care[code].price_coins,
         currency: "yellow",
       })),

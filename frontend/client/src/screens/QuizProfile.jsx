@@ -5,15 +5,37 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Choice, Segment, TextField } from "../ui/Fields.jsx";
 
+// Чернетка анкети. Сервер приймає відповіді цілком і в кінці, тому «крок 3
+// з 6» існує лише на клієнті — а гаманець його показує (макет «Гаманець ·
+// опитування в процесі»). Без збереження вихід з екрана стирав би все.
+export const PROFILE_DRAFT = "extrovert.quiz.profile";
+
+const loadDraft = () => {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_DRAFT)) ?? { step: 0, answers: {} };
+  } catch {
+    return { step: 0, answers: {} };
+  }
+};
+
 export function QuizProfile({ ctx }) {
+  const draft = loadDraft();
   const [quiz, setQuiz] = useState(null);
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [step, setStep] = useState(draft.step ?? 0);
+  const [answers, setAnswers] = useState(draft.answers ?? {});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
   useEffect(() => { api.get("/quiz/profile").then(setQuiz).catch((e) => setError(e.message)); }, []);
+
+  // Пишемо чернетку на кожну відповідь: гравця перервуть на півкроці —
+  // телефон дзвонить, вкладка засинає, — і повертатись з нуля він не стане.
+  useEffect(() => {
+    try {
+      localStorage.setItem(PROFILE_DRAFT, JSON.stringify({ step, answers }));
+    } catch { /* приватний режим — просто без чернетки */ }
+  }, [step, answers]);
 
   if (error) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!quiz) return <div className="stage-pad"><div className="skeleton" /></div>;
@@ -49,6 +71,7 @@ export function QuizProfile({ ctx }) {
     try {
       await api.post("/quiz/profile", { answers });
       await ctx.refreshMe();
+      try { localStorage.removeItem(PROFILE_DRAFT); } catch { /* нічого */ }
       setDone(true);
     } catch (e) {
       setError(e.body?.error === "already_done" ? "Анкета вже заповнена" : e.message);
