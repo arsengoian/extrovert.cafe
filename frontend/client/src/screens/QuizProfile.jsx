@@ -48,7 +48,7 @@ export function QuizProfile({ ctx }) {
           <div className="h2">{done ? `+${quiz.reward} срібних` : "Анкету вже заповнено"}</div>
           <p className="muted">
             {done
-              ? "Дякуємо — це допомагає зрозуміти, яку каву тобі варто пропонувати."
+              ? "Дякуємо – це допомагає зрозуміти, яку каву тобі варто пропонувати."
               : "Анкета проходиться один раз. Далі монети дає квіз про напій після покупок."}
           </p>
           <button className="btn btn-primary" onClick={ctx.pop}>Готово</button>

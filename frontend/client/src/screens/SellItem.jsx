@@ -34,7 +34,7 @@ export function SellItem({ item, ctx }) {
     } catch (e) {
       const code = e.body?.error;
       setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті"
-        : code === "item_in_set" ? "Річ зараз одягнена — спершу зніми її"
+        : code === "item_in_set" ? "Річ зараз одягнена – спершу зніми її"
         : code === "already_listed" ? "Ця копія вже на продажу"
         : code ?? e.message);
     } finally {
@@ -74,7 +74,7 @@ export function SellItem({ item, ctx }) {
         <img src="/assets/ui/coin_gold.png" alt="монет" style={{ width: 22 }} />
       </div>
       <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-        Комісія маркету — 10 %. З {value || 0} ти отримаєш {Math.max(0, value - commission)}.
+        Комісія маркету – 10 %. З {value || 0} ти отримаєш {Math.max(0, value - commission)}.
         Дешевші лоти маркет пропонує покупцям частіше.
       </p>
 

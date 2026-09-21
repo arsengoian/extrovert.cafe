@@ -5,6 +5,9 @@
 // (сітки каталога й складу), name не передають — інакше вона двоїться.
 import { useState } from "react";
 
+// Іконки, намальовані під іншою назвою: капелюх ковбоя в макеті — ui/hat.png.
+const ALIAS = { cowboy_head: "hat" };
+
 export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
   const [broken, setBroken] = useState(false);
 
@@ -18,7 +21,7 @@ export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
 
   return (
     <img
-      src={`/assets/ui/${sprite}.png`}
+      src={`/assets/ui/${ALIAS[sprite] ?? sprite}.png`}
       alt={alt}
       style={{ width: "100%", height: size, objectFit: "contain", ...style }}
       onError={() => setBroken(true)}

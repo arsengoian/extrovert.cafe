@@ -40,7 +40,7 @@ export function CoinPacks({ ctx }) {
       setDone(r);
     } catch (e) {
       setError(e.body?.error === "payments_not_connected"
-        ? "Оплата карткою ще не підключена — скоро."
+        ? "Оплата карткою ще не підключена – скоро."
         : e.body?.error ?? e.message);
     } finally {
       setBusy(null);

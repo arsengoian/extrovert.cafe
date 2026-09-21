@@ -138,8 +138,8 @@ export function Checkout({ item, ctx }) {
       {picker === "sizes" && (
         <Sheet title="Таблиця розмірів" onClose={() => setPicker(null)}>
           <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-            Виміряй обхват грудей і поділи на два — це напівобхват (A). Щоб футболка сиділа вільно,
-            додай 2–5 см. Довжина (B) — від плеча до нижнього краю.
+            Виміряй обхват грудей і поділи на два – це напівобхват (A). Щоб футболка сиділа вільно,
+            додай 2–5 см. Довжина (B) – від плеча до нижнього краю.
           </p>
           <div className="panel" style={{ padding: 0, overflow: "hidden" }}>
             {Object.entries(product.size_chart_cm ?? {}).map(([s, v]) => (
@@ -225,7 +225,7 @@ function WarehousePicker({ city, product, onPick, onClose }) {
       </div>
       {data?.hidden_postomats > 0 && (
         <p className="muted" style={{ fontSize: 12 }}>
-          Сховано поштоматів: {data.hidden_postomats} — посилка в їхні комірки не влізе.
+          Сховано поштоматів: {data.hidden_postomats} – посилка в їхні комірки не влізе.
         </p>
       )}
     </Sheet>

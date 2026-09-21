@@ -1,22 +1,25 @@
 // Склад — за макетом «Gamification Screens», кадр «Склад»: заголовок із
-// лічильником, картка нерозпакованих скриньок, далі колекції сіткою.
+// лічильником, картка нерозпакованих скриньок, комплекти по п'ять слотів і
+// лоти на продажу внизу.
 // Клітинка показує саму річ, а не картку з назвою: у макеті назви немає,
 // бо п'ять слотів комплекту впізнаються за силуетом.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
+import { plural } from "../ui/plural.js";
+
+// Порядок слотів у ряду — як у примірочній: голова, тіло, штани, взуття,
+// аксесуар. Порожній слот — пунктирна клітинка.
+const SLOTS = ["head", "body", "pants", "feet", "acc_1"];
 
 export function Stock({ ctx }) {
   const [items, setItems] = useState(null);
   const [crates, setCrates] = useState(0);
-  // Скільки всього речей у колекції — щоб показати «3 з 5», як у макеті.
-  const [sizes, setSizes] = useState({});
+  const [lots, setLots] = useState([]);
 
   useEffect(() => {
     api.get("/me/items").then((r) => { setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setItems([]));
-    api.get("/catalog/collections")
-      .then((r) => setSizes(Object.fromEntries((r.collections ?? []).map((c) => [c.collection, c.items]))))
-      .catch(() => {});
+    api.get("/me/listings").then((r) => setLots(r.listings ?? [])).catch(() => {});
   }, []);
 
   if (!items) return <div className="stage-pad"><div className="skeleton" /></div>;
@@ -25,16 +28,16 @@ export function Stock({ ctx }) {
     (acc[it.collection ?? "Інше"] ??= []).push(it);
     return acc;
   }, {});
-  const listed = items.reduce((n, it) => n + (it.listed ?? 0), 0);
   const total = items.reduce((n, it) => n + (it.owned ?? 1), 0);
+  const lot = lots[0];
 
   return (
     <div className="stage-pad" style={{ gap: 14 }}>
       <div className="stock-head">
         <h1>Склад</h1>
         <span>
-          {total} {total === 1 ? "предмет" : total < 5 ? "предмети" : "предметів"}
-          {crates > 0 && ` · ${crates} ${crates === 1 ? "скринька" : crates < 5 ? "скриньки" : "скриньок"}`}
+          {total} {plural(total, "предмет", "предмети", "предметів")}
+          {crates > 0 && ` · ${crates} ${plural(crates, "скринька", "скриньки", "скриньок")}`}
         </span>
       </div>
 
@@ -59,26 +62,56 @@ export function Stock({ ctx }) {
         </div>
       )}
 
-      {Object.entries(byCollection).map(([collection, list]) => (
-        <div className="section" key={collection}>
-          <div className="collection-head">
-            <div className="sectionTitle">{collection}</div>
-            <b>{list.length} з {sizes[collection] ?? list.length}</b>
+      {Object.entries(byCollection).map(([collection, list]) => {
+        const bySlot = Object.fromEntries(list.map((it) => [it.slot, it]));
+        const full = SLOTS.every((s) => bySlot[s]);
+        return (
+          <div className="section" key={collection}>
+            <div className="collection-head">
+              <div className="sectionTitle">Комплект «{collection}»</div>
+              <b data-full={full}>{list.length} з {SLOTS.length}</b>
+            </div>
+            <div className="cells">
+              {SLOTS.map((slot) => {
+                const it = bySlot[slot];
+                if (!it) return <div key={slot} className="cell empty" />;
+                return (
+                  <button key={slot} className="cell" onClick={() => ctx.push("itemCard", { item: it, owned: true })}>
+                    <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: 36 }} />
+                    {it.owned > 1 && <i>×{it.owned}</i>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          {/* По п'ять у ряд, як слотів у примірочній; зайві переносяться. */}
-          <div className="cells" style={{ flexWrap: "wrap" }}>
-            {list.map((it) => (
-              <button key={it.code} className="cell" onClick={() => ctx.push("itemCard", { item: it, owned: true })}>
-                <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: "auto", maxWidth: "100%" }} />
-                {it.owned > 1 && <i>×{it.owned}</i>}
-              </button>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
-      {listed > 0 && (
-        <button className="btn" onClick={() => ctx.push("listings")}>На продажу: {listed}</button>
+      {lot && (
+        <div className="on-sale">
+          <button className="section-head" onClick={() => ctx.push("listings")}>
+            <div className="sectionTitle">На продаж</div>
+            <span className="link-more">
+              усі {lots.length}
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M9.5 6 15.5 12 9.5 18" />
+              </svg>
+            </span>
+          </button>
+          <button className="lot-card" onClick={() => ctx.push("listings")}>
+            {lot.item
+              ? <ItemIcon sprite={lot.item.sprite_id} size={34} name={lot.item.name} style={{ width: 34, flex: "none" }} />
+              : <img src="/assets/ui/sprout.png" alt="" style={{ width: 22, height: 34 }} />}
+            <span className="lot-main">
+              <b>{lot.item?.name ?? lot.plant?.name}</b>
+              <small>{lot.item ? "заморожена до продажу" : "заморожене до продажу"}</small>
+            </span>
+            <span className="lot-price">
+              <img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />
+              {lot.price}
+            </span>
+          </button>
+        </div>
       )}
     </div>
   );

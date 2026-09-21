@@ -37,7 +37,7 @@ export function PlantName({ plant, ctx }) {
         ))}
       </div>
       <p className="muted" style={{ fontSize: 12.5 }}>
-        Імʼя бачиш ти й саме кавенятко. Якщо колись продаси його на маркеті — поїде разом із ним.
+        Імʼя бачиш ти й саме кавенятко. Якщо колись продаси його на маркеті – поїде разом із ним.
       </p>
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
       <button className="btn btn-primary" disabled={busy || !name.trim()} onClick={save}>Зберегти</button>

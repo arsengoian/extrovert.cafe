@@ -158,7 +158,7 @@ export function Wardrobe({ ctx, plant }) {
         <Sheet title={SLOT_LABEL[slot]} onClose={() => setSlot(null)}>
           {gifted ? (
             <p className="muted" style={{ fontSize: 13 }}>
-              Комплект подаровано — його предмети замкнені. Зніми комплект, щоб зібрати новий.
+              Комплект подаровано – його предмети замкнені. Зніми комплект, щоб зібрати новий.
             </p>
           ) : (
             <>

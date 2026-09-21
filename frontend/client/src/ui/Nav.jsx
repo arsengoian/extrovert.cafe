@@ -1,7 +1,8 @@
 // Нижня навігація: п'ять вкладок, кавенятко — піднятим колом по центру.
 const TABS = [
   { id: "wallet", label: "Гаманець", icon: "/assets/ui/nav_wallet.png" },
-  { id: "shop", label: "Магазин", icon: "/assets/ui/nav_shop.png", badge: "orders" },
+  // У макеті іконка магазину ширша за решту: 25 px проти 23.
+  { id: "shop", label: "Магазин", icon: "/assets/ui/nav_shop.png", width: 25, badge: "orders" },
   { id: "plant", label: "Кавенятко", center: true },
   { id: "stock", label: "Склад", icon: "/assets/ui/nav_storage.png" },
   { id: "history", label: "Покупки", icon: "/assets/ui/nav_history.png" },
@@ -18,7 +19,7 @@ export function Nav({ tab, onTab, badges = {} }) {
           </button>
         ) : (
           <button key={t.id} className="nav-item" data-active={String(tab === t.id)} onClick={() => onTab(t.id)}>
-            <img src={t.icon} alt="" />
+            <img src={t.icon} alt="" style={t.width ? { width: t.width } : undefined} />
             <span>{t.label}</span>
             {t.badge && badges[t.badge] ? <span className="nav-badge">{badges[t.badge]}</span> : null}
           </button>

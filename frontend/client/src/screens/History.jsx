@@ -55,7 +55,7 @@ export function History({ ctx }) {
         <div className="credit-banner">
           <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
           <div>
-            <b>{credits} кредит на опитування</b> — пройди його про будь-яке замовлення нижче
+            <b>{credits} кредит на опитування</b> – пройди його про будь-яке замовлення нижче
           </div>
         </div>
       )}

@@ -45,7 +45,7 @@ export function CratePreview({ item, ctx }) {
           </div>
         ))}
         <p className="muted" style={{ fontSize: 12, marginBottom: 0 }}>
-          Дубль теж буває — його можна продати на P2P-маркеті.
+          Дубль теж буває – його можна продати на P2P-маркеті.
         </p>
       </div>
 
@@ -56,7 +56,7 @@ export function CratePreview({ item, ctx }) {
           {busy ? "Відкриваємо…" : `Відкрити за ${item?.price ?? 85} монет`}
         </button>
         <button className="btn" disabled title="Оплата картою буде разом із mono pay">
-          {item?.price_uah ? `Купити за ${item.price_uah} ₴` : "Купити за гривні — ціна уточнюється"}
+          {item?.price_uah ? `Купити за ${item.price_uah} ₴` : "Купити за гривні – ціна уточнюється"}
         </button>
       </div>
     </div>
@@ -79,7 +79,7 @@ export function CrateResult({ result, ctx }) {
           <span className={`tag tag-${tier}`}>{TIER_LABEL[tier] ?? tier}</span>
           {item.collection ? <span className="tag">{item.collection}</span> : null}
         </div>
-        {dup && <p className="muted" style={{ marginTop: 8, marginBottom: 0 }}>У тебе такий уже є — дубль можна продати на маркеті.</p>}
+        {dup && <p className="muted" style={{ marginTop: 8, marginBottom: 0 }}>У тебе такий уже є – дубль можна продати на маркеті.</p>}
       </div>
 
       <div className="panel row-between">

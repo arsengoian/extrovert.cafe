@@ -22,7 +22,7 @@ export function DeleteAccount({ ctx }) {
         <div className="panel" style={{ textAlign: "center" }}>
           <div className="h2">Акаунт видалено</div>
           <p className="muted">
-            Тепер це {done.nickname}. Увійти в нього більше не можна — ні через Google, ні через Apple.
+            Тепер це {done.nickname}. Увійти в нього більше не можна – ні через Google, ні через Apple.
           </p>
           <button className="btn btn-primary" onClick={() => location.reload()}>Закрити</button>
         </div>

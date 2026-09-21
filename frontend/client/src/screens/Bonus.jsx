@@ -10,7 +10,7 @@ import { coins as coinsWord } from "../ui/plural.js";
 const ERRORS = {
   already_taken: "Цей бонус уже забрали",
   already_yours: "Ти вже забрав цей бонус",
-  expired: "Бонус згорів — QR діє дві хвилини",
+  expired: "Бонус згорів – QR діє дві хвилини",
   no_such_bonus: "Такого бонусу немає",
 };
 

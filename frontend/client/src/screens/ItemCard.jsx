@@ -87,7 +87,7 @@ export function ItemCard({ item, owned, ctx }) {
       {item.collection && (
         <div className="panel muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
           У тебе {slotsOwned} з 5 слотів комплекту «{item.collection}». За повний комплект кавенятко дасть{" "}
-          {beansWord(SET_BEANS[item.tier] ?? 3)} — рідкість рахується за найслабшим предметом.
+          {beansWord(SET_BEANS[item.tier] ?? 3)} – рідкість рахується за найслабшим предметом.
         </div>
       )}
 

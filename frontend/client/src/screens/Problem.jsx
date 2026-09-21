@@ -46,7 +46,7 @@ export function Problem({ ctx }) {
     } catch (e) {
       const code = e.body?.error;
       setError(code === "bad_type" ? "Підійде JPEG, PNG або WebP"
-        : code === "too_big" ? "Фото завелике — до 8 МБ"
+        : code === "too_big" ? "Фото завелике – до 8 МБ"
         : code === "unauthorized" ? "Щоб додати фото, спершу увійди"
         : e.message);
     } finally {
@@ -142,7 +142,7 @@ export function Problem({ ctx }) {
           title="Дякуємо, побачили"
           onClose={ctx.pop}
         >
-          <div className="result-note">Ми читаємо все, що сюди приходить. Якщо знадобляться деталі — напишемо в підтримку.</div>
+          <div className="result-note">Ми читаємо все, що сюди приходить. Якщо знадобляться деталі – напишемо в підтримку.</div>
         </ResultPopup>
       )}
     </div>

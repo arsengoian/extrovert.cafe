@@ -70,7 +70,7 @@ export function Plant({ ctx }) {
         <div className="panel" style={{ textAlign: "center" }}>
           <img src="/assets/ui/sprout.png" alt="" style={{ width: 48, margin: "8px auto 12px" }} />
           <div className="h2">Кавенятка ще немає</div>
-          <p className="muted">Саджанець можна купити в Магазині — за монети або за зерна.</p>
+          <p className="muted">Саджанець можна купити в Магазині – за монети або за зерна.</p>
           <button className="btn btn-primary" onClick={() => ctx.push("plantMarket")}>Обрати кавенятко</button>
         </div>
       </div>
@@ -87,7 +87,7 @@ export function Plant({ ctx }) {
   const openPlanting = () => {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
     // двадцять листків і лише на «Посадити» дізнається, що зарано.
-    if (growth.ready_at) { setNote("Одна стадія на добу — приходь завтра"); return; }
+    if (growth.ready_at) { setNote("Одна стадія на добу – приходь завтра"); return; }
     ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка" });
   };
 
@@ -107,7 +107,7 @@ export function Plant({ ctx }) {
       const code = e.body?.error;
       if (code === "needs_planting") openPlanting();
       else if (code === "wrong_care") setNote(`Зараз кавенятко хоче ${CARE[e.body.need]?.label ?? e.body.need}`);
-      else if (code === "too_soon") setNote("Одна стадія на добу — приходь завтра");
+      else if (code === "too_soon") setNote("Одна стадія на добу – приходь завтра");
       else if (code === "no_supply") ctx.openTab("shop");
       else if (code === "fully_grown") setNote("Кавенятко вже доросле");
       else setNote(e.message);
@@ -117,7 +117,7 @@ export function Plant({ ctx }) {
   return (
     <div style={{ position: "relative", minHeight: "100%", background: "linear-gradient(180deg, var(--sky1), var(--sky2))" }}>
       {/* Карусель кавенят: стрілки зʼявляються лише коли є між чим ходити,
-          а праворуч від останнього — плюс на нове кавенятко. */}
+          а праворуч від останнього – плюс на нове кавенятко. */}
       <div className="row" style={{ padding: "8px 12px 0", gap: 8 }}>
         <button className="icon-btn" aria-label="Попереднє кавенятко" disabled={index === 0}
                 style={{ opacity: plants.length > 1 ? 1 : 0, pointerEvents: plants.length > 1 ? "auto" : "none" }}

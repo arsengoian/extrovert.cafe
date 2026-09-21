@@ -52,7 +52,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .stage { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch }
 /* Padding 14 і gap 12 — рівно як у макеті (тіло екрана в кожному кадрі
    «Gamification Screens»): відступи задає контейнер, а не маргіни дітей. */
-.stage-pad { padding: 14px; padding-bottom: 20px; display: flex; flex-direction: column; gap: 12px }
+.stage-pad { min-height: 100%; padding: 14px; display: flex; flex-direction: column; gap: 12px }
 
 .hud { flex: none; padding: 10px 12px; display: flex; align-items: center; gap: 8px }
 .hud-pill {
@@ -290,13 +290,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .task-badge span { font-size: 9.5px; font-weight: 800; line-height: 1 }
 .task-main { flex: 1; min-width: 0 }
 .task-main b { display: block; font-size: 15px; font-weight: 700 }
-.task-main span { font-size: 12px; color: var(--muted) }
+.task-main span { display: block; font-size: 12px; color: var(--muted) }
 .task-note { font-size: 11px; color: var(--muted); text-wrap: pretty }
 .task-note img { width: 13px; height: 14px; display: inline; vertical-align: -3px }
 
 /* Пігулка дії праворуч у рядку. Головна — градієнтом, решта — контуром. */
 .pill { flex: none; padding: 7px 12px; border-radius: var(--radius-pill); border: 1px solid var(--line); font-size: 12px; font-weight: 800 }
-.pill-primary { background: var(--grad); color: var(--accent-ink); border-color: transparent }
+.pill-primary { background: var(--grad); color: var(--accent-ink); border: 0 }
 .pill-off { color: var(--muted) }
 
 .progress-row { display: flex; align-items: center; gap: 9px }
@@ -377,9 +377,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   width: 100%; text-align: left; border: 1px solid var(--accent); border-radius: var(--radius);
   background: var(--panel); padding: 12px; display: flex; align-items: center; gap: 12px;
 }
-.crate-art { position: relative; flex: none; width: 54px; height: 52px }
-.crate-art img { position: absolute; left: 0; top: 0; width: 54px; height: 52px }
-.crate-art img + img { width: 47px; height: 28px; transform-origin: 0 0; transform: matrix(1.0773, -.0487, .0457, .628, 1.49, 1.8); filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)) }
+.crate-art { position: relative; flex: none; width: 54px; height: 52.3px }
+.crate-art img { position: absolute; left: 0; top: 0; width: 54px; height: 52.3px }
+.crate-art img + img { width: 47.2px; height: 28px; transform-origin: 0 0; transform: matrix(1.0773, -.0487, .0457, .628, 1.49, 1.8); filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)) }
 .crate-price { display: flex; flex-direction: column; align-items: flex-end; gap: 3px }
 .crate-price > div { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 800 }
 .crate-price img { width: 18px; height: 19px }
@@ -393,25 +393,26 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .stock-head span { font-size: 12px; color: var(--muted) }
 
 .crate-open { width: 100%; text-align: left; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--panel); padding: 12px; display: flex; align-items: center; gap: 12px }
-.crate-open .crate-art { position: relative; width: 52px; height: 50px }
-.crate-open .crate-art img { width: 52px; height: 50px }
-.crate-open .crate-art img + img { width: 45px; height: 27px }
+.crate-open .crate-art { position: relative; width: 52px; height: 52px }
+.crate-open .crate-art img { top: .8px; width: 52px; height: 50.4px }
+.crate-open .crate-art img + img { width: 45.4px; height: 26.9px; transform: matrix(1.0773, -.0487, .0457, .628, 1.43, 1.73) }
 .crate-open .crate-art i {
   position: absolute; right: -6px; bottom: -4px; min-width: 20px; height: 20px; padding: 0 5px;
   border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink);
   font-size: 11px; font-weight: 800; font-style: normal; display: flex; align-items: center; justify-content: center;
 }
 .crate-open b { display: block; font-size: 15px; font-weight: 800 }
-.crate-open em { font-style: normal; font-size: 12px; color: var(--muted) }
+.crate-open em { display: block; font-style: normal; font-size: 12px; color: var(--muted) }
 
 .collection-head { display: flex; align-items: baseline; justify-content: space-between }
-.collection-head > b { font-size: 12px; font-weight: 700; color: var(--accent-text) }
+.collection-head > b { font-size: 12px; font-weight: 400; color: var(--muted) }
+.collection-head > b[data-full="true"] { font-weight: 700; color: var(--accent-text) }
 .cells { display: flex; gap: 8px }
 .cell {
   position: relative; flex: 1; aspect-ratio: 1 / 1; border: 1px solid var(--line); border-radius: 14px;
-  background: var(--panel); display: flex; align-items: center; justify-content: center; padding: 8px;
+  background: var(--panel); display: flex; align-items: center; justify-content: center;
 }
-.cell img { max-width: 70%; max-height: 70%; object-fit: contain }
+.cell.empty { border-style: dashed; background: none; opacity: .5 }
 .cell i { position: absolute; right: 4px; bottom: 4px; font-size: 11px; font-weight: 800; font-style: normal; color: var(--muted) }
 
 /* ── покупки ───────────────────────────────────────────────────────────
@@ -740,3 +741,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .doc-coins img { width: 17px; height: 18px }
 .doc-coins img + img { margin-left: -7px }
 .doc-bean { display: inline; width: 16px; height: 18px; vertical-align: -3px }
+/* Рядки магазину за боби: назва й пояснення під нею, ціна праворуч. */
+.list-row.two .ico { width: 44px }
+.list-row .name small { display: block; font-size: 12px; font-weight: 400; color: var(--muted) }
+.list-row .name small.rate { display: flex; align-items: center; gap: 4px }
+.list-row .rate img:first-of-type { width: 13px; height: 15px }
+.list-row .rate img:last-of-type { width: 14px; height: 15px }
+.list-row .cost-r { flex: none; display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 800 }
+
+/* Лоти на продажу внизу Складу: заголовок-посилання й перший лот. */
+.on-sale { margin-top: auto; display: flex; flex-direction: column; gap: 8px }
+.on-sale .section-head { width: 100%; align-items: baseline }
+.lot-card { width: 100%; text-align: left; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 11px 12px; display: flex; align-items: center; gap: 12px }
+.lot-main { flex: 1; min-width: 0 }
+.lot-main b { display: block; font-size: 14px; font-weight: 700 }
+.lot-main small { display: block; font-size: 12px; color: var(--muted) }
+.lot-price { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800 }
+.lot-price img { width: 17px; height: 18px }

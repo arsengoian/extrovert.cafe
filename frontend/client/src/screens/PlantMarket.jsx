@@ -29,7 +29,7 @@ export function PlantMarket({ ctx }) {
     try {
       await api.post("/shop/buy", { code: item.code });
       await ctx.refreshMe();
-      setNote("Саджанець твій — знайди його на головному екрані.");
+      setNote("Саджанець твій – знайди його на головному екрані.");
     } catch (e) {
       setError(e.body?.error === "not_enough" ? "Не вистачає" : e.body?.error ?? e.message);
     } finally {
@@ -80,7 +80,7 @@ export function PlantMarket({ ctx }) {
       {offers === null && <div className="skeleton" />}
       {offers?.length === 0 && (
         <div className="panel muted" style={{ fontSize: 13 }}>
-          Зараз ніхто не продає кавенят. Загляни пізніше — лоти зʼявляються й зникають.
+          Зараз ніхто не продає кавенят. Загляни пізніше – лоти зʼявляються й зникають.
         </div>
       )}
       {offers?.map((lot) => (

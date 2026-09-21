@@ -89,7 +89,7 @@ export function Transfer({ ctx }) {
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#FE810B" strokeWidth="2" strokeLinecap="round">
           <path d="M12 4.5 21 20H3l9-15.5Z" /><path d="M12 10.5v4" /><path d="M12 17.4h.01" />
         </svg>
-        <div>Співробітники extrovert.cafe ніколи не просять переказати монети. Якщо просять — це шахраї.</div>
+        <div>Співробітники extrovert.cafe ніколи не просять переказати монети. Якщо просять – це шахраї.</div>
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}

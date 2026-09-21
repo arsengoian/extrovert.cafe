@@ -35,7 +35,7 @@ export function SellPlant({ plant, ctx }) {
       setListed(true);
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "last_plant" ? "Це твоє єдине кавенятко — спершу заведи ще одне"
+      setError(code === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
         : code === "already_listed" ? "Кавенятко вже на маркеті"
         : code ?? e.message);
     } finally {
@@ -95,7 +95,7 @@ export function SellPlant({ plant, ctx }) {
         <img src={currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" style={{ width: 22 }} />
       </div>
       <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-        Комісія 2 % — {commission}. Мінімальна ціна — {MIN[currency]}{currency === "beans" ? " зерна" : " монет"}.
+        Комісія 2 % – {commission}. Мінімальна ціна – {MIN[currency]}{currency === "beans" ? " зерна" : " монет"}.
       </p>
 
       <div className="panel">
@@ -105,7 +105,7 @@ export function SellPlant({ plant, ctx }) {
           повернеться на склад.
         </p>
         <p className="muted" style={{ fontSize: 13, lineHeight: 1.45, marginBottom: 0 }}>
-          Поки кавенятко на маркеті, доглядати за ним неможливо — але й сумувати воно не буде.
+          Поки кавенятко на маркеті, доглядати за ним неможливо – але й сумувати воно не буде.
           Дешевші лоти маркет пропонує покупцям частіше.
         </p>
       </div>

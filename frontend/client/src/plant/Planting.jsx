@@ -64,7 +64,7 @@ const FIELD = { leafBg: "bg", leafFg: "fg", branch: "branches", bud: "buds" };
 
 const ERRORS = {
   no_supply: "Не вистачає препарату",
-  too_soon: "Одна стадія на добу — посадка відкриється завтра",
+  too_soon: "Одна стадія на добу – посадка відкриється завтра",
   bad_count: "Кількість не збігається з умовою",
   nothing_to_plant: "Зараз садити нічого",
   on_sale: "Кавенятко виставлене на продаж",
@@ -280,7 +280,7 @@ export function Planting({ ctx, plantId }) {
   if (error && !data) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!assets || !data || !cfg) return <div className="stage-pad"><div className="skeleton" /></div>;
   if (!data.state.planting) {
-    return <div className="stage-pad"><div className="panel">Зараз садити нічого — кавенятко просить догляду.</div></div>;
+    return <div className="stage-pad"><div className="panel">Зараз садити нічого – кавенятко просить догляду.</div></div>;
   }
 
   const need = data.state.need;

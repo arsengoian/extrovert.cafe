@@ -24,7 +24,7 @@ export function WearItem({ item, ctx }) {
     } catch (e) {
       const code = e.body?.error;
       setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті"
-        : code === "on_sale" ? "Кавенятко на маркеті — спершу зніми його з продажу"
+        : code === "on_sale" ? "Кавенятко на маркеті – спершу зніми його з продажу"
         : code ?? e.message);
     } finally {
       setBusy(false);
