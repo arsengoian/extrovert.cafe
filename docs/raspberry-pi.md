@@ -289,7 +289,7 @@ curl -sI https://pos.extrovert.cafe/releases/pi/manifest.json   # до перш�
 зловити тут, ніж на точці.
 
 ```bash
-bun run --filter @extrovert/pos release:push
+make release-push
 curl -s https://pos.extrovert.cafe/releases/pi/manifest.json
 ```
 

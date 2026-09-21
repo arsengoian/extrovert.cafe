@@ -1,4 +1,4 @@
-// sync-prices.mjs — ціни з pos/data/prices.json → каталог товарів Checkbox.
+// sync-prices.mjs — ціни з таблиці `drinks` → каталог товарів Checkbox.
 //
 //   bun scripts/sync-prices.mjs                  # показати різницю
 //   bun scripts/sync-prices.mjs --apply          # записати ціни
@@ -27,13 +27,18 @@
 //   «Облік товарів: Resource not found» навіть для товарів зі списку —
 //   схоже, він лише для ввімкненого модуля обліку. Беремо загальний список.
 //
-// Ціни в Checkbox — цілі КОПІЙКИ (Еспресо 35 ₴ приходить як 3500), у
-// prices.json — гривні. Переплутати одиниці означає продати каву за 35
-// копійок, тому нижче стоїть запобіжник на підозрілу різницю в ціні.
+// Ціни в Checkbox — цілі КОПІЙКИ (Еспресо 35 ₴ приходить як 3500), у базі —
+// гривні. Переплутати одиниці означає продати каву за 35 копійок, тому
+// нижче стоїть запобіжник на підозрілу різницю в ціні.
+//
+// Джерело цін — таблиця `drinks` (21.09.2026). Раніше читався
+// pos/data/prices.json, і той самий каталог жив у двох місцях: база знала
+// монети, файл — ціну, а каса могла не знати ні того, ні того.
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { pool } from "@extrovert/lib/db.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.argv.includes("--prod");
@@ -147,7 +152,12 @@ async function fetchCatalog() {
 
 // ── основне ─────────────────────────────────────────────────────────────────
 async function main() {
-  const prices = JSON.parse(readFileSync(path.join(HERE, "..", "..", "pos", "data", "prices.json"), "utf8"));
+  // active = false лишає напій у базі, але з каталогу каси він не зникає
+  // сам — тому звіряємо лише те, що справді продається.
+  const { rows: drinks } = await pool.query(
+    "select system_code, name, price_uah from drinks where active order by sort_order, name"
+  );
+  if (!drinks.length) throw new Error("у базі немає активних напоїв — звіряти нема з чим");
 
   // Хто ми насправді. Змінні в .env легко переплутати місцями, а Checkbox
   // сам знає, тестовий це касир чи ні, — довіряємо йому, а не назві змінної.
@@ -163,13 +173,13 @@ async function main() {
 
   const catalog = await fetchCatalog();
   const changes = [], same = [], missing = [], noCode = [], suspicious = [], branchPriced = [];
-  for (const d of prices.drinks) {
+  for (const d of drinks) {
     if (!d.system_code) { noCode.push(d.name); continue; }
     const good = catalog.get(d.system_code);
     if (good === undefined) { missing.push(`${d.name} (${d.system_code})`); continue; }
     if (good === null) { suspicious.push(`${d.name} (${d.system_code}): код трапляється в каталозі кілька разів, не чіпаю`); continue; }
 
-    const from = good.price, to = uahToKop(d.price);
+    const from = good.price, to = uahToKop(Number(d.price_uah));
     // PUT міняє базову ціну товару. Якщо у філії своя ціна, каса продаватиме
     // за нею — «оновлено» було б неправдою, тому таке лише показуємо.
     const branch = (good.branches_info ?? []).filter((b) => Number.isInteger(b.price) && b.price !== to);
@@ -189,7 +199,7 @@ async function main() {
     console.log(`\nЗмінилось ${changes.length}:`);
     for (const c of changes) console.log(`  ${c.name} (${c.code}): ${kopToUah(c.from)} → ${kopToUah(c.to)} ₴`);
   } else if (same.length) {
-    console.log(`\nРізниці немає: ${same.length} цін уже збігаються з prices.json`);
+    console.log(`\nРізниці немає: ${same.length} цін уже збігаються з каталогом напоїв`);
   }
   if (changes.length && same.length) console.log(`Без змін: ${same.length}`);
   if (noCode.length) console.log(`Без system_code (пропущено): ${noCode.join(", ")}`);

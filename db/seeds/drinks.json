@@ -9,7 +9,9 @@
     "sprite": "espresso_milk",
     "cup": "M",
     "active": true,
-    "sort_order": 60
+    "sort_order": 60,
+    "color": "#784e2c",
+    "foam": true
   },
   {
     "system_code": "a015",
@@ -21,7 +23,9 @@
     "sprite": "mocha",
     "cup": "L",
     "active": true,
-    "sort_order": 100
+    "sort_order": 100,
+    "color": "#70462c",
+    "foam": true
   },
   {
     "system_code": "a017",
@@ -33,7 +37,9 @@
     "sprite": "flatwhite",
     "cup": "L",
     "active": true,
-    "sort_order": 120
+    "sort_order": 120,
+    "color": "#96683e",
+    "foam": true
   },
   {
     "system_code": "a018",
@@ -45,7 +51,9 @@
     "sprite": "irish",
     "cup": "L",
     "active": true,
-    "sort_order": 150
+    "sort_order": 150,
+    "color": "#8c6038",
+    "foam": true
   },
   {
     "system_code": "a022",
@@ -57,7 +65,9 @@
     "sprite": "hotchoc",
     "cup": "L",
     "active": true,
-    "sort_order": 140
+    "sort_order": 140,
+    "color": "#563422",
+    "foam": true
   },
   {
     "system_code": "a024",
@@ -69,7 +79,9 @@
     "sprite": "cocoa",
     "cup": "L",
     "active": true,
-    "sort_order": 130
+    "sort_order": 130,
+    "color": "#5a3826",
+    "foam": true
   },
   {
     "system_code": "a026",
@@ -81,7 +93,9 @@
     "sprite": "double_espresso",
     "cup": "S",
     "active": true,
-    "sort_order": 30
+    "sort_order": 30,
+    "color": "#2c1608",
+    "foam": false
   },
   {
     "system_code": "a027",
@@ -93,7 +107,9 @@
     "sprite": "lungo",
     "cup": "S",
     "active": true,
-    "sort_order": 20
+    "sort_order": 20,
+    "color": "#4a2815",
+    "foam": false
   },
   {
     "system_code": "a033",
@@ -105,7 +121,9 @@
     "sprite": "espresso",
     "cup": "S",
     "active": true,
-    "sort_order": 10
+    "sort_order": 10,
+    "color": "#402212",
+    "foam": false
   },
   {
     "system_code": "a034",
@@ -117,7 +135,9 @@
     "sprite": "americano",
     "cup": "M",
     "active": true,
-    "sort_order": 40
+    "sort_order": 40,
+    "color": "#60361c",
+    "foam": false
   },
   {
     "system_code": "a036",
@@ -129,7 +149,9 @@
     "sprite": "americano_milk",
     "cup": "L",
     "active": true,
-    "sort_order": 70
+    "sort_order": 70,
+    "color": "#7e522e",
+    "foam": true
   },
   {
     "system_code": "a038",
@@ -141,7 +163,9 @@
     "sprite": "cappuccino",
     "cup": "L",
     "active": true,
-    "sort_order": 80
+    "sort_order": 80,
+    "color": "#9e7044",
+    "foam": true
   },
   {
     "system_code": "a039",
@@ -153,7 +177,9 @@
     "sprite": "latte",
     "cup": "L",
     "active": true,
-    "sort_order": 110
+    "sort_order": 110,
+    "color": "#b08458",
+    "foam": true
   },
   {
     "system_code": "x034",
@@ -165,7 +191,9 @@
     "sprite": "americano",
     "cup": "M",
     "active": false,
-    "sort_order": 50
+    "sort_order": 50,
+    "color": "#c0392b",
+    "foam": false
   },
   {
     "system_code": "x038",
@@ -177,6 +205,8 @@
     "sprite": "cappuccino",
     "cup": "L",
     "active": false,
-    "sort_order": 90
+    "sort_order": 90,
+    "color": "#9e7044",
+    "foam": true
   }
 ]

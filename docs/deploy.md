@@ -8,7 +8,7 @@
 |---|---|---|
 | застосунок гравця (`client`) | Cloudflare Workers, статика + SPA-фолбек | `bun run deploy:client` |
 | бекенд (`api`, `ws`, `checkbox`, `scheduler`, `overseer`) | дроплет, docker compose | розділ 2 |
-| меню й релізи кіоска | публічний бакет R2 | `bun run --filter @extrovert/pos prices:push` / `release:push` (`pos/README.md`) |
+| меню й релізи кіоска | публічний бакет R2 | `make prices-push` / `make release-push` (`pos/README.md`) |
 
 ---
 

@@ -254,10 +254,26 @@ CREATE TABLE public.drinks (
     cup text,
     active boolean DEFAULT true NOT NULL,
     sort_order integer DEFAULT 0 NOT NULL,
+    color text,
+    foam boolean DEFAULT false NOT NULL,
     CONSTRAINT drinks_bonus_coins_check CHECK ((bonus_coins >= 0)),
     CONSTRAINT drinks_coins_check CHECK ((coins >= 0)),
     CONSTRAINT drinks_price_uah_check CHECK ((price_uah >= (0)::numeric))
 );
+
+
+--
+-- Name: COLUMN drinks.color; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.drinks.color IS 'Колір картки в меню кіоска, #rrggbb — картка малюється ним, а не картинкою';
+
+
+--
+-- Name: COLUMN drinks.foam; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.drinks.foam IS 'Напій із піною: кіоск малює шапку на стакані';
 
 
 --
@@ -3110,4 +3126,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920230000'),
     ('20260920240000'),
     ('20260921090000'),
-    ('20260921100000');
+    ('20260921100000'),
+    ('20260921120000');

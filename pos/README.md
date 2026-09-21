@@ -4,16 +4,24 @@
 читає меню прямо з публічного бакета, а не через наш API.
 
 ```
-data/prices.json         вихідний файл меню: напої, ціни, спрайти, акція
-scripts/push-prices.mjs  заливка меню в R2 (AWS SigV4 вручну, без залежностей)
+data/menu-chrome.json    оформлення меню: тема, бренд, стакани, акція
+scripts/push-prices.mjs  збирає меню з таблиці drinks і заливає в R2
+scripts/push-release.mjs заливка релізу кіоска (архів, потім маніфест)
 ```
 
 ## Заливка меню
 
 ```bash
-bun scripts/push-prices.mjs                  # kyiv-01
-bun scripts/push-prices.mjs kyiv-02 ./m.json # інша точка й інший файл
+make prices-push                       # kyiv-01
+bun pos/scripts/push-prices.mjs kyiv-02   # інша точка
+bun pos/scripts/push-prices.mjs --dry     # показати меню, нічого не заливати
 ```
+
+**Напої беруться з бази** — таблиця `drinks`, активні, у порядку
+`sort_order`. Правити їх треба там (сід `db/seeds/drinks.json`,
+`bun run seed:apply --table drinks --apply`), а не тут: файл поруч із тими
+самими напоями означав би два списки, які розходяться (`../docs/db-schema.md`
+§7). З кореня, а не з `pos/`, — щоб ключі до R2 бралися з єдиного `.env`.
 
 Ключ у бакеті — `points/<point>/menu.json`, публічна адреса —
 `https://pos.extrovert.cafe/points/<point>/menu.json` (`../docs/urls.md`).

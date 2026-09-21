@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 9e9c4f6</p>
+  <p class="eyebrow">extrovert.cafe · джерело 841445d</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2263,9 +2263,17 @@ manifest: зайва чи відсутня — помилка, а не тихе 
 кроці, тож нова колонка йде так: міграція (nullable або з <code>default</code>) →
 колонка в manifest і JSON → <code>apply</code>. Дані, які треба <strong>перетворити</strong>, —
 перейменувати код, розбити поле, — це міграція, а не сід.</p>
-<p>Каталог напоїв сьогодні живе в <code>pos/data/prices.json</code>, звідки меню йде в
-R2. Коли зʼявиться база, його місце займе <code>db/seeds/drinks.json</code>, а меню для
-кіоска збиратиме <code>scheduler</code> з таблиці (<a class="doclink" href="#svc"><code>services.md</code></a> §4).</p>
+<p>Каталог напоїв — таблиця <code>drinks</code>, у git вона лежить сідом
+<code>db/seeds/drinks.json</code> (21.09.2026). Меню кіоска збирається з неї:
+<code>pos/scripts/push-prices.mjs</code> бере активні напої, додає оформлення з
+<code>pos/data/menu-chrome.json</code> (тема, бренд, стакани, акція — те, що напоями не
+є) і кладе готовий <code>points/&lt;point&gt;/menu.json</code> у R2. Звідти ж беруться ціни
+для звірки каталогу каси (<a class="doclink" href="#checkbox"><code>checkbox.md</code></a>).</p>
+<p>До цього поруч жив <code>pos/data/prices.json</code> із тими самими напоями, і два
+списки розходились: база знала монети, файл — ціну, каса могла не знати ні
+того, ні того. Колір картки й наявність піни переїхали в таблицю саме тому —
+це властивості напою, а не файла. Коли зʼявиться адмінка, вона мінятиме ті
+самі рядки, а не ще один файл (<a class="doclink" href="#svc"><code>services.md</code></a> §4).</p>
 
 </section>
 <section class="doc" id="urls">
@@ -2410,7 +2418,7 @@ GET  /api/v1/me/listings               мої лоти з лічильником
 <tr>
 <td>меню й релізи кіоска</td>
 <td>публічний бакет R2</td>
-<td><code>bun run --filter @extrovert/pos prices:push</code> / <code>release:push</code> (<a class="doclink" href="#pos"><code>pos/README.md</code></a>)</td>
+<td><code>make prices-push</code> / <code>make release-push</code> (<a class="doclink" href="#pos"><code>pos/README.md</code></a>)</td>
 </tr>
 </tbody></table>
 </div>
@@ -2814,7 +2822,7 @@ DELETE /api/v1/webhook
 <p><strong>Суми — цілі копійки</strong>, як і ціни товарів нижче. Переводимо в гривні на
 вході в <code>checkbox</code> і ніде більше (<a class="doclink" href="#db"><code>db-schema.md</code></a> §0).</p>
 <h2 id="checkbox-товари-goods"><a class="anchor" href="#checkbox-товари-goods" aria-hidden="true">#</a>Товари (goods)</h2>
-<p>Ціни в каталозі мають збігатися з <code>pos/data/prices.json</code>, інакше кіоск
+<p>Ціни в каталозі мають збігатися з таблицею <code>drinks</code>, інакше кіоск
 показує одну ціну, а чек пробиває іншу. Звіряє й оновлює
 <code>backend/checkbox/scripts/sync-prices.mjs</code>.</p>
 <pre><code>GET    /api/v1/goods?limit=100&amp;offset=0   → results[]: id, code, name, price, group_id, taxes, …
@@ -2826,7 +2834,7 @@ GET    /api/v1/goods/by-code/{code}       ⚠️ 404 «Облік товарів
 <p>Що з&#39;ясувалось на живому каталозі:</p>
 <ul>
 <li><strong><code>price</code> — цілі копійки.</strong> Еспресо 35 ₴ приходить як <code>3500</code>. Усі 13 цін
-збіглися з <code>prices.json</code>.</li>
+збіглися з каталогом напоїв.</li>
 <li><strong><code>by-code</code> не працює</strong> навіть для товарів, які є у списку. Схоже, він
 лише для ввімкненого модуля обліку товарів. Беремо весь список: це півтора
 десятка позицій, один запит.</li>
@@ -3943,7 +3951,7 @@ sequenceDiagram
 занесе реліз у <code>bad-releases</code> назавжди. Порядок зашитий у скрипт; він же
 звіряє sha256 архіву з маніфестом <strong>до</strong> заливки — обірваний файл дешевше
 зловити тут, ніж на точці.</p>
-<pre><code class="language-bash">bun run --filter @extrovert/pos release:push
+<pre><code class="language-bash">make release-push
 curl -s https://pos.extrovert.cafe/releases/pi/manifest.json
 </code></pre>
 <p><strong>4. Дочекатись або підштовхнути.</strong> Точка сама перевірить протягом 15 хв
@@ -4493,13 +4501,20 @@ USB-флешку замість системної SD (<a class="doclink" href="
 <header class="doc-head"><p class="doc-src">pos/README.md</p><h1>pos — меню точки</h1></header>
 <p>Дані меню й заливка їх у R2. Ніякого сервера тут немає: кіоск (<code>raspberry/kiosk/</code>)
 читає меню прямо з публічного бакета, а не через наш API.</p>
-<pre><code>data/prices.json         вихідний файл меню: напої, ціни, спрайти, акція
-scripts/push-prices.mjs  заливка меню в R2 (AWS SigV4 вручну, без залежностей)
+<pre><code>data/menu-chrome.json    оформлення меню: тема, бренд, стакани, акція
+scripts/push-prices.mjs  збирає меню з таблиці drinks і заливає в R2
+scripts/push-release.mjs заливка релізу кіоска (архів, потім маніфест)
 </code></pre>
 <h2 id="pos-заливка-меню"><a class="anchor" href="#pos-заливка-меню" aria-hidden="true">#</a>Заливка меню</h2>
-<pre><code class="language-bash">bun scripts/push-prices.mjs                  # kyiv-01
-bun scripts/push-prices.mjs kyiv-02 ./m.json # інша точка й інший файл
+<pre><code class="language-bash">make prices-push                       # kyiv-01
+bun pos/scripts/push-prices.mjs kyiv-02   # інша точка
+bun pos/scripts/push-prices.mjs --dry     # показати меню, нічого не заливати
 </code></pre>
+<p><strong>Напої беруться з бази</strong> — таблиця <code>drinks</code>, активні, у порядку
+<code>sort_order</code>. Правити їх треба там (сід <code>db/seeds/drinks.json</code>,
+<code>bun run seed:apply --table drinks --apply</code>), а не тут: файл поруч із тими
+самими напоями означав би два списки, які розходяться (<a class="doclink" href="#db"><code>../docs/db-schema.md</code></a>
+§7). З кореня, а не з <code>pos/</code>, — щоб ключі до R2 бралися з єдиного <code>.env</code>.</p>
 <p>Ключ у бакеті — <code>points/&lt;point&gt;/menu.json</code>, публічна адреса —
 <code>https://pos.extrovert.cafe/points/&lt;point&gt;/menu.json</code> (<a class="doclink" href="#urls"><code>../docs/urls.md</code></a>).</p>
 <p>Коли зʼявиться адмінка, ціни котитиме вона (<a class="doclink" href="#svc"><code>../docs/services.md</code></a> §4), а цей
@@ -9462,7 +9477,7 @@ Stretch під armv6 через QEMU: ті самі gcc 6.3 і glibc 2.24, що 
 Перевірено на цій машині: образ збирається, <code>make pi</code> в ньому дає
 <code>ELF 32-bit LSB executable, ARM, EABI5</code>, у якого найвища потрібна версія —
 <code>GLIBC_2.17</code> (на пристрої 2.24, тобто із запасом). <code>make-release.sh</code> тепер
-теж їде на ПК, а заливку робить <code>bun run --filter @extrovert/pos release:push</code> — архів, потім
+теж їде на ПК, а заливку робить <code>make release-push</code> — архів, потім
 маніфест. Дрібниця, яку зловили одразу: NTFS не зберігає біт виконання, тож
 апдейтер на точці ставить його сам після розпакування, інакше selftest
 відмовився б від цілком нормального релізу.</p>
@@ -10017,7 +10032,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 9e9c4f6 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 841445d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

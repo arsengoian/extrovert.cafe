@@ -22,7 +22,9 @@
       "sprite",
       "cup",
       "active",
-      "sort_order"
+      "sort_order",
+      "color",
+      "foam"
     ]
   },
   "item_defs": {

@@ -50,8 +50,9 @@ docs: add video capture and processing architecture
 у клієнта.
 
 **Меню й релізи лежать у публічному бакеті R2** (`pos.extrovert.cafe`), сервера
-між точкою й файлами немає. Нове меню — `bun run --filter @extrovert/pos prices:push`, новий
-реліз — `bun run --filter @extrovert/pos release:push` (архів першим, маніфест останнім).
+між точкою й файлами немає. Нове меню — `make prices-push` (збирається з
+таблиці `drinks`), новий реліз — `make release-push` (архів першим, маніфест
+останнім).
 
 **Скрізь `bun`, ніде `npm`** (20.09.2026). `bun` — і рантайм сервісів, і
 раннер скриптів, і менеджер пакетів; у репозиторії один `bun.lock`.
