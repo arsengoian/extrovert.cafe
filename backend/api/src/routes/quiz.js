@@ -108,10 +108,13 @@ export default async function routes(app) {
     // Пройти можна про будь-яке замовлення з історії, не лише про останнє.
     const items = await many(
       `select ri.id, ri.name, ri.price_uah, r.fiscal_date, p.name as point_name,
-              (q.id is not null) as answered
+              (q.id is not null) as answered,
+              -- картинка напою для картки зверху (кадр «Опитування про напій»)
+              d.sprite
          from receipt_items ri
          join receipts r on r.id = ri.receipt_id
          join points p on p.id = r.point_id
+         left join drinks d on d.system_code = ri.system_code
          join bonus_grants bg on bg.receipt_id = r.id and bg.redeemed_by = $1
          left join quiz_drink_responses q on q.receipt_item_id = ri.id
         where ri.is_bonus_drink = false

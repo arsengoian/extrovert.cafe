@@ -67,30 +67,36 @@ export function QuizDrink({ ctx }) {
   const others = data.items.filter((i) => !i.answered && i.id !== item.id);
 
   return (
-    <div className="stage-pad">
-      <div className="panel row-between">
-        <div>
-          <div style={{ fontWeight: 800 }}>{item.name}</div>
-          <div className="muted" style={{ fontSize: 12 }}>
+    <div className="quiz">
+      <div className="drink-card">
+        <img src={item.sprite ? `/assets/drinks/${item.sprite}.png` : "/assets/ui/coffee250.png"} alt="" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <b>{item.name}</b>
+          <small>
             {item.point_name} · {when.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })} · {item.price_uah} ₴
+          </small>
+        </div>
+        <span><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>
+      </div>
+
+      <div className="section" style={{ gap: 12 }}>
+        <div className="sectionTitle">Як смакувало</div>
+        {data.scales.map((sc) => (
+          <div key={sc.id} className="scale">
+            <b>{sc.title}</b>
+            <div className="segs sm">
+              {sc.options.map((o) => (
+                <button key={o} aria-pressed={answers[sc.id] === o}
+                        onClick={() => setAnswers((a) => ({ ...a, [sc.id]: o }))}>{o}</button>
+              ))}
+            </div>
           </div>
-        </div>
-        <span className="price"><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>
+        ))}
       </div>
 
-      <div className="sectionTitle">Як смакувало</div>
-      {data.scales.map((s) => (
-        <div key={s.id} className="panel">
-          <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{s.title}</div>
-          <Segment options={s.options} value={answers[s.id]}
-                   onChange={(v) => setAnswers((a) => ({ ...a, [s.id]: v }))} />
-        </div>
-      ))}
-
-      <div className="panel">
-        <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{data.free_text.title}</div>
-        <TextField value={text} onChange={setText} placeholder={data.free_text.placeholder} rows={3} />
-      </div>
+      <textarea className="textarea lg" value={text} rows={2}
+                placeholder={data.free_text?.placeholder ?? "Що покращити? (не обов'язково)"}
+                onChange={(e) => setText(e.target.value)} />
 
       {others.length > 0 && (
         <button className="btn" onClick={() => { setItem(others[0]); setAnswers({}); setText(""); }}>
@@ -100,8 +106,8 @@ export function QuizDrink({ ctx }) {
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={busy} onClick={send}>
-        {busy ? "Надсилаємо…" : `Надіслати й отримати ${data.reward}`}
+      <button className="cta wide" disabled={busy} onClick={send}>
+        {busy ? "Надсилаємо…" : <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>}
       </button>
     </div>
   );
