@@ -63,54 +63,52 @@ export function Transfer({ ctx }) {
   };
 
   const ready = found?.found && !found.self && value > 0 && value <= balance;
+  const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
 
   return (
-    <div className="stage-pad">
-      <div className="sectionTitle">Кому</div>
-      <div className="panel row" style={{ gap: 10 }}>
-        <input
-          className="price-input" style={{ fontSize: 15 }}
-          value={nickname} placeholder="нікнейм"
-          onChange={(e) => setNickname(e.target.value.replace(/\s/g, "").slice(0, 24))}
-        />
-        {found?.found && !found.self && <span style={{ fontSize: 12, fontWeight: 700, color: "#3FBF6F" }}>знайдено</span>}
-        {found?.self && <span className="muted" style={{ fontSize: 12 }}>це ти</span>}
-        {found && !found.found && <span className="muted" style={{ fontSize: 12 }}>немає</span>}
+    <div className="quiz">
+      <div className="field">
+        <div className="sectionTitle">Кому</div>
+        <div className="input-row">
+          <input value={nickname} placeholder="нікнейм"
+                 onChange={(e) => setNickname(e.target.value.replace(/\s/g, "").slice(0, 24))} />
+          {found?.found && !found.self && <span style={{ color: "#3FBF6F" }}>знайдено</span>}
+          {found?.self && <span className="muted">це ти</span>}
+          {found && !found.found && <span className="muted">немає</span>}
+        </div>
       </div>
 
-      <div className="sectionTitle">Скільки</div>
-      <div className="panel row-between" style={{ borderColor: "var(--accent)" }}>
-        <span className="row" style={{ gap: 9 }}>
-          <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 26 }} />
-          <input className="price-input" style={{ border: 0, background: "transparent", padding: 0, height: 32 }}
-                 inputMode="numeric" value={amount}
+      <div className="field">
+        <div className="sectionTitle">Скільки</div>
+        <div className="input-row amount-row">
+          <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          <input inputMode="numeric" value={amount}
                  onChange={(e) => setAmount(e.target.value.replace(/\D/g, "").slice(0, 6))} />
-        </span>
-        <span className="muted" style={{ fontSize: 12 }}>з {balance}</span>
-      </div>
-      <div className="row" style={{ gap: 8, marginTop: 8 }}>
-        {QUICK.map((n) => (
-          <button key={n} className="btn" style={{ flex: 1, height: 36, fontSize: 12 }}
-                  onClick={() => setAmount(String(n))}>{n}</button>
-        ))}
-        <button className="btn" style={{ flex: 1, height: 36, fontSize: 12 }}
-                onClick={() => setAmount(String(balance))}>усе</button>
+          <span>з {fmt(balance)}</span>
+        </div>
+        <div className="quick">
+          {QUICK.map((n) => (
+            <button key={n} aria-pressed={value === n} onClick={() => setAmount(String(n))}>{n}</button>
+          ))}
+          <button aria-pressed={value === balance && balance > 0} onClick={() => setAmount(String(balance))}>усе</button>
+        </div>
       </div>
 
-      <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
+      <div className="muted" style={{ fontSize: 13, lineHeight: 1.5, textWrap: "pretty" }}>
         Після підтвердження переказ скасувати неможливо. Переказуй лише гравцям, яких знаєш особисто.
-      </p>
-      <div className="panel row" style={{ gap: 10, background: "rgba(254,129,11,.14)", borderColor: "rgba(254,129,11,.5)" }}>
-        <span style={{ fontSize: 18 }}>⚠️</span>
-        <span style={{ fontSize: 12, lineHeight: 1.45, color: "#FFB061" }}>
-          Співробітники extrovert.cafe ніколи не просять переказати монети. Якщо просять — це шахраї.
-        </span>
+      </div>
+
+      <div className="warn">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#FE810B" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 4.5 21 20H3l9-15.5Z" /><path d="M12 10.5v4" /><path d="M12 17.4h.01" />
+        </svg>
+        <div>Співробітники extrovert.cafe ніколи не просять переказати монети. Якщо просять — це шахраї.</div>
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="btn btn-primary" style={{ marginTop: 12 }} disabled={!ready || busy} onClick={send}>
-        {busy ? "Переказуємо…" : `Переказати ${coinsWord(value)}`}
+      <button className="cta wide" style={{ marginTop: "auto", height: 52, gap: 7 }} disabled={!ready || busy} onClick={send}>
+        {busy ? "Переказуємо…" : <>Переказати {fmt(value)} <img src="/assets/ui/coin_gold.png" alt="золотих монет" style={{ width: 20, height: 21 }} /></>}
       </button>
     </div>
   );

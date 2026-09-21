@@ -59,8 +59,8 @@ export function Repost() {
       : "Посилання активне: наступний перехід зарахує монети";
 
   return (
-    <div className="stage-pad">
-      <div className="panel row" style={{ gap: 13, borderColor: "var(--accent)" }}>
+    <div className="quiz" style={{ gap: 16 }}>
+      <div className="repost-head">
         <div className="badge-coin">
           <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
           <span>+{state.reward}</span>
@@ -71,29 +71,34 @@ export function Repost() {
         </div>
       </div>
 
-      <ol className="steps">
+      <ol className="steps" style={{ margin: 0 }}>
         {STEPS.map(([title, text], i) => (
           <li key={title}>
             <span className="steps-num">{i + 1}</span>
             <div>
               <div style={{ fontSize: 14, fontWeight: 800 }}>{title}</div>
-              <div className="muted" style={{ fontSize: 13, lineHeight: 1.45, marginTop: 3 }}>{text}</div>
+              <div className="muted" style={{ fontSize: 13, lineHeight: 1.45, marginTop: 3, textWrap: "pretty" }}>{text}</div>
             </div>
           </li>
         ))}
       </ol>
 
       {state.link && (
-        <>
+        <div className="field">
           <div className="sectionTitle">Твоє посилання</div>
           <div className="row" style={{ gap: 8 }}>
-            <div className="panel link-box">{state.link.replace(/^https?:\/\//, "")}</div>
-            <button className="btn btn-icon" onClick={copy} aria-label="Скопіювати посилання"><CopyIcon /></button>
+            <div className="link-field">{state.link.replace(/^https?:\/\//, "")}</div>
+            <button className="icon-sq" onClick={copy} aria-label="Скопіювати посилання">
+              {copied ? "✓" : <CopyIcon />}
+            </button>
           </div>
-          {copied && <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Скопійовано</div>}
-          <button className="btn btn-primary" style={{ marginTop: 14 }} onClick={share}><ShareIcon />Поділитися</button>
-        </>
+        </div>
       )}
+
+      <button className="cta wide" style={{ marginTop: "auto", height: 52, gap: 8 }} onClick={share}>
+        <ShareIcon />
+        Поділитися
+      </button>
     </div>
   );
 }
