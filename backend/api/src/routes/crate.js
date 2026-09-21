@@ -16,19 +16,25 @@ export default async function routes(app) {
 
     try {
       const result = await tx(async (client) => {
-        // Списання й перевірка балансу — одним запитом: where ... >= price
-        // означає, що нестача це 0 рядків, а не окрема гонка.
-        const paid = await client.query(
-          `update users set coins_yellow = coins_yellow - $2
-            where id = $1 and coins_yellow >= $2
-            returning coins_yellow`,
-          [user.id, price]
-        );
-        if (paid.rowCount === 0) {
+        // Скринька — з крамниці монет, тож платять будь-якими: спершу
+        // срібні, потім жовті (economy §2.1 — нарівні; жовті вигідніше
+        // лишити, їх можна переказати). Рядок блокуємо — без гонки між
+        // перевіркою й списанням.
+        const { rows: bal } = await client.query(
+          "select coins_silver, coins_yellow from users where id = $1 for update", [user.id]);
+        const have = bal[0].coins_silver + bal[0].coins_yellow;
+        if (have < price) {
           const err = new Error("not_enough_coins");
           err.code = "not_enough_coins";
+          err.have = have;
           throw err;
         }
+        const fromSilver = Math.min(bal[0].coins_silver, price);
+        const fromYellow = price - fromSilver;
+        await client.query(
+          "update users set coins_silver = coins_silver - $2, coins_yellow = coins_yellow - $3 where id = $1",
+          [user.id, fromSilver, fromYellow]
+        );
 
         const tier = rollTier();
         const { rows: defs } = await client.query(
@@ -70,9 +76,9 @@ export default async function routes(app) {
 
         // Журнал: одна операція — один рядок із чистою дельтою.
         await client.query(
-          `insert into ledger_entries (user_id, delta_yellow, reason, ref_type, ref_id, meta)
-           values ($1, $2, 'crate', 'crate_opening', $3, $4)`,
-          [user.id, coins - price, opening[0].id, { tier, item: def.code, was_duplicate: wasDuplicate }]
+          `insert into ledger_entries (user_id, delta_silver, delta_yellow, reason, ref_type, ref_id, meta)
+           values ($1, $2, $3, 'crate', 'crate_opening', $4, $5)`,
+          [user.id, -fromSilver, coins - fromYellow, opening[0].id, { tier, item: def.code, was_duplicate: wasDuplicate }]
         );
 
         return {
@@ -87,7 +93,7 @@ export default async function routes(app) {
       return result;
     } catch (e) {
       if (e.code === "not_enough_coins") {
-        return reply.code(409).send({ error: "not_enough_coins", need: price });
+        return reply.code(409).send({ error: "not_enough_coins", need: price, have: e.have });
       }
       if (e.code === "no_items_for_tier") {
         return reply.code(503).send({ error: "no_items_for_tier" });

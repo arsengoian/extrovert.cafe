@@ -806,3 +806,68 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .consent-box { width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: #fff }
 .consent-box[aria-checked="true"] { background: var(--grad); border: 0 }
 .cta.start-cta { margin-top: auto; border-radius: 16px }
+
+/* «Весь одяг»: підказка-плашка й набори з плитками кольору тіру. */
+.hint-chip { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border-radius: 14px; background: var(--panel2); font-size: 12px; color: var(--muted); text-wrap: pretty }
+.hint-chip > svg { flex: none }
+.set { display: flex; flex-direction: column; gap: 8px }
+.set-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px }
+.set-head > div { display: flex; align-items: baseline; gap: 8px; min-width: 0 }
+.set-head b { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.set-head > div > span { flex: none; font-size: 11px; font-weight: 800 }
+.set-price { flex: none; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800 }
+.set-price img { width: 14px; height: 15px }
+.set-price small { font-size: inherit; font-weight: 600; color: var(--muted) }
+.set-tiles { display: flex; gap: 8px; justify-content: space-between }
+.set-tile { flex: none; width: 62px; height: 62px; border-radius: 14px; background: rgba(var(--t), .16); border: 1.5px solid rgba(var(--t), .45); display: flex; align-items: center; justify-content: center }
+.set-total { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted) }
+.set-total img { width: 12px; height: 13px }
+
+/* «Не вистачає монет»: кругла «×», заголовок-нестача і способи заробити. */
+.sheet-x { position: absolute; right: 14px; top: 14px; width: 32px; height: 32px; border-radius: var(--radius-pill); background: var(--panel2); border: 1px solid var(--line); color: var(--muted); display: flex; align-items: center; justify-content: center }
+.short-title { display: flex; align-items: center; gap: 7px; font-size: 19px; font-weight: 900; padding-right: 40px }
+.short-note { font-size: 13px; line-height: 1.5; color: var(--muted) }
+.short-note .coins2 { vertical-align: -4px }
+.earn-list { display: flex; flex-direction: column; gap: 8px }
+.earn-row { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px; background: var(--panel2) }
+.earn-row[data-accent] { border: 1px solid var(--accent) }
+.earn-row[data-off] { opacity: .6 }
+.earn-row > img { flex: none; object-fit: contain }
+.earn-main { flex: 1; min-width: 0 }
+.earn-main b { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 700 }
+.earn-main small { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted) }
+.earn-row .pill { padding: 7px 11px }
+.short-foot { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); padding-top: 2px }
+
+/* Прев'ю скриньки: сцена 170 px, заголовок 21/900, таблиця шансів, дві ціни. */
+.crate-hero {
+  height: 170px; border-radius: 20px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 60%, rgba(254, 129, 11, .22) 0%, rgba(254, 129, 11, 0) 68%), var(--panel);
+}
+.crate-art.big { width: 130px; height: 126px }
+.crate-art.big img { width: 130px; height: 126px }
+.crate-art.big img + img { width: 113.5px; height: 67.3px; transform: matrix(1.0773, -.0487, .0457, .628, 3.58, 4.32) }
+.preview-head { display: flex; flex-direction: column; gap: 6px }
+.preview-head h2 { margin: 0; font-size: 21px; font-weight: 900 }
+.preview-head p { margin: 0; font-size: 13px; color: var(--muted); text-wrap: pretty }
+.odds { flex: none; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden }
+.odds > div { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px }
+.odds > div:last-child { border-bottom: 0 }
+.odds b { font-weight: 800 }
+.buy-row { margin-top: auto; display: flex; gap: 10px }
+.buy-row .cta { flex: 1; min-width: 0; height: 52px; gap: 7px }
+.cta.ghost { background: var(--panel); border: 1px solid var(--line); color: var(--ink) }
+
+/* «Скриньку відкрито»: сяйво за карткою, плитки предмета й монет. */
+.crate-glow { position: absolute; left: 50%; top: -24px; width: 200px; height: 200px; margin-left: -100px; object-fit: contain; opacity: .55; pointer-events: none }
+.result-card > .result-title, .result-card > .loot, .result-card > .loot-note, .result-card > .cta { position: relative }
+.loot { display: flex; align-items: flex-start; justify-content: center; gap: 18px }
+.loot-tile { flex: none; width: 76px; display: flex; flex-direction: column; align-items: center; gap: 6px }
+.loot-tile > span { width: 76px; height: 76px; border-radius: 18px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
+.loot-tile > span > img { width: 58px; height: 61px; object-fit: contain }
+.loot-tile > span[class^="tier-"] { background: radial-gradient(circle at 50% 35%, rgba(var(--t), .55) 0%, rgba(var(--t), .16) 70%); border: 1.5px solid rgb(var(--t)); box-shadow: 0 6px 16px rgba(var(--t), .34) }
+.loot-tile > span[class^="tier-"] > img { width: 64px; height: 64px }
+.loot-tile small { font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.15; text-align: center }
+.loot-tile b { font-size: 17px; font-weight: 800; line-height: 1.15 }
+.loot-note { font-size: 13px; color: var(--muted); text-align: center; text-wrap: pretty }
+.loot-note b { font-weight: 800; color: var(--ink) }

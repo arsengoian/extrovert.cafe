@@ -17,17 +17,21 @@ function useStageTop(offset) {
   return top;
 }
 
-export function ResultPopup({ art, glow = 96, title, children, action = "Готово", onClose, offset = 110 }) {
+// art — картинка в сяйві над заголовком; decor — абсолютний фон картки
+// (сяйво скриньки); onAction — якщо головна кнопка робить щось інше, ніж
+// просто закрити («На склад»); side — відступ картки від країв.
+export function ResultPopup({ art, glow = 96, decor, title, children, action = "Готово", onAction, onClose, offset = 110, side = 18 }) {
   const top = useStageTop(offset);
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onClose} />
-      <div className="result-card" style={{ top }}>
-        <div className="result-glow" style={{ width: glow, height: glow }}>{art}</div>
+      <div className="result-card" style={{ top, left: side, right: side }}>
+        {decor}
+        {art && <div className="result-glow" style={{ width: glow, height: glow }}>{art}</div>}
         <div className="result-title">{title}</div>
         {children}
-        <button className="cta wide" onClick={onClose}>{action}</button>
+        {action && <button className="cta wide" onClick={onAction ?? onClose}>{action}</button>}
       </div>
     </>,
     host
@@ -46,13 +50,23 @@ function useStageBottom(offset) {
   return bottom;
 }
 
-export function ConfirmSheet({ children, onCancel }) {
+// closable — кругла «×» у куті, як у «Попап · не вистачає монет».
+export function ConfirmSheet({ children, onCancel, closable = false, gap }) {
   const bottom = useStageBottom(14);
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
-      <div className="confirm-sheet" style={{ bottom }}>{children}</div>
+      <div className="confirm-sheet" style={{ bottom, gap }}>
+        {closable && (
+          <button className="sheet-x" title="Закрити" aria-label="Закрити" onClick={onCancel}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M6.5 6.5 17.5 17.5M17.5 6.5 6.5 17.5" />
+            </svg>
+          </button>
+        )}
+        {children}
+      </div>
     </>,
     host
   );

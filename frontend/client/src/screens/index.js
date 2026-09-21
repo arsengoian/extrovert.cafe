@@ -7,7 +7,7 @@ import { Catalog } from "./Catalog.jsx";
 import { Stock } from "./Stock.jsx";
 import { History } from "./History.jsx";
 import { ItemCard } from "./ItemCard.jsx";
-import { CratePreview, CrateResult } from "./Crate.jsx";
+import { CratePreview } from "./Crate.jsx";
 import { Profile } from "./Profile.jsx";
 import { NicknameChange } from "./NicknameChange.jsx";
 import { Problem } from "./Problem.jsx";
@@ -51,7 +51,6 @@ export const SCREENS = {
   catalog: { component: Catalog, title: "Одяг" },
   itemCard: { component: ItemCard, title: (p) => p.item?.name ?? "Предмет" },
   shopItem: { component: CratePreview, title: (p) => p.item?.title ?? "Товар" },
-  crateResult: { component: CrateResult, title: "Скриньку відкрито" },
 
   // Шторки: показуються поверх поточної вкладки, back-топбар їм не потрібен
   profile: { component: Profile, presentation: "sheet" },
