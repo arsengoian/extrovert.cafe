@@ -15,6 +15,24 @@ export function setToken(next) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+// Токен, придатний просто зараз. Потрібен там, де 401 не допоможе: ws
+// перевіряє токен один раз, під час рукостискання, і протухлий просто
+// відхиляє — повторити запит, як це робить request(), там нікому.
+// Тридцять секунд запасу: рівно стільки може зайняти саме зʼєднання.
+export async function ensureToken() {
+  const claims = token && (() => {
+    try { return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); }
+    catch { return null; }
+  })();
+  if (token && (!claims?.exp || claims.exp > Date.now() / 1000 + 30)) return token;
+  try {
+    await refresh();
+  } catch {
+    return null;
+  }
+  return token;
+}
+
 export class ApiError extends Error {
   constructor(status, body) {
     super(body?.error || `HTTP ${status}`);

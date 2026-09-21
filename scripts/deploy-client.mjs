@@ -35,7 +35,16 @@ if (!existsSync(envFile)) fail("немає client/.env.production — нізві
 const apiUrl = (readFileSync(envFile, "utf8").match(/^VITE_API=(.+)$/m) ?? [])[1]?.trim();
 if (!apiUrl) fail("у client/.env.production немає VITE_API");
 if (!/^https:\/\//.test(apiUrl)) fail(`VITE_API має бути https, а не «${apiUrl}»`);
+
+// Те саме про ws, і з тієї ж причини. Без VITE_WS клієнт мовчки бере
+// ws://<хост>:3002 — порт, якого в проді не існує; застосунок при цьому
+// виглядає робочим і просто ніколи не отримує подій.
+const wsUrl = (readFileSync(envFile, "utf8").match(/^VITE_WS=(.+)$/m) ?? [])[1]?.trim();
+if (!wsUrl) fail("у client/.env.production немає VITE_WS");
+if (!/^wss:\/\//.test(wsUrl)) fail(`VITE_WS має бути wss, а не «${wsUrl}»`);
+
 console.log(`api для збірки: ${apiUrl}`);
+console.log(`ws для збірки:  ${wsUrl}`);
 
 // 2. Збірка.
 console.log("\n→ vite build");
