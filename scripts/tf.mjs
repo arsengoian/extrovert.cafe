@@ -51,7 +51,12 @@ if (args[0] === "ssh") {
   // Шлях до ключа в лапках: у теці проекту є пробіл, і без них ssh бачить
   // два аргументи замість одного.
   const key = path.join(ROOT, "keys", "extrovert_ed25519");
-  const cmd = [`ssh -i "${key}" -p 2222 root@${host}`, ...args.slice(1)].join(" ");
+  // Віддалена команда їде одним аргументом у лапках: локальна оболонка
+  // лапки вже зняла, і без цього крапка з комою чи пайп дістаються не
+  // серверу, а половині команди.
+  const remote = args.slice(1).join(" ");
+  const quoted = remote ? ` "${remote.replaceAll(String.fromCharCode(34), String.fromCharCode(92, 34))}"` : "";
+  const cmd = `ssh -i "${key}" -p 2222 root@${host}${quoted}`;
   const ssh = spawnSync(cmd, { stdio: "inherit", shell: true });
   process.exit(ssh.status ?? 1);
 }
