@@ -51,11 +51,15 @@ export default async function routes(app) {
 
     // Список напоїв у питанні «яку каву п'єш» береться з каталога, а не
     // дублюється в JSON: інакше нові напої довелося б вписувати двічі.
-    const drinks = await many("select system_code, name from drinks where active order by sort_order");
+    const drinks = await many("select system_code, name, sprite from drinks where active order by sort_order");
+    // Для сітки напоїв (кадр «Розкажи про себе · крок 3») потрібна ще й
+    // картинка — тож окрім назв віддаємо спрайти поруч.
     const steps = quiz.profile.steps.map((step) => ({
       ...step,
       questions: step.questions.map((q) =>
-        q.source === "drinks" ? { ...q, options: drinks.map((d) => d.name) } : q
+        q.source === "drinks"
+          ? { ...q, options: drinks.map((d) => d.name), sprites: Object.fromEntries(drinks.map((d) => [d.name, d.sprite])) }
+          : q
       ),
     }));
 

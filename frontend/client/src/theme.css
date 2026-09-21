@@ -474,3 +474,69 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--grad); color: var(--accent-ink); font-size: 10.5px; font-weight: 800; white-space: nowrap;
 }
 .lead { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); text-wrap: pretty }
+
+/* ── анкети й опитування ───────────────────────────────────────────────
+   Кадри «Розкажи про себе · крок 1–6» і «Опитування про напій». Нижнього
+   меню тут немає: це закінчений потік, з якого виходять лише «назад». */
+.quiz { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-height: 100% }
+.quiz-progress { display: flex; align-items: center; gap: 10px }
+.quiz-progress > b { font-size: 12px; font-weight: 700; color: var(--muted) }
+.quiz-q { font-size: 20px; font-weight: 900; line-height: 1.2; text-wrap: pretty }
+.field { display: flex; flex-direction: column; gap: 8px }
+
+/* Один варіант — великий рядок із кружечком. */
+.opts { display: flex; flex-direction: column; gap: 10px }
+.opt {
+  width: 100%; height: 50px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel);
+  display: flex; align-items: center; padding: 0 14px; gap: 10px; font-size: 15px; text-align: left;
+}
+.opt > i { flex: none; width: 20px; height: 20px; border-radius: var(--radius-pill); border: 1.5px solid var(--line) }
+.opt[aria-pressed="true"] { border-color: var(--accent); font-weight: 700 }
+.opt[aria-pressed="true"] > i { border: 0; background: var(--grad) }
+
+/* Сегмент (рівні кнопки в ряд) і чипи (кілька варіантів, переносяться). */
+.segs { display: flex; gap: 8px }
+.chips { display: flex; flex-wrap: wrap; gap: 8px }
+.segs button, .chips button {
+  height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--line); color: var(--muted);
+  font-size: 13px; display: flex; align-items: center; justify-content: center;
+}
+.segs button { flex: 1 }
+.chips button { padding: 0 14px; white-space: nowrap }
+.segs button[aria-pressed="true"], .chips button[aria-pressed="true"] {
+  background: var(--grad); color: var(--accent-ink); font-weight: 800; border-color: transparent;
+}
+
+.textarea {
+  width: 100%; min-height: 60px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel);
+  padding: 11px 13px; font: inherit; font-size: 13.5px; color: var(--ink); resize: vertical;
+}
+.textarea::placeholder { color: var(--muted) }
+
+.quiz-foot { margin-top: auto; display: flex; align-items: center; gap: 12px }
+.quiz-foot > span { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--muted) }
+.quiz-foot > span img { width: 20px; height: 21px }
+.cta {
+  flex: none; min-width: 132px; height: 50px; padding: 0 22px; border-radius: var(--radius);
+  background: var(--grad); color: var(--accent-ink); font-size: 15px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+/* Неактивна — не прозора, а сіра з рамкою: так у макеті видно, що кнопка
+   існує, просто ще не час. */
+.cta:disabled { background: var(--panel2); border: 1px solid var(--line); color: var(--muted) }
+
+/* Сітка напоїв (крок 3 анкети): чотири в ряд, картинка обрізана знизу
+   градієнтом-маскою — видно верх чашки, а не весь стакан. */
+.drink-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px }
+.drink-cell {
+  border-radius: 14px; border: 1px solid var(--line); background: var(--panel); padding: 8px 5px 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.drink-cell[aria-pressed="true"] { border-color: var(--accent) }
+.drink-cell > span {
+  position: relative; align-self: stretch; height: 54px; overflow: hidden;
+  mask-image: linear-gradient(#000 0%, #000 46%, transparent 100%);
+}
+.drink-cell > span img { position: absolute; left: 50%; top: 0; width: 76px; height: 76px; margin-left: -38px; object-fit: contain }
+.drink-cell > b { font-size: 9.5px; font-weight: 600; line-height: 1.1; text-align: center; color: var(--muted) }
+.drink-cell[aria-pressed="true"] > b { font-weight: 800; color: var(--ink) }

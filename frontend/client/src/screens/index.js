@@ -58,8 +58,8 @@ export const SCREENS = {
   nicknameChange: { component: NicknameChange, presentation: "sheet" },
 
   problem: { component: Problem, title: "Що не працює?" },
-  quizProfile: { component: QuizProfile, title: "Розкажи про себе" },
-  quizDrink: { component: QuizDrink, title: "Опитування про напій" },
+  quizProfile: { component: QuizProfile, title: "Розкажи про себе", hideNav: true },
+  quizDrink: { component: QuizDrink, title: "Опитування про напій", hideNav: true },
   repost: { component: Repost, title: "Репост у соцмережі" },
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true },
   wardrobe: { component: Wardrobe, title: "Гардероб" },

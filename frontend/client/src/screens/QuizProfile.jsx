@@ -3,7 +3,7 @@
 // не реліз клієнта.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Choice, Segment, TextField } from "../ui/Fields.jsx";
+import { Choice, DrinkGrid, Segment, TextField } from "../ui/Fields.jsx";
 
 // Чернетка анкети. Сервер приймає відповіді цілком і в кінці, тому «крок 3
 // з 6» існує лише на клієнті — а гаманець його показує (макет «Гаманець ·
@@ -80,43 +80,46 @@ export function QuizProfile({ ctx }) {
     }
   };
 
+  // Обов'язкове лише головне питання кроку (без підпису — його заголовок і є
+  // заголовком кроку); підпитання й текстові поля — за бажанням. Так у
+  // макеті: «Далі» сіра, доки не вибрано головне, а не кожну дрібницю.
+  const answered = current.questions.every((q) => {
+    if (q.title || q.type === "text") return true;
+    const v = answers[q.id];
+    return Array.isArray(v) ? v.length > 0 : Boolean(v);
+  });
+
   return (
-    <div className="stage-pad">
-      <div className="row" style={{ gap: 10, marginBottom: 14 }}>
-        <div style={{ flex: 1, height: 6, borderRadius: 999, background: "var(--panel2)", overflow: "hidden" }}>
-          <div style={{ width: `${((step + 1) / quiz.steps.length) * 100}%`, height: "100%", background: "var(--grad)" }} />
-        </div>
-        <div className="muted" style={{ fontSize: 12, fontWeight: 700 }}>{step + 1} / {quiz.steps.length}</div>
+    <div className="quiz">
+      <div className="quiz-progress">
+        <div className="progress"><div style={{ width: `${((step + 1) / quiz.steps.length) * 100}%` }} /></div>
+        <b>{step + 1} / {quiz.steps.length}</b>
       </div>
 
-      <div className="h1" style={{ fontSize: 20 }}>{current.title}</div>
-      {current.hint && <p className="muted" style={{ marginTop: 0 }}>{current.hint}</p>}
+      <div className="quiz-q">{current.title}</div>
+      {current.hint && <div className="muted" style={{ fontSize: 13 }}>{current.hint}</div>}
 
-      {current.questions.map((q) => (
-        <div key={q.id} className="panel">
-          {q.title && <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>{q.title}</div>}
-          {q.type === "single" && (
-            <Choice options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
-          )}
-          {q.type === "multi" && (
-            <Choice options={q.options} multi value={answers[q.id] ?? []} onChange={(v) => set(q.id, v)} />
-          )}
-          {q.type === "segment" && (
-            <Segment options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
-          )}
-          {q.type === "text" && (
-            <TextField value={answers[q.id] ?? ""} placeholder={q.placeholder} onChange={(v) => set(q.id, v)} />
-          )}
-        </div>
-      ))}
+      {current.questions.map((q) => {
+        const control =
+          q.type === "single" ? <Choice options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
+          : q.type === "multi" ? <Choice options={q.options} multi value={answers[q.id] ?? []} onChange={(v) => set(q.id, v)} />
+          : q.type === "segment" ? <Segment options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
+          : q.type === "drinks" ? <DrinkGrid options={q.options} sprites={q.sprites} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
+          : <TextField value={answers[q.id] ?? ""} placeholder={q.placeholder} onChange={(v) => set(q.id, v)} />;
+        // Питання без підпису — головне питання кроку (його заголовок уже
+        // вище), з підписом — підпитання з сірим заголовком-розділом.
+        return q.title
+          ? <div key={q.id} className="field"><div className="sectionTitle">{q.title}</div>{control}</div>
+          : <div key={q.id}>{control}</div>;
+      })}
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <div className="row-between" style={{ marginTop: 14 }}>
-        <span className="price muted" style={{ fontSize: 13 }}>
-          <img src="/assets/ui/coin_silver.png" alt="" />+{quiz.reward} за опитування
+      <div className="quiz-foot">
+        <span>
+          <img src="/assets/ui/coin_silver.png" alt="срібні монети" />+{quiz.reward} за опитування
         </span>
-        <button className="btn btn-primary" style={{ width: "auto", padding: "0 28px" }} disabled={busy} onClick={next}>
+        <button className="cta" disabled={busy || !answered} onClick={next}>
           {last ? (busy ? "Зберігаємо…" : "Завершити") : "Далі"}
         </button>
       </div>
