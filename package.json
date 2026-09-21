@@ -14,7 +14,7 @@
     "redirect"
   ],
   "scripts": {
-    "up": "docker compose --profile local up -d",
+    "up": "docker compose --profile local up -d postgres redis minio minio-buckets",
     "down": "docker compose --profile local down",
     "logs": "docker compose logs -f --tail=100",
     "docs:map": "bun scripts/build-data-map.mjs",

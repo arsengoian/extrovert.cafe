@@ -1,7 +1,47 @@
 # Бекенд самокав'ярень. Фронтенди тут не крутяться — вони на Cloudflare Workers.
+
+# ── Спільне для всіх контейнерів ────────────────────────────────────────
+# Якір YAML, а не `extends`: `extends` мовчки не переносить depends_on, і
+# половина сенсу спільного блоку зникає непомітно. Сервіс підмішує його
+# рядком `<<: *defaults`; будь-який власний ключ перебиває спільний.
+x-defaults: &defaults
+  restart: unless-stopped
+
+  # Логи без стелі — найтихіший спосіб забити диск: docker пише json-file,
+  # поки є місце, і сам його не чистить. 10 МБ × 3 файли = не більше 30 МБ
+  # на сервіс, і остання година журналу завжди на місці. На дроплеті це
+  # різниця між «місце скінчилось у суботу» і «не скінчиться взагалі».
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+  # PID 1 у контейнері має ховати зомбі й передавати сигнали далі — інакше
+  # `docker compose stop` чекає 10 с і вбиває процес, замість зупинити його.
+  init: true
+
+  # Процес усередині не має здобувати прав більше, ніж дали на старті.
+  security_opt: ["no-new-privileges:true"]
+
+  # Запобіжник від форк-бомби й від витоку процесів: 512 вистачає з запасом
+  # навіть постгресу, де кожне зʼєднання — окремий процес.
+  pids_limit: 512
+
+# Наші сервіси на bun: той самий образ і той самий .env.
+# mem_limit тут — запобіжник, а не бюджет: сервіс на bun живе в 100–150 МБ,
+# і 512 ловить витік памʼяті до того, як OOM-кілер забере разом із ним базу.
+x-bun: &bun
+  <<: *defaults
+  env_file: [.env]
+  mem_limit: 512m
+
 services:
   postgres:
+    <<: *defaults
     image: postgres:16-alpine
+    # Єдиний сервіс, який справді росте під навантаженням, — тому стеля вища.
+    mem_limit: 768m
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-extrovert}
       POSTGRES_USER: ${POSTGRES_USER:-extrovert}
@@ -18,8 +58,10 @@ services:
       retries: 5
 
   redis:
+    <<: *defaults
     image: redis:7-alpine
     command: redis-server --appendonly yes
+    mem_limit: 256m
     volumes: [redisdata:/data]
     ports: ["6389:6379"]   # той самий мотив, що й у постгреса вище
     healthcheck:
@@ -29,8 +71,10 @@ services:
 
   # Одноразова робота, не сервіс: накотити схему й вийти.
   migrate:
+    <<: *defaults
     build: ./db
     env_file: [.env]
+    mem_limit: 256m
     # Тека міграцій ще й монтується поверх тієї, що в образі: інакше кожен
     # новий файл вимагав би --build, а `compose run migrate up` мовчки
     # застосовував би стару копію. Заодно dbmate кладе schema.sql на хост,
@@ -41,52 +85,101 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     command: ["--no-dump-schema", "up"]
+    # Перебиває restart зі спільного блоку: робота, що завершилась, не має
+    # запускатись знову.
     restart: "no"
 
   api:
+    <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: api } }
-    env_file: [.env]
     environment: { PORT: 3001 }
     ports: ["3001:3001"]
     depends_on:
       migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
-    restart: unless-stopped
 
   ws:
+    <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: ws } }
-    env_file: [.env]
     environment: { PORT: 3002 }
     ports: ["3002:3002"]
     depends_on:
       redis: { condition: service_healthy }
-    restart: unless-stopped
 
   checkbox:
+    <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: checkbox } }
-    env_file: [.env]
     environment: { PORT: 3003 }
     ports: ["3003:3003"]
     depends_on:
       migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
-    restart: unless-stopped
+
+  # Фонові роботи за розкладом: публікатор outbox, покази маркету, довідник
+  # і трекінг Нової Пошти (docs/services.md §2).
+  scheduler:
+    <<: *bun
+    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: scheduler } }
+    depends_on:
+      migrate:  { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  overseer:
+    <<: *bun
+    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: overseer } }
+    depends_on:
+      migrate:  { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+
+  # Збір помилок з усіх сервісів. Свій, щоб не платити за Sentry.
+  glitchtip:
+    <<: *defaults
+    image: glitchtip/glitchtip:latest
+    env_file: [.env]
+    # Django з gunicorn — найважчий сусід на цьому дроплеті.
+    mem_limit: 768m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+      PORT: 8000
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  glitchtip-worker:
+    <<: *defaults
+    image: glitchtip/glitchtip:latest
+    command: ./bin/run-celery-with-beat.sh
+    env_file: [.env]
+    mem_limit: 512m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+    depends_on: [glitchtip]
+
+
+
+  # ── Тільки для локальної розробки ─────────────────────────────────────
+  # Нижче — те, чого на сервері немає взагалі. Обидва сервіси під профілем
+  # `local`: без `--profile local` (його додає `make up`) docker compose їх
+  # навіть не бачить, тому на дроплеті вони не піднімуться й випадково.
 
   # Локальний S3 замість R2. Сенс не в економії, а в тому, щоб на машині
   # розробника не лежали ключі, якими можна записати в прод: тут інший
   # endpoint, інші ключі й бакети з суфіксом -dev (lib/src/r2.js).
   # Порти нестандартні (9100/9101) — 9000 часто зайнятий іншим стеком.
   minio:
-    # Профіль local: на дроплеті `docker compose up -d` цього сервісу навіть
-    # не бачить — там справжній R2, і локальний S3 поруч був би зайвим
-    # способом переплутати оточення.
+    <<: *defaults
     profiles: ["local"]
     # Образ із quay.io: на Docker Hub MinIO більше не публікує. Тег точний,
     # як і всюди в цьому файлі, — «latest» на двох машинах означає різне.
     image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9101"
+    mem_limit: 512m
     environment:
       MINIO_ROOT_USER: ${R2_DEV_ACCESS_KEY_ID:-extrovert-local}
       MINIO_ROOT_PASSWORD: ${R2_DEV_SECRET_ACCESS_KEY:-extrovert-local-secret}
@@ -97,11 +190,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
-    restart: unless-stopped
 
   # Разовий контейнер: створює дев-бакети, щоб заливка не падала на
   # «NoSuchBucket» під час першого ж запуску.
   minio-buckets:
+    <<: *defaults
     profiles: ["local"]
     image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
     depends_on:
@@ -115,49 +208,6 @@ services:
       mc anonymous set download local/extrovert-pos-dev
       "
     restart: "no"
-
-  # Фонові роботи за розкладом: публікатор outbox, покази маркету, довідник
-  # і трекінг Нової Пошти (docs/services.md §2).
-  scheduler:
-    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: scheduler } }
-    env_file: [.env]
-    depends_on:
-      migrate:  { condition: service_completed_successfully }
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-    restart: unless-stopped
-
-  overseer:
-    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: overseer } }
-    env_file: [.env]
-    depends_on:
-      migrate:  { condition: service_completed_successfully }
-      postgres: { condition: service_healthy }
-    restart: unless-stopped
-
-  # Збір помилок з усіх сервісів. Свій, щоб не платити за Sentry.
-  glitchtip:
-    image: glitchtip/glitchtip:latest
-    env_file: [.env]
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
-      PORT: 8000
-    ports: ["8000:8000"]
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-    restart: unless-stopped
-
-  glitchtip-worker:
-    image: glitchtip/glitchtip:latest
-    command: ./bin/run-celery-with-beat.sh
-    env_file: [.env]
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
-    depends_on: [glitchtip]
-    restart: unless-stopped
 
 volumes:
   minio:

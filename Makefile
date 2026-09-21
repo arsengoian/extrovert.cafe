@@ -53,8 +53,11 @@ help:
 	@echo   make ssh-public    зайти на публічний дроплет
 	@echo ---------------------------------------------------------------
 
+# Лише інфраструктура: сервіси локально крутяться через bun (make api, ws…),
+# а не в докері. `docker compose --profile local up -d` без списку підніме
+# ще й їх — і другий api вчепиться в той самий 3001.
 up:
-	docker compose --profile local up -d
+	docker compose --profile local up -d postgres redis minio minio-buckets
 
 down:
 	docker compose --profile local down
