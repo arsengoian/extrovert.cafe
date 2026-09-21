@@ -10,7 +10,7 @@
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public
+        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -51,6 +51,10 @@ help:
 	@echo   make tf-apply      застосувати: дроплет, файрвол, проект
 	@echo   make tf-output     адреси й готова команда ssh
 	@echo   make ssh-public    зайти на публічний дроплет
+	@echo ---------------------------------------------------------------
+	@echo   make act-secrets   зібрати .secrets для act з локального .env
+	@echo   make act-build     прогнати збірку образів локально через act
+	@echo   make act-deploy    прогнати весь деплой локально через act
 	@echo ---------------------------------------------------------------
 
 # Лише інфраструктура: сервіси локально крутяться через bun (make api, ws…),
@@ -160,3 +164,17 @@ tf-output:
 # Порт 2222, бо з частини мереж вихідний 22 закритий (docs/deploy.md §2.1).
 ssh-public:
 	bun scripts/tf.mjs ssh
+
+## ── той самий деплой, тільки локально (act) ─────────────────────────────
+
+act-secrets:
+	bun scripts/act-secrets.mjs
+
+# Збірка без пуша: act сам виставляє ACT=true, і workflow це враховує.
+act-build:
+	act -j build --secret-file .secrets
+
+# Справжнє викочування на живий сервер з цієї машини. Образи мають бути в
+# реєстрі, тобто спершу або пуш у main, або act-build із GHCR_TOKEN.
+act-deploy:
+	act -j deploy --secret-file .secrets

@@ -1,0 +1,148 @@
+# Збірка образів і викочування на дроплет.
+#
+# Той самий файл виконується локально через act (`make act-build`,
+# `make act-deploy`) — тому тут немає нічого, що працює лише на раннері
+# GitHub: жодних кроків з оточенням раннера, а замість `GITHUB_TOKEN`
+# береться `GHCR_TOKEN`, коли він є. Під act крок збірки не пушить образи
+# (`env.ACT` виставляє сам act) — локально це перевірка того, що Dockerfile
+# живий, а не спосіб залити щось у реєстр.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: arsengoian
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      # Один образ, що впав, не має скасовувати решту: зручніше побачити
+      # відразу всі поламані, ніж вертатись по одному.
+      fail-fast: false
+      matrix:
+        include:
+          - { svc: api,       context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: ws,        context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: checkbox,  context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: scheduler, context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: overseer,  context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: admin,     context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: migrate,   context: "./db",         file: "db/Dockerfile" }
+          - { svc: caddy,     context: "./docker/caddy", file: "docker/caddy/Dockerfile" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Вхід у ghcr
+        if: ${{ env.ACT != 'true' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Зібрати ${{ matrix.svc }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          build-args: SVC=${{ matrix.svc }}
+          # Тег — саме sha комміта: «latest» не дає відповісти на питання
+          # «що зараз крутиться» і робить відкат неможливим.
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:latest
+          push: ${{ env.ACT != 'true' }}
+          cache-from: ${{ env.ACT == 'true' && '' || format('type=gha,scope={0}', matrix.svc) }}
+          cache-to: ${{ env.ACT == 'true' && '' || format('type=gha,mode=max,scope={0}', matrix.svc) }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ключ до сервера
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+      - name: Оновити compose на сервері
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          PORT: ${{ secrets.SERVER_PORT || '2222' }}
+          USER_: ${{ secrets.SERVER_USER || 'root' }}
+        run: |
+          SSH="ssh -i ~/.ssh/id_deploy -p $PORT -o StrictHostKeyChecking=accept-new"
+          $SSH "$USER_@$HOST" 'mkdir -p /opt/extrovert'
+          # Compose-файл — єдине, що їде на сервер із репозиторію: це опис
+          # оточення, а не код. Симлінк, щоб на місці працювало просто
+          # `docker compose ps` без -f.
+          scp -i ~/.ssh/id_deploy -P "$PORT" -o StrictHostKeyChecking=accept-new \
+            docker-compose.prod.yml "$USER_@$HOST:/opt/extrovert/docker-compose.prod.yml"
+          $SSH "$USER_@$HOST" 'ln -sfn /opt/extrovert/docker-compose.prod.yml /opt/extrovert/docker-compose.yml'
+
+      - name: Дати серверу доступ до реєстру
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          PORT: ${{ secrets.SERVER_PORT || '2222' }}
+          USER_: ${{ secrets.SERVER_USER || 'root' }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          # Перевірка всередині кроку, а не в `if`: контекст secrets в умовах
+          # кроку недоступний — умова просто ніколи б не справдилась.
+          if [ -z "$GHCR_TOKEN" ]; then
+            echo "GHCR_TOKEN не заданий — вважаємо, що сервер уже залогінений"
+            exit 0
+          fi
+          # Образи приватні: у них наш код, тому публічними вони не будуть.
+          # Логін лишається в /root/.docker/config.json, щоб і ручний
+          # `docker compose pull` на сервері працював.
+          printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/id_deploy -p "$PORT" \
+            -o StrictHostKeyChecking=accept-new "$USER_@$HOST" \
+            "docker login ghcr.io -u $ACTOR --password-stdin"
+
+      - name: Викотити
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          PORT: ${{ secrets.SERVER_PORT || '2222' }}
+          USER_: ${{ secrets.SERVER_USER || 'root' }}
+        run: |
+          # Скрипт їде через stdin і на сервері не лишається: на дроплеті має
+          # бути docker-compose.yml, .env і томи — більше нічого.
+          ssh -i ~/.ssh/id_deploy -p "$PORT" -o StrictHostKeyChecking=accept-new \
+            "$USER_@$HOST" 'bash -s' -- "${{ github.sha }}" < docker/rollout.sh
+
+  # Реєстр не безрозмірний: у безкоштовному тарифі приватні пакети мають
+  # 500 МБ на все (docs/deploy.md §2.3). Шари базового образу між версіями
+  # спільні, але старі версії однаково варто прибирати — інакше одного дня
+  # пуш просто перестане проходити.
+  cleanup:
+    needs: deploy
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        svc: [api, ws, checkbox, scheduler, overseer, admin, migrate, caddy]
+    steps:
+      - name: Лишити п'ять останніх версій ${{ matrix.svc }}
+        if: ${{ env.ACT != 'true' }}
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: extrovert-${{ matrix.svc }}
+          package-type: container
+          min-versions-to-keep: 5

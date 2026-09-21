@@ -15,3 +15,7 @@ pos-native/bin/
 pos-native/.render-tmp/
 # pos-native: приватний ключ деплою, не для гіту
 pos-native/.deploy/
+
+# Секрети для act: приватний ключ від сервера й токен реєстру.
+# Робиться з локального .env командою `make act-secrets`.
+.secrets
