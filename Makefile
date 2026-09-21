@@ -10,7 +10,7 @@
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \n        prices-push release-push
+        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \n        release-push
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -46,7 +46,6 @@ help:
 	@echo   make admin               адмінка локально на :5174
 	@echo   make deploy-admin-dry    зібрати адмінку й перевірити, не викочуючи
 	@echo   make deploy-admin        викотити адмінку на Cloudflare Workers
-	@echo   make prices-push         залити меню точок у публічний бакет R2
 	@echo   make release-push        залити реліз кіоска в публічний бакет R2
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
@@ -159,13 +158,9 @@ deploy-admin-dry:
 deploy-admin:
 	bun run --filter @extrovert/admin deploy
 
-# З кореня, а не з pos/: секрети мають лежати в одному .env, інакше ключі
-# від R2 з часом розходяться між двома файлами.
-prices-push:
-	bun pos/scripts/push-prices.mjs
-
+# Звичайний шлях релізу — CI; руками це лише для випадку «треба повз нього».
 release-push:
-	bun pos/scripts/push-release.mjs
+	bun scripts/push-release.mjs
 
 keys-jwt:
 	bun scripts/keys.mjs jwt

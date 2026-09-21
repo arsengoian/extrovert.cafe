@@ -49,20 +49,131 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
+      # Хеш саме тих тек, з яких збирається цей образ. Комміт зачіпає один
+      # сервіс, а перезбирати всі сім — це і хвилини CI, і мегабайти в
+      # реєстрі, де в безкоштовному тарифі 500 МБ на все (docs/deploy.md §2.3).
+      - name: Хеш джерел
+        id: src
+        run: |
+          case "${{ matrix.svc }}" in
+            migrate) paths="db";;
+            caddy)   paths="docker/caddy";;
+            # Сервіс залежить ще й від спільної бібліотеки, Dockerfile-а та
+            # lock-файла: зміна будь-чого з них міняє образ.
+            *)       paths="backend/${{ matrix.svc }} backend/lib docker/bun.Dockerfile package.json bun.lock";;
+          esac
+          hash=$(for p in $paths; do git rev-parse "HEAD:$p"; done | sha256sum | cut -c1-16)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "джерела $paths → src-$hash"
+
+      - name: Чи такий образ уже є
+        id: have
+        if: ${{ env.ACT != 'true' }}
+        run: |
+          image=${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}
+          if docker manifest inspect "$image:src-${{ steps.src.outputs.hash }}" >/dev/null 2>&1; then
+            echo "exists=1" >> "$GITHUB_OUTPUT"
+            echo "образ із таким хешем уже в реєстрі — збірка не потрібна"
+          else
+            echo "exists=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Нічого не змінилось: замість збірки й заливки просто вішаємо на вже
+      # залитий образ теги цього комміта. imagetools робить це на боці
+      # реєстру — шари нікуди не їдуть.
+      - name: Перетегувати наявний образ
+        if: ${{ steps.have.outputs.exists == '1' }}
+        run: |
+          image=${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}
+          docker buildx imagetools create \
+            -t "$image:${{ github.sha }}" -t "$image:latest" \
+            "$image:src-${{ steps.src.outputs.hash }}"
+
       - name: Зібрати ${{ matrix.svc }}
+        if: ${{ steps.have.outputs.exists != '1' }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           build-args: SVC=${{ matrix.svc }}
           # Тег — саме sha комміта: «latest» не дає відповісти на питання
-          # «що зараз крутиться» і робить відкат неможливим.
+          # «що зараз крутиться» і робить відкат неможливим. Тег src-<хеш>
+          # поруч — щоб наступний прогін побачив, що збирати нема чого.
           tags: |
             ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:src-${{ steps.src.outputs.hash }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:latest
           push: ${{ env.ACT != 'true' }}
           cache-from: ${{ env.ACT == 'true' && '' || format('type=gha,scope={0}', matrix.svc) }}
           cache-to: ${{ env.ACT == 'true' && '' || format('type=gha,mode=max,scope={0}', matrix.svc) }}
+
+  # Реліз кіоска. Окремо від образів: він їде не на дроплет, а в публічний
+  # бакет, звідки його щочверть години перевіряє апдейтер на точці
+  # (docs/raspberry-pi.md §3). Збірка під armv6 через QEMU повільна, тому
+  # запускається лише тоді, коли код кіоска справді змінився.
+  kiosk-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Хеш джерел кіоска
+        id: src
+        run: |
+          hash=$(git rev-parse HEAD:raspberry/kiosk HEAD:raspberry/pi/stack | sha256sum | cut -c1-16)
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      # Джерело правди про те, що вже викочено, — сам маніфест у бакеті, а
+      # не пам'ять CI: точка бере реліз звідти, і звіряти треба з тим, що
+      # бачить вона.
+      - name: Що зараз у бакеті
+        id: published
+        run: |
+          url=${{ vars.RELEASES_URL || 'https://pos.extrovert.cafe/releases/pi' }}/manifest.json
+          source=$(curl -fsS --max-time 20 "$url" | sed -n 's/.*"source"[^"]*"\([^"]*\)".*/\1/p' || true)
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          if [ "$source" = "${{ steps.src.outputs.hash }}" ]; then
+            echo "релізу не потрібно: у бакеті вже src-$source"
+          else
+            echo "у бакеті «${source:-нічого}», у комміті ${{ steps.src.outputs.hash }} — збираємо"
+          fi
+
+      - name: QEMU для armv6
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
+        uses: docker/setup-qemu-action@v3
+
+      - name: Зібрати ARM-бінарник
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
+        run: |
+          # Той самий Raspbian Stretch, що на пристрої: бінарник, злінкований
+          # із новішою glibc, на точці просто не запуститься.
+          docker build --platform linux/arm/v6 -t kiosk-builder \
+            -f raspberry/kiosk/docker/pi.Dockerfile raspberry/kiosk
+          docker run --rm --platform linux/arm/v6 \
+            -v "$PWD/raspberry/kiosk":/work -w /work kiosk-builder make pi
+          file raspberry/kiosk/bin/pos-native-pi | grep -q ARM
+
+      - name: Зібрати архів релізу
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
+        env:
+          SOURCE_HASH: ${{ steps.src.outputs.hash }}
+        run: ./raspberry/pi/stack/make-release.sh
+
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
+        with:
+          bun-version: 1.4.2
+
+      - name: Залити реліз у R2
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash && env.ACT != 'true' }}
+        env:
+          # Бакет релізів — прод: APP_ENV нижче вимикає підстановку суфікса
+          # -dev у lib/r2.js. Ключі лише тут, у CI: на точку вони не
+          # потрапляють ніколи, а бакет для неї публічний на читання.
+          APP_ENV: production
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: bun scripts/push-release.mjs
 
   deploy:
     needs: build

@@ -79,9 +79,10 @@ static bool surface_has_ink(cairo_surface_t *s, const char *what) {
 static void build_fixture(menu_t *m) {
     memset(m, 0, sizeof(*m));
     m->valid = true;
-    m->refresh_sec = 60;
-    snprintf(m->brand_name, MENU_STR, "EXTROVERT");
-    snprintf(m->brand_suffix, MENU_STR, ".CAFE");
+    m->refresh_sec = MENU_REFRESH_SEC;
+    snprintf(m->brand_name, MENU_STR, "%s", BRAND_NAME);
+    snprintf(m->brand_suffix, MENU_STR, "%s", BRAND_SUFFIX);
+    menu_fill_cups(m);
 
     struct { const char *name, *vol, *sprite, *cup; int price, bonus; } fx[] = {
         { "Еспресо",              "30 мл",  "espresso",   "S", 35,  0  },

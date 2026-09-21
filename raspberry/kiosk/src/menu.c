@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "config.h"   /* бренд, період опитування — тепер константи збірки */
 #include <curl/curl.h>
 #include <cJSON.h>       /* вендорено в third_party/cjson/ — див. Makefile */
 #include <stdlib.h>
@@ -70,6 +71,26 @@ static void parse_drink(cJSON *item, drink_t *d) {
         d->bonus_coins = j->valueint;
 }
 
+/* Лінійка стаканів. Вона фізична: S — паперовий із органайзера (його
+ * ставлять рукою), M і L — із роздавача автомата. Заміри, ескізи й чому
+ * саме так — docs/display-hardware.md; кіоску з усього цього потрібні лише
+ * підпис бейджа й те, звідки стакан брати.
+ *
+ * Тут, а не в меню: стакани не змінювались жодного разу й не залежать від
+ * точки, а нова лінійка — це однаково новий реліз кіоска (інші розміри
+ * малюються інакше), не рядок у JSON. */
+static const cup_tier_t CUPS[] = {
+    { "S", "S", true  },
+    { "M", "M", false },
+    { "L", "L", false },
+};
+
+void menu_fill_cups(menu_t *m) {
+    m->cup_count = 0;
+    for (size_t i = 0; i < sizeof(CUPS) / sizeof(CUPS[0]) && m->cup_count < MENU_MAX_CUPS; i++)
+        m->cups[m->cup_count++] = CUPS[i];
+}
+
 const cup_tier_t *menu_find_cup(const menu_t *m, const char *key) {
     if (!key) return NULL;
     for (int i = 0; i < m->cup_count; i++)
@@ -119,16 +140,17 @@ bool menu_poll(const char *url, menu_t *out) {
     }
 
     menu_t next = {0};
-    cJSON *brand = cJSON_GetObjectItemCaseSensitive(root, "brand");
-    if (brand) {
-        cJSON *j;
-        if ((j = cJSON_GetObjectItemCaseSensitive(brand, "name")) && cJSON_IsString(j))
-            snprintf(next.brand_name, MENU_STR, "%s", j->valuestring);
-        if ((j = cJSON_GetObjectItemCaseSensitive(brand, "suffix")) && cJSON_IsString(j))
-            snprintf(next.brand_suffix, MENU_STR, "%s", j->valuestring);
-    }
-    cJSON *rs = cJSON_GetObjectItemCaseSensitive(root, "refreshSec");
-    next.refresh_sec = (rs && cJSON_IsNumber(rs)) ? rs->valueint : 60;
+
+    /* Бренд, розміри стаканів і період опитування більше не приходять у
+     * меню (21.09.2026). Вони не змінюються від точки до точки й не
+     * змінювались жодного разу відтоді, як зʼявились, — а кожне зайве поле
+     * в menu.json це ще одне місце, де прод і кіоск можуть розійтись.
+     * Тепер це константи збірки (config.h), а по мережі їде тільки те, що
+     * справді міняють: напої й акція. */
+    snprintf(next.brand_name, MENU_STR, "%s", BRAND_NAME);
+    snprintf(next.brand_suffix, MENU_STR, "%s", BRAND_SUFFIX);
+    next.refresh_sec = MENU_REFRESH_SEC;
+    menu_fill_cups(&next);
 
     cJSON *drinks = cJSON_GetObjectItemCaseSensitive(root, "drinks");
     if (drinks && cJSON_IsArray(drinks)) {
@@ -139,24 +161,6 @@ bool menu_poll(const char *url, menu_t *out) {
         }
     }
 
-    /* d.cups — обʼєкт {"S":{...},"M":{...}}, не масив, тож ітеруємо ключі */
-    cJSON *cups = cJSON_GetObjectItemCaseSensitive(root, "cups");
-    if (cups) {
-        cJSON *tier;
-        cJSON_ArrayForEach(tier, cups) {
-            if (next.cup_count >= MENU_MAX_CUPS) break;
-            cup_tier_t *t = &next.cups[next.cup_count];
-            snprintf(t->key, sizeof(t->key), "%s", tier->string ? tier->string : "");
-            cJSON *j;
-            if ((j = cJSON_GetObjectItemCaseSensitive(tier, "short")) && cJSON_IsString(j))
-                snprintf(t->short_label, sizeof(t->short_label), "%s", j->valuestring);
-            else
-                snprintf(t->short_label, sizeof(t->short_label), "%s", t->key);
-            if ((j = cJSON_GetObjectItemCaseSensitive(tier, "where")) && cJSON_IsString(j))
-                t->organizer = strcmp(j->valuestring, "organizer") == 0;
-            next.cup_count++;
-        }
-    }
 
     cJSON *j;
     cJSON *ad = cJSON_GetObjectItemCaseSensitive(root, "ad");

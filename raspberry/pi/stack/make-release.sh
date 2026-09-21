@@ -11,7 +11,7 @@
 #
 # На виході в dist/:
 #   <реліз>.tar.gz   — те, що качає апдейтер
-#   manifest.json    — те, що він читає першим (release/url/sha256/size)
+#   manifest.json    — те, що він читає першим (release/url/sha256/size/source)
 #
 # Далі обидва файли кладуться в R2 під releases/pi/ (маніфест — ОСТАННІМ,
 # інакше точка спробує скачати архів, якого ще немає).
@@ -19,9 +19,16 @@
 set -eu
 SRC=$(cd "$(dirname "$0")/.." && pwd)          # pi/
 PROJECT=$(cd "$SRC/.." && pwd)                 # code/
-NATIVE="$PROJECT/pos-native"
+NATIVE="$PROJECT/raspberry/kiosk"
 DIST="${DIST:-$PROJECT/dist}"
 BASE_URL="${BASE_URL:-https://pos.extrovert.cafe/releases/pi}"
+# Хеш джерел релізу. CI кладе його в маніфест і звіряє з опублікованим:
+# якщо код кіоска не змінився, збирати й заливати нема чого (workflow
+# deploy.yml, робота kiosk-release). Локально рахується так само.
+SOURCE="${SOURCE_HASH:-}"
+if [ -z "$SOURCE" ]; then
+    SOURCE=$( { git -C "$PROJECT" rev-parse HEAD:raspberry/kiosk HEAD:raspberry/pi/stack 2>/dev/null || echo nogit; } | sha256sum | cut -c1-16 )
+fi
 
 REL="${1:-}"
 if [ -z "$REL" ]; then
@@ -76,7 +83,8 @@ cat > "$DIST/manifest.json" <<EOF
   "release": "$REL",
   "url": "$BASE_URL/$REL.tar.gz",
   "sha256": "$SUM",
-  "size": $SIZE
+  "size": $SIZE,
+  "source": "$SOURCE"
 }
 EOF
 
@@ -84,6 +92,8 @@ echo "готово:"
 echo "  $TAR  ($(( SIZE / 1024 )) КБ)"
 echo "  $DIST/manifest.json"
 echo
-# Ключі до R2 лежать у pos/.env і на точку не потрапляють ніколи: пристрій
-# стоїть у публічному коридорі, а бакет публічний лише на читання.
-echo "далі: bun run --filter @extrovert/pos release:push    (архів, потім маніфест)"
+# Ключі до R2 лежать у кореневому .env (у CI — у секретах) і на точку не
+# потрапляють ніколи: пристрій стоїть у публічному коридорі, а бакет
+# публічний лише на читання.
+echo "далі: bun scripts/push-release.mjs    (архів, потім маніфест)"
+echo "      звичайний шлях — GitHub Actions; руками це лише повз CI"

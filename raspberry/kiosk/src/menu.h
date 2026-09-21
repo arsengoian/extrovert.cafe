@@ -70,6 +70,10 @@ typedef struct {
     bool valid;
 } menu_t;
 
+/* Заповнює лінійку стаканів константами збірки (menu.c). Викликається
+ * при кожному розборі меню й у selftest — щоб бейджі були й без мережі. */
+void menu_fill_cups(menu_t *m);
+
 /* Пошук тарифу стакана за ключем із drink_t.cup — dispenser/organizer +
  * короткий підпис для бейджа. NULL, якщо в меню такого ключа нема. */
 const cup_tier_t *menu_find_cup(const menu_t *m, const char *key);

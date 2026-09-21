@@ -1,9 +1,0 @@
-{
-  "name": "@extrovert/pos",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Меню точки: оформлення й заливка в R2 (напої — у таблиці drinks)",
-  "dependencies": {
-    "@extrovert/lib": "workspace:*"
-  }
-}

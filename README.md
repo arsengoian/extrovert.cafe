@@ -17,7 +17,6 @@ frontend/    статика на Cloudflare Workers — жодного свог�
 raspberry/   усе, що живе на точці
   kiosk/       прод-кіоск: нативний рендерер меню (C, Cairo, GLES2) для Pi 1
   pi/          керований стек з автооновленням, заміри, системні скрипти
-pos/         оформлення меню й заливка меню (з таблиці drinks) і релізів у R2
 db/          міграції (dbmate) і сіди контенту
 docs/        документація; реєстр — docs/README.md, уся разом — docs/data-map.html
 scripts/     локальні інструменти: сіди, ключі, база знань, деплой, доки
@@ -59,7 +58,7 @@ make seed                 # дев-гравець, кавенятко, чек, �
 ```bash
 raspberry/kiosk/docker/build.sh       # один раз: образ із тулчейном
 raspberry/kiosk/docker/make.sh        # нативний кіоск для ПК; на малині — make pi
-make prices-push                      # меню точки в публічний бакет R2 (з таблиці drinks)
+# меню котить scheduler за командою з адмінки (POST /admin/menu/deployments)
 ```
 
 Як реліз кіоска потрапляє на точку — `docs/raspberry-pi.md`.

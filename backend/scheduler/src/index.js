@@ -14,6 +14,7 @@ import { every, withLock } from "@extrovert/lib/jobs.js";
 import { publishOutbox } from "./jobs/outbox.js";
 import { flushImpressions } from "./jobs/impressions.js";
 import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
+import { deployMenus } from "./jobs/menu.js";
 
 const log = makeLog("scheduler");
 const redis = redisClient();
@@ -26,6 +27,9 @@ const HOUR = 60 * MINUTE;
 const JOBS = [
   { name: "outbox", every: 500, ttl: 5_000, run: () => publishOutbox({ pool, redis, log }) },
   { name: "market-impressions", every: MINUTE, ttl: 55_000, run: () => flushImpressions({ pool, redis, log }) },
+  // Десять секунд: людина натиснула «викотити меню» й чекає, поки цифри
+  // на екрані зміняться. Запит дешевий — один select у порожню чергу.
+  { name: "menu-deploy", every: 10_000, ttl: 60_000, run: () => deployMenus({ pool, log }) },
   { name: "np-tracking", every: HOUR, ttl: 50 * MINUTE, run: () => trackShipments({ pool, log }) },
   { name: "np-directory", every: 6 * HOUR, ttl: 3 * HOUR, run: () => syncDirectory({ pool, log }) },
 ];
