@@ -193,14 +193,12 @@ void bonus_init(bonus_state_t *b, double now, const char *assets_dir) {
     b->panel_has_rows = false;
 }
 
-bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
-                         char out_drink_name[64], int *out_coins) {
-    if (now < b->next_emulated_at) return false;
-    b->next_emulated_at = now + BONUS_EMULATE_PERIOD_S;
-
+/* Новий рядок у панелі. NULL означає «панель повна» — так поводиться і
+ * справжній WS: подія прийшла, місця немає, показати нема де. */
+static bonus_row_t *take_row(bonus_state_t *b, double now, const char *who) {
     if (b->count >= BONUS_MAX_VISIBLE) {
-        fprintf(stderr, "bonus: емуляція пропущена — панель повна (%d/%d)\n", b->count, BONUS_MAX_VISIBLE);
-        return false;
+        fprintf(stderr, "bonus: %s пропущено — панель повна (%d/%d)\n", who, b->count, BONUS_MAX_VISIBLE);
+        return NULL;
     }
 
     /* Слот b->rows[b->count] тут завжди або нуль-ований (bonus_init), або
@@ -212,6 +210,59 @@ bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
     bonus_row_t *row = &b->rows[b->count];
     memset(row, 0, sizeof(*row));
     row->last_baked_sec = -1;
+    row->created_at = now;
+
+    time_t t = time(NULL);
+    struct tm lt;
+    localtime_r(&t, &lt);
+    snprintf(row->earned_at, sizeof(row->earned_at), "%02d:%02d", lt.tm_hour, lt.tm_min);
+    return row;
+}
+
+/* Подія bonus_ready із ws (ws.c). Назву й картинку беремо зі свого ж меню за
+ * system_code — тоді в рядку те саме, що на картці поруч; назва з події
+ * потрібна лише коли напою в меню немає (його щойно прибрали, а чек уже
+ * пробито). */
+bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
+                     const char *code, const char *name, int coins,
+                     const char *claim_token,
+                     char out_drink_name[64], int *out_coins) {
+    bonus_row_t *row = take_row(b, now, "подію");
+    if (!row) return false;
+
+    const drink_t *found = NULL;
+    if (code && code[0]) {
+        for (int i = 0; i < menu->drink_count; i++) {
+            if (strcmp(menu->drinks[i].system_code, code) == 0) { found = &menu->drinks[i]; break; }
+        }
+    }
+    if (found) {
+        snprintf(row->drink_name, sizeof(row->drink_name), "%s", found->name);
+        snprintf(row->sprite, sizeof(row->sprite), "%s", found->sprite);
+    } else {
+        snprintf(row->drink_name, sizeof(row->drink_name), "%s", (name && name[0]) ? name : "Кавенятко");
+    }
+    row->coins = coins;
+
+    /* Той самий шлях, що розбирає застосунок (client/src/main.jsx): /b/<токен>
+     * відкриває екран бонусу вже залогіненому гравцю. */
+    snprintf(row->qr_payload, sizeof(row->qr_payload), "https://extrovert.cafe/b/%s",
+             (claim_token && claim_token[0]) ? claim_token : "");
+
+    b->count++;
+    snprintf(out_drink_name, 64, "%s", row->drink_name);
+    *out_coins = row->coins;
+    fprintf(stderr, "bonus: подія — %s, %d монет\n", row->drink_name, row->coins);
+    return true;
+}
+
+bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
+                         char out_drink_name[64], int *out_coins) {
+    if (now < b->next_emulated_at) return false;
+    b->next_emulated_at = now + BONUS_EMULATE_PERIOD_S;
+
+    bonus_row_t *row = take_row(b, now, "емуляцію");
+    if (!row) return false;
 
     if (menu->drink_count > 0) {
         int idx = rand() % menu->drink_count;
@@ -222,16 +273,9 @@ bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
         snprintf(row->drink_name, sizeof(row->drink_name), "Кавенятко");
     }
     row->coins = 1 + rand() % 5;
-    row->created_at = now;
 
-    time_t t = time(NULL);
-    struct tm lt;
-    localtime_r(&t, &lt);
-    snprintf(row->earned_at, sizeof(row->earned_at), "%02d:%02d", lt.tm_hour, lt.tm_min);
-
-    /* Плейсхолдер-payload, поки нема реального протоколу/бекенда —
-     * див. bonus.h: контракт назовні (bonus_update/bonus_draw) не
-     * зміниться, коли зʼявиться справжній claim-URL з WS. */
+    /* Емуляція живе далі лише як запасний варіант без токена (main.c), тож
+     * payload тут так і лишається вигаданим. */
     snprintf(row->qr_payload, sizeof(row->qr_payload), "https://extrovert.cafe/b/%08x", (unsigned)rand());
 
     b->count++;

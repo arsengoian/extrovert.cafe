@@ -19,6 +19,7 @@
 CC ?= gcc
 SRC_COMMON = src/main.c src/menu.c src/render.c src/gl.c src/telemetry.c \
              src/svgtpl.c src/qr.c src/bonus.c src/update.c src/selftest.c \
+             src/ws.c \
              third_party/cjson/cJSON.c third_party/qrcodegen/qrcodegen.c
 CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
                 -Ithird_party/cjson -Ithird_party/qrcodegen -pthread
@@ -36,13 +37,20 @@ CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
 PKGS_BASE = cairo pangocairo librsvg-2.0 libcurl libpng fontconfig
 PKGS_DESKTOP = $(PKGS_BASE) glesv2 egl
 
+# Куди кіоск іде за подіями (ws.c). Адреса прошита в збірку, а не взята з
+# оточення, навмисно: десктопна ціль — це тести на машині розробника, де
+# прод чіпати не треба, а на малині навпаки — жодного локального ws немає
+# і бути не може. Змінна WS_URL однаково перебиває, коли треба інше.
+WS_URL_DESKTOP = ws://127.0.0.1:3002/
+WS_URL_PI = wss://ws.extrovert.cafe/
+
 .PHONY: desktop pi clean
 
 desktop: bin/pos-native-desktop
 
 bin/pos-native-desktop: $(SRC_COMMON) src/platform_desktop.c
 	@mkdir -p bin
-	$(CC) $(CFLAGS_COMMON) $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
+	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_DESKTOP)"' $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
 		$(SRC_COMMON) src/platform_desktop.c \
 		-o $@ \
 		$(shell pkg-config --libs $(PKGS_DESKTOP)) -lm
@@ -55,7 +63,7 @@ pi: bin/pos-native-pi
 
 bin/pos-native-pi: $(SRC_COMMON) src/platform_dispmanx.c
 	@mkdir -p bin
-	$(CC) $(CFLAGS_COMMON) $(shell pkg-config --cflags $(PKGS_BASE)) \
+	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_PI)"' $(shell pkg-config --cflags $(PKGS_BASE)) \
 		-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads \
 		-I/opt/vc/include/interface/vmcs_host/linux \
 		$(SRC_COMMON) src/platform_dispmanx.c \

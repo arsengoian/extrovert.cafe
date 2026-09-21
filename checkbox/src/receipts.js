@@ -59,6 +59,10 @@ export async function ingest(receipt, { source, log }) {
 
     const goods = receipt.goods ?? [];
     let coins = 0;
+    // Напій, який поїде на екран кіоска в рядку бонусу. Беремо той, що
+    // дав монети (перший платний із каталогу) — саме його людина щойно
+    // купила й упізнає на панелі.
+    let shown = null;
     for (const line of goods) {
       const g = line.good ?? line;
       const code = g.code ?? g.system_code ?? "";
@@ -69,7 +73,10 @@ export async function ingest(receipt, { source, log }) {
       );
       // Бонус-напій монет не дає: він сам і є бонусом (economy §7.1).
       const isBonus = Number(g.price ?? 0) === 0 || (drink[0]?.coins ?? 0) === 0;
-      if (drink.length && !isBonus) coins += Math.round(drink[0].coins * qty);
+      if (drink.length && !isBonus) {
+        coins += Math.round(drink[0].coins * qty);
+        shown ??= { code, name: g.name ?? code };
+      }
 
       await client.query(
         `insert into receipt_items (receipt_id, system_code, name, qty, price_uah, sum_uah, is_bonus_drink)
@@ -89,8 +96,12 @@ export async function ingest(receipt, { source, log }) {
 
     // Подія для кіоска — у тій самій транзакції (db-schema §0): інакше
     // можливий чек без QR на екрані.
+    // code — щоб кіоск узяв назву й картинку зі свого ж меню (він його вже
+    // тримає), name — запасний варіант, коли напою в меню точки немає.
     await enqueue(client, `point:${pointId}`, "bonus_ready", {
       receipt_id: receiptId,
+      code: shown?.code ?? "",
+      drink: shown?.name ?? "",
       coins,
       claim_token: claim,
       expires_in_s: CLAIM_TTL_MINUTES * 60,

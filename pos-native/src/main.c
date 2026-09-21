@@ -19,6 +19,7 @@
 
 #include <fontconfig/fontconfig.h>
 #include <curl/curl.h>
+#include "ws.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,6 +162,39 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "main: старт, url=%s\n", url); fflush(stderr);
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    /* Події точки. Адреса за замовчуванням прошита збіркою: десктопна ціль
+     * дивиться в локальний ws, малинова — одразу в прод (Makefile,
+     * WS_DEFAULT_URL). Без WS_TOKEN справжнього каналу немає, і кіоск
+     * лишається на емуляції — так само, як було до появи ws.c. */
+    const char *ws_url = getenv("WS_URL");
+    if (!ws_url || !ws_url[0]) ws_url = WS_DEFAULT_URL;
+    /* Токен: або прямо в оточенні, або файлом. На точці це файл —
+     * config/point.key поза релізом, щоб ключ можна було замінити, не
+     * перевикочуючи кіоск, і щоб він не поїхав у публічний архів релізу
+     * (docs/raspberry-pi.md §2). */
+    char token_buf[2048] = {0};
+    const char *ws_token = getenv("WS_TOKEN");
+    const char *token_file = getenv("WS_TOKEN_FILE");
+    if ((!ws_token || !ws_token[0]) && token_file && token_file[0]) {
+        FILE *tf = fopen(token_file, "r");
+        if (tf) {
+            if (fgets(token_buf, sizeof(token_buf), tf)) {
+                token_buf[strcspn(token_buf, "\r\n")] = '\0';
+                ws_token = token_buf;
+            }
+            fclose(tf);
+        } else {
+            fprintf(stderr, "main: WS_TOKEN_FILE %s не читається\n", token_file);
+        }
+    }
+
+    ws_client_t *ws = NULL;
+    if (ws_token && ws_token[0]) {
+        ws = ws_start(ws_url, ws_token);
+    } else {
+        fprintf(stderr, "main: WS_TOKEN не заданий — бонуси емулюються (bun scripts/point-token.mjs <point>)\n");
+    }
     fprintf(stderr, "main: curl_global_init ok, вантажу шрифти...\n"); fflush(stderr);
     load_fonts(assets_dir);
     fprintf(stderr, "main: шрифти ok, platform_init...\n"); fflush(stderr);
@@ -291,7 +325,28 @@ int main(int argc, char **argv) {
          * попап — це вже bonus_update() нижче, не залежить від popup_state. */
         char bonus_drink[64] = {0};
         int bonus_coins = 0;
-        bool bonus_arrived = bonus_tick_emulate(&bonus, sim_t, &menu, bonus_drink, &bonus_coins);
+        bool bonus_arrived = false;
+
+        if (ws) {
+            /* Події зі свого потоку забираємо без блокувань і без мережі —
+             * кадр не має чекати на роутер (ws.h). */
+            ws_event_t events[8];
+            int n = ws_drain(ws, events, 8);
+            for (int i = 0; i < n; i++) {
+                char name[64] = {0};
+                int coins = 0;
+                if (bonus_add_event(&bonus, sim_t, &menu, events[i].code, events[i].drink,
+                                    events[i].coins, events[i].claim_token, name, &coins)) {
+                    /* Попап показуємо для останньої події пачки: якщо їх
+                     * прийшло кілька підряд, миготіти трьома нема сенсу. */
+                    snprintf(bonus_drink, sizeof(bonus_drink), "%s", name);
+                    bonus_coins = coins;
+                    bonus_arrived = true;
+                }
+            }
+        } else {
+            bonus_arrived = bonus_tick_emulate(&bonus, sim_t, &menu, bonus_drink, &bonus_coins);
+        }
         bonus_update(&bonus, sim_t, assets_dir);
 
         if (bonus_arrived && popup_state == POPUP_HIDDEN) {
@@ -384,6 +439,7 @@ int main(int argc, char **argv) {
     /* stop під мʼютексом не обовʼязковий (sig_atomic_t), але pthread_join
      * тут може чекати до CURLOPT_TIMEOUT (15с, menu.c) — потік перевіряє
      * stop лише між сплячками по 100мс, не посеред curl_easy_perform(). */
+    if (ws) ws_stop(ws);
     poller.stop = 1;
     pthread_join(poll_thread, NULL);
     pthread_mutex_destroy(&poller.mu);

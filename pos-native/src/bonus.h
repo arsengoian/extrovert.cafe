@@ -64,6 +64,14 @@ void bonus_init(bonus_state_t *b, double now, const char *assets_dir);
 bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
                          char out_drink_name[64], int *out_coins);
 
+/* Подія bonus_ready із ws (ws.c): справжній бонус за справжній чек.
+ * Назву й картинку бере з меню за system_code, а name використовує лише
+ * як запасний варіант. true — рядок зʼявився (панель могла бути повна). */
+bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
+                     const char *code, const char *name, int coins,
+                     const char *claim_token,
+                     char out_drink_name[64], int *out_coins);
+
 /* Прибирає прострочені рядки (remain<=0), допікає/оновлює текстури.
  * Викликати раз на кадр ДО bonus_draw(). */
 void bonus_update(bonus_state_t *b, double now, const char *assets_dir);

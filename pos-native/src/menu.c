@@ -64,6 +64,8 @@ static void parse_drink(cJSON *item, drink_t *d) {
         d->foam = cJSON_IsTrue(j);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "sprite")) && cJSON_IsString(j))
         snprintf(d->sprite, sizeof(d->sprite), "%s", j->valuestring);
+    if ((j = cJSON_GetObjectItemCaseSensitive(item, "system_code")) && cJSON_IsString(j))
+        snprintf(d->system_code, sizeof(d->system_code), "%s", j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "bonus_coins")) && cJSON_IsNumber(j))
         d->bonus_coins = j->valueint;
 }
