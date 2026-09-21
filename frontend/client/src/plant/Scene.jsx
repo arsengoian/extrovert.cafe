@@ -12,6 +12,9 @@ const isBranch = (g) => /branch/i.test(g || "");
 const isFruit = (g) => /^fruit_/.test(g || "");
 const isFace = (g) => /^face_setA/.test(g || "");
 const isGroundShadow = (g) => g === "ground_shadow";
+// Погойдування (bush_graphics_customization §10.16): листя, гілки й крона
+// з обличчям — кожне своїм ритмом; саму анімацію вмикає data-idle сцени.
+const swayOf = (g) => (isLeaf(g) ? "leaf" : isBranch(g) ? "branch" : isFace(g) || /body_stage/.test(g || "") ? "crown" : undefined);
 
 const filterCss = (cfg) => {
   if (!cfg) return "";
@@ -19,7 +22,7 @@ const filterCss = (cfg) => {
   return sat === 100 && bri === 100 ? "" : `saturate(${sat}%) brightness(${bri / 100})`;
 };
 
-export function Scene({ instances, layout, mood = "healthy", camera, style, children }) {
+export function Scene({ instances, layout, mood = "healthy", camera, idle, style, children }) {
   const filters = layout?.colorFilters ?? {};
   const shadow = { ...DEFAULT_SHADOW, ...(layout?.shadow ?? {}) };
   const faceShadow = { ...DEFAULT_FACE_SHADOW, ...(layout?.faceShadow ?? {}) };
@@ -32,6 +35,7 @@ export function Scene({ instances, layout, mood = "healthy", camera, style, chil
 
   return (
     <div
+      data-idle={idle || undefined}
       style={{
         position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H,
         transformOrigin: "0 0",
@@ -73,6 +77,7 @@ export function Scene({ instances, layout, mood = "healthy", camera, style, chil
             key={`l${n}`}
             src={`/assets/sprites/${inst.group}/${inst.sprite}`}
             alt=""
+            data-sway={swayOf(inst.group)}
             style={{
               position: "absolute", left: inst.x, top: inst.y, width: w, height: "auto",
               transform: `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,

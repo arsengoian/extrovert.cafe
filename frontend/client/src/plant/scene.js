@@ -179,11 +179,16 @@ const CLOTHING = {
 // їх разом зі сценою, на стадії 1 капелюх повисне над головою: тіло там
 // іншого розміру й ще й зсунуте вгору по стовбуру. Тому кожну річ кладемо
 // ВІДНОСНО тіла — так вона сидить на будь-якій стадії.
-export function wornInstances(layout, worn, body) {
+// Сумна й зів'яла голова намальована на 47 px (з 1024) нижчою — капелюх
+// сідає нижче на стільки ж, інакше висітиме над макітрою.
+const HEAD_SHRINK_NATIVE_PX = 47, BODY_SPRITE_NATIVE_SIZE = 1024;
+
+export function wornInstances(layout, worn, body, mood = "healthy") {
   if (!worn?.length || !body) return [];
   const matureBody = layout.instances.find((i) => i.group === "body_stage1_sphere");
   if (!matureBody) return [];
   const k = body.scale / matureBody.scale;
+  const headShift = mood === "healthy" ? 0 : HEAD_SHRINK_NATIVE_PX * (W0 * matureBody.scale) / BODY_SPRITE_NATIVE_SIZE;
 
   const out = [];
   for (const item of worn) {
@@ -194,7 +199,7 @@ export function wornInstances(layout, worn, body) {
       out.push({
         ...inst,
         x: body.x + (inst.x - matureBody.x) * k,
-        y: body.y + (inst.y - matureBody.y) * k,
+        y: body.y + (inst.y + (group === "clothing_cowboy_head" ? headShift : 0) - matureBody.y) * k,
         scale: inst.scale * k,
       });
     }
@@ -206,6 +211,6 @@ export function buildScene({ layout, appearance, stage, mood = "healthy", worn, 
   if (!layout) return [];
   const base = baseInstances(layout, stage, mood);
   const body = base.find((i) => /^body_stage1/.test(i.group));
-  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body), ...extra]
+  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body, mood), ...extra]
     .sort((a, b) => a.z - b.z);
 }

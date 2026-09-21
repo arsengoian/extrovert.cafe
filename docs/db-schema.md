@@ -524,6 +524,7 @@ erDiagram
         int lifetime_beans_gifted
         uuid worn_set_id FK
         bigint listing_id FK "заморожене на маркеті"
+        timestamptz chat_seen_at "останнє відкриття чату: після нього — непрочитані"
         jsonb appearance "листя/гілки/плоди + чернетка посадки - див. §0"
         timestamptz created_at
     }

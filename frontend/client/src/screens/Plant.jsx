@@ -1,64 +1,231 @@
-// Головний екран: небо, кавенятко, хмаринка з бажанням і поличка з
-// препаратами (design: «{{ g.label }}», вкладка plant).
+// Головний екран кавенятка — кадри «0 · Паросток» … «10 · Зів'яле»: небо,
+// кущ, хмаринка з бажанням, репліка, поличка з препаратами, ім'я зверху й
+// три дії знизу. Геометрія — з макета: сцена 1000×1300 у масштабі 0.26,
+// поличка й хмаринка на тих самих місцях.
 //
 // Чого кущ хоче — каже сервер (plant.growth): таблиця переходів живе в
 // economy.json, і другої її копії тут бути не має.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import { PlantView } from "../plant/PlantView.jsx";
-import { Sheet } from "../ui/Sheet.jsx";
+import { usePlantAssets } from "../plant/assets.js";
+import { buildScene } from "../plant/scene.js";
+import { Scene } from "../plant/Scene.jsx";
 
-const SHELF = [
-  { kind: "water", key: "water_liters", title: "Лійка", unit: "л", full: "/assets/ui/bucket.png", empty: "/assets/ui/bucket_empty.png" },
-  { kind: "fertilizer", key: "fertilizer_kg", title: "Добриво", unit: "кг", full: "/assets/ui/mineral.png", empty: "/assets/ui/mineral_empty.png" },
-  { kind: "insecticide", key: "insecticide_bottles", title: "Інсектицид", unit: "шт", full: "/assets/ui/insecticide.png", empty: "/assets/ui/insecticide_empty.png" },
-  { kind: "compost", key: "compost_kg", title: "Компост", unit: "кг", full: "/assets/ui/compost.png", empty: "/assets/ui/compost_empty.png" },
-];
+// Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
+const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
 
-const CARE = {
-  water: { label: "води", icon: "/assets/ui/want_water.png", key: "water_liters" },
-  compost: { label: "компост", icon: "/assets/ui/want_compost.png", key: "compost_kg" },
-  fertilizer: { label: "добриво", icon: "/assets/ui/mineral.png", key: "fertilizer_kg" },
-  insecticide: { label: "оприскування", icon: "/assets/ui/want_insecticide.png", key: "insecticide_bottles" },
+// Бажання в хмаринці: картинка, її місце всередині хмаринки й підпис.
+const WANT = {
+  water: { src: "want_water", at: [29, 17.5, 24, 33], title: "Хоче води" },
+  compost: { src: "want_compost", at: [19, 16, 44, 36], title: "Хоче компост" },
+  fertilizer: { src: "want_fertilizer", at: [26.5, 14, 29, 40], title: "Хоче добриво" },
+  insecticide: { src: "want_insecticide", at: [26.5, 12, 29, 44], title: "Хоче оприскування" },
+  outfit: { src: "want_outfit", at: [20, 12, 42, 44], title: "Хоче одяг" },
 };
+
+// Поличка: місце кожного препарату, картинка повна/порожня й кільце з запасом.
+const SHELF = [
+  { kind: "water", key: "water_liters", title: "Лійка", unit: "л", box: [34, 82, 61, 49], ring: [-19, 41], mirror: true,
+    full: ["bucket", 10, 1, 44, 49, "лійка"], empty: ["bucket_empty", 7, 1, 50, 49, "порожня лійка"] },
+  { kind: "fertilizer", key: "fertilizer_kg", title: "Добриво", unit: "кг", box: [39, 146, 41, 47], ring: [-25, 37],
+    full: ["mineral", 14, 0, 24, 47, "добриво"], empty: ["mineral_empty", 14, 0, 24, 47, "порожнє добриво"] },
+  { kind: "insecticide", key: "insecticide_bottles", title: "Інсектицид", unit: "шт", box: [39, 205, 39, 49], ring: [-25, 36],
+    full: ["insecticide", 14, 0, 22, 49, "інсектицид"], empty: ["insecticide_empty", 14, 0, 22, 49, "порожній інсектицид"] },
+  { kind: "compost", key: "compost_kg", title: "Компост", unit: "кг", box: [31, 260, 55, 43], ring: [-17, 32], crop: true,
+    full: ["compost", -1, -20, 38, 56, "компост"], empty: ["compost_empty", -1, -20, 39, 56, "порожній компост"] },
+];
 
 const PLANTING_TITLE = { leaves: "Посадка листя", branches: "Посадка гілок", buds: "Посадка бутонів" };
 
-// Репліка в хмаринці — за стадією, як у дизайні: кавенятко пояснює, навіщо
-// йому саме цей препарат, а не просто називає його.
+// Репліка — за стадією, як у макеті: кавенятко пояснює, навіщо йому саме
+// цей препарат, а не просто називає його.
 const WISH_LINE = [
   "Мене щойно посадили. Полий мене, будь ласка",
   "Дай компост – і піде листя",
   "Ще компосту – і вижену гілки",
   "Добриво – і будуть перші бутони",
   "Перший бутон є. Ще добрива – буде три",
-  "Три бутони. Цього разу випало добриво – буде п’ять",
-  "П’ять бутонів, і хтось гризе листя. Оприскай",
+  "Три бутони. Цього разу випало добриво – буде п'ять",
+  "П'ять бутонів, і хтось гризе листя. Оприскай",
   "Сім бутонів. Оприскай – і я зацвіту",
   "Я цвіту. Оприскай, щоб квіти стали бобами",
   "Боби зелені. Ще оприскування – і достигнуть",
   "Боби достигли. Тепер одягни мене!",
 ];
+const DRESSED_LINE = "Комплект на мені. Хочу ще один скін";
 const SAD_LINE = "Три дні без поливу. Полий мене, будь ласка";
 const WITHERED_LINE = "Мене не поливали тиждень. Води, будь ласка";
-// Текст лежить на світлій хмаринці, тому колір фіксований, а не з теми.
-const CLOUD_INK = "#3A2412";
+const EMPTY_LINE = "Поличка порожня. Купи хоч води – я хочу пити";
+// Бочка статична (bush_graphics_customization §10.15 #17): тап лише каже, навіщо вона.
+const BARREL_LINE = "Мої боби – мій скарб, але я охоче подарую їх в обмін на комплект одягу";
+
+const Lock = ({ size, title }) => (
+  <span className="plant-lock" title={title}>
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+    </svg>
+  </span>
+);
+
+function Shelf({ care, onApply }) {
+  return (
+    <div className="shelf">
+      <img className="shelf-board" src="/assets/ui/shelf.png" alt="Поличка з препаратами" />
+      {SHELF.map((s) => {
+        const n = care[s.key] ?? 0;
+        const [src, x, y, w, h, alt] = n > 0 ? s.full : s.empty;
+        const img = (
+          <img src={`/assets/ui/${src}.png`} alt={alt}
+               style={{ left: x, top: y, width: w, height: h, transform: s.mirror ? "scaleX(-1)" : undefined }} />
+        );
+        return (
+          <button key={s.key} className="shelf-item" title={s.title} onClick={() => onApply(s.kind)}
+                  style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
+            {s.crop ? <span className="shelf-crop">{img}</span> : img}
+            <span className="shelf-ring" data-empty={n <= 0 || undefined} style={{ left: s.ring[0], top: s.ring[1] }}>
+              <img src="/assets/ui/ring.png" alt="" />
+              <span><b>{n}</b><small>{s.unit}</small></span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Меню дій — кадр «Меню дій з кавенятком»: картка над кнопкою «…». Кавенятку
+// на маркеті меню не відкривається — замість нього картка «Зняти з продажу»,
+// тож тут рядок зняття завжди неактивний.
+function ActionMenu({ onGift, onSell, onScythe }) {
+  const row = (icon, title, sub, onClick, extra = {}) => (
+    <button className="menu-row" onClick={onClick} disabled={extra.off} data-danger={extra.danger || undefined}>
+      <span className="menu-ico">{icon}</span>
+      <span><b>{title}</b><small>{sub}</small></span>
+    </button>
+  );
+  return (
+    <div className="plant-menu">
+      {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8.5V21" /><path d="M4.5 12.5h15V21h-15z" /><path d="M4.5 8.5h15v4h-15z" /><path d="M12 8.5S9.2 8.5 8 7.3a2.4 2.4 0 1 1 4-2.6" /><path d="M12 8.5s2.8 0 4-1.2a2.4 2.4 0 1 0-4-2.6" /></svg>,
+        "Подарувати другу", "Переходить іншому гравцю з усім подарованим одягом", onGift)}
+      {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.4v9.2" /><path d="M14.6 9.6c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.9.8-2.9 2 0 2.8 5.9 1.6 5.9 4.2 0 1.2-1.3 2-3 2-1.3 0-2.4-.5-3-1.3" /></svg>,
+        "Продати на P2P маркеті", "Ціна в монетах або бобах, мінімум 10", onSell)}
+      {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19h14" /><path d="M7 19c0-4.4 2.6-7.6 6-9" /><path d="M13 10c-3.6 1.6-4.4 5-4.4 9" /><path d="M17.5 5.5 20 3" /></svg>,
+        "Зняти з продажу", "Кавенятко не виставлене", undefined, { off: true })}
+      {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M7 7v12.2A1.8 1.8 0 0 0 8.8 21h6.4a1.8 1.8 0 0 0 1.8-1.8V7" /></svg>,
+        "Скосити", "Ресурси не повертаються, подарований одяг зникає назавжди", onScythe, { danger: true })}
+    </div>
+  );
+}
+
+// Кадр «На продажу»: догляд і чат під замками, а знизу — чому й кнопка зняття.
+function SaleCard({ plant, onDone }) {
+  const [error, setError] = useState(null);
+  const unlist = async () => {
+    try { await api.del(`/market/listings/${plant.listing.id}`); onDone(); }
+    catch (e) { setError(e.body?.error ?? e.message); }
+  };
+  return (
+    <div className="sale-card">
+      <p>{error ?? "Поки кавенятко на маркеті, догляд і чат заблоковані, а настрій не показується. Якщо ти знімеш його з продажу і пройшло досить часу, може бути необхідно його полити."}</p>
+      <button onClick={unlist}>Зняти з продажу</button>
+    </div>
+  );
+}
+
+// «Попап · подарувати другу»: нікнейм друга з перевіркою й незворотність.
+function GiftSheet({ plant, onClose, onDone }) {
+  const [nickname, setNickname] = useState("");
+  const [found, setFound] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const name = nickname.trim();
+    if (name.length < 3) { setFound(null); return undefined; }
+    const timer = setTimeout(() => {
+      api.get(`/me/transfer/check?nickname=${encodeURIComponent(name)}`).then(setFound).catch(() => setFound(null));
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [nickname]);
+
+  const gift = async () => {
+    setError(null);
+    try {
+      await api.post(`/me/plants/${plant.id}/gift`, { nickname: nickname.trim() });
+      onDone();
+    } catch (e) {
+      const c = e.body?.error;
+      setError(c === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
+        : c === "no_such_user" ? "Такого нікнейма немає" : c === "self_gift" ? "Це ти сам" : c ?? e.message);
+    }
+  };
+
+  const ok = found?.found && !found.self;
+  return (
+    <div className="plant-sheet">
+      <b className="plant-sheet-title">Подарувати {plant.name || "кавенятко"}</b>
+      <p>Кавенятко переходить до іншого гравця разом з усіма подарованими комплектами. Скасувати подарунок неможливо.</p>
+      <div className="field" style={{ gap: 7 }}>
+        <div className="profile-label">Нікнейм друга</div>
+        <label className="nick-field gift" data-tone={found && !ok ? "bad" : "ok"}>
+          <input value={nickname} placeholder="нікнейм" spellCheck={false}
+                 onChange={(e) => setNickname(e.target.value.replace(/\s/g, "").slice(0, 24))} />
+          {ok && <span>знайдено</span>}
+          {found && !found.found && <span>немає</span>}
+          {found?.self && <span>це ти</span>}
+        </label>
+      </div>
+      {error && <p style={{ color: "var(--accent-text)" }}>{error}</p>}
+      <div className="confirm-btns r14">
+        <button onClick={onClose}>Скасувати</button>
+        <button disabled={!ok} onClick={gift}>Подарувати</button>
+      </div>
+    </div>
+  );
+}
+
+// «Попап · скосити»: червона картка, що втрачається, і що лишиться.
+function ScytheSheet({ plant, onClose, onDone }) {
+  const [error, setError] = useState(null);
+  const scythe = async () => {
+    try { const r = await api.post(`/me/plants/${plant.id}/scythe`); onDone(r.plant_id); }
+    catch (e) { setError(e.body?.error ?? e.message); }
+  };
+  return (
+    <div className="plant-sheet danger">
+      <div className="scythe-head">
+        <span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M7 7v12.2A1.8 1.8 0 0 0 8.8 21h6.4a1.8 1.8 0 0 0 1.8-1.8V7" /></svg></span>
+        <b className="plant-sheet-title">Ну що ти за звір?</b>
+      </div>
+      <p style={{ lineHeight: 1.5 }}>Використовуй цю опцію лише якщо кавенятко зовсім негарне вдалося і хочеш виростити нове. Ресурси, витрачені на кавенятко, та подаровані комплекти буде втрачено.</p>
+      <div className="scythe-keep"><img src="/assets/ui/sprout.png" alt="" /><b>Ти отримаєш лише: 1 саджанець</b></div>
+      {error && <p style={{ color: "var(--accent-text)" }}>{error}</p>}
+      <div className="scythe-btns">
+        <button onClick={onClose}>Я передумав</button>
+        <button onClick={scythe}>Скосити</button>
+      </div>
+    </div>
+  );
+}
 
 export function Plant({ ctx }) {
+  const assets = usePlantAssets();
   const [plants, setPlants] = useState(null);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState(null);
   const [note, setNote] = useState(null);
-  const [menu, setMenu] = useState(false);
+  const [popup, setPopup] = useState(null);           // menu | gift | scythe
+  const touch = useRef(null);
   const care = ctx.me?.care ?? {};
 
-  // Кавенят може бути скільки завгодно (gamification_ui §MVP), тому екран
-  // тримає список і показує те, що зараз у каруселі.
+  // Кавенят може бути скільки завгодно (gamification_ui §MVP): стрілка
+  // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
   const reload = () => api.get("/me/plants").then((r) => {
     setPlants(r.plants);
     setIndex((i) => Math.min(i, Math.max(0, r.plants.length - 1)));
+    return r.plants;
   });
   useEffect(() => { reload().catch((e) => setError(e.message)); }, []);
+  useEffect(() => { setNote(null); setPopup(null); }, [index]);
 
   const plant = plants?.[index] ?? null;
 
@@ -78,142 +245,161 @@ export function Plant({ ctx }) {
   }
 
   const growth = plant.growth ?? {};
-  const wish = CARE[growth.need] ?? null;
-  const line = plant.mood === "withered" ? WITHERED_LINE
-    : plant.mood === "sad" ? SAD_LINE
-    : WISH_LINE[plant.growth_stage] ?? "Хочу уваги";
-  const missing = wish ? (care[wish.key] ?? 0) <= 0 : false;
+  const onSale = plant.on_sale;
+  const dressed = Boolean(plant.worn_set_id);
+  const lock = onSale ? "Недоступно, поки кавенятко на продажу"
+    : plant.mood !== "healthy" ? "Недоступно, поки кавенятко сумне" : null;
+  const shelfEmpty = SHELF.every((s) => (care[s.key] ?? 0) <= 0);
+  // Чого хоче: сумному — води; дорослому — одягу; інакше — препарат переходу.
+  const need = plant.mood !== "healthy" ? "water" : growth.done || plant.growth_stage >= 10 ? "outfit" : growth.need;
+  // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
+  const want = !onSale && !shelfEmpty && !popup ? WANT[need] : null;
+  const line = note
+    ?? (plant.mood === "withered" ? WITHERED_LINE
+      : plant.mood === "sad" ? SAD_LINE
+      : shelfEmpty ? EMPTY_LINE
+      : plant.growth_stage >= 10 && dressed ? DRESSED_LINE
+      : WISH_LINE[plant.growth_stage] ?? "Хочу уваги");
 
   const openPlanting = () => {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
     // двадцять листків і лише на «Посадити» дізнається, що зарано.
-    if (growth.ready_at) { setNote("Одна стадія на добу – приходь завтра"); return; }
+    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
     ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка" });
   };
 
   // Один тап по банці = одне застосування. Сервер вирішує, чи це рухає
   // стадію, чи кущ просто попив, чи час відкривати екран посадки.
   const apply = async (kind) => {
-    if ((care[CARE[kind]?.key] ?? 0) <= 0) { ctx.openTab("shop"); return; }
+    if (onSale) { setNote("Поки я на маркеті, доглядати за мною не можна"); return; }
+    const item = SHELF.find((s) => s.kind === kind);
+    if ((care[item?.key] ?? 0) <= 0) { ctx.openTab("shop"); return; }
     if (growth.planting && kind === growth.need) { openPlanting(); return; }
     setNote(null);
     try {
       const r = await api.post(`/me/plants/${plant.id}/care`, { kind });
       await ctx.refreshMe();
       await reload();
-      if (r.grown) setNote(`Кавенятко підросло: стадія ${r.stage}`);
-      else if (r.progress) setNote(`Полито ${r.progress} з ${r.applications}`);
+      if (r.grown) setNote(`Я підріс! Тепер стадія ${r.stage}`);
+      else if (r.progress) setNote(`Дякую! Ще ${r.applications - r.progress} – і підросту`);
     } catch (e) {
       const code = e.body?.error;
       if (code === "needs_planting") openPlanting();
-      else if (code === "wrong_care") setNote(`Зараз кавенятко хоче ${CARE[e.body.need]?.label ?? e.body.need}`);
+      else if (code === "wrong_care") setNote(WANT[e.body.need] ? `${WANT[e.body.need].title.replace("Хоче", "Хочу")}, а не це` : "Мені зараз потрібне інше");
       else if (code === "too_soon") setNote("Одна стадія на добу – приходь завтра");
       else if (code === "no_supply") ctx.openTab("shop");
-      else if (code === "fully_grown") setNote("Кавенятко вже доросле");
+      else if (code === "fully_grown") setNote("Я вже дорослий – одягни мене");
       else setNote(e.message);
     }
   };
 
-  return (
-    <div style={{ position: "relative", minHeight: "100%", background: "linear-gradient(180deg, var(--sky1), var(--sky2))" }}>
-      {/* Карусель кавенят: стрілки зʼявляються лише коли є між чим ходити,
-          а праворуч від останнього – плюс на нове кавенятко. */}
-      <div className="row" style={{ padding: "8px 12px 0", gap: 8 }}>
-        <button className="icon-btn" aria-label="Попереднє кавенятко" disabled={index === 0}
-                style={{ opacity: plants.length > 1 ? 1 : 0, pointerEvents: plants.length > 1 ? "auto" : "none" }}
-                onClick={() => setIndex((i) => Math.max(0, i - 1))}>‹</button>
-        <div style={{ flex: 1, textAlign: "center", minWidth: 0 }}>
-          <button style={{ fontSize: 17, fontWeight: 800 }} onClick={() => setMenu(true)}>
-            {plant.name || "Без імені"}
-          </button>
-          <div className="muted" style={{ fontSize: 13 }}>
-            стадія {plant.growth_stage} з 10 · {plant.on_sale ? "на маркеті"
-              : plant.mood === "healthy" ? "усе добре" : plant.mood === "sad" ? "хоче пити" : "зовсім засумував"}
-          </div>
-        </div>
-        <button className="icon-btn" aria-label={index < plants.length - 1 ? "Наступне кавенятко" : "Нове кавенятко"}
-                onClick={() => (index < plants.length - 1 ? setIndex(index + 1) : ctx.push("plantMarket"))}>
-          {index < plants.length - 1 ? "›" : "+"}
-        </button>
-      </div>
+  const wish = () => (need === "outfit" ? ctx.push("wardrobe", { plant }) : apply(need));
+  const [cx, cy] = CLOUD_AT[Math.min(10, plant.growth_stage)] ?? CLOUD_AT[10];
+  const instances = assets
+    ? buildScene({ layout: assets.layout, appearance: plant.appearance, stage: plant.growth_stage, mood: plant.mood, worn: plant.worn })
+      .filter((i) => i.group !== "platform")
+    : [];
 
-      {menu && (
-        <Sheet title={plant.name || "Кавенятко"} onClose={() => setMenu(false)}>
-          <div style={{ display: "grid", gap: 10 }}>
-            <button className="btn" onClick={() => { setMenu(false); ctx.push("plantName", { plant }); }}>
-              Змінити імʼя
+  const swipe = {
+    onTouchStart: (e) => { touch.current = e.touches[0].clientX; },
+    onTouchEnd: (e) => {
+      const dx = e.changedTouches[0].clientX - (touch.current ?? 0);
+      if (Math.abs(dx) > 60) setIndex((i) => Math.max(0, Math.min(plants.length - 1, i + (dx < 0 ? 1 : -1))));
+    },
+  };
+  const close = () => setPopup(null);
+
+  return (
+    <div className="plant-screen" {...swipe}>
+      <div className="plant-layer">
+        <div className="plant-area">
+          <img className="plant-platform" src="/assets/ui/platform.png" alt="" />
+          {want && (
+            <button className="wish" title={want.title} onClick={wish} style={{ left: cx, top: cy }}>
+              <img src="/assets/ui/cloud_p1.png" alt="" />
+              <img src="/assets/ui/cloud_p2.png" alt="" />
+              <img src="/assets/ui/cloud_p3.png" alt="" />
+              <span className="wish-icon">
+                <img src={`/assets/ui/${want.src}.png`} alt={want.title}
+                     style={{ left: want.at[0], top: want.at[1], width: want.at[2], height: want.at[3] }} />
+              </span>
             </button>
-            <button className="btn" onClick={() => { setMenu(false); ctx.push("wardrobe", { plant }); }}>Гардероб</button>
-            <button className="btn" onClick={() => { setMenu(false); ctx.push("chat", { plant }); }}>Поговорити</button>
-            {plant.on_sale ? (
-              <button className="btn" onClick={() => { setMenu(false); ctx.push("listings"); }}>Зняти з продажу</button>
-            ) : (
-              <button className="btn" onClick={() => { setMenu(false); ctx.push("sellPlant", { plant }); }}>
-                Продати кавенятко
+          )}
+          {!onSale && (
+            <button className="plant-bubble" onClick={() => !lock && ctx.push("chat", { plant })}>
+              <b>{plant.name || "Кавенятко"}</b>
+              {line}
+            </button>
+          )}
+          <div className="plant-scene">
+            {assets && <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />}
+          </div>
+          <Shelf care={care} onApply={apply} />
+          {plant.growth_stage >= 10 && (
+            <button className="plant-barrel" title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
+              <img src="/assets/ui/barrel.png" alt="" />
+            </button>
+          )}
+        </div>
+
+        <div className="plant-top">
+          <span className="plant-slot">
+            {index > 0 && (
+              <button className="plant-round" title="Попереднє кавенятко" onClick={() => setIndex(index - 1)}>
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 5.5 8 12l6.5 6.5" /></svg>
               </button>
             )}
-          </div>
-        </Sheet>
-      )}
-
-      {plant.draft && (
-        <button className="panel row" onClick={openPlanting}
-                style={{ margin: "8px 12px 0", gap: 10, borderColor: "var(--accent)" }}>
-          <img src="/assets/ui/compost.png" alt="" style={{ width: 20 }} />
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <div style={{ fontWeight: 800, fontSize: 14 }}>Незавершена посадка</div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              {plant.draft.count ? `${plant.draft.count} елементів у чернетці` : "чернетка збережена"}, препарат ще не списано
-            </div>
-          </div>
-          <span className="muted">›</span>
-        </button>
-      )}
-
-      {wish && (
-        <button
-          onClick={() => (missing ? ctx.openTab("shop") : apply(growth.need))}
-          style={{ position: "relative", display: "block", margin: "6px auto 0", width: 230 }}
-          title={`Кавенятку потрібен ${wish.label}`}
-        >
-          <img src="/assets/ui/cloud.png" alt="" style={{ width: "100%" }} />
-          <span style={{ position: "absolute", inset: "12% 14% 26%", display: "flex", alignItems: "center", gap: 8,
-                        color: CLOUD_INK, fontSize: 12, fontWeight: 700, lineHeight: 1.25, textAlign: "left" }}>
-            <img src={wish.icon} alt="" style={{ width: 24, flex: "none" }} />
-            <span>{line}</span>
           </span>
-        </button>
+          <b className="plant-name">{plant.name || "Без імені"}</b>
+          {index < plants.length - 1 ? (
+            <button className="plant-round" title="Наступне кавенятко" onClick={() => setIndex(index + 1)}>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 5.5 16 12l-6.5 6.5" /></svg>
+            </button>
+          ) : (
+            <button className="plant-add" title="Придбати кавенятко" onClick={() => ctx.push("plantMarket")}>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M12 6v12M6 12h12" /></svg>
+            </button>
+          )}
+        </div>
+
+        {onSale && plant.listing && (
+          <div className="plant-sale">
+            <span>
+              <img src={plant.listing.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />
+              На продажу · {new Intl.NumberFormat("uk-UA").format(plant.listing.price)}
+            </span>
+          </div>
+        )}
+
+        <div className="plant-actions">
+          <button className="plant-act" title="Гардероб" disabled={Boolean(lock)} onClick={() => ctx.push("wardrobe", { plant })}>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4.2a2.1 2.1 0 1 0 2.1 2.1c0 1.5-2.1 1.7-2.1 3" /><path d="M12 9.6 3.6 15c-.9.6-.5 2 .6 2h15.6c1.1 0 1.5-1.4.6-2L12 9.6Z" /></svg>
+            {lock && <Lock size={16} title={lock} />}
+          </button>
+          <button className="plant-chat" title="Чат з кавенятком" disabled={Boolean(lock)} onClick={() => ctx.push("chat", { plant })}>
+            {plant.chat_unread > 0 && <i>{plant.chat_unread}</i>}
+            <img src="/assets/ui/chat.png" alt="" />
+            {lock && <Lock size={18} title={lock} />}
+          </button>
+          <button className="plant-act" title="Дії з кавенятком" data-open={popup === "menu" || onSale || undefined}
+                  onClick={() => !onSale && setPopup(popup === "menu" ? null : "menu")}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5.5" cy="12" r="1.9" /><circle cx="12" cy="12" r="1.9" /><circle cx="18.5" cy="12" r="1.9" /></svg>
+          </button>
+        </div>
+      </div>
+
+      {onSale && plant.listing && <SaleCard plant={plant} onDone={reload} />}
+      {popup && <div className="plant-dim" onClick={close} />}
+      {popup === "menu" && (
+        <ActionMenu onGift={() => setPopup("gift")}
+                    onSell={() => { close(); ctx.push("sellPlant", { plant }); }}
+                    onScythe={() => setPopup("scythe")} />
       )}
-
-      <PlantView plant={plant} width={250} />
-
-      {note && <div className="panel muted" style={{ margin: "0 12px 10px", fontSize: 12.5, textAlign: "center" }}>{note}</div>}
-
-      <div style={{ position: "relative", margin: "0 12px 12px" }}>
-        <img src="/assets/ui/shelf.png" alt="Поличка з препаратами" style={{ width: "100%" }} />
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "space-around", paddingBottom: "12%" }}>
-          {SHELF.map((s) => {
-            const n = care[s.key] ?? 0;
-            const wanted = growth.need === s.kind;
-            return (
-              <button key={s.key} title={s.title} onClick={() => apply(s.kind)}
-                      style={{ position: "relative", width: "20%", filter: wanted ? "drop-shadow(0 0 10px rgba(254,129,11,.8))" : "none" }}>
-                <img src={n > 0 ? s.full : s.empty} alt={s.title} style={{ width: "100%" }} />
-                <span style={{ position: "absolute", right: -4, bottom: -4, minWidth: 30, padding: "2px 6px", borderRadius: 999, background: "var(--panel)", border: "1px solid var(--line)", fontSize: 11, fontWeight: 700 }}>
-                  {n} {s.unit}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="stage-pad" style={{ paddingTop: 0 }}>
-        <div className="grid2">
-          <button className="btn" onClick={() => ctx.push("wardrobe", { plant })}>Гардероб</button>
-          <button className="btn" onClick={() => ctx.push("chat", { plant })}>Поговорити</button>
-        </div>
-      </div>
+      {popup === "gift" && <GiftSheet plant={plant} onClose={close} onDone={() => { close(); reload(); }} />}
+      {popup === "scythe" && (
+        <ScytheSheet plant={plant} onClose={close}
+                     onDone={async (id) => { close(); const list = await reload(); const i = list.findIndex((p) => p.id === id); if (i >= 0) setIndex(i); ctx.push("plantName", { plant: list[i] }); }} />
+      )}
     </div>
   );
 }

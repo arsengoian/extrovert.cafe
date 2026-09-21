@@ -804,11 +804,19 @@ CREATE TABLE public.plants (
     appearance jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     stage_progress smallint DEFAULT 0 NOT NULL,
+    chat_seen_at timestamp with time zone,
     CONSTRAINT plants_cycle_phase_check CHECK ((cycle_phase = ANY (ARRAY['initial'::text, 'regrowth'::text]))),
     CONSTRAINT plants_growth_stage_check CHECK (((growth_stage >= 0) AND (growth_stage <= 10))),
     CONSTRAINT plants_lifetime_beans_gifted_check CHECK ((lifetime_beans_gifted >= 0)),
     CONSTRAINT plants_stage_progress_check CHECK ((stage_progress >= 0))
 );
+
+
+--
+-- Name: COLUMN plants.chat_seen_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.plants.chat_seen_at IS 'Останнє відкриття чату гравцем; репліки кавенятка й системи після нього — непрочитані';
 
 
 --
@@ -3145,4 +3153,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921100000'),
     ('20260921120000'),
     ('20260921130000'),
-    ('20260921140000');
+    ('20260921140000'),
+    ('20260921150000');

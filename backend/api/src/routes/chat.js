@@ -100,6 +100,8 @@ export default async function routes(app) {
       "select * from chat_messages where plant_id = $1 order by created_at desc limit $2",
       [plant.id, HISTORY_LIMIT]
     );
+    // Відкрив чат — побачив усе: лічильник на кнопці чату гасне.
+    await one("update plants set chat_seen_at = now() where id = $1 returning id", [plant.id]);
     const mood = moodOf(plant);
     return {
       plant: { id: plant.id, name: plant.name, growth_stage: plant.growth_stage, mood },

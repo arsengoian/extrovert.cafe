@@ -1119,3 +1119,96 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .nick-current b { font-weight: 800 }
 .confirm-btns.r14 button:last-child { flex: 1.4 }
 .delete-link { align-self: center; color: var(--muted); font-size: 12px }
+
+/* ── кавенятко ─────────────────────────────────────────────────────────
+   Кадри «0 · Паросток» … «10 · Зівʼяле»: небо, кущ у масштабі 0.26,
+   хмаринка з бажанням, репліка, поличка, імʼя зверху й три дії знизу. */
+.plant-screen { position: relative; height: 100%; overflow: hidden; isolation: isolate; background: radial-gradient(120% 80% at 50% 78%, var(--sky1) 0%, var(--sky2) 72%) }
+.plant-layer { position: absolute; inset: 0; z-index: 50 }
+.plant-area { position: absolute; left: 0; right: 0; bottom: 103px; height: 398px }
+.plant-platform { position: absolute; left: -28px; top: 268px; width: 444px; height: 219px; z-index: -1 }
+.plant-scene { position: absolute; left: 66px; top: 66px; width: 260px; height: 338px; z-index: 1; pointer-events: none }
+.wish { position: absolute; width: 82px; height: 82px; padding: 0; background: transparent; z-index: 80; animation: aCloudDrift 5.4s ease-in-out infinite }
+.wish > img { position: absolute; left: 0; top: 0; width: 82px; height: 82px }
+.wish > img:nth-of-type(1) { transform-origin: 11% 86%; animation: aCloudA 24s ease-in-out infinite }
+.wish > img:nth-of-type(2) { transform-origin: 20% 79%; animation: aCloudB 24s ease-in-out infinite }
+.wish > img:nth-of-type(3) { transform-origin: 49% 43%; animation: aCloudC 24s ease-in-out infinite }
+.wish-icon { position: absolute; inset: 0; transform-origin: 50% 42%; animation: aCloudW 24s ease-in-out infinite }
+.wish-icon img { position: absolute; object-fit: contain }
+@keyframes aCloudDrift { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes aCloudA { 0% { opacity: 0; transform: scale(.3) } 1.6% { opacity: 1; transform: scale(1.14) } 2.6%, 92% { opacity: 1; transform: scale(1) } 94%, 100% { opacity: 0; transform: scale(.3) } }
+@keyframes aCloudB { 0%, 1.4% { opacity: 0; transform: scale(.3) } 3% { opacity: 1; transform: scale(1.12) } 4%, 90% { opacity: 1; transform: scale(1) } 92%, 100% { opacity: 0; transform: scale(.3) } }
+@keyframes aCloudC { 0%, 2.8% { opacity: 0; transform: scale(.32) } 4.4% { opacity: 1; transform: scale(1.1) } 5.4%, 88% { opacity: 1; transform: scale(1) } 90%, 100% { opacity: 0; transform: scale(.32) } }
+@keyframes aCloudW { 0%, 5.6% { opacity: 0; transform: scale(.55) } 7% { opacity: 1; transform: scale(1.07) } 8%, 85.5% { opacity: 1; transform: scale(1) } 87%, 100% { opacity: 0; transform: scale(.5) } }
+.plant-bubble { position: absolute; left: 233px; top: 311px; max-width: 152px; text-align: left; padding: 10px 13px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
+  background: color-mix(in srgb, var(--panel) 58%, transparent); backdrop-filter: blur(3px) saturate(190%); color: var(--ink); font-size: 13px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .22); z-index: 85 }
+.plant-bubble b { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 4px }
+.shelf { position: absolute; left: 7px; top: 18px; width: 127px; height: 330px; z-index: 0 }
+.shelf-board { position: absolute; left: 17px; top: 38px; width: 98px; height: 286px }
+.shelf-item { position: absolute; padding: 0 }
+.shelf-item > img, .shelf-crop > img { position: absolute; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .42)) }
+.shelf-crop { position: absolute; right: 0; bottom: 0; width: 39px; height: 36px; overflow: hidden }
+.shelf-ring { position: absolute; margin-top: -17px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center }
+.shelf-ring > img { position: absolute; inset: 0; width: 34px; height: 34px }
+.shelf-ring > span { position: relative; display: flex; align-items: baseline; color: rgb(58, 36, 18); white-space: nowrap }
+.shelf-ring[data-empty] > span { color: rgb(142, 27, 27) }
+.shelf-ring b { font-size: 11px; font-weight: 800 }
+.shelf-ring small { font-size: 8px; font-weight: 800 }
+.plant-top { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px; z-index: 90 }
+.plant-slot { flex: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center }
+.plant-name { flex: 1; min-width: 0; text-align: center; font-size: 16px; font-weight: 800; color: var(--ink); text-shadow: 0 2px 10px rgba(0, 0, 0, .45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.plant-round { flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0, 0, 0, .18) }
+.plant-add { flex: none; width: 36px; height: 36px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0, 0, 0, .24) }
+.plant-sale { position: absolute; left: 12px; right: 12px; top: 56px; z-index: 95; display: flex; justify-content: center }
+.plant-sale span { display: flex; align-items: center; gap: 7px; padding: 8px 13px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 12.5px; font-weight: 800; box-shadow: 0 10px 24px rgba(0, 0, 0, .28) }
+.plant-sale img { width: 16px; height: 17px }
+.plant-actions { position: absolute; left: 0; right: 0; bottom: 21px; display: flex; align-items: flex-end; justify-content: center; gap: 12px; z-index: 85 }
+.plant-act { position: relative; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0, 0, 0, .22) }
+.plant-act[data-open] { border-color: var(--accent); background: var(--panel2); color: var(--accent-text); box-shadow: 0 0 0 4px rgba(254, 129, 11, .22), 0 10px 24px rgba(0, 0, 0, .22) }
+.plant-chat { position: relative; width: 48px; height: 48px; border-radius: var(--radius-pill); background: var(--grad); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0, 0, 0, .28) }
+.plant-chat > img { width: 30px; height: 31px; transform: translate(2px, -2px) }
+.plant-chat > i { position: absolute; bottom: -4px; right: -4px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--panel); color: var(--ink); border: 1px solid var(--line); font-size: 11px; font-weight: 700; font-style: normal; display: flex; align-items: center; justify-content: center }
+.plant-lock { position: absolute; inset: 0; border-radius: var(--radius-pill); background: rgba(12, 14, 17, .62); display: flex; align-items: center; justify-content: center; color: rgb(242, 239, 230) }
+.plant-dim { position: absolute; inset: 0; z-index: 150; background: rgba(6, 8, 10, .66); backdrop-filter: blur(3px) }
+.plant-menu { position: absolute; left: 8px; right: 8px; bottom: 74px; z-index: 160; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden }
+.menu-row { width: 100%; text-align: left; display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--line) }
+.menu-row:last-child { border-bottom: 0 }
+.menu-row:disabled { opacity: .45 }
+.menu-ico { flex: none; width: 34px; height: 34px; border-radius: 11px; background: var(--panel2); display: flex; align-items: center; justify-content: center; color: var(--ink) }
+.menu-row > span:last-child { flex: 1; min-width: 0 }
+.menu-row b { display: block; font-size: 14.5px; font-weight: 800; color: var(--ink) }
+.menu-row small { display: block; font-size: 11.5px; color: var(--muted); text-wrap: pretty }
+.menu-row[data-danger] .menu-ico { background: rgba(255, 77, 94, .14); color: rgb(255, 107, 122) }
+.menu-row[data-danger] b { color: rgb(255, 107, 122) }
+.plant-sheet { position: absolute; left: 8px; right: 8px; bottom: 12px; z-index: 160; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 24px 60px rgba(0, 0, 0, .5); padding: 18px 16px; display: flex; flex-direction: column; gap: 13px }
+.plant-sheet.danger { border-color: rgba(255, 77, 94, .45) }
+.plant-sheet-title { font-size: 19px; font-weight: 900; line-height: 1.15 }
+.plant-sheet > p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.nick-field.gift { height: 46px; background: var(--panel2) }
+.nick-field.gift input { font-size: 15px; font-weight: 700 }
+.nick-field.gift span { font-weight: 800 }
+.scythe-head { display: flex; align-items: center; gap: 12px }
+.scythe-head > span { flex: none; width: 40px; height: 40px; border-radius: 13px; background: rgba(255, 77, 94, .14); display: flex; align-items: center; justify-content: center; color: rgb(255, 107, 122) }
+.scythe-head .plant-sheet-title { color: rgb(255, 107, 122) }
+.scythe-keep { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px; background: var(--panel2) }
+.scythe-keep img { flex: none; width: 20px; height: 31px }
+.scythe-keep b { flex: 1; font-size: 12.5px; font-weight: 800 }
+.scythe-btns { display: flex; gap: 10px }
+.scythe-btns button { height: 48px; border-radius: 14px; font-size: 15px; font-weight: 800 }
+.scythe-btns button:first-child { flex: 1.4; background: var(--grad); color: var(--accent-ink) }
+.scythe-btns button:last-child { flex: 1; border: 1px solid rgba(255, 77, 94, .5); color: rgb(255, 107, 122) }
+.plant-barrel { position: absolute; left: 277px; top: 260px; width: 74px; height: 82px; padding: 0 }
+.plant-barrel > img { position: absolute; left: 2px; top: 3px; width: 68px; height: 70px; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .42)) }
+.sale-card { position: absolute; left: 8px; right: 8px; bottom: 12px; z-index: 95; border: 1px solid var(--line); border-radius: 20px; background: color-mix(in srgb, var(--panel) 82%, transparent);
+  backdrop-filter: blur(6px); box-shadow: 0 18px 44px rgba(0, 0, 0, .42); padding: 13px; display: flex; flex-direction: column; gap: 10px }
+.sale-card > p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.sale-card > button { height: 46px; border-radius: 14px; background: var(--grad); color: var(--accent-ink); font-size: 14.5px; font-weight: 800 }
+@keyframes aIdleLeaf { 0%, 100% { rotate: -2.4deg } 50% { rotate: 2.4deg } }
+@keyframes aIdleBranch { 0%, 100% { rotate: -1.3deg } 50% { rotate: 1.3deg } }
+@keyframes aIdleCrown { 0%, 100% { rotate: -.8deg } 50% { rotate: .8deg } }
+[data-idle] [data-sway="leaf"] { animation: aIdleLeaf 3.6s ease-in-out infinite }
+[data-idle] [data-sway="leaf"]:nth-of-type(3n) { animation-duration: 4.2s; animation-delay: -.7s }
+[data-idle] [data-sway="leaf"]:nth-of-type(3n+1) { animation-duration: 3.1s; animation-delay: -1.4s }
+[data-idle] [data-sway="branch"] { animation: aIdleBranch 4.8s ease-in-out infinite }
+[data-idle] [data-sway="branch"]:nth-of-type(2n) { animation-delay: -1.9s }
+[data-idle] [data-sway="crown"] { animation: aIdleCrown 5.2s ease-in-out infinite }
