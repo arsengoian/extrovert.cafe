@@ -1,0 +1,19 @@
+# r.extrovert.cafe — окремий воркер під посилання-репости.
+#
+# Чому окремий, а не маршрут у застосунку: посилання йде в чужу сторіс і
+# живе там роками. Воно має бути коротким, не залежати від збірки
+# застосунку й віддавати справжній 302 без JavaScript — тоді перехід
+# працює навіть у тих переглядачах, де скрипти вимкнені.
+name = "extrovert-redirect"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+APP_ORIGIN = "https://extrovert.cafe"
+
+# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо
+# закоментованим, щоб випадковий deploy не перехопив живий r.extrovert.cafe:
+# routes = [{ pattern = "r.extrovert.cafe", custom_domain = true }]
+
+[observability]
+enabled = true

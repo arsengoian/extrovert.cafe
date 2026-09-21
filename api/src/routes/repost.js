@@ -13,6 +13,11 @@ const R = economy.repost;
 // Домен застосунку — конфіг оточення, а не економіка: локально посилання
 // має вести на дев-сервер, інакше клік нікуди не дійде.
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
+// Посилання йде в чужу сторіс і живе там роками, тому домен окремий і
+// короткий: r.extrovert.cafe/<токен> (воркер redirect/). Він лише 302-ить
+// на /r/<токен> у застосунку — зараховує перехід, як і раніше, сам
+// застосунок, бо тільки він знає, хто саме перейшов.
+const REPOST_ORIGIN = process.env.REPOST_ORIGIN || APP_ORIGIN;
 const DAY = 24 * 60 * 60 * 1000;
 
 // Слаг у посиланні — нікнейм гравця: саме його людина бачить у сторіс, і
@@ -80,7 +85,11 @@ export default async function routes(app) {
       await query("insert into repost_verifications (user_id, redirect_token) values ($1, $2)", [user.id, token]);
     }
 
-    return { ...state, token, link: token ? `${APP_ORIGIN}/r/${token}` : null };
+    return {
+      ...state,
+      token,
+      link: token ? (REPOST_ORIGIN === APP_ORIGIN ? `${APP_ORIGIN}/r/${token}` : `${REPOST_ORIGIN}/${token}`) : null,
+    };
   });
 
   // Публічний перехід за посиланням: сюди стукає сторінка /r/<token>.

@@ -10,7 +10,8 @@
     "overseer",
     "pos",
     "client",
-    "scheduler"
+    "scheduler",
+    "redirect"
   ],
   "scripts": {
     "up": "docker compose --profile local up -d",
