@@ -7,7 +7,8 @@
 import { createServer } from "node:http";
 import { createPublicKey, verify } from "node:crypto";
 import { WebSocketServer } from "ws";
-import Redis from "ioredis";
+import { onShutdown } from "@extrovert/lib/shutdown.js";
+import { redisClient } from "@extrovert/lib/redis.js";
 
 const PORT = Number(process.env.PORT || 3002);
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6389";
@@ -50,7 +51,7 @@ const wss = new WebSocketServer({ server, handleProtocols: (protocols) => {
   return protocols.has("extrovert.v1") ? "extrovert.v1" : false;
 } });
 
-const sub = new Redis(REDIS_URL);
+const sub = redisClient();
 const rooms = new Map();        // канал → Set(ws)
 
 sub.on("pmessage", (_pattern, channel, payload) => {
@@ -87,3 +88,24 @@ wss.on("connection", (socket, req) => {
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`ws на :${PORT}, redis ${REDIS_URL}${KEY ? "" : " — БЕЗ ключа: усі зʼєднання відхилятимуться"}`);
 });
+
+// Зупинка. Довге зʼєднання не можна просто обірвати: для застосунку це
+// виглядає як мережевий збій, і він мовчки перестає отримувати події доти,
+// доки користувач не смикне екран. Тому кожному сокету надсилається 1001
+// «going away» — за специфікацією це сигнал «сервер іде, перепідключись», і
+// клієнт іде на новий контейнер одразу.
+onShutdown({
+  "нові зʼєднання": () => new Promise((resolve) => server.close(resolve)),
+  "відкриті сокети": async () => {
+    for (const socket of wss.clients) {
+      if (socket.readyState === socket.OPEN) socket.close(1001, "redeploy");
+    }
+    // Півсекунди на те, щоб кадр закриття пішов у мережу: close() лише
+    // ставить його в чергу.
+    await new Promise((r) => setTimeout(r, 500));
+    for (const socket of wss.clients) socket.terminate();
+  },
+  "redis": () => sub.quit(),
+  // console як логер: тут немає ні pino, ні makeLog — сервіс пише в stdout
+  // напряму, і зупинка має бути видна так само, як старт.
+}, { log: console, timeoutMs: 15_000 });

@@ -1,11 +1,11 @@
 // Девелоперські роути: існують лише поза продом. Через них скрипти
 // розробника штовхають події, поки немає scheduler з публікатором outbox
 // (roadmap, крок 0-біс).
-import Redis from "ioredis";
+import { redisClient } from "@extrovert/lib/redis.js";
 import { requireUser } from "../auth.js";
 
 const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
-const redis = DEV ? new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6389") : null;
+const redis = DEV ? redisClient() : null;
 
 export default async function routes(app) {
   if (!DEV) return;

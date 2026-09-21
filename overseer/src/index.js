@@ -8,7 +8,8 @@
 // повідомлення йде тільки коли стан змінився. Щоденний звіт — виняток: він
 // не алерт, а зведення.
 import { pool } from "@extrovert/lib/db.js";
-import { redisClient } from "@extrovert/lib/redis.js";
+import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
+import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { every, withLock } from "@extrovert/lib/jobs.js";
 import { checkPoints, checkWebhook, dailyReport } from "./checks.js";
@@ -75,11 +76,8 @@ const stops = [
 
 log.info("overseer піднявся", { intervalMs: INTERVAL, telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN) });
 
-const shutdown = async () => {
-  for (const stop of stops) stop();
-  await redis.quit().catch(() => {});
-  await pool.end().catch(() => {});
-  process.exit(0);
-};
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+onShutdown({
+  "перевірки": () => Promise.all(stops.map((stop) => stop())),
+  "redis": () => closeRedis(),
+  "postgres": () => pool.end(),
+}, { log, timeoutMs: 30_000 });

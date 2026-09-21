@@ -7,7 +7,8 @@
 // сервісу не роблять те саме; довгі синхронізації тримають курсор у
 // sync_cursors.
 import { pool } from "@extrovert/lib/db.js";
-import { redisClient } from "@extrovert/lib/redis.js";
+import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
+import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { every, withLock } from "@extrovert/lib/jobs.js";
 import { publishOutbox } from "./jobs/outbox.js";
@@ -39,12 +40,10 @@ const stops = JOBS.map((job) =>
 
 log.info("scheduler піднявся", { jobs: JOBS.map((j) => j.name) });
 
-const shutdown = async () => {
-  log.info("зупиняємось");
-  for (const stop of stops) stop();
-  await redis.quit().catch(() => {});
-  await pool.end().catch(() => {});
-  process.exit(0);
-};
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+// stop() тепер чекає, поки поточний прохід роботи допрацює: робота,
+// вбита посередині, лишає по собі взяте блокування й недописаний курсор.
+onShutdown({
+  "роботи": () => Promise.all(stops.map((stop) => stop())),
+  "redis": () => closeRedis(),
+  "postgres": () => pool.end(),
+}, { log, timeoutMs: 40_000 });

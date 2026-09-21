@@ -6,7 +6,8 @@
 import crypto from "node:crypto";
 import Fastify from "fastify";
 import { pool } from "@extrovert/lib/db.js";
-import { redisClient } from "@extrovert/lib/redis.js";
+import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
+import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { every, withLock } from "@extrovert/lib/jobs.js";
 import { ingest } from "./receipts.js";
@@ -67,12 +68,12 @@ const stop = every(60_000, "checkbox-poll", async () => {
 await app.listen({ port: PORT, host: "0.0.0.0" });
 log.info("checkbox піднявся", { port: PORT, poll: "раз на хвилину" });
 
-const shutdown = async () => {
-  stop();
-  await app.close().catch(() => {});
-  await redis.quit().catch(() => {});
-  await pool.end().catch(() => {});
-  process.exit(0);
-};
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+// Спершу перестаємо брати нове — опитування й вебхук, — і лише потім
+// закриваємо те, чим доробляється початий чек: інакше ingest() посеред
+// транзакції лишиться без бази.
+onShutdown({
+  "опитування чеків": () => stop(),
+  "вебхук": () => app.close(),
+  "redis": () => closeRedis(),
+  "postgres": () => pool.end(),
+}, { log, timeoutMs: 25_000 });

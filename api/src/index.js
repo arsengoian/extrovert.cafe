@@ -1,6 +1,8 @@
 // REST для застосунку гравця. Схема — db/migrations, економіка —
 // api/data/economy.json, контент — db/seeds (docs/db-schema.md §7).
 import Fastify from "fastify";
+import { onShutdown } from "@extrovert/lib/shutdown.js";
+import { closeRedis } from "@extrovert/lib/redis.js";
 import { pool } from "./db.js";
 import { ephemeralKey } from "./auth.js";
 import { registerErrorHandler } from "./errors.js";
@@ -83,3 +85,16 @@ try {
   app.log.error(e);
   process.exit(1);
 }
+
+// Під час деплою поруч уже стоїть новий контейнер, а цей має доробити те,
+// що встиг узяти. app.close() перестає приймати зʼєднання й чекає на
+// відповіді в польоті — саме через нього транзакція не обривається
+// посередині. Пул закривається останнім: до нього ходять ті самі запити.
+onShutdown(
+  {
+    "http": () => app.close(),
+    "redis": () => closeRedis(),
+    "postgres": () => pool.end(),
+  },
+  { log: app.log, timeoutMs: 25_000 }
+);

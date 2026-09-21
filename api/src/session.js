@@ -3,9 +3,11 @@
 // спливає, клієнт мовчки міняє куку на новий токен. Вихід чи бан — видалити
 // sess:<id>, і доступ зникне щонайбільше за ті самі 15 хвилин.
 import { randomBytes } from "node:crypto";
-import Redis from "ioredis";
+import { redisClient } from "@extrovert/lib/redis.js";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6389");
+// Клієнт із lib, а не свій: так зупинка сервіса закриває його разом з усіма
+// іншими, не знаючи про цей модуль.
+const redis = redisClient();
 
 const PLAYER_TTL_S = 30 * 24 * 60 * 60;   // 30 діб
 const ADMIN_TTL_S = 12 * 60 * 60;         // 12 годин

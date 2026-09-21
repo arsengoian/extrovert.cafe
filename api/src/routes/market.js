@@ -8,7 +8,7 @@
 // Показ — це лот, який API повернув у такій відповіді. Лічильник живе в
 // Redis, бо інакше кожне відкриття прев'ю писало б до десяти оновлень у
 // гарячі рядки; у Postgres його раз на хвилину переносить scheduler.
-import Redis from "ioredis";
+import { redisClient } from "@extrovert/lib/redis.js";
 import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
@@ -18,7 +18,7 @@ import { notifyPlant } from "../notify.js";
 export const IMPRESSIONS_KEY = "market:impressions";
 
 const M = economy.market;
-const redis = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6389", { lazyConnect: true, maxRetriesPerRequest: 2 });
+const redis = redisClient({ lazyConnect: true, maxRetriesPerRequest: 2 });
 redis.connect().catch(() => {});
 
 // Ціна в монетах — спільна лінійка для ваги: зерна переводимо курсом.
