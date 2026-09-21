@@ -13,6 +13,7 @@ import { TopbarBack } from "./ui/TopbarBack.jsx";
 import { connectEvents } from "./ws.js";
 import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
+import { Onboarding } from "./screens/Onboarding.jsx";
 import "./theme.js";
 
 export function App({ bonusToken = null, returningFromPayment = false }) {
@@ -130,6 +131,16 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
           onProblem={() => setGuest({ name: "problem" })}
           onSupport={() => setGuest({ name: "support" })}
         />
+      </div>
+    );
+  }
+
+  // Перший вхід: без згоди з умовами далі екрана нікнейма не пускаємо.
+  // «Назад» — передумав входити: виходимо на стартовий екран.
+  if (!me.consent) {
+    return (
+      <div className="app">
+        <Onboarding me={me} onDone={refreshMe} onCancel={() => api.logout().finally(() => setMe(null))} />
       </div>
     );
   }

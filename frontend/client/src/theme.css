@@ -95,7 +95,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   box-shadow: 0 10px 22px rgba(0, 0, 0, .3);
 }
 .nav-center .bubble img { width: 29px; height: 46px; opacity: 1 }
-.nav-badge {
+.nav-item .nav-badge {
   position: absolute; top: 6px; left: 50%; margin-left: 7px; min-width: 18px; height: 18px; padding: 0 5px;
   border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink);
   font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center;
@@ -736,7 +736,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .doc h3 { margin: 4px 0 0; font-size: 15px; font-weight: 800; color: var(--ink) }
 .doc p { margin: 0; text-wrap: pretty }
 .doc-foot { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted) }
-.doc-link { color: var(--accent-text); font: inherit; padding: 0 }
+.doc-link { color: var(--accent-text); font: inherit; padding: 0; text-decoration: none; cursor: pointer }
 .doc-coins { display: inline-flex; align-items: center; vertical-align: -4px }
 .doc-coins img { width: 17px; height: 18px }
 .doc-coins img + img { margin-left: -7px }
@@ -758,3 +758,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .lot-main small { display: block; font-size: 12px; color: var(--muted) }
 .lot-price { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800 }
 .lot-price img { width: 17px; height: 18px }
+
+/* «Твій нікнейм»: поле з позначкою «вільний», згода з квадратиком. */
+.lead14 { font-size: 14px; color: var(--muted); text-wrap: pretty }
+.nick-field {
+  height: 52px; border-radius: 14px; border: 1px solid var(--accent); background: var(--panel);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px;
+}
+.nick-field input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--ink); font: inherit; font-size: 17px; font-weight: 700; padding: 0 }
+.nick-field span { flex: none; font-size: 12px; font-weight: 700; color: #3FBF6F }
+.nick-field[data-tone="bad"] { border-color: var(--line) }
+.nick-field[data-tone="bad"] span { color: var(--muted) }
+.nick-regen { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted) }
+.consent { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; gap: 12px; align-items: flex-start }
+.consent > div { font-size: 13px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.consent-box { width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: #fff }
+.consent-box[aria-checked="true"] { background: var(--grad); border: 0 }
+.cta.start-cta { margin-top: auto; border-radius: 16px }

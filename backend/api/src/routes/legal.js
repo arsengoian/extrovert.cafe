@@ -16,6 +16,10 @@ const docs = Object.fromEntries(
   })
 );
 
+// Редакція умов, яку приймає гравець на екрані «Твій нікнейм»: пишеться в
+// users.terms_version, щоб знати, з якою редакцією він погодився.
+export const TERMS_VERSION = docs.terms?.updated ?? null;
+
 export default async function routes(app) {
   app.get("/legal", async () => ({
     docs: Object.values(docs).map(({ id, title, updated }) => ({ id, title, updated })),

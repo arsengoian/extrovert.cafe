@@ -3,6 +3,7 @@
 import { many, one, query } from "../db.js";
 import { requireUser } from "../auth.js";
 import { generateNickname } from "../nickname.js";
+import { TERMS_VERSION } from "./legal.js";
 
 // Нікнейм видно іншим гравцям на маркеті, тож формат тримаємо вузьким:
 // букви (будь-якої мови), цифри, підкреслення й дефіс.
@@ -18,6 +19,8 @@ const profile = (row) => ({
     fertilizer_kg: row.fertilizer_kg,
     insecticide_bottles: row.insecticide_bottles,
   },
+  // Без згоди з умовами застосунок показує лише екран «Твій нікнейм».
+  consent: Boolean(row.consent_at),
   created_at: row.created_at,
 });
 
@@ -118,6 +121,33 @@ export async function nicknameRoutes(app) {
   app.get("/me/nickname/suggest", async (req, reply) => {
     if (!requireUser(req, reply)) return;
     return { nickname: await generateNickname() };
+  });
+
+  // «вільний» під полем нікнейма — до того, як гравець натисне «Почати».
+  app.get("/me/nickname/check", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const nickname = String(req.query?.nickname ?? "").trim();
+    if (!NICKNAME_RE.test(nickname)) return { valid: false, free: false };
+    const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
+    return { valid: true, free: !taken };
+  });
+
+  // Перший вхід: гравець лишає чи міняє згенерований нікнейм і приймає
+  // умови й політику приватності — одна дія, як на екрані.
+  app.post("/me/consent", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const nickname = String(req.body?.nickname ?? "").trim();
+    if (!NICKNAME_RE.test(nickname)) return reply.code(400).send({ error: "bad_nickname" });
+    const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
+    if (taken) return reply.code(409).send({ error: "nickname_taken" });
+
+    await query(
+      "update users set nickname = $2, consent_at = coalesce(consent_at, now()), terms_version = $3 where id = $1",
+      [user.id, nickname, TERMS_VERSION]
+    );
+    return { ok: true, nickname };
   });
 
   app.patch("/me/nickname", async (req, reply) => {
