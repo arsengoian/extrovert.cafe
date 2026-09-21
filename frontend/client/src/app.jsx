@@ -55,6 +55,9 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
 
   const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
   const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
+  // Заміна верхнього екрана без кроку назад: вкладки «Умови / Приватність»
+  // міняють і текст, і заголовок топбару, як два окремі кадри макета.
+  const replace = useCallback((name, props = {}) => setStack((s) => [...s.slice(0, -1), { name, props }]), []);
   const openTab = useCallback((next) => { setTab(next); setStack([]); }, []);
 
   // Бонус із QR: відкриваємо його, щойно гравець увійшов, і прибираємо
@@ -94,8 +97,8 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   }, [stack.length]);
 
   const ctx = useMemo(
-    () => ({ me, refreshMe, push, pop, openTab, tab }),
-    [me, refreshMe, push, pop, openTab, tab]
+    () => ({ me, refreshMe, push, pop, replace, openTab, tab }),
+    [me, refreshMe, push, pop, replace, openTab, tab]
   );
 
   if (booting) return <div className="app" />;
@@ -108,6 +111,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
       const guestCtx = {
         me: null, refreshMe, tab: null, openTab: () => setGuest(null),
         pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
+        replace: (name, props = {}) => setGuest({ name, props }),
       };
       return (
         <div className="app">

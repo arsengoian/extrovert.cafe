@@ -1,52 +1,81 @@
-// Умови, приватність і підтримка. Один компонент на три екрани: у дизайні
-// вони відрізняються лише вкладкою зверху й текстом, який приходить з api.
+// Умови, приватність і підтримка — кадри «Умови користування» і «Політика
+// приватності»: дві пігулки-вкладки, суцільний текст, редакція внизу.
+// Тексти приходять з api (backend/api/data/legal), щоб нова редакція не
+// вимагала релізу застосунку.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 
+// Іконки валют у тексті, як у макеті: у даних вони записані токенами
+// {coins} і {beans}, а посилання на підтримку — {support:текст}.
+const Coins = () => (
+  <span className="doc-coins">
+    <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
+    <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+  </span>
+);
+const Beans = () => <img className="doc-bean" src="/assets/ui/bean.png" alt="кавові зерна" />;
+
+function Rich({ text, onSupport }) {
+  const [head, ...rest] = text.split("{");
+  return (
+    <p>
+      {head}
+      {rest.map((chunk, i) => {
+        const end = chunk.indexOf("}");
+        const [name, label] = chunk.slice(0, end).split(":");
+        const tail = chunk.slice(end + 1);
+        const token = name === "coins" ? <Coins />
+          : name === "beans" ? <Beans />
+          : <button className="doc-link" onClick={onSupport}>{label}</button>;
+        return <span key={i}>{token}{tail}</span>;
+      })}
+    </p>
+  );
+}
+
 export function Legal({ doc = "terms", ctx }) {
-  const [tab, setTab] = useState(doc);
   const [data, setData] = useState(null);
-  const [index, setIndex] = useState(null);
+  const [support, setSupport] = useState(null);
 
-  useEffect(() => { api.get("/legal").then(setIndex).catch(() => setIndex(null)); }, []);
   useEffect(() => {
-    if (tab === "support") { setData(null); return; }
-    api.get(`/legal/${tab}`).then(setData).catch(() => setData(null));
-  }, [tab]);
+    if (doc === "support") {
+      api.get("/legal").then((r) => setSupport(r.support)).catch(() => setSupport(null));
+      return;
+    }
+    api.get(`/legal/${doc}`).then(setData).catch(() => setData(null));
+  }, [doc]);
 
-  const tabStyle = (on) => ({
-    flex: 1, height: 38, fontSize: 13,
-    ...(on ? { background: "var(--grad)", color: "var(--accent-ink)", border: 0 } : {}),
-  });
+  // Вкладки підміняють екран (назад — туди, звідки прийшли), а підтримка
+  // відкривається поверх: з неї повертаються до тексту, який читали.
+  const open = (next) => () => ctx.replace(next);
+  const toSupport = () => ctx.push("support");
 
   return (
-    <div className="stage-pad">
-      <div className="row" style={{ gap: 8, marginBottom: 12 }}>
-        <button className="btn" style={tabStyle(tab === "terms")} onClick={() => setTab("terms")}>Умови</button>
-        <button className="btn" style={tabStyle(tab === "privacy")} onClick={() => setTab("privacy")}>Приватність</button>
-        <button className="btn" style={tabStyle(tab === "support")} onClick={() => setTab("support")}>Підтримка</button>
-      </div>
+    <div className="form18">
+      {doc !== "support" && (
+        <div className="pill-tabs">
+          <button aria-pressed={doc === "terms"} onClick={open("terms")}>Умови</button>
+          <button aria-pressed={doc === "privacy"} onClick={open("privacy")}>Приватність</button>
+        </div>
+      )}
 
-      {tab === "support" ? (
-        <div className="panel">
-          <div className="h2">{index?.support?.title ?? "Підтримка"}</div>
-          <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>{index?.support?.body}</p>
-          <button className="btn btn-primary" onClick={() => ctx.push("problem")}>Повідомити про проблему</button>
+      {doc === "support" ? (
+        <div className="doc">
+          <p>{support?.body}</p>
+          <button className="cta send" onClick={() => ctx.push("problem")}>Повідомити про проблему</button>
         </div>
       ) : !data ? (
         <div className="skeleton" />
       ) : (
-        <>
-          {data.sections.map((s) => (
-            <div key={s.heading} className="panel">
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>{s.heading}</div>
-              {s.body.split("\n\n").map((p) => (
-                <p key={p.slice(0, 24)} className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: "0 0 8px" }}>{p}</p>
-              ))}
-            </div>
-          ))}
-          <p className="muted" style={{ fontSize: 12 }}>Редакція від {data.updated}</p>
-        </>
+        <div className="doc">
+          {data.sections.map((sec) => [
+            <h3 key={sec.heading}>{sec.heading}</h3>,
+            ...sec.paragraphs.map((p, i) => <Rich key={`${sec.heading}-${i}`} text={p} onSupport={toSupport} />),
+          ])}
+          <div className="doc-foot">
+            Редакція від {data.updated} · <button className="doc-link" onClick={toSupport}>підтримка</button>
+          </div>
+        </div>
       )}
     </div>
   );
