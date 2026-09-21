@@ -37,7 +37,7 @@ export default async function routes(app) {
         code: "sapling",
         kind: "sapling",
         title: "Новий саджанець",
-        subtitle: "ще одне кавенятко",
+        subtitle: "Дай життя ще одному кавенятку",
         icon: "assets/ui/sprout.png",
         price: e.sapling.price_coins,
         currency: "yellow",

@@ -871,3 +871,57 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .loot-tile b { font-size: 17px; font-weight: 800; line-height: 1.15 }
 .loot-note { font-size: 13px; color: var(--muted); text-align: center; text-wrap: pretty }
 .loot-note b { font-weight: 800; color: var(--ink) }
+
+/* Превʼю одягу: сцена в сяйві кольору тіру (Common — сірим), чип тіру,
+   текст 13/1.5 і лоти з плитками кольору тіру. */
+.tier-common { --chip: 139, 148, 163 }
+.tier-uncommon { --chip: var(--tier-uncommon) }
+.tier-rare { --chip: var(--tier-rare) }
+.tier-epic { --chip: var(--tier-epic) }
+.item-hero {
+  height: 170px; border-radius: 20px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 58%, rgba(var(--chip), .20) 0%, rgba(var(--chip), 0) 68%), var(--panel);
+}
+.item-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted) }
+.tier-chip { padding: 5px 10px; border-radius: var(--radius-pill); background: rgba(var(--chip), .18); border: 1px solid rgba(var(--chip), .5); font-size: 11px; font-weight: 800; color: rgb(var(--chip)) }
+.tier-chip.tier-common { color: var(--muted) }
+.item-text { flex: none; display: flex; flex-direction: column; gap: 9px; font-size: 13px; line-height: 1.5; color: var(--muted) }
+.item-text > div, .item-text > p { margin: 0; text-wrap: pretty }
+.item-text > ul { margin: 0; padding-left: 18px }
+.item-text img { display: inline; width: 16px; height: 18px; vertical-align: -3px }
+.offers { flex: none; display: flex; flex-direction: column; gap: 10px }
+.offer { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 10px; display: flex; gap: 10px; align-items: center }
+.offer-tile { flex: none; width: 48px; height: 48px; border-radius: 12px; background: rgba(var(--t), .14); border: 1px solid rgba(var(--t), .4); display: flex; align-items: center; justify-content: center }
+.offer-main { flex: 1; min-width: 0 }
+.offer-main b { display: block; font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.offer-main small { display: block; font-size: 12px; color: var(--muted); margin-top: 1px }
+.offer-main em { display: block; font-style: normal; font-size: 12px; color: var(--muted); margin-top: 3px }
+.offer-buy { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px }
+.offer-buy b { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 900 }
+.offer-buy img { width: 17px; height: 18px }
+
+/* Превʼю товарів: сцена (небо з платформою для саджанця, сяйво для води),
+   чип праворуч від назви, блоки «Як це працює» і «Як дістати». */
+.shop-hero { position: relative; flex: none; height: 170px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel); display: flex; align-items: center; justify-content: center; overflow: hidden }
+.shop-hero > img { width: 120px; height: 120px; object-fit: contain }
+.shop-hero.water { background: radial-gradient(circle at 50% 58%, rgba(90, 169, 255, .18) 0%, rgba(90, 169, 255, 0) 68%), var(--panel) }
+.shop-hero.care { background: radial-gradient(circle at 50% 58%, rgba(139, 148, 163, .20) 0%, rgba(139, 148, 163, 0) 68%), var(--panel) }
+.shop-hero.sky { background: radial-gradient(120% 90% at 50% 88%, var(--sky1) 0%, var(--sky2) 74%) }
+.shop-hero .platform { position: absolute; left: 50%; bottom: -18px; width: 222px; height: 110px; margin-left: -111px; object-fit: contain }
+.shop-hero .sprout { position: absolute; left: 50%; bottom: 64px; width: 48px; height: 74px; margin-left: -24px; object-fit: contain }
+.shop-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px }
+.shop-head .preview-head { min-width: 0 }
+.shop-chip { flex: none; display: flex; align-items: center; gap: 6px; padding: 9px 13px; border-radius: var(--radius-pill); background: var(--panel); border: 1px solid var(--line); font-size: 12px; font-weight: 800 }
+.shop-chip.price { font-size: 16px; font-weight: 900 }
+.how { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; flex-direction: column; gap: 10px }
+.how > b { font-size: 13px; font-weight: 800 }
+.how > p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.how img { display: inline; vertical-align: -4px }
+.how-balance { display: flex; align-items: center; justify-content: space-between; font-size: 13px }
+.how-balance > span { display: inline-flex; align-items: center; gap: 5px; color: var(--muted) }
+.how-balance > b { font-weight: 800 }
+.earn-beans { display: flex; flex-direction: column; gap: 8px }
+.earn-beans .sectionTitle { display: flex; align-items: center; gap: 6px }
+.earn-beans > div:not(.sectionTitle) { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted) }
+.earn-beans > div > b { color: var(--accent-text); font-weight: 800 }
+.buy-row .cta:disabled { border: 0 }

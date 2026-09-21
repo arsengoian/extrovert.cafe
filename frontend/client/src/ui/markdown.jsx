@@ -26,11 +26,11 @@ export function renderMarkdown(md) {
     const lines = block.split("\n");
     if (lines.every((l) => /^\s*[-*]\s+/.test(l))) {
       return (
-        <ul key={bi} style={{ margin: "0 0 8px", paddingLeft: 18 }}>
+        <ul key={bi}>
           {lines.map((l, li) => <li key={li}>{inline(l.replace(/^\s*[-*]\s+/, ""), `${bi}-${li}`)}</li>)}
         </ul>
       );
     }
-    return <p key={bi} style={{ margin: "0 0 8px" }}>{inline(block, String(bi))}</p>;
+    return <p key={bi}>{inline(block, String(bi))}</p>;
   });
 }
