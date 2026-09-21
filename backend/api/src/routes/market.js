@@ -63,6 +63,27 @@ const listingView = (row) => ({
 });
 
 export default async function routes(app) {
+  // Правила для екрана «Продати одяг»: комісія, мінімальна ціна й
+  // діапазон цін схожих лотів — «Схожі лоти зараз 120-165». Покази тут не
+  // рахуються: це не пропозиція покупцю.
+  app.get("/market/rules", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const itemCode = String(req.query?.item ?? "");
+    const range = itemCode
+      ? await one(
+          `select min(l.price_amount)::int as min, max(l.price_amount)::int as max, count(*)::int as n
+             from market_listings l
+             join user_items ui on ui.id = l.user_item_id
+             join item_defs d on d.id = ui.item_def_id
+            where l.kind = 'item' and d.code = $1 and l.status = 'active'
+              and l.price_currency = 'yellow' and l.seller_id <> $2`,
+          [itemCode, user.id]
+        )
+      : null;
+    return { commission_pct: M.commission_pct, min_price: M.min_price, similar: range?.n ? range : null };
+  });
+
   // Лоти конкретного предмета — для прев'ю в Магазині.
   app.get("/market/offers", async (req, reply) => {
     const user = requireUser(req, reply);
@@ -147,6 +168,7 @@ export default async function routes(app) {
     const price = Math.trunc(Number(req.body?.price ?? 0));
     const currency = req.body?.currency === "beans" ? "beans" : "yellow";
     if (!(price > 0)) fail(400, "bad_price");
+    if (price < (M.min_price?.[currency] ?? 1)) fail(400, "price_too_low", { min: M.min_price[currency] });
 
     return tx(async (client) => {
       const commission = M.commission_pct[kind];

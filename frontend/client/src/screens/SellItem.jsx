@@ -1,115 +1,98 @@
-// P2P: виставити річ на продаж і зняти з продажу.
+// «Продати одяг» — кадр «P2P · продаж одягу»: предмет, ціна лише в
+// золотих монетах (зерна приглушені), комісія й мінімум, схожі лоти зараз,
+// як працює продаж і «Виставити на маркет».
 //
 // Маркет не показує лоти списком — він пропонує вибірку, і дешевші лоти
-// потрапляють у неї частіше (services.md §4). Тому тут же видно лічильник
-// показів: без нього продавець не розуміє, чому річ не продається.
+// потрапляють у неї частіше (services.md §4); звідси й підказка про ціну.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
+import { plural } from "../ui/plural.js";
+import { SLOT_OF, TIER_LABEL } from "./ItemCard.jsx";
+
+const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: w, height: h }} />;
+const freeWord = (n) => (n === 1 ? "одна вільна" : `${n} ${plural(n, "вільна", "вільні", "вільних")}`);
 
 export function SellItem({ item, ctx }) {
   const [price, setPrice] = useState(String(item?.price_coins ?? 60));
-  const [listings, setListings] = useState(null);
+  const [rules, setRules] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  const load = () => api.get("/me/listings").then((r) => setListings(r.listings));
-  useEffect(() => { load().catch(() => setListings([])); }, []);
+  useEffect(() => {
+    api.get(`/market/rules?item=${encodeURIComponent(item.code)}`).then(setRules).catch(() => setRules({}));
+  }, [item.code]);
 
+  const pct = rules?.commission_pct?.item ?? 10;
+  const min = rules?.min_price?.yellow ?? 10;
   const value = Math.trunc(Number(price) || 0);
-  const commission = Math.round((value * 10) / 100);   // одяг — 10 % (economy §9)
+  const commission = Math.round((value * pct) / 100);
+  const similar = rules?.similar;
 
   const list = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/market/listings", {
-        kind: "item",
-        user_item_id: item.user_item_id,
-        price: value,
-        currency: "yellow",
-      });
-      await load();
-      setError(null);
+      await api.post("/market/listings", { kind: "item", user_item_id: item.user_item_id, price: value, currency: "yellow" });
+      ctx.replace("listings");
     } catch (e) {
       const code = e.body?.error;
       setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті"
         : code === "item_in_set" ? "Річ зараз одягнена – спершу зніми її"
         : code === "already_listed" ? "Ця копія вже на продажу"
+        : code === "price_too_low" ? `Мінімальна ціна – ${min}`
         : code ?? e.message);
     } finally {
       setBusy(false);
     }
   };
 
-  const cancel = async (id) => {
-    setBusy(true);
-    try { await api.del(`/market/listings/${id}`); await load(); }
-    catch (e) { setError(e.body?.error ?? e.message); }
-    finally { setBusy(false); }
-  };
-
-  const mine = (listings ?? []).filter((l) => l.kind === "item");
-
   return (
-    <div className="stage-pad">
-      <div className="panel row" style={{ gap: 12 }}>
-        <ItemIcon sprite={item.sprite_id} size={56} style={{ width: 56 }} name={item.name} />
-        <div>
-          <div style={{ fontWeight: 800 }}>{item.name}</div>
-          <div className="muted" style={{ fontSize: 12 }}>
-            вільних копій: {item.free ?? 0}{item.owned > 1 ? ` з ${item.owned}` : ""}
-          </div>
+    <div className="stage-pad" style={{ gap: 14 }}>
+      <div className="sell-card">
+        <span className={`sell-tile tier-${item.tier}`}>
+          <ItemIcon sprite={item.sprite_id} size={40} name={item.name} style={{ width: 50 }} />
+        </span>
+        <div className="lot-body">
+          <b className="sell-name">{item.name}</b>
+          <strong className={`tier-text tier-${item.tier}`}>{TIER_LABEL[item.tier]} · {SLOT_OF[item.slot]}</strong>
+          <small className="sell-stock">на складі {item.owned ?? 1} · {freeWord(item.free ?? 0)}</small>
         </div>
       </div>
 
-      <div className="sectionTitle">Ціна</div>
-      <div className="panel row" style={{ gap: 10 }}>
-        <input
-          className="price-input"
-          inputMode="numeric"
-          value={price}
-          onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        />
-        <img src="/assets/ui/coin_gold.png" alt="монет" style={{ width: 22 }} />
+      <div className="field" style={{ gap: 10 }}>
+        <div className="sectionTitle">Ціна</div>
+        {/* Одяг продається лише за золоті — зерна показані, але вимкнені. */}
+        <div className="seg">
+          <button data-on="true"><Gold w={16} h={17} /></button>
+          <button disabled style={{ opacity: 0.4 }}><img src="/assets/ui/bean.png" alt="кавові боби" style={{ width: 15, height: 17 }} /></button>
+        </div>
+        <label className="sell-price">
+          <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 6))} />
+          <span>комісія {pct}% · {commission} <Gold /></span>
+        </label>
+        <div className="sell-note">Одяг продається лише за <Gold w={13} h={14} />. Мінімальна ціна – {min}.</div>
+        {similar && (
+          <div className="sell-similar">
+            <span>Схожі лоти зараз</span>
+            <b>{similar.min === similar.max ? similar.min : `${similar.min}-${similar.max}`} <Gold w={15} h={16} /></b>
+          </div>
+        )}
       </div>
-      <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-        Комісія маркету – 10 %. З {value || 0} ти отримаєш {Math.max(0, value - commission)}.
-        Дешевші лоти маркет пропонує покупцям частіше.
-      </p>
+
+      <div className="why sell">
+        <b>Як працює продаж</b>
+        <p>Предмет заморожується на складі до продажу: вдягнути або подарувати його неможливо. Поки не купили – можна зняти з продажу.</p>
+        <p>Подарований кавенятку одяг продати не можна – він іде разом із кавенятком.</p>
+        <p>Комісія до {pct}% у валюті угоди повністю згорає – анти-аб'юз, не монетизація.</p>
+        <p>Твій лот показують поруч із тим самим товаром від кафе, і чим дешевший він за сусідів, тим частіше його бачать покупці. Якщо хочеш, щоб купили швидко, став ціну в нижній частині діапазону і дешевше, ніж продає кафе.</p>
+      </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="btn btn-primary" disabled={busy || !item.free || value < 1} onClick={list}>
-        Виставити на продаж
+      <button className="cta wide" style={{ marginTop: "auto", height: 52 }} disabled={busy || !item.free || value < min} onClick={list}>
+        Виставити на маркет
       </button>
-
-      {mine.length > 0 && (
-        <>
-          <div className="sectionTitle">Твої лоти</div>
-          {mine.map((lot) => (
-            <div key={lot.id} className="panel row" style={{ gap: 10, padding: 12 }}>
-              <ItemIcon sprite={lot.item?.sprite_id} size={36} style={{ width: 36 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{lot.item?.name}</div>
-                <div className="muted" style={{ fontSize: 12 }}>
-                  показів: {lot.impressions} · комісія {lot.commission_pct} %
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div className="price" style={{ fontSize: 13 }}>
-                  {lot.price}<img src="/assets/ui/coin_gold.png" alt="" />
-                </div>
-                <button className="btn" style={{ width: "auto", height: 30, padding: "0 10px", fontSize: 12, marginTop: 4 }}
-                        disabled={busy} onClick={() => cancel(lot.id)}>Зняти</button>
-              </div>
-            </div>
-          ))}
-          <p className="muted" style={{ fontSize: 12 }}>
-            Лічильник показів відстає не більше ніж на хвилину.
-          </p>
-        </>
-      )}
     </div>
   );
 }

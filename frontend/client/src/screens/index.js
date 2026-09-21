@@ -73,7 +73,7 @@ export const SCREENS = {
   wardrobe: { component: Wardrobe, title: "Гардероб" },
   chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко", hideNav: true },
   shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
-  sellItem: { component: SellItem, title: "Продати на P2P" },
+  sellItem: { component: SellItem, title: "Продати одяг" },
   wearItem: { component: WearItem, title: "Кому вдягнути" },
   listings: { component: Listings, title: "На продаж" },
   sellPlant: { component: SellPlant, title: "Продати кавенятко" },
