@@ -1,0 +1,138 @@
+# Локальні команди одним списком. Те саме є в package.json (scripts), але
+# `make` не вимагає памʼятати, чи це bun-скрипт, чи docker compose, чи
+# --filter по воркспейсу.
+#
+# Windows: цілі навмисно однорядкові й без && та пайпів — так вони
+# працюють і через cmd.exe, і через sh.
+
+.DEFAULT_GOAL := help
+.PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
+        plant api ws scheduler checkbox overseer client build \
+        docs docs-check kb-check kb-ask planting-data \
+        deploy-client deploy-client-dry keys-jwt keys-ssh smoke
+
+## ── оточення ────────────────────────────────────────────────────────────
+
+help:
+	@echo ---------------------------------------------------------------
+	@echo   make up            postgres, redis, minio (профіль local)
+	@echo   make down          зупинити все локальне
+	@echo   make ps            що зараз крутиться
+	@echo   make logs          логи контейнерів
+	@echo ---------------------------------------------------------------
+	@echo   make migrate       накотити міграції (dbmate)
+	@echo   make seed          дев-гравець, кавенятко, чек, довідник НП
+	@echo   make plant         перемотати кавенятко: STAGE=1 RESET=1
+	@echo   make seed-pull     вивантажити контент із БД у db/seeds
+	@echo   make seed-apply    застосувати db/seeds до БД
+	@echo ---------------------------------------------------------------
+	@echo   make api           api на :3001 (bun --watch)
+	@echo   make ws            ws на :3002
+	@echo   make scheduler     фонові роботи
+	@echo   make checkbox      приймач ПРРО на :3003
+	@echo   make overseer      алерти в Telegram
+	@echo   make client        застосунок гравця на :5173
+	@echo   make smoke         перевірити, що всі роути api відповідають
+	@echo ---------------------------------------------------------------
+	@echo   make docs          перезібрати docs/data-map.html
+	@echo   make docs-check    перевірити, що карта актуальна
+	@echo   make kb-check      перевірити базу знань чату
+	@echo   make kb-ask Q=...  що знайде пошук по базі знань
+	@echo   make planting-data перерахувати геометрію спрайтів посадки
+	@echo ---------------------------------------------------------------
+	@echo   make deploy-client-dry   зібрати клієнт і перевірити, не викочуючи
+	@echo   make deploy-client       викотити клієнт на Cloudflare Workers
+	@echo ---------------------------------------------------------------
+	@echo   make keys-jwt      новий ключ підпису токенів для .env
+	@echo   make keys-ssh      ключ доступу до малини й дроплетів (keys/)
+	@echo ---------------------------------------------------------------
+
+up:
+	docker compose --profile local up -d
+
+down:
+	docker compose --profile local down
+
+ps:
+	docker compose --profile local ps
+
+logs:
+	docker compose logs -f --tail=100
+
+## ── база й дані ─────────────────────────────────────────────────────────
+
+migrate:
+	docker compose run --rm migrate up
+
+migrate-status:
+	docker compose run --rm migrate status
+
+seed:
+	bun scripts/dev-seed.mjs
+
+# Приклад: make plant STAGE=1 RESET=1 SUPPLY=9
+plant:
+	bun scripts/dev-plant.mjs $(if $(STAGE),--stage $(STAGE)) $(if $(RESET),--reset) $(if $(SUPPLY),--supply $(SUPPLY))
+
+seed-pull:
+	bun scripts/seed.mjs pull
+
+seed-apply:
+	bun scripts/seed.mjs apply
+
+## ── сервіси ─────────────────────────────────────────────────────────────
+
+api:
+	bun --watch api/src/index.js
+
+ws:
+	bun ws/src/index.js
+
+scheduler:
+	bun scheduler/src/index.js
+
+checkbox:
+	bun checkbox/src/index.js
+
+overseer:
+	bun overseer/src/index.js
+
+client:
+	bun --cwd client run dev
+
+build:
+	docker compose build api ws checkbox scheduler overseer
+
+smoke:
+	bun scripts/smoke.mjs
+
+## ── доки й база знань ───────────────────────────────────────────────────
+
+docs:
+	bun scripts/build-data-map.mjs
+
+docs-check:
+	bun scripts/build-data-map.mjs --check
+
+kb-check:
+	bun scripts/kb.mjs check
+
+kb-ask:
+	bun scripts/kb.mjs ask "$(Q)"
+
+planting-data:
+	bun scripts/build-planting-data.mjs
+
+## ── викочування й ключі ─────────────────────────────────────────────────
+
+deploy-client-dry:
+	bun scripts/deploy-client.mjs --dry
+
+deploy-client:
+	bun scripts/deploy-client.mjs
+
+keys-jwt:
+	bun scripts/keys.mjs jwt
+
+keys-ssh:
+	bun scripts/keys.mjs ssh

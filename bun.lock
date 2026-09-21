@@ -64,6 +64,9 @@
     "pos": {
       "name": "@extrovert/pos",
       "version": "0.1.0",
+      "dependencies": {
+        "@extrovert/lib": "workspace:*",
+      },
     },
     "scheduler": {
       "name": "@extrovert/scheduler",

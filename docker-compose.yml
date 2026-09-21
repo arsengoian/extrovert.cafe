@@ -74,6 +74,48 @@ services:
       redis:    { condition: service_healthy }
     restart: unless-stopped
 
+  # Локальний S3 замість R2. Сенс не в економії, а в тому, щоб на машині
+  # розробника не лежали ключі, якими можна записати в прод: тут інший
+  # endpoint, інші ключі й бакети з суфіксом -dev (lib/src/r2.js).
+  # Порти нестандартні (9100/9101) — 9000 часто зайнятий іншим стеком.
+  minio:
+    # Профіль local: на дроплеті `docker compose up -d` цього сервісу навіть
+    # не бачить — там справжній R2, і локальний S3 поруч був би зайвим
+    # способом переплутати оточення.
+    profiles: ["local"]
+    # Образ із quay.io: на Docker Hub MinIO більше не публікує. Тег точний,
+    # як і всюди в цьому файлі, — «latest» на двох машинах означає різне.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address ":9101"
+    environment:
+      MINIO_ROOT_USER: ${R2_DEV_ACCESS_KEY_ID:-extrovert-local}
+      MINIO_ROOT_PASSWORD: ${R2_DEV_SECRET_ACCESS_KEY:-extrovert-local-secret}
+    ports: ["9100:9000", "9101:9101"]
+    volumes: ["minio:/data"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Разовий контейнер: створює дев-бакети, щоб заливка не падала на
+  # «NoSuchBucket» під час першого ж запуску.
+  minio-buckets:
+    profiles: ["local"]
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${R2_DEV_ACCESS_KEY_ID:-extrovert-local} ${R2_DEV_SECRET_ACCESS_KEY:-extrovert-local-secret} &&
+      for b in extrovert-pos-dev extrovert-uploads-dev extrovert-evidence-dev extrovert-video-dev; do
+        mc mb --ignore-existing local/$$b;
+      done &&
+      mc anonymous set download local/extrovert-pos-dev
+      "
+    restart: "no"
+
   # Фонові роботи за розкладом: публікатор outbox, покази маркету, довідник
   # і трекінг Нової Пошти (docs/services.md §2).
   scheduler:
@@ -118,5 +160,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  minio:
   pgdata:
   redisdata:

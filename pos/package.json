@@ -6,5 +6,8 @@
   "scripts": {
     "prices:push": "bun scripts/push-prices.mjs",
     "release:push": "bun scripts/push-release.mjs"
+  },
+  "dependencies": {
+    "@extrovert/lib": "workspace:*"
   }
 }

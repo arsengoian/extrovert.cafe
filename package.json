@@ -13,8 +13,8 @@
     "scheduler"
   ],
   "scripts": {
-    "up": "docker compose up -d",
-    "down": "docker compose down",
+    "up": "docker compose --profile local up -d",
+    "down": "docker compose --profile local down",
     "logs": "docker compose logs -f --tail=100",
     "docs:map": "bun scripts/build-data-map.mjs",
     "docs:map:check": "bun scripts/build-data-map.mjs --check",
@@ -28,7 +28,10 @@
     "kb:push": "bun scripts/kb.mjs push",
     "kb:ask": "bun scripts/kb.mjs ask",
     "deploy:client": "bun scripts/deploy-client.mjs",
-    "deploy:client:dry": "bun scripts/deploy-client.mjs --dry"
+    "deploy:client:dry": "bun scripts/deploy-client.mjs --dry",
+    "smoke": "bun scripts/smoke.mjs",
+    "keys:jwt": "bun scripts/keys.mjs jwt",
+    "keys:ssh": "bun scripts/keys.mjs ssh"
   },
   "devDependencies": {
     "marked": "^18.0.13",

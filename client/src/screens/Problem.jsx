@@ -1,6 +1,6 @@
 // «Що не працює?» — скарга або ідея. Відкривається з HUD і зі стартового
 // екрана, тобто працює і без входу (design: «Проблема»).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 
 const CATEGORIES = [
@@ -18,17 +18,48 @@ export function Problem({ ctx }) {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [photo, setPhoto] = useState(null);      // { key, name, preview }
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
 
   useEffect(() => { api.get("/points/current").then((r) => setPoint(r.point)).catch(() => {}); }, []);
 
   const toggle = (id) =>
     setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
 
+  // Фото йде в бакет напряму за підписаним посиланням — api бачить лише
+  // ключ. Так кілька мегабайтів не ходять через наш сервер.
+  const pickPhoto = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const link = await api.post("/problems/photo-url", { content_type: file.type, size: file.size });
+      const res = await fetch(link.upload_url, {
+        method: "PUT",
+        headers: { "content-type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error(`сховище відповіло ${res.status}`);
+      setPhoto({ key: link.key, name: file.name, preview: URL.createObjectURL(file) });
+    } catch (e) {
+      const code = e.body?.error;
+      setError(code === "bad_type" ? "Підійде JPEG, PNG або WebP"
+        : code === "too_big" ? "Фото завелике — до 8 МБ"
+        : code === "unauthorized" ? "Щоб додати фото, спершу увійди"
+        : e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const send = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/problems", { categories: picked, body, point_id: point?.id ?? null });
+      await api.post("/problems", {
+        categories: picked, body, point_id: point?.id ?? null, image_key: photo?.key ?? null,
+      });
       setSent(true);
     } catch (e) {
       setError(e.body?.error === "empty_report" ? "Оберіть, що саме не працює, або опишіть словами" : e.message);
@@ -98,10 +129,28 @@ export function Problem({ ctx }) {
             background: "var(--panel2)", color: "var(--ink)",
           }}
         />
-        <button className="btn" style={{ marginTop: 10 }} disabled
-                title="Завантаження фото зʼявиться разом зі сховищем R2">
-          Додати фото
-        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          style={{ display: "none" }}
+          onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }}
+        />
+        {photo ? (
+          <div className="row" style={{ gap: 10, marginTop: 10 }}>
+            <img src={photo.preview} alt="" style={{ width: 54, height: 54, objectFit: "cover", borderRadius: 12 }} />
+            <div className="muted" style={{ flex: 1, minWidth: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis" }}>
+              {photo.name}
+            </div>
+            <button className="btn" style={{ width: "auto", height: 34, padding: "0 12px", fontSize: 12 }}
+                    onClick={() => setPhoto(null)}>Прибрати</button>
+          </div>
+        ) : (
+          <button className="btn" style={{ marginTop: 10 }} disabled={uploading}
+                  onClick={() => fileRef.current?.click()}>
+            {uploading ? "Завантажуємо…" : "Додати фото"}
+          </button>
+        )}
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
