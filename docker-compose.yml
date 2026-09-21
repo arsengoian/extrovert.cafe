@@ -36,6 +36,13 @@ x-bun: &bun
   env_file: [.env]
   mem_limit: 512m
 
+# Адреси сусідів у мережі compose. Задаються явно, бо без них код бере
+# локальні значення з .env (127.0.0.1:6389) — а в контейнері це він сам.
+# Саме так сервіси в докері мовчки жили без Redis, поки не перевірили.
+x-net: &net
+  DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-extrovert}?sslmode=disable
+  REDIS_URL: redis://redis:6379
+
 services:
   postgres:
     <<: *defaults
@@ -92,7 +99,9 @@ services:
   api:
     <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: api } }
-    environment: { PORT: 3001 }
+    environment:
+      <<: *net
+      PORT: 3001
     ports: ["3001:3001"]
     depends_on:
       migrate:  { condition: service_completed_successfully }
@@ -102,7 +111,9 @@ services:
   ws:
     <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: ws } }
-    environment: { PORT: 3002 }
+    environment:
+      <<: *net
+      PORT: 3002
     ports: ["3002:3002"]
     depends_on:
       redis: { condition: service_healthy }
@@ -110,7 +121,9 @@ services:
   checkbox:
     <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: checkbox } }
-    environment: { PORT: 3003 }
+    environment:
+      <<: *net
+      PORT: 3003
     ports: ["3003:3003"]
     depends_on:
       migrate:  { condition: service_completed_successfully }
@@ -122,6 +135,8 @@ services:
   scheduler:
     <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: scheduler } }
+    environment:
+      <<: *net
     depends_on:
       migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
@@ -130,6 +145,22 @@ services:
   overseer:
     <<: *bun
     build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: overseer } }
+    environment:
+      <<: *net
+    depends_on:
+      migrate:  { condition: service_completed_successfully }
+      postgres: { condition: service_healthy }
+
+  # Адмінка. Поки заглушка з лічильниками — існує, щоб стек збирався й
+  # викочувався цілком (admin/src/index.js). У проді назовні не виходить.
+  admin:
+    <<: *bun
+    build: { context: ., dockerfile: docker/bun.Dockerfile, args: { SVC: admin } }
+    environment:
+      <<: *net
+      PORT: 3004
+    ports: ["3004:3004"]
+    mem_limit: 256m
     depends_on:
       migrate:  { condition: service_completed_successfully }
       postgres: { condition: service_healthy }

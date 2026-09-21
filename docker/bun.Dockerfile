@@ -15,18 +15,14 @@ ARG SVC
 WORKDIR /app
 
 # Спершу маніфести й lock: шар із залежностями не перезбирається, поки вони
-# не змінились. Маніфести всіх воркспейсів потрібні, бо lock описує монорепо
-# цілком — без них bun не зіставить його з деревом.
+# не змінились. Маніфести потрібні лише два — спільної бібліотеки й самого
+# сервіса: bun із --filter бере з монорепо потрібну гілку й не вимагає решти
+# (перевірено збіркою 21.09.2026). Воркспейси фронтендів сюди й не поїхали б
+# за змістом: client і redirect живуть на Cloudflare Workers, pos — на
+# малині, у бекендному образі їм немає що робити.
 COPY package.json bun.lock ./
 COPY lib/package.json ./lib/
-COPY api/package.json ./api/
-COPY ws/package.json ./ws/
-COPY checkbox/package.json ./checkbox/
-COPY overseer/package.json ./overseer/
-COPY scheduler/package.json ./scheduler/
-COPY pos/package.json ./pos/
-COPY client/package.json ./client/
-COPY redirect/package.json ./redirect/
+COPY ${SVC}/package.json ./${SVC}/
 
 # --frozen-lockfile: збірка не має права тихо підняти версію, якої немає в
 # lock. --filter: ставимо залежності лише потрібного сервісу.

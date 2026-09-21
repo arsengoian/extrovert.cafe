@@ -1,0 +1,227 @@
+# Прод. На сервері з нашого коду немає нічого: тільки цей файл (симлінком
+# як docker-compose.yml), .env і томи докера. Усе інше — готові образи з
+# ghcr, які зібрав GitHub Actions (docs/deploy.md §2.3).
+#
+# Чому окремий файл, а не профілі в локальному: різниця не в наборі
+# сервісів, а в самій природі опису. Локально сервіс — це `build:` із
+# монтуванням теки й відкритими портами; тут — незмінний образ із тегом,
+# без жодного bind-mount і майже без публічних портів. Спроба звести це в
+# один файл закінчується десятком умовних змінних і тим, що на проді
+# випадково зібрався образ із чиєїсь робочої машини.
+
+name: extrovert
+
+x-defaults: &defaults
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  init: true
+  security_opt: ["no-new-privileges:true"]
+  pids_limit: 512
+  # 30 секунд на плавну зупинку. Стільки ж стоїть у rollout.sh при `docker
+  # stop`: сервіс має встигнути дописати запити в польоті (lib/shutdown.js),
+  # інакше плавна зупинка існує тільки в коді.
+  stop_grace_period: 30s
+
+# Сервіси з одного монорепо: однаковий .env і однакова стеля памʼяті. Образ
+# кожен називає сам — ім'я різне, а підставляти його змінною означало б
+# зробити файл нечитабельним заради одного рядка.
+x-app: &app
+  <<: *defaults
+  env_file: [.env]
+  mem_limit: 512m
+
+# Адреси сусідів у мережі compose. Задаються явно, бо без них код бере
+# локальні значення з .env (127.0.0.1:6389) — а в контейнері це він сам.
+# Саме так сервіси в докері мовчки жили без Redis, поки не перевірили.
+x-net: &net
+  DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-extrovert}?sslmode=disable
+  REDIS_URL: redis://redis:6379
+
+services:
+  postgres:
+    <<: *defaults
+    image: postgres:16-alpine
+    mem_limit: 768m
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-extrovert}
+      POSTGRES_USER: ${POSTGRES_USER:-extrovert}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задай у .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Портів назовні немає навмисно: база доступна лише всередині мережі
+    # compose. Опублікований 5432 на публічному дроплеті — це база в
+    # інтернеті, і жоден пароль цього не виправляє.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-extrovert}"]
+      interval: 10s
+      retries: 5
+
+  redis:
+    <<: *defaults
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    mem_limit: 256m
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      retries: 5
+
+  # Міграції — окремий запуск, а не залежність сервісів: `docker compose run
+  # --rm migrate up`. Так їх видно окремим кроком деплою й окремою помилкою,
+  # а відкат сервісу не тягне за собою відкат схеми.
+  migrate:
+    <<: *defaults
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-migrate:${TAG:-latest}
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-extrovert}?sslmode=disable
+    depends_on:
+      postgres: { condition: service_healthy }
+    command: ["--no-dump-schema", "up"]
+    restart: "no"
+
+  api:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-api:${TAG:-latest}
+    environment:
+      <<: *net
+      PORT: 3001
+    # Портів немає: сюди ходить лише caddy всередині мережі. Це ж і робить
+    # можливим викочування без розриву — два контейнери api живуть поруч.
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  ws:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-ws:${TAG:-latest}
+    environment:
+      <<: *net
+      PORT: 3002
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3002/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis: { condition: service_healthy }
+
+  checkbox:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-checkbox:${TAG:-latest}
+    environment:
+      <<: *net
+      PORT: 3003
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  scheduler:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-scheduler:${TAG:-latest}
+    # Довші роботи (нічна синхронізація довідника НП) мають право дописати
+    # прохід — інакше блокування лишається взятим, а курсор недописаним.
+    stop_grace_period: 45s
+    environment:
+      <<: *net
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  overseer:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-overseer:${TAG:-latest}
+    environment:
+      <<: *net
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Адмінка. Назовні не виходить: порт відкритий лише на петлі, тож зайти
+  # можна тунелем — `ssh -L 3004:127.0.0.1:3004 root@<ip> -p 2222`. Поки це
+  # заглушка без входу, публікувати її в інтернет немає за що.
+  admin:
+    <<: *app
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-admin:${TAG:-latest}
+    environment:
+      <<: *net
+      PORT: 3004
+    ports: ["127.0.0.1:3004:3004"]
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3004/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  # Єдиний, хто дивиться в інтернет. TLS і маршрути — у Caddyfile всередині
+  # образу; домени підставляються зі змінних .env.
+  caddy:
+    <<: *defaults
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-caddy:${TAG:-latest}
+    mem_limit: 256m
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:-hello@extrovert.cafe}
+      API_DOMAIN: ${API_DOMAIN:-api.extrovert.cafe}
+      WS_DOMAIN: ${WS_DOMAIN:-ws.extrovert.cafe}
+      ERRORS_DOMAIN: ${ERRORS_DOMAIN:-errors.extrovert.cafe}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      # Сертифікати Let's Encrypt. Тільки цей том і варто берегти: втрата
+      # означає нове замовлення сертифікатів і ліміт у п'ять штук на тиждень.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api, ws, checkbox]
+
+  # Збір помилок з усіх сервісів. Свій, щоб не платити за Sentry.
+  glitchtip:
+    <<: *defaults
+    image: glitchtip/glitchtip:latest
+    env_file: [.env]
+    mem_limit: 768m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+      PORT: 8000
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+
+  glitchtip-worker:
+    <<: *defaults
+    image: glitchtip/glitchtip:latest
+    command: ./bin/run-celery-with-beat.sh
+    env_file: [.env]
+    mem_limit: 512m
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
+    depends_on: [glitchtip]
+
+volumes:
+  pgdata:
+  redisdata:
+  caddy_data:
+  caddy_config:
