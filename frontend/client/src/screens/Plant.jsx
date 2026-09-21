@@ -10,6 +10,7 @@ import { api } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
+import { NoSupply } from "../plant/NoSupply.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -213,7 +214,7 @@ export function Plant({ ctx }) {
   const [index, setIndex] = useState(0);
   const [error, setError] = useState(null);
   const [note, setNote] = useState(null);
-  const [popup, setPopup] = useState(null);           // menu | gift | scythe
+  const [popup, setPopup] = useState(null);           // menu | gift | scythe | supply:<препарат>
   const touch = useRef(null);
   const care = ctx.me?.care ?? {};
 
@@ -228,6 +229,8 @@ export function Plant({ ctx }) {
   useEffect(() => { setNote(null); setPopup(null); }, [index]);
 
   const plant = plants?.[index] ?? null;
+  // Нове кавенятко (купив саджанець чи скосив старе) спершу отримує ім'я.
+  useEffect(() => { if (plant && !plant.name) ctx.push("plantName", { plant }); }, [plant?.id]);
 
   if (error) return <div className="stage-pad"><div className="panel">Не вдалось завантажити: {error}</div></div>;
   if (!plants) return <div className="stage-pad"><div className="skeleton" /></div>;
@@ -265,15 +268,16 @@ export function Plant({ ctx }) {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
     // двадцять листків і лише на «Посадити» дізнається, що зарано.
     if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
-    ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка" });
+    ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка", resume: Boolean(plant.appearance?.draft?.count) });
   };
 
   // Один тап по банці = одне застосування. Сервер вирішує, чи це рухає
   // стадію, чи кущ просто попив, чи час відкривати екран посадки.
-  const apply = async (kind) => {
+  // bought — препарат щойно куплено в попапі, а care у цьому рендері ще старий.
+  const apply = async (kind, bought = false) => {
     if (onSale) { setNote("Поки я на маркеті, доглядати за мною не можна"); return; }
     const item = SHELF.find((s) => s.kind === kind);
-    if ((care[item?.key] ?? 0) <= 0) { ctx.openTab("shop"); return; }
+    if (!bought && (care[item?.key] ?? 0) <= 0) { setPopup(`supply:${kind}`); return; }
     if (growth.planting && kind === growth.need) { openPlanting(); return; }
     setNote(null);
     try {
@@ -287,7 +291,7 @@ export function Plant({ ctx }) {
       if (code === "needs_planting") openPlanting();
       else if (code === "wrong_care") setNote(WANT[e.body.need] ? `${WANT[e.body.need].title.replace("Хоче", "Хочу")}, а не це` : "Мені зараз потрібне інше");
       else if (code === "too_soon") setNote("Одна стадія на добу – приходь завтра");
-      else if (code === "no_supply") ctx.openTab("shop");
+      else if (code === "no_supply") setPopup(`supply:${kind}`);
       else if (code === "fully_grown") setNote("Я вже дорослий – одягни мене");
       else setNote(e.message);
     }
@@ -389,7 +393,10 @@ export function Plant({ ctx }) {
       </div>
 
       {onSale && plant.listing && <SaleCard plant={plant} onDone={reload} />}
-      {popup && <div className="plant-dim" onClick={close} />}
+      {popup?.startsWith("supply:") && (
+        <NoSupply kind={popup.slice(7)} ctx={ctx} onClose={close} onBought={() => { const kind = popup.slice(7); close(); apply(kind, true); }} />
+      )}
+      {popup && !popup.startsWith("supply:") && <div className="plant-dim" onClick={close} />}
       {popup === "menu" && (
         <ActionMenu onGift={() => setPopup("gift")}
                     onSell={() => { close(); ctx.push("sellPlant", { plant }); }}
@@ -398,7 +405,7 @@ export function Plant({ ctx }) {
       {popup === "gift" && <GiftSheet plant={plant} onClose={close} onDone={() => { close(); reload(); }} />}
       {popup === "scythe" && (
         <ScytheSheet plant={plant} onClose={close}
-                     onDone={async (id) => { close(); const list = await reload(); const i = list.findIndex((p) => p.id === id); if (i >= 0) setIndex(i); ctx.push("plantName", { plant: list[i] }); }} />
+                     onDone={async (id) => { close(); const list = await reload(); const i = list.findIndex((p) => p.id === id); if (i >= 0) setIndex(i); }} />
       )}
     </div>
   );

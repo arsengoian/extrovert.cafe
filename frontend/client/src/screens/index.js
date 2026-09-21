@@ -67,7 +67,8 @@ export const SCREENS = {
     hideNav: true,
   },
   repost: { component: Repost, title: "Репост у соцмережі" },
-  planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true },
+  // «Незавершена посадка» — ще на вкладці (HUD і меню), редактор — з «Назад».
+  planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true, keepChrome: (p) => Boolean(p.resume) },
   wardrobe: { component: Wardrobe, title: "Гардероб" },
   chat: { component: Chat, title: (p) => p.plant?.name ?? "Кавенятко", hideNav: true },
   shopProduct: { component: ShopItem, title: (p) => p.item?.title ?? "Товар" },
@@ -78,7 +79,8 @@ export const SCREENS = {
   transfer: { component: Transfer, title: "Переказати монети" },
   coinPacks: { component: CoinPacks, title: "Купити монети" },
   paymentResult: { component: PaymentResult, title: "Оплата" },
-  plantName: { component: PlantName, title: "Імʼя кавенятка" },
+  // HUD і меню лишаються (під розмиттям) — картка лягає поверх неба вкладки.
+  plantName: { component: PlantName, keepChrome: true },
   checkout: { component: Checkout, title: "Оформлення" },
   sizeChart: { component: SizeChart, title: "Таблиця розмірів" },
   orders: { component: Orders, title: "Мої замовлення" },

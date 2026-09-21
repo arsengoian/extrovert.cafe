@@ -40,7 +40,7 @@ export function ResultPopup({ art, glow = 96, decor, title, children, action = "
 
 // Шторка — картка на 14 px від низу сцени, над нижнім меню (кадр «Попап ·
 // оплата mono pay»), а не поверх нього.
-function useStageBottom(offset) {
+export function useStageBottom(offset) {
   const [bottom, setBottom] = useState(offset);
   useLayoutEffect(() => {
     const app = document.querySelector(".app");

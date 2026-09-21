@@ -173,43 +173,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .btn-icon { flex: none; width: 46px; height: 46px; padding: 0; color: var(--muted) }
 
-/* Екрани посадки: сцена на весь простір, панель керування знизу */
-.planting { position: absolute; inset: 0; display: flex; flex-direction: column }
-.planting-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; touch-action: none }
-.planting-sheet {
-  flex: none; background: var(--panel); border-top: 1px solid var(--line);
-  border-radius: 20px 20px 0 0; padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
-  box-shadow: 0 -12px 26px rgba(6, 8, 10, .35);
-}
-.planting-sheet .steps { margin-top: 10px }
-.planting-sheet .steps li { padding-bottom: 12px }
-
-.plant-chip {
-  position: absolute; left: 12px; top: 12px; z-index: 10; min-width: 148px;
-  padding: 10px 12px; border-radius: 16px; border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--panel) 86%, transparent); backdrop-filter: blur(6px);
-}
-.plant-chip > .row > img { width: 26px; height: 26px; object-fit: contain }
-.plant-bar { position: relative; height: 6px; border-radius: 999px; background: var(--panel2); overflow: hidden; margin-top: 5px }
-.plant-bar > div { height: 100%; background: var(--grad) }
-/* Позначка мінімуму: до неї кнопка «далі» неактивна */
-.plant-bar > b { position: absolute; top: -2px; width: 2px; height: 10px; background: var(--muted); opacity: .8 }
-.plant-bar-legend { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 3px }
-.plant-dots { display: flex; gap: 4px; margin-top: 6px }
-.plant-dots i { width: 9px; height: 9px; border-radius: 999px; background: var(--panel2); border: 1px solid var(--line) }
-.plant-dots i.on { background: var(--grad); border-color: transparent }
-
-.plant-dial { flex: none; width: 88px; text-align: center; touch-action: none; user-select: none }
-.plant-range { margin-top: 10px }
-.plant-range input[type="range"] { width: 100%; margin: 6px 0 0; accent-color: var(--accent) }
-
-.skin-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px }
-.skin-cell {
-  aspect-ratio: 1 / 1; border-radius: 14px; border: 1px solid var(--line); background: var(--panel2);
-  display: flex; align-items: center; justify-content: center; padding: 6px;
-}
-.skin-cell.on { border-color: var(--accent); background: rgba(254, 129, 11, .16) }
-.skin-cell img { max-width: 100%; max-height: 100%; object-fit: contain }
 .btn-danger { color: #FF6B78; border-color: rgba(255, 107, 120, .45) }
 
 /* Примірочна: п'ять слотів у ряд, як у дизайні */
@@ -1212,3 +1175,102 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 [data-idle] [data-sway="branch"] { animation: aIdleBranch 4.8s ease-in-out infinite }
 [data-idle] [data-sway="branch"]:nth-of-type(2n) { animation-delay: -1.9s }
 [data-idle] [data-sway="crown"] { animation: aIdleCrown 5.2s ease-in-out infinite }
+/* «Ім'я нового кавенятка»: небо, картка знизу, паросток із подякою. */
+.name-sky { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 74%, var(--sky1) 0%, var(--sky2) 72%) }
+.name-card { position: absolute; left: 8px; right: 8px; bottom: 12px; z-index: 160; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden; display: flex; flex-direction: column }
+.name-hero { position: relative; height: 176px; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
+.name-platform { position: absolute; left: 50%; bottom: -22px; width: 168px; height: 83px; margin-left: -112px }
+.name-scene { position: absolute; left: 50%; top: -34px; width: 0; height: 0; margin-left: -121px }
+.name-bubble { position: absolute; left: 50%; top: 38px; margin-left: 6px; max-width: 168px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
+  background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(4px) saturate(160%); color: var(--ink); font-size: 12.5px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .28); animation: aHop 2.6s ease-in-out infinite }
+.name-form { padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px }
+.name-form > b { font-size: 19px; font-weight: 900; line-height: 1.15 }
+.name-form > p { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); text-wrap: pretty }
+.name-form > .cta { height: 50px; border-radius: 16px; font-size: 16px }
+.name-field { height: 52px; border-radius: 14px; border: 1px solid var(--accent); background: var(--panel2); display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px }
+.name-field input { flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--ink); font: inherit; font-size: 17px; font-weight: 800; outline: none }
+.name-field span { flex: none; font-size: 12px; font-weight: 800; color: var(--muted) }
+/* Посадка — кадри «… · як це працює / вибір скіна / трансформація»: сцена
+   на все небо, лічильник угорі, плаваюча панель знизу. */
+.pl { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 66%, var(--sky1) 0%, var(--sky2) 74%) }
+.pl-touch { position: absolute; inset: 0; z-index: 1; touch-action: none }
+.pl-chips { position: absolute; left: 10px; right: 10px; top: 10px; z-index: 60; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none }
+.pl-chip { display: flex; align-items: center; gap: 9px; padding: 7px 11px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 18px rgba(0, 0, 0, .26) }
+.pl-chip > img { flex: none; object-fit: contain }
+.pl-count { display: flex; align-items: baseline; gap: 3px }
+.pl-count.bar { margin: 0 5px 0 -5px }
+.pl-count b { font-size: 15px; font-weight: 900; line-height: 1 }
+.pl-count span { font-size: 10px; font-weight: 800; color: var(--muted) }
+.pl-scale { width: 100px; display: flex; flex-direction: column; gap: 3px }
+.pl-track { position: relative; height: 6px; border-radius: 999px; background: var(--panel2) }
+.pl-track i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px }
+.pl-track em { position: absolute; top: -3px; bottom: -3px; width: 1.5px; margin-left: -.75px; background: var(--ink); opacity: .5 }
+.pl-legend { position: relative; height: 11px }
+.pl-legend span { position: absolute; font-size: 9px; font-weight: 800; color: var(--muted) }
+.pl-dots-col { display: flex; flex-direction: column; gap: 5px }
+.pl-dots { display: flex; gap: 4px }
+.pl-dots i { width: 14px; height: 7px; border-radius: 999px; background: var(--panel2) }
+.pl-tag { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); color: var(--ink); font-size: 12px; font-weight: 800; white-space: nowrap; box-shadow: 0 6px 16px rgba(0, 0, 0, .22) }
+.pl-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 60; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 22px 50px rgba(0, 0, 0, .45); padding: 13px 13px 14px; display: flex; flex-direction: column; gap: 11px }
+.pl-sheet[data-kind="resume"] { padding: 14px 13px }
+.pl-sheet > p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.pl-sheet-title { font-size: 15px; font-weight: 900; line-height: 1.2; text-wrap: pretty }
+.pl-title { font-size: 19px; font-weight: 900; line-height: 1.15; text-wrap: pretty }
+.pl-bullets { display: flex; flex-direction: column; gap: 7px }
+.pl-bullets > div { display: flex; gap: 9px; align-items: flex-start }
+.pl-bullets i { flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 999px; background: var(--accent) }
+.pl-bullets span { font-size: 12.5px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.pl-btn { height: 48px; border-radius: 15px; background: var(--grad); color: var(--accent-ink); font-size: 15px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px }
+.pl-btn:disabled { background: var(--panel2); border: 1px solid var(--line); color: var(--muted) }
+.pl-btn.go { height: 50px; border-radius: 16px; font-size: 16px }
+.pl-pair { display: flex; gap: 9px }
+.pl-pair > .pl-btn { flex: 1.5; gap: 7px }
+.pl-pair > .pl-btn.ghost { flex: 1; border: 1px solid var(--line); background: none; font-size: 14px; color: var(--muted) }
+.pl-skins { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center }
+.pl-skin { flex: none; width: 56px; height: 56px; border-radius: 15px; border: 1px solid var(--line); background: var(--panel2); display: flex; align-items: center; justify-content: center }
+.pl-skin[data-on] { border: 2px solid var(--accent) }
+.pl-skin img { width: 40px; height: 40px; object-fit: contain }
+.pl-skins.wide { flex-wrap: nowrap }
+.pl-skins.wide .pl-skin { flex: 1; width: auto; height: 62px }
+.pl-skins.wide .pl-skin img { width: 46px; height: 46px }
+.pl-del { position: absolute; top: -58px; right: 2px; width: 46px; height: 46px; border-radius: 999px; background: #FF4D5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0, 0, 0, .4) }
+.pl-skinpick { position: absolute; top: -54px; left: 2px; height: 38px; padding: 0 12px 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 10px 24px rgba(0, 0, 0, .34); display: flex; align-items: center; gap: 8px }
+.pl-skinpick img { flex: none; width: 24px; height: 24px; object-fit: contain }
+.pl-skinpick span { font-size: 12.5px; font-weight: 800 }
+.pl-edit { display: flex; align-items: center; gap: 14px }
+.pl-dial { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; touch-action: none; user-select: none }
+.pl-dial b { font-size: 13px; font-weight: 900; line-height: 1 }
+.pl-dial small { font-size: 9px; font-weight: 800; color: var(--muted); white-space: nowrap }
+.pl-ranges { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9px }
+.pl-range { display: flex; flex-direction: column; gap: 3px }
+.pl-range-head { display: flex; align-items: center; justify-content: space-between }
+.pl-range-head span { font-size: 10px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
+.pl-range-head b { font-size: 12px; font-weight: 800 }
+.pl-range-ends { display: flex; align-items: center; justify-content: space-between; font-size: 9.5px; font-weight: 800; color: var(--muted) }
+.pl-slider { position: relative; height: 20px; display: flex; align-items: center; touch-action: none }
+.pl-rail { width: 100%; height: 4px; border-radius: 999px; background: var(--panel2) }
+.pl-fill { position: absolute; left: 0; height: 4px; border-radius: 999px; background: var(--grad) }
+.pl-knob { position: absolute; width: 18px; height: 18px; margin-left: -9px; border-radius: 999px; background: var(--ink); border: 2px solid var(--panel); box-shadow: 0 2px 6px rgba(0, 0, 0, .45) }
+/* Картка препарату — «Попап підтвердження посадки» і «Попап · не вистачає
+   препарату»: над розмиттям, на 16 px від країв сцени. */
+.care-card { position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 160; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); padding: 20px 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 30px 70px rgba(0, 0, 0, .55) }
+.care-card > p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.care-card-head { display: flex; align-items: center; gap: 12px }
+.care-card-head b { font-size: 19px; font-weight: 900; line-height: 1.15; text-wrap: pretty }
+.care-card-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 13px; border-radius: 14px; background: var(--panel2); font-size: 13px }
+.care-card-row span { color: var(--muted) }
+.care-card-row b { font-weight: 800 }
+.care-card-btns { display: flex; gap: 10px }
+.care-card-btns button { height: 48px; border-radius: 14px; font-size: 15px; font-weight: 800 }
+.care-card-btns button:first-child { flex: 1; border: 1px solid var(--line); font-weight: 700; color: var(--muted) }
+.care-card-btns button:last-child { flex: 1.4; background: var(--grad); color: var(--accent-ink) }
+.care-pack { padding: 12px 13px }
+.care-pack b { font-size: 14px; font-weight: 800 }
+.care-pack span { display: flex; align-items: center; gap: 5px; font-size: 16px; font-weight: 900; color: var(--ink) }
+.care-pack img { width: 19px; height: 20px }
+.care-card-balance { display: flex; align-items: center; justify-content: space-between; font-size: 13px }
+.care-card-balance > span { display: inline-flex; align-items: center; gap: 5px; color: var(--muted) }
+.care-card-balance b { font-weight: 800 }
+.care-card-btns.wide button:last-child { flex: 1.5 }
+@keyframes zonePulse { 0%, 100% { opacity: 1 } 50% { opacity: .34 } }
+.pl-min { align-self: flex-end; padding-bottom: 1px; font-size: 9.5px; font-weight: 800; color: var(--muted); white-space: nowrap }

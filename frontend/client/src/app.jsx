@@ -155,6 +155,8 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   const top = stack[stack.length - 1] ?? null;
   const topScreen = top ? SCREENS[top.name] : null;
   const asSheet = topScreen?.presentation === "sheet";
+  // HUD і нижнє меню над екраном стеку — для карток поверх неба вкладки.
+  const keepChrome = typeof topScreen?.keepChrome === "function" ? topScreen.keepChrome(top?.props ?? {}) : Boolean(topScreen?.keepChrome);
 
   const baseName = TAB_SCREEN[tab];
   const base = SCREENS[baseName];
@@ -165,14 +167,14 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
 
   return (
     <div className="app">
-      {top && !asSheet ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
+      {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
       <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
         {/* props із реєстру — значення за замовчуванням: ними один компонент
             обслуговує кілька екранів (умови, приватність, підтримка). */}
         <Shown {...(shown?.props ?? {})} {...(asSheet || !top ? {} : top.props)} ctx={ctx} />
       </div>
       {Sheet ? <Sheet {...(top.props ?? {})} ctx={ctx} /> : null}
-      {(top && !asSheet ? topScreen?.hideNav : false) ? null : (
+      {(top && !asSheet && !keepChrome ? topScreen?.hideNav : false) ? null : (
         <Nav tab={tab} onTab={openTab} badges={me.badges} />
       )}
       {notice}

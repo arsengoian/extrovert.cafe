@@ -1,135 +1,163 @@
 // Дрібні елементи керування екрана посадки: лічильник, диск повороту,
-// повзунки розміру й порядку, сітка скінів. Винесені окремо, бо однакові
-// для листя, гілок і бутонів — різняться лише межі й підписи.
+// повзунки розміру й порядку, скіни, пункти «як це працює». Винесені окремо,
+// бо однакові для листя, гілок і бутонів — різняться лише межі й підписи.
 import { useRef } from "react";
 
-// Лічильник у кутку сцени: скільки вже поставлено і скільки треба.
-export function CounterChip({ icon, count, max, min, label, dots }) {
+const OK = "#3FBF6F";
+const LOW = "#FF4D5E";
+
+// Лічильник у кутку сцени. Для фонового листя — шкала 0…max з позначкою
+// мінімуму (кадр «Листя · фон»), для решти — крапки на кожен елемент.
+// minLabel — «мін 2» поруч із крапками (гілки).
+export function CounterChip({ icon, iconSize, count, max, min = 0, bar, minLabel }) {
+  const color = count >= min ? OK : LOW;
+  const pct = (n) => `${Math.min(100, (n / max) * 100)}%`;
   return (
-    <div className="plant-chip">
-      <div className="row" style={{ gap: 9 }}>
-        <img src={icon} alt="" />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="row" style={{ gap: 3, alignItems: "baseline" }}>
-            <span style={{ fontSize: 18, fontWeight: 900 }}>{count}</span>
-            <span className="muted" style={{ fontSize: 12, fontWeight: 700 }}>/ {max}</span>
-          </div>
-          {dots ? (
-            <div className="plant-dots">
-              {Array.from({ length: max }, (_, i) => <i key={i} className={i < count ? "on" : ""} />)}
+    <div className="pl-chip">
+      <img src={icon} alt="" style={{ width: iconSize, height: iconSize }} />
+      {bar ? (
+        <>
+          <div className="pl-count bar"><b style={{ color }}>{count}</b><span>/ {max}</span></div>
+          <div className="pl-scale">
+            <div className="pl-track">
+              <i style={{ width: pct(count), background: color }} />
+              {min > 0 && <em style={{ left: pct(min) }} />}
             </div>
-          ) : (
-            <>
-              <div className="plant-bar">
-                <div style={{ width: `${Math.min(100, (count / max) * 100)}%` }} />
-                {min ? <b style={{ left: `${(min / max) * 100}%` }} /> : null}
-              </div>
-              <div className="plant-bar-legend"><span>0</span>{min ? <span>{min}</span> : null}<span>{max}</span></div>
-            </>
-          )}
+            <div className="pl-legend">
+              <span style={{ left: 0 }}>0</span>
+              {min > 0 && <span style={{ left: pct(min), transform: "translateX(-50%)" }}>{min}</span>}
+              <span style={{ left: "100%", transform: "translateX(-100%)" }}>{max}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="pl-dots-col">
+          <div className="pl-count"><b style={{ color }}>{count}</b><span>/ {max}</span></div>
+          <div className="pl-dots">
+            {Array.from({ length: max }, (_, i) => <i key={i} style={i < count ? { background: color } : undefined} />)}
+          </div>
         </div>
-      </div>
-      <div className="muted" style={{ fontSize: 11, fontWeight: 700, marginTop: 6 }}>{label}</div>
+      )}
+      {minLabel && <small className="pl-min">мін {min}</small>}
     </div>
   );
 }
 
-// Диск повороту: 0° — «як лежить нормаль», тому стрілка вгору, а дозволений
-// сектор підсвічений. Для листя переднього плану сектор — усе коло.
-export function Dial({ value, min, max, onChange, hint }) {
+// Кут → точка на колі диска: 0° — вгору, за годинниковою стрілкою.
+const at = (deg, r) => {
+  const a = (deg * Math.PI) / 180;
+  return [+(32 + r * Math.sin(a)).toFixed(1), +(32 - r * Math.cos(a)).toFixed(1)];
+};
+
+// Диск повороту: дозволений сектор — акцентом, решта кола — червоним. Для
+// листя переднього плану кут вільний, і акцентом усе коло.
+export function Dial({ value, min, max, onChange }) {
   const ref = useRef(null);
   const full = max - min >= 359;
 
   const fromPointer = (e) => {
     const box = ref.current.getBoundingClientRect();
     const dx = e.clientX - (box.left + box.width / 2);
-    const dy = e.clientY - (box.top + box.height / 2);
-    // 0° — вгору, за годинниковою стрілкою.
+    const dy = e.clientY - (box.top + 39);
     let a = (Math.atan2(dx, -dy) * 180) / Math.PI;
     if (full) a = (a + 360) % 360;
     onChange(Math.round(Math.max(min, Math.min(max, a))));
   };
 
-  const arc = (from, to) => {
-    const p = (deg) => {
-      const r = ((deg - 90) * Math.PI) / 180;
-      return `${(32 + 29 * Math.cos(r)).toFixed(1)} ${(32 + 29 * Math.sin(r)).toFixed(1)}`;
-    };
-    const large = Math.abs(to - from) > 180 ? 1 : 0;
-    return `M${p(from)}A29 29 0 ${large} 1 ${p(to)}`;
-  };
-
-  const needle = ((value - 90) * Math.PI) / 180;
+  const [x1, y1] = at(min, 29);
+  const [x2, y2] = at(max, 29);
+  const [nx, ny] = at(value, 24);
+  const sign = full ? "" : value > 0 ? "+" : value < 0 ? "−" : "";
 
   return (
-    <div className="plant-dial" ref={ref}
-         onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); fromPointer(e); }}
+    <div className="pl-dial" ref={ref}
+         onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* пусте */ } fromPointer(e); }}
          onPointerMove={(e) => { if (e.buttons) fromPointer(e); }}>
       <svg viewBox="0 0 64 64" width="78" height="78">
         <circle cx="32" cy="32" r="29" fill="none" stroke="var(--panel2)" strokeWidth="6" />
-        {!full && <path d={arc(max, min + 360)} fill="none" stroke="rgba(255,77,94,.5)" strokeWidth="6" strokeLinecap="round" />}
-        <path d={full ? arc(0, 359.9) : arc(min, max)} fill="none" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round" />
-        <line x1="32" y1="32" x2={32 + 23.5 * Math.cos(needle)} y2={32 + 23.5 * Math.sin(needle)}
-              stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round" />
+        {full ? (
+          <circle cx="32" cy="32" r="29" fill="none" stroke="var(--accent)" strokeWidth="6" opacity=".85" />
+        ) : (
+          <>
+            <path d={`M${x2} ${y2}A29 29 0 1 1 ${x1} ${y1}`} fill="none" stroke="rgba(255,77,94,.5)" strokeWidth="6" strokeLinecap="round" />
+            <path d={`M${x1} ${y1}A29 29 0 0 1 ${x2} ${y2}`} fill="none" stroke="var(--accent)" strokeWidth="6" strokeLinecap="round" />
+          </>
+        )}
+        <line x1="32" y1="32" x2={nx} y2={ny} stroke="var(--ink)" strokeWidth="2.6" strokeLinecap="round" />
         <circle cx="32" cy="32" r="3.4" fill="var(--ink)" />
       </svg>
-      <div style={{ fontSize: 13, fontWeight: 800 }}>{value > 0 && !full ? "+" : ""}{value}°</div>
-      <div className="muted" style={{ fontSize: 11 }}>{hint}</div>
+      <b>{sign}{Math.abs(value)}°</b>
+      <small>{full ? "0–359°" : `±${max}°`}</small>
+    </div>
+  );
+}
+
+// Повзунок у стилі макета: доріжка 4 px, заливка градієнтом, біла кнопка.
+function Slider({ pct, onPick }) {
+  const ref = useRef(null);
+  const pick = (e) => {
+    const box = ref.current.getBoundingClientRect();
+    onPick(Math.max(0, Math.min(1, (e.clientX - box.left) / box.width)));
+  };
+  return (
+    <div className="pl-slider" ref={ref}
+         onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* пусте */ } pick(e); }}
+         onPointerMove={(e) => { if (e.buttons) pick(e); }}>
+      <div className="pl-rail" />
+      <div className="pl-fill" style={{ width: `${pct}%` }} />
+      <div className="pl-knob" style={{ left: `${pct}%` }} />
     </div>
   );
 }
 
 export function RangeRow({ label, value, display, min, max, step = 0.01, onChange }) {
+  const pct = Math.round(((value - min) / (max - min)) * 100);
   return (
-    <div className="plant-range">
-      <div className="row-between" style={{ fontSize: 12 }}>
-        <span className="muted" style={{ fontWeight: 700 }}>{label}</span>
-        <span style={{ fontWeight: 800 }}>{display}</span>
-      </div>
-      <input type="range" min={min} max={max} step={step} value={value}
-             onChange={(e) => onChange(Number(e.target.value))} />
+    <div className="pl-range">
+      <div className="pl-range-head"><span>{label}</span><b>{display}</b></div>
+      <Slider pct={pct} onPick={(t) => onChange(Math.round((min + t * (max - min)) / step) * step)} />
     </div>
   );
 }
 
 // Порядок серед своїх: пізніше посаджений малюється поверх, тому «спереду» —
-// це кінець масиву (docs/bush_planting_ui.md §7).
-export function ZOrderRow({ index, total, onChange }) {
-  if (total < 2) return null;
+// це кінець масиву (docs/bush_planting_ui.md §7). offset — уже посаджені
+// раніше (бутони попередніх стадій): вони ззаду, і рахунок іде після них;
+// of — скільки їх буде всього (бутонів — сім за життя).
+export function ZOrderRow({ index, total, offset = 0, of, onChange }) {
+  const all = of ?? offset + total;
+  const pct = Math.round(((offset + index + 1) / all) * 100);
   return (
-    <div className="plant-range">
-      <div className="row-between" style={{ fontSize: 12 }}>
-        <span className="muted" style={{ fontWeight: 700 }}>Позиція відносно інших</span>
-        <span style={{ fontWeight: 800 }}>{index + 1} з {total}</span>
-      </div>
-      <input type="range" min={1} max={total} step={1} value={index + 1}
-             onChange={(e) => onChange(Number(e.target.value) - 1)} />
-      <div className="plant-bar-legend"><span>ззаду</span><span>спереду</span></div>
+    <div className="pl-range">
+      <div className="pl-range-head"><span>Позиція відносно інших</span><b>{offset + index + 1} з {all}</b></div>
+      <Slider pct={pct} onPick={(t) => onChange(Math.max(0, Math.min(total - 1, Math.round(t * all) - 1 - offset)))} />
+      <div className="pl-range-ends"><span>ззаду</span><span>спереду</span></div>
     </div>
   );
 }
 
-export function SkinGrid({ count, value, onChange, src }) {
+// Скіни листя — два ряди плиток 56×56 (п’ять і решта), гілок — один ряд
+// широких плиток.
+export function SkinGrid({ count, value, onChange, src, wide }) {
+  const tile = (n) => (
+    <button key={n} className="pl-skin" data-on={n === value || undefined} onClick={() => onChange(n)}>
+      <img src={src(n)} alt={`скін ${n}`} />
+    </button>
+  );
+  const all = Array.from({ length: count }, (_, i) => i + 1);
+  if (wide) return <div className="pl-skins wide">{all.map(tile)}</div>;
   return (
-    <div className="skin-grid">
-      {Array.from({ length: count }, (_, i) => i + 1).map((n) => (
-        <button key={n} className={`skin-cell${n === value ? " on" : ""}`} onClick={() => onChange(n)}>
-          <img src={src(n)} alt={`скін ${n}`} />
-        </button>
-      ))}
-    </div>
+    <>
+      <div className="pl-skins">{all.slice(0, 5).map(tile)}</div>
+      {count > 5 && <div className="pl-skins">{all.slice(5).map(tile)}</div>}
+    </>
   );
 }
 
 export function Steps({ items }) {
   return (
-    <ol className="steps">
-      {items.map((text, i) => (
-        <li key={text}>
-          <span className="steps-num">{i + 1}</span>
-          <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.45 }}>{text}</div>
-        </li>
-      ))}
-    </ol>
+    <div className="pl-bullets">
+      {items.map((text) => <div key={text}><i /><span>{text}</span></div>)}
+    </div>
   );
 }
