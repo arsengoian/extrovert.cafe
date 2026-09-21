@@ -1,0 +1,128 @@
+#cloud-config
+# ASCII ONLY. Not a style preference: DigitalOcean hands user-data to the
+# droplet through a config drive, and a single non-ASCII byte anywhere in
+# this file (even inside a comment) makes cloud-init silently skip the whole
+# config - no ssh port, no docker, no error. Proven with A/B droplets on
+# 2026-09-21; the reasoning in Ukrainian lives in docs/deploy.md section 2.1.
+#
+# Packages are installed from runcmd, not by the packages module, so that
+# runcmd (and therefore ssh) is not blocked behind apt fighting the image's
+# own unattended-upgrade for the dpkg lock.
+
+write_files:
+  # Never fail an apt call because the lock is busy - wait for it.
+  - path: /etc/apt/apt.conf.d/99lock-timeout
+    content: |
+      DPkg::Lock::Timeout "600";
+
+  # Spare ssh port: outbound 22 is blocked on some networks (verified
+  # 2026-09-21 - even github.com:22 is unreachable from the dev machine).
+  #
+  # Ubuntu 24.04 starts ssh through socket activation, which ignores the
+  # Port directive. Adding ports to the socket unit was tried on a separate
+  # droplet and does NOT work: the unit stays active but listens on nothing,
+  # not even 22. Hence socket activation is disabled in runcmd below and ssh
+  # runs as a classic service, which does understand Port.
+  - path: /etc/ssh/sshd_config.d/10-extra-port.conf
+    content: |
+      Port 22
+      Port ${ssh_extra_port}
+
+  - path: /root/setup-packages.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y ca-certificates curl gnupg git htop unattended-upgrades
+
+  # Docker installer, byte for byte the one in the repo
+  # (docker/install-docker.sh), so the server never runs a different version.
+  - path: /root/install-docker.sh
+    permissions: "0755"
+    content: |
+      ${indent(6, install_docker_sh)}
+
+  # 2 GB of RAM, so swap is not a precaution but a condition: without it an
+  # image build or a traffic spike gets postgres killed by the OOM killer.
+  - path: /root/setup-swap.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      if swapon --show | grep -q '/swapfile'; then
+        echo "swap already present"; exit 0
+      fi
+      fallocate -l ${swap_gb}G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=$((${swap_gb} * 1024))
+      chmod 600 /swapfile
+      mkswap /swapfile
+      swapon /swapfile
+      grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+      # swappiness=10: swap here is a cushion for spikes, not an ordinary
+      # place for pages - otherwise the database starts swimming long before
+      # memory actually runs out.
+      sysctl -w vm.swappiness=10
+      grep -q '^vm.swappiness' /etc/sysctl.conf || echo 'vm.swappiness=10' >> /etc/sysctl.conf
+
+  # Our docker-compose.yml uses profiles and depends_on: condition - that is
+  # Compose v2. The installer also drops a standalone v1 binary (1.29.2),
+  # which understands neither, so the v2 plugin is added explicitly.
+  - path: /root/setup-compose-v2.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get install -y docker-compose-plugin
+      docker compose version
+%{ if debug_beacon ~}
+
+  # Debug beacon (terraform: debug_beacon = true). Serves the boot state on
+  # :80 for 15 minutes and stops by itself - the only way to see what is
+  # happening while ssh is not up yet. Reads nothing, keeps nothing.
+  - path: /root/beacon.sh
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      mkdir -p /var/www/boot
+      (
+        for _ in $(seq 1 180); do
+          {
+            cloud-init status --long
+            echo
+            systemctl is-active ssh.service ssh.socket docker
+            echo
+            ss -ltn
+            echo
+            tail -40 /var/log/cloud-init-output.log
+          } > /var/www/boot/index.html 2>&1
+          sleep 5
+        done
+      ) &
+      timeout 900 python3 -m http.server 80 --directory /var/www/boot
+%{ endif ~}
+
+runcmd:
+%{ if debug_beacon ~}
+  - [ bash, -c, "setsid bash /root/beacon.sh >/dev/null 2>&1 < /dev/null &" ]
+%{ endif ~}
+  # ssh first: everything below takes minutes, and the server has to be
+  # reachable during all of it.
+  - [ systemctl, disable, --now, ssh.socket ]
+  - [ systemctl, enable, --now, ssh.service ]
+  # There is no password on this server and there must not be: keys only.
+  # The "#*" pattern instead of "#\?" avoids a backslash, which YAML reads
+  # as an escape inside double quotes.
+  - [ sed, -i, "s/^#*PasswordAuthentication .*/PasswordAuthentication no/", /etc/ssh/sshd_config ]
+  - [ systemctl, reload, ssh.service ]
+  - [ bash, /root/setup-swap.sh ]
+  - [ bash, /root/setup-packages.sh ]
+  - [ bash, /root/install-docker.sh ]
+  - [ bash, /root/setup-compose-v2.sh ]
+  - [ systemctl, enable, --now, docker ]
+  # Room for the code and .env - the repository lands here later.
+  - [ mkdir, -p, /opt/extrovert ]
+  - [ bash, -c, "echo done > /root/cloud-init-done" ]
+
+final_message: "cloud-init finished in $UPTIME s"

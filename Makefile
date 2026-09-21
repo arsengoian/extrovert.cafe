@@ -9,24 +9,25 @@
 .PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
-        deploy-client deploy-client-dry keys-jwt keys-ssh smoke
+        deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
+        tf-plan tf-apply tf-output ssh-public
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
 help:
 	@echo ---------------------------------------------------------------
-	@echo   make up            postgres, redis, minio (профіль local)
+	@echo   make up            postgres, redis, minio - профіль local
 	@echo   make down          зупинити все локальне
 	@echo   make ps            що зараз крутиться
 	@echo   make logs          логи контейнерів
 	@echo ---------------------------------------------------------------
-	@echo   make migrate       накотити міграції (dbmate)
+	@echo   make migrate       накотити міграції через dbmate
 	@echo   make seed          дев-гравець, кавенятко, чек, довідник НП
 	@echo   make plant         перемотати кавенятко: STAGE=1 RESET=1
 	@echo   make seed-pull     вивантажити контент із БД у db/seeds
 	@echo   make seed-apply    застосувати db/seeds до БД
 	@echo ---------------------------------------------------------------
-	@echo   make api           api на :3001 (bun --watch)
+	@echo   make api           api на :3001 з bun --watch
 	@echo   make ws            ws на :3002
 	@echo   make scheduler     фонові роботи
 	@echo   make checkbox      приймач ПРРО на :3003
@@ -44,7 +45,12 @@ help:
 	@echo   make deploy-client       викотити клієнт на Cloudflare Workers
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
-	@echo   make keys-ssh      ключ доступу до малини й дроплетів (keys/)
+	@echo   make keys-ssh      ключ доступу до малини й дроплетів, тека keys
+	@echo ---------------------------------------------------------------
+	@echo   make tf-plan       що terraform збирається змінити на DigitalOcean
+	@echo   make tf-apply      застосувати: дроплет, файрвол, проект
+	@echo   make tf-output     адреси й готова команда ssh
+	@echo   make ssh-public    зайти на публічний дроплет
 	@echo ---------------------------------------------------------------
 
 up:
@@ -136,3 +142,18 @@ keys-jwt:
 
 keys-ssh:
 	bun scripts/keys.mjs ssh
+
+## ── сервери (terraform) ─────────────────────────────────────────────────
+
+tf-plan:
+	bun scripts/tf.mjs plan
+
+tf-apply:
+	bun scripts/tf.mjs apply
+
+tf-output:
+	bun scripts/tf.mjs output
+
+# Порт 2222, бо з частини мереж вихідний 22 закритий (docs/deploy.md §2.1).
+ssh-public:
+	bun scripts/tf.mjs ssh
