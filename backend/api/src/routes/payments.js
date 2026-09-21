@@ -25,6 +25,8 @@ const view = (row) => ({
   invoice_id: row.invoice_id,
   status: row.status,
   coins: row.coins,
+  // пачка — щоб попап «Монети зараховано» показав її картинку
+  pack_code: row.pack_code,
   amount_uah: Number(row.amount_uah),
   credited: Boolean(row.credited_at),
 });
@@ -86,7 +88,7 @@ export default async function routes(app) {
         [user.id, invoiceId, pack.code, pack.coins, pack.price_uah]
       );
       await settle(invoiceId, "success", { test: true });
-      return { test: true, invoice_id: invoiceId, status: "success", coins: pack.coins };
+      return { test: true, invoice_id: invoiceId, status: "success", coins: pack.coins, pack_code: pack.code };
     }
 
     const reference = crypto.randomUUID();

@@ -9,13 +9,32 @@ import { ResultPopup } from "../ui/Popup.jsx";
 
 const QUICK = [100, 200, 500];
 
+const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
+
+export function TransferDone({ done, onClose }) {
+  return (
+    <ResultPopup
+      art={<img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 62, height: 65 }} />}
+      title="Переказ виконано"
+      onClose={onClose}
+    >
+      <div className="result-sum">
+        <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{fmt(done.amount)}
+        <small>→ {done.to}</small>
+      </div>
+      <div className="result-note">
+        <span>Твій баланс: <b>{fmt(done.left)}</b>. Операція вже в історії гаманця.</span>
+      </div>
+    </ResultPopup>
+  );
+}
+
 export function Transfer({ ctx }) {
   const [nickname, setNickname] = useState("");
   const [found, setFound] = useState(null);
   const [amount, setAmount] = useState("200");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [done, setDone] = useState(null);
 
   const balance = ctx.me?.balances?.yellow ?? 0;
   const value = Math.trunc(Number(amount) || 0);
@@ -37,7 +56,9 @@ export function Transfer({ ctx }) {
     try {
       const r = await api.post("/me/transfer", { nickname: nickname.trim(), amount: value });
       await ctx.refreshMe();
-      setDone(r);
+      // Як у кадрі «Попап · переказ виконано»: назад у гаманець, попап над ним.
+      ctx.pop();
+      ctx.notify(<TransferDone done={r} onClose={() => ctx.notify(null)} />);
     } catch (e) {
       const code = e.body?.error;
       setError(code === "no_such_user" ? "Такого нікнейма немає"
@@ -50,7 +71,6 @@ export function Transfer({ ctx }) {
   };
 
   const ready = found?.found && !found.self && value > 0 && value <= balance;
-  const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
 
   return (
     <div className="quiz">
@@ -98,21 +118,6 @@ export function Transfer({ ctx }) {
         {busy ? "Переказуємо…" : <>Переказати {fmt(value)} <img src="/assets/ui/coin_gold.png" alt="золотих монет" style={{ width: 20, height: 21 }} /></>}
       </button>
 
-      {done && (
-        <ResultPopup
-          art={<img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 62, height: 65 }} />}
-          title="Переказ виконано"
-          onClose={ctx.pop}
-        >
-          <div className="result-sum">
-            <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{fmt(done.amount)}
-            <small>→ {done.to}</small>
-          </div>
-          <div className="result-note">
-            <span>Твій баланс: <b>{fmt(done.left)}</b>. Операція вже в історії гаманця.</span>
-          </div>
-        </ResultPopup>
-      )}
     </div>
   );
 }

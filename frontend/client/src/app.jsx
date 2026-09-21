@@ -27,6 +27,9 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   // Бонус із QR кіоска, який чекає на вхід: сума й перша річ для стартового
   // екрана. Без нього — варіант «без бонусів».
   const [pendingBonus, setPendingBonus] = useState(null);
+  // Попап над вкладкою: «Переказ виконано», «Монети зараховано» у макеті
+  // висять над гаманцем, а не над екраном, з якого прийшли.
+  const [notice, setNotice] = useState(null);
 
   useEffect(() => {
     if (me || !bonusToken) return;
@@ -97,7 +100,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   }, [stack.length]);
 
   const ctx = useMemo(
-    () => ({ me, refreshMe, push, pop, replace, openTab, tab }),
+    () => ({ me, refreshMe, push, pop, replace, openTab, tab, notify: setNotice }),
     [me, refreshMe, push, pop, replace, openTab, tab]
   );
 
@@ -169,6 +172,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
       {(top && !asSheet ? topScreen?.hideNav : false) ? null : (
         <Nav tab={tab} onTab={openTab} badges={me.badges} />
       )}
+      {notice}
     </div>
   );
 }

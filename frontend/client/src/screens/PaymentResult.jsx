@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { coins as coinsWord } from "../ui/plural.js";
-import { PENDING_KEY } from "./CoinPacks.jsx";
+import { CoinsCredited, PENDING_KEY } from "./CoinPacks.jsx";
 
 const TRY_FOR_MS = 60_000;
 const EVERY_MS = 2000;
@@ -29,7 +29,12 @@ export function PaymentResult({ ctx, invoiceId }) {
         setPayment(r);
         if (r.credited || ["failure", "expired", "reversed"].includes(r.status)) {
           localStorage.removeItem(PENDING_KEY);
-          await ctx.refreshMe();
+          const fresh = await ctx.refreshMe();
+          // Зараховано — у гаманець із попапом, як після тестової оплати.
+          if (r.credited) {
+            ctx.openTab("wallet");
+            ctx.notify(<CoinsCredited code={r.pack_code} coins={r.coins} balance={fresh.balances.yellow} onClose={() => ctx.notify(null)} />);
+          }
           return;
         }
         if (Date.now() - startedAt.current < TRY_FOR_MS) timer = setTimeout(tick, EVERY_MS);

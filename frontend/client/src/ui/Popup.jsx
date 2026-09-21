@@ -34,12 +34,25 @@ export function ResultPopup({ art, glow = 96, title, children, action = "Гот�
   );
 }
 
+// Шторка — картка на 14 px від низу сцени, над нижнім меню (кадр «Попап ·
+// оплата mono pay»), а не поверх нього.
+function useStageBottom(offset) {
+  const [bottom, setBottom] = useState(offset);
+  useLayoutEffect(() => {
+    const app = document.querySelector(".app");
+    const stage = document.querySelector(".stage");
+    if (app && stage) setBottom(app.getBoundingClientRect().bottom - stage.getBoundingClientRect().bottom + offset);
+  }, [offset]);
+  return bottom;
+}
+
 export function ConfirmSheet({ children, onCancel }) {
+  const bottom = useStageBottom(14);
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
-      <div className="confirm-sheet">{children}</div>
+      <div className="confirm-sheet" style={{ bottom }}>{children}</div>
     </>,
     host
   );

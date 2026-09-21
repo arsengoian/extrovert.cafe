@@ -10,10 +10,38 @@ import { ConfirmSheet, ResultPopup } from "../ui/Popup.jsx";
 
 export const PENDING_KEY = "extrovert.pending_invoice";
 
+// Картинка пачки — з макета: чим більша пачка, тим «врожайніша» картинка.
+const ART = {
+  sprout: { src: "pack_stacks", w: 36, h: 39 },
+  bush: { src: "pack_heap", w: 58, h: 43 },
+  bloom: { src: "pack_crate", w: 59, h: 52 },
+  harvest: { src: "pack_barrel", w: 52, h: 60 },
+};
+const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
+
+// «Попап · монети зараховано»: показується над гаманцем.
+export function CoinsCredited({ code, coins, balance, onClose }) {
+  return (
+    <ResultPopup
+      art={<img src={`/assets/ui/${(ART[code] ?? ART.harvest).src}.png`} alt="набір монет" style={{ width: 78, height: 90 }} />}
+      glow={132}
+      offset={96}
+      title="Монети зараховано"
+      onClose={onClose}
+    >
+      <div className="result-chip">
+        +{fmt(coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+      </div>
+      <div className="result-note">
+        Баланс: {fmt(balance)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+      </div>
+    </ResultPopup>
+  );
+}
+
 export function CoinPacks({ ctx }) {
   const [packs, setPacks] = useState(null);
   const [busy, setBusy] = useState(null);
-  const [done, setDone] = useState(null);
   const [error, setError] = useState(null);
   // Пачка, яку збираються купити: спершу шторка підтвердження з балансом
   // «до → після» (кадр «Попап · оплата mono pay»), лише потім банк.
@@ -35,9 +63,11 @@ export function CoinPacks({ ctx }) {
         window.location.href = r.page_url;
         return;
       }
-      // Тестова оплата (local): монети вже нараховані.
-      await ctx.refreshMe();
-      setDone(r);
+      // Тестова оплата (local): монети вже нараховані — назад у гаманець
+      // і попап над ним, як у кадрі.
+      const fresh = await ctx.refreshMe();
+      ctx.pop();
+      ctx.notify(<CoinsCredited code={r.pack_code} coins={r.coins} balance={fresh.balances.yellow} onClose={() => ctx.notify(null)} />);
     } catch (e) {
       setError(e.body?.error === "payments_not_connected"
         ? "Оплата карткою ще не підключена – скоро."
@@ -47,21 +77,13 @@ export function CoinPacks({ ctx }) {
     }
   };
 
-  // Картинка пачки й знижка — з макета: чим більша пачка, тим «врожайніша»
-  // картинка. Знижку рахуємо від ціни монети в найменшій пачці, а не
-  // вписуємо руками — інакше вона розійдеться з цінами першою ж правкою.
-  const ART = {
-    sprout: { src: "pack_stacks", w: 36, h: 39 },
-    bush: { src: "pack_heap", w: 58, h: 43 },
-    bloom: { src: "pack_crate", w: 59, h: 52 },
-    harvest: { src: "pack_barrel", w: 52, h: 60 },
-  };
+  // Знижку рахуємо від ціни монети в найменшій пачці, а не вписуємо руками
+  // — інакше вона розійдеться з цінами першою ж правкою.
   const base = Math.max(...packs.map((p) => p.price_uah / p.coins));
   const perCoin = (p) => (p.price_uah / p.coins).toFixed(2).replace(".", ",");
   const discount = (p) => Math.round((1 - p.price_uah / p.coins / base) * 100);
   const best = packs.find((p) => p.best) ??
     packs.reduce((b, p) => (!b || p.price_uah / p.coins < b.price_uah / b.coins ? p : b), null);
-  const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
 
   return (
     <div className="stage-pad">
@@ -94,7 +116,7 @@ export function CoinPacks({ ctx }) {
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      {picked && !done && (() => {
+      {picked && (() => {
         const art = ART[picked.code] ?? ART.sprout;
         const now = ctx.me?.balances?.yellow ?? 0;
         return (
@@ -123,22 +145,6 @@ export function CoinPacks({ ctx }) {
         );
       })()}
 
-      {done && (
-        <ResultPopup
-          art={<img src={`/assets/ui/${(ART[done.code] ?? ART.harvest).src}.png`} alt="набір монет" style={{ width: 78, height: 90 }} />}
-          glow={132}
-          offset={96}
-          title="Монети зараховано"
-          onClose={ctx.pop}
-        >
-          <div className="result-chip">
-            +{fmt(done.coins)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
-          </div>
-          <div className="result-note">
-            Баланс: {fmt(ctx.me?.balances?.yellow ?? 0)} <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
-          </div>
-        </ResultPopup>
-      )}
     </div>
   );
 }
