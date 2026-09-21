@@ -25,14 +25,23 @@ export default async function routes(app) {
     if (!DEV) return reply.code(404).send({ error: "not_found" });
     const nickname = (req.body?.nickname || "").trim() || (await generateNickname());
 
-    const existing = await one("select * from users where nickname = $1", [nickname]);
+    const existing = await one("select * from users where nickname = $1 and deleted_at is null", [nickname]);
+    // Нікнейм міг лишитись за видаленим акаунтом: увійти в нього не можна,
+    // але й зайняти його ім'я теж — тоді видаємо нове, замість падати на
+    // унікальному індексі.
+    const free = existing
+      ? nickname
+      : (await one("select 1 from users where nickname = $1", [nickname]))
+        ? await generateNickname()
+        : nickname;
+
     const user =
       existing ||
       (await one(
         `insert into users (id, nickname, metadata, consent_at, terms_version)
          values ($1, $2, '{"dev": true}'::jsonb, now(), 'dev')
          returning *`,
-        [randomUUID(), nickname]
+        [randomUUID(), free]
       ));
 
     return issue(reply, user);

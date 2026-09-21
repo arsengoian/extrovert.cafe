@@ -28,6 +28,8 @@ import { CoinPacks } from "./CoinPacks.jsx";
 import { PlantName } from "./PlantName.jsx";
 import { Legal } from "./Legal.jsx";
 import { Bonus } from "./Bonus.jsx";
+import { DeleteAccount } from "./DeleteAccount.jsx";
+import { PaymentResult } from "./PaymentResult.jsx";
 import { Checkout } from "./Checkout.jsx";
 import { Orders } from "./Orders.jsx";
 
@@ -70,10 +72,12 @@ export const SCREENS = {
   plantMarket: { component: PlantMarket, title: "Нове кавенятко" },
   transfer: { component: Transfer, title: "Переказати монети" },
   coinPacks: { component: CoinPacks, title: "Купити монети" },
+  paymentResult: { component: PaymentResult, title: "Оплата" },
   plantName: { component: PlantName, title: "Імʼя кавенятка" },
   bonus: { component: Bonus, title: "Бонус за покупку" },
   checkout: { component: Checkout, title: "Оформлення" },
   orders: { component: Orders, title: "Мої замовлення" },
+  deleteAccount: { component: DeleteAccount, title: "Видалити акаунт" },
   terms: { component: Legal, title: "Умови користування" },
   privacy: { component: Legal, title: "Політика приватності", props: { doc: "privacy" } },
   support: { component: Legal, title: "Підтримка", props: { doc: "support" } },

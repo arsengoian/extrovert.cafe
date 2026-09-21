@@ -691,6 +691,50 @@ ALTER SEQUENCE public.outbox_id_seq OWNED BY public.outbox.id;
 
 
 --
+-- Name: payments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.payments (
+    id bigint NOT NULL,
+    user_id uuid NOT NULL,
+    provider text DEFAULT 'mono'::text NOT NULL,
+    invoice_id text NOT NULL,
+    pack_code text NOT NULL,
+    coins integer NOT NULL,
+    amount_uah numeric(10,2) NOT NULL,
+    status text DEFAULT 'created'::text NOT NULL,
+    ledger_entry_id bigint,
+    credited_at timestamp with time zone,
+    raw jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT payments_amount_uah_check CHECK ((amount_uah > (0)::numeric)),
+    CONSTRAINT payments_coins_check CHECK ((coins > 0)),
+    CONSTRAINT payments_provider_check CHECK ((provider = ANY (ARRAY['mono'::text, 'test'::text]))),
+    CONSTRAINT payments_status_check CHECK ((status = ANY (ARRAY['created'::text, 'processing'::text, 'success'::text, 'failure'::text, 'expired'::text, 'reversed'::text])))
+);
+
+
+--
+-- Name: payments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.payments_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: payments_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.payments_id_seq OWNED BY public.payments.id;
+
+
+--
 -- Name: plant_stage_transitions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1270,6 +1314,8 @@ CREATE TABLE public.users (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     last_seen_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    deleted_nickname public.citext,
     CONSTRAINT users_beans_check CHECK ((beans >= 0)),
     CONSTRAINT users_coins_silver_check CHECK ((coins_silver >= 0)),
     CONSTRAINT users_coins_yellow_check CHECK ((coins_yellow >= 0)),
@@ -1535,6 +1581,13 @@ ALTER TABLE ONLY public.nickname_words ALTER COLUMN id SET DEFAULT nextval('publ
 --
 
 ALTER TABLE ONLY public.outbox ALTER COLUMN id SET DEFAULT nextval('public.outbox_id_seq'::regclass);
+
+
+--
+-- Name: payments id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments ALTER COLUMN id SET DEFAULT nextval('public.payments_id_seq'::regclass);
 
 
 --
@@ -1894,6 +1947,22 @@ ALTER TABLE ONLY public.np_warehouses
 
 ALTER TABLE ONLY public.outbox
     ADD CONSTRAINT outbox_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: payments payments_invoice_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_invoice_id_key UNIQUE (invoice_id);
+
+
+--
+-- Name: payments payments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
 
 
 --
@@ -2346,6 +2415,20 @@ CREATE INDEX outbox_id_idx ON public.outbox USING btree (id) WHERE (published_at
 
 
 --
+-- Name: payments_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payments_status_idx ON public.payments USING btree (status) WHERE (status = ANY (ARRAY['created'::text, 'processing'::text]));
+
+
+--
+-- Name: payments_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX payments_user_id_created_at_idx ON public.payments USING btree (user_id, created_at DESC);
+
+
+--
 -- Name: plant_stage_transitions_plant_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2476,6 +2559,13 @@ CREATE INDEX user_items_user_id_idx ON public.user_items USING btree (user_id) W
 --
 
 CREATE INDEX user_items_user_id_item_def_id_idx ON public.user_items USING btree (user_id, item_def_id);
+
+
+--
+-- Name: users_deleted_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX users_deleted_at_idx ON public.users USING btree (deleted_at) WHERE (deleted_at IS NOT NULL);
 
 
 --
@@ -2694,6 +2784,22 @@ ALTER TABLE ONLY public.news_broadcasts
 
 ALTER TABLE ONLY public.np_warehouses
     ADD CONSTRAINT np_warehouses_city_ref_fkey FOREIGN KEY (city_ref) REFERENCES public.np_cities(ref) ON DELETE CASCADE;
+
+
+--
+-- Name: payments payments_ledger_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_ledger_entry_id_fkey FOREIGN KEY (ledger_entry_id) REFERENCES public.ledger_entries(id);
+
+
+--
+-- Name: payments payments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.payments
+    ADD CONSTRAINT payments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --
@@ -3002,4 +3108,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920210000'),
     ('20260920220000'),
     ('20260920230000'),
-    ('20260920240000');
+    ('20260920240000'),
+    ('20260921090000'),
+    ('20260921100000');

@@ -6,7 +6,6 @@
 import { one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
-import { economy } from "../economy.js";
 import { notifyPlant } from "../notify.js";
 
 const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
@@ -20,7 +19,7 @@ export default async function routes(app) {
     if (!user) return;
     const nickname = String(req.query?.nickname ?? "").trim();
     if (!nickname) fail(400, "nickname_required");
-    const target = await one("select id, nickname from users where nickname = $1", [nickname]);
+    const target = await one("select id, nickname from users where nickname = $1 and deleted_at is null", [nickname]);
     if (!target) return { found: false };
     return { found: true, nickname: target.nickname, self: target.id === user.id };
   });
@@ -37,7 +36,8 @@ export default async function routes(app) {
       // Нікнейм відправника потрібен для журналу отримувача, а в токені
       // його немає — беремо з бази разом з усім іншим.
       const { rows: me } = await client.query("select nickname from users where id = $1", [user.id]);
-      const { rows: targets } = await client.query("select id, nickname from users where nickname = $1", [nickname]);
+      const { rows: targets } = await client.query(
+        "select id, nickname from users where nickname = $1 and deleted_at is null", [nickname]);
       const target = targets[0];
       if (!target) fail(404, "no_such_user");
       if (target.id === user.id) fail(409, "self_transfer");
@@ -67,28 +67,6 @@ export default async function routes(app) {
       await notifyPlant(target.id, `Тобі переказали ${amount} жовтих монет.`, { client });
 
       return { ok: true, amount, to: target.nickname, left: paid[0].coins_yellow };
-    });
-  });
-
-  // ── пачки монет за гривні ──────────────────────────────────────────
-  // Платіжного провайдера ще немає, тому оплата існує лише в local:
-  // так екран можна пройти цілком, а в проді кнопка чесно недоступна.
-  app.post("/shop/coin-packs/:code/pay", async (req, reply) => {
-    const user = requireUser(req, reply);
-    if (!user) return;
-    if (!DEV) fail(501, "payments_not_connected");
-
-    const pack = economy.coin_packs.find((p) => p.code === req.params.code);
-    if (!pack) fail(404, "no_such_pack");
-
-    return tx(async (client) => {
-      await client.query("update users set coins_yellow = coins_yellow + $2 where id = $1", [user.id, pack.coins]);
-      await client.query(
-        `insert into ledger_entries (user_id, delta_yellow, reason, meta)
-         values ($1, $2, 'admin', $3)`,
-        [user.id, pack.coins, { pack: pack.code, uah: pack.price_uah, test_payment: true }]
-      );
-      return { ok: true, coins: pack.coins, uah: pack.price_uah, test: true };
     });
   });
 

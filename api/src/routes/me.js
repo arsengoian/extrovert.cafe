@@ -27,6 +27,10 @@ export default async function routes(app) {
     if (!user) return;
     const row = await one("select * from users where id = $1", [user.id]);
     if (!row) return reply.code(404).send({ error: "no_such_user" });
+    // Токен живе 15 хвилин, тож після видалення акаунта він ще якийсь час
+    // валідний. Сесію ми гасимо, але цей рядок — те, що бачить клієнт
+    // першим, і саме звідси він має дізнатись, що заходити більше нікуди.
+    if (row.deleted_at) return reply.code(410).send({ error: "account_deleted" });
 
     // Лічильник на вкладці «Магазин»: замовлення зі зміною статусу, якої
     // гравець ще не відкривав (db-schema §2, user_seen_at).

@@ -1,11 +1,14 @@
 // «Купити монети»: пачки за гривні.
 //
-// Платіжного провайдера ще немає. Замість того щоб малювати кнопку, яка
-// нічого не робить, екран прямо каже, що оплата поки лише тестова, і в
-// проді її не буде взагалі (api віддасть 501).
+// Оплата — mono pay: api створює рахунок, ми переходимо на сторінку банку
+// й повертаємось на /?pay=1. Якщо MONO_TOKEN не налаштований, у local
+// рахунок «оплачується» одразу, а в проді роут відповідає 501 — кнопки,
+// яка мовчки нічого не робить, тут немає.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { coins as coinsWord } from "../ui/plural.js";
+
+export const PENDING_KEY = "extrovert.pending_invoice";
 
 export function CoinPacks({ ctx }) {
   const [packs, setPacks] = useState(null);
@@ -21,7 +24,15 @@ export function CoinPacks({ ctx }) {
     setBusy(pack.code);
     setError(null);
     try {
-      const r = await api.post(`/shop/coin-packs/${pack.code}/pay`);
+      const r = await api.post(`/shop/coin-packs/${pack.code}/invoice`);
+      if (r.page_url) {
+        // Повертаючись із банку, застосунок має знати, чий статус питати:
+        // у самій адресі повернення id платежу не передаємо.
+        localStorage.setItem(PENDING_KEY, r.invoice_id);
+        window.location.href = r.page_url;
+        return;
+      }
+      // Тестова оплата (local): монети вже нараховані.
       await ctx.refreshMe();
       setDone(r);
     } catch (e) {

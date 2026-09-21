@@ -22,9 +22,19 @@ import marketRoutes from "./routes/market.js";
 import walletRoutes from "./routes/wallet.js";
 import legalRoutes from "./routes/legal.js";
 import deliveryRoutes from "./routes/delivery.js";
+import accountRoutes from "./routes/account.js";
+import paymentRoutes from "./routes/payments.js";
 
 const app = Fastify({ logger: true });
 registerErrorHandler(app);
+
+// Тіло потрібне байт-у-байт: підпис вебхука mono рахується від сирого
+// тексту, а перезібраний JSON відрізняється пробілами й порядком ключів.
+app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
+  req.rawBody = body;
+  if (!body) return done(null, {});
+  try { done(null, JSON.parse(body)); } catch (e) { done(e); }
+});
 
 // Клієнт живе на extrovert.cafe, api на піддомені; локально — різні порти.
 // Дозволяємо лише те, що справді ходить: інакше CORS перетворюється на
@@ -61,6 +71,8 @@ await app.register(marketRoutes, { prefix: "/api/v1" });
 await app.register(walletRoutes, { prefix: "/api/v1" });
 await app.register(legalRoutes, { prefix: "/api/v1" });
 await app.register(deliveryRoutes, { prefix: "/api/v1" });
+await app.register(accountRoutes, { prefix: "/api/v1" });
+await app.register(paymentRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

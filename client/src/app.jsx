@@ -15,7 +15,7 @@ import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 import "./theme.js";
 
-export function App({ bonusToken = null }) {
+export function App({ bonusToken = null, returningFromPayment = false }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState("plant");
@@ -47,6 +47,14 @@ export function App({ bonusToken = null }) {
     push("bonus", { token: bonusToken });
     window.history.replaceState({}, "", "/");
   }, [bonusToken, Boolean(me)]);
+
+  // Повернення з банку: показуємо статус оплати й прибираємо ?pay з адреси,
+  // щоб перезавантаження сторінки не відкривало той самий екран знову.
+  useEffect(() => {
+    if (!returningFromPayment || !me) return;
+    push("paymentResult", {});
+    window.history.replaceState({}, "", "/");
+  }, [returningFromPayment, Boolean(me)]);
 
   // Події з ws: після будь-якої зміни в акаунті перечитуємо профіль —
   // баланси в HUD мають оновлюватись без перезаходу.

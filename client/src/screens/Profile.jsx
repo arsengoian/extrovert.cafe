@@ -56,6 +56,12 @@ export function Profile({ ctx }) {
               onClick={() => api.logout().finally(() => location.reload())}>
         Вийти
       </button>
+      {/* Видалення живе тут, а не серед налаштувань: політика приватності
+          обіцяє його саме в профілі. */}
+      <button className="btn" style={{ marginTop: 8, fontSize: 13, color: "var(--muted)" }}
+              onClick={() => ctx.push("deleteAccount")}>
+        Видалити акаунт
+      </button>
     </Sheet>
   );
 }
