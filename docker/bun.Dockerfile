@@ -26,6 +26,7 @@ COPY overseer/package.json ./overseer/
 COPY scheduler/package.json ./scheduler/
 COPY pos/package.json ./pos/
 COPY client/package.json ./client/
+COPY redirect/package.json ./redirect/
 
 # --frozen-lockfile: збірка не має права тихо підняти версію, якої немає в
 # lock. --filter: ставимо залежності лише потрібного сервісу.

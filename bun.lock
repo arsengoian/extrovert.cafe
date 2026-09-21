@@ -68,6 +68,10 @@
         "@extrovert/lib": "workspace:*",
       },
     },
+    "redirect": {
+      "name": "@extrovert/redirect",
+      "version": "0.0.1",
+    },
     "scheduler": {
       "name": "@extrovert/scheduler",
       "version": "0.0.1",
@@ -190,6 +194,8 @@
     "@extrovert/overseer": ["@extrovert/overseer@workspace:overseer"],
 
     "@extrovert/pos": ["@extrovert/pos@workspace:pos"],
+
+    "@extrovert/redirect": ["@extrovert/redirect@workspace:redirect"],
 
     "@extrovert/scheduler": ["@extrovert/scheduler@workspace:scheduler"],
 
