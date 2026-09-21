@@ -126,6 +126,7 @@ erDiagram
         text id PK "kyiv-01"
         text name
         text address
+        text short_address "у виборі точки: «Мишуги 8»"
         text timezone
         text status "planned|live|paused"
         text checkbox_branch_id "філія в Checkbox: через неї ціна на точку"
@@ -924,7 +925,7 @@ db/seeds/
 
 ```json
 {
-  "points":         { "key": "id",          "owner": "git", "columns": ["id", "name", "address", "timezone"] },
+  "points":         { "key": "id",          "owner": "git", "columns": ["id", "name", "address", "short_address", "timezone"] },
   "drinks":         { "key": "system_code", "owner": "git", "columns": ["system_code", "name", "vol", "price_uah", "coins", "bonus_coins", "sprite", "cup", "active", "sort_order"] },
   "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "collection", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] }
 }

@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 25611c1</p>
+  <p class="eyebrow">extrovert.cafe · джерело f8dce16</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 19 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1132,6 +1132,7 @@ erDiagram
         text id PK &quot;kyiv-01&quot;
         text name
         text address
+        text short_address &quot;у виборі точки: «Мишуги 8»&quot;
         text timezone
         text status &quot;planned|live|paused&quot;
         text checkbox_branch_id &quot;філія в Checkbox: через неї ціна на точку&quot;
@@ -1246,8 +1247,8 @@ erDiagram
     }</pre></div>
 </figure>
 <div class="dict"><article class="entity" id="t-points">
-  <header><h4>points</h4><span class="entity-count">12 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">kyiv-01</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">timezone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">planned|live|paused</td></tr><tr><td class="c-name">checkbox_branch_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">філія в Checkbox: через неї ціна на точку</td></tr><tr><td class="c-name">key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">sha256 ключа з config/point.key на малині</td></tr><tr><td class="c-name">next_key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">ротація: видано, малина ще не підхопила</td></tr><tr><td class="c-name">key_rotated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">key_revoked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">остання телеметрія</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>points</h4><span class="entity-count">13 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">kyiv-01</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">short_address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">у виборі точки: «Мишуги 8»</td></tr><tr><td class="c-name">timezone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">planned|live|paused</td></tr><tr><td class="c-name">checkbox_branch_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">філія в Checkbox: через неї ціна на точку</td></tr><tr><td class="c-name">key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">sha256 ключа з config/point.key на малині</td></tr><tr><td class="c-name">next_key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">ротація: видано, малина ще не підхопила</td></tr><tr><td class="c-name">key_rotated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">key_revoked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">остання телеметрія</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployment_targets">menu_deployment_targets</a><span class="rel-label">яке меню стоїть</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-device_telemetry">device_telemetry</a><span class="rel-label">що шле залізо</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_segments">video_segments</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-problem_reports">problem_reports</a><span class="rel-label">скарги з форми</span></li></ul>
 </article>
 <article class="entity" id="t-users">
@@ -2192,7 +2193,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 └── item_defs.json
 </code></pre>
 <pre><code class="language-json">{
-  &quot;points&quot;:         { &quot;key&quot;: &quot;id&quot;,          &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;id&quot;, &quot;name&quot;, &quot;address&quot;, &quot;timezone&quot;] },
+  &quot;points&quot;:         { &quot;key&quot;: &quot;id&quot;,          &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;id&quot;, &quot;name&quot;, &quot;address&quot;, &quot;short_address&quot;, &quot;timezone&quot;] },
   &quot;drinks&quot;:         { &quot;key&quot;: &quot;system_code&quot;, &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;system_code&quot;, &quot;name&quot;, &quot;vol&quot;, &quot;price_uah&quot;, &quot;coins&quot;, &quot;bonus_coins&quot;, &quot;sprite&quot;, &quot;cup&quot;, &quot;active&quot;, &quot;sort_order&quot;] },
   &quot;item_defs&quot;:      { &quot;key&quot;: &quot;code&quot;,        &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;code&quot;, &quot;name&quot;, &quot;collection&quot;, &quot;description_md&quot;, &quot;slot&quot;, &quot;tier&quot;, &quot;sprite_id&quot;, &quot;price_coins&quot;, &quot;active&quot;] }
 }
@@ -10037,7 +10038,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 25611c1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел f8dce16 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

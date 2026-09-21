@@ -3,7 +3,7 @@
 //
 // Три різні дії, які поєднує одне: кожна рухає баланс, тому кожна пише
 // рядок у журнал у тій самій транзакції, що й зміну колонки.
-import { one, tx } from "../db.js";
+import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { notifyPlant } from "../notify.js";
@@ -83,9 +83,15 @@ export default async function routes(app) {
       [String(req.params.token)]
     );
     if (!grant) fail(404, "no_such_bonus");
+    // У бонусі лежать коди предметів; плитці потрібні назва, комплект,
+    // рідкість і спрайт — «Капелюх / «Ковбой»» у рамці кольору тіру.
+    const codes = Array.isArray(grant.items) ? grant.items : [];
+    const defs = codes.length
+      ? await many("select code, name, collection, tier, sprite_id from item_defs where code = any($1)", [codes])
+      : [];
     return {
       coins: grant.coins_yellow,
-      items: grant.items ?? [],
+      items: codes.map((code) => defs.find((d) => d.code === code)).filter(Boolean),
       available: grant.status === "pending" && new Date(grant.expires_at) > new Date(),
     };
   });

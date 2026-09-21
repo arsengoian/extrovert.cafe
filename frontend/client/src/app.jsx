@@ -33,8 +33,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
     api.get(`/bonus/${encodeURIComponent(bonusToken)}/preview`)
       .then((b) => {
         if (!b.available) return;
-        const item = b.items?.[0];
-        setPendingBonus({ coins: b.coins, item: item ? { name: item.name, icon: item.sprite_id ?? item.icon } : null });
+        setPendingBonus({ coins: b.coins, item: b.items?.[0] ?? null });
       })
       .catch(() => {});
   }, [me, bonusToken]);

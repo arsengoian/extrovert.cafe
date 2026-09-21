@@ -14,7 +14,8 @@ const CATEGORIES = [
 
 export function Problem({ ctx }) {
   const [point, setPoint] = useState(null);
-  const [picked, setPicked] = useState([]);
+  // Перша категорія відмічена одразу — як у кадрі «Повідомити про проблему».
+  const [picked, setPicked] = useState(["coffee_machine"]);
   const [body, setBody] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -22,6 +23,16 @@ export function Problem({ ctx }) {
   const [photo, setPhoto] = useState(null);      // { key, name, preview }
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
+  const bodyRef = useRef(null);
+
+  // З фото поле деталей — за висотою тексту, як у кадрі «Проблема ·
+  // заповнено»; без фото його розтягує flex.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    el.style.height = "";
+    if (photo) el.style.height = `${el.scrollHeight + 2}px`;
+  }, [body, photo]);
 
   useEffect(() => { api.get("/points/current").then((r) => setPoint(r.point)).catch(() => {}); }, []);
 
@@ -76,7 +87,7 @@ export function Problem({ ctx }) {
       <div className="field">
         <div className="sectionTitle">Точка</div>
         <div className="select-field">
-          {point ? `${point.name} · ${point.address}` : "—"}
+          <span>{point ? `${point.name} · ${point.short_address ?? point.address}` : "—"}</span>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
             <path d="M6 9.5 12 15.5 18 9.5" />
           </svg>
@@ -104,10 +115,13 @@ export function Problem({ ctx }) {
         </div>
       </div>
 
-      <div className="field">
+      {/* Без фото поле тягнеться на весь залишок екрана, а «Додати фото» —
+          велика кнопка; з фото поле за вмістом і під ним рядок файлу
+          (кадри «Повідомити про проблему» і «Проблема · заповнено»). */}
+      <div className={`field details-field${photo ? "" : " grow"}`}>
         <div className="sectionTitle">Деталі</div>
-        <textarea className="textarea details" value={body} rows={3}
-                  placeholder="Опиши, що трапилося" onChange={(e) => setBody(e.target.value)} />
+        <textarea ref={bodyRef} className="textarea details" value={body} rows={1}
+                  placeholder="Опишіть, що трапилося" onChange={(e) => setBody(e.target.value)} />
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
                onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
         {photo && (
@@ -124,17 +138,23 @@ export function Problem({ ctx }) {
             </button>
           </div>
         )}
-        <button className="dashed-btn" disabled={uploading} onClick={() => fileRef.current?.click()}>
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M12 6v12M6 12h12" />
-          </svg>
+        <button className={`dashed-btn${photo ? "" : " big"}`} disabled={uploading} onClick={() => fileRef.current?.click()}>
+          {photo ? (
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M12 6v12M6 12h12" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <rect x="3.5" y="5.5" width="17" height="13" rx="2.6" /><circle cx="12" cy="12" r="3.2" />
+            </svg>
+          )}
           {uploading ? "Завантажуємо…" : photo ? "Ще фото" : "Додати фото"}
         </button>
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="cta send" disabled={busy} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
+      <button className={`cta send${photo ? "" : " flush"}`} disabled={busy} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
 
       {sent && (
         <ResultPopup

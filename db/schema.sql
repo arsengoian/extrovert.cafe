@@ -828,9 +828,17 @@ CREATE TABLE public.points (
     key_revoked_at timestamp with time zone,
     last_seen_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    short_address text,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
     CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text])))
 );
+
+
+--
+-- Name: COLUMN points.short_address; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.points.short_address IS 'Адреса для рядка вибору точки в застосунку: вулиця й будинок без міста';
 
 
 --
@@ -3127,4 +3135,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920240000'),
     ('20260921090000'),
     ('20260921100000'),
-    ('20260921120000');
+    ('20260921120000'),
+    ('20260921130000');

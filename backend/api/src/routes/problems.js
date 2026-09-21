@@ -20,7 +20,7 @@ export default async function routes(app) {
   // (users.metadata.qr_pos, urls.md).
   app.get("/points/current", async () => {
     const point = await one(
-      `select id, name, address from points
+      `select id, name, address, short_address from points
         where status in ('live', 'planned') order by status, id limit 1`
     );
     return { point };

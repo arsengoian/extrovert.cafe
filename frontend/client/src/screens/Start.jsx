@@ -8,6 +8,7 @@
 // Так екран лишається піксель у піксель як у макеті, без зайвої кнопки.
 import { useState } from "react";
 import { api } from "../api.js";
+import { ItemIcon } from "../ui/ItemIcon.jsx";
 
 const GoogleG = () => (
   <svg viewBox="0 0 48 48" width="20" height="20">
@@ -48,8 +49,6 @@ export function Start({ onSignedIn, onProblem, onSupport, bonus = null }) {
     }
   };
 
-  const [itemTop, itemBottom] = (bonus?.item?.name ?? "").split(" ");
-
   return (
     <div className="stage">
       <div className="start">
@@ -79,8 +78,10 @@ export function Start({ onSignedIn, onProblem, onSupport, bonus = null }) {
                 </div>
                 {bonus.item && (
                   <div className="bonus-tile">
-                    <span className="rare"><img src={`/assets/ui/${bonus.item.icon}.png`} alt={bonus.item.name} style={{ width: 48, height: 28, objectFit: "contain" }} /></span>
-                    <small>{itemTop}<br />{itemBottom}</small>
+                    <span className={`tier-${bonus.item.tier}`}>
+                      <ItemIcon sprite={bonus.item.sprite_id} size={48} alt={bonus.item.name} style={{ width: 48 }} />
+                    </span>
+                    <small>{bonus.item.name}{bonus.item.collection && <><br />«{bonus.item.collection}»</>}</small>
                   </div>
                 )}
               </div>

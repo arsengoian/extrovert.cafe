@@ -125,7 +125,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .btn[disabled] { opacity: .5 }
 
 .tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: var(--radius-pill); background: var(--panel2); color: var(--muted) }
-.tag-common { color: #9AA3B0 } .tag-uncommon { color: #4FB477 } .tag-rare { color: #4C8DFF } .tag-epic { color: #B269FF }
+/* Кольори рідкості — з макета (Common/Uncommon/Rare/Epic). */
+:root { --tier-common: 168, 178, 192; --tier-uncommon: 63, 191, 111; --tier-rare: 90, 169, 255; --tier-epic: 176, 124, 255 }
+.tag-common { color: rgb(var(--tier-common)) } .tag-uncommon { color: rgb(var(--tier-uncommon)) }
+.tag-rare { color: rgb(var(--tier-rare)) } .tag-epic { color: rgb(var(--tier-epic)) }
 
 .price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800 }
 .price img { width: 18px; height: 19px }
@@ -667,16 +670,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: absolute; right: 24px; bottom: 4px; width: 196px; padding: 10px 12px; border: 1px solid var(--line);
   border-radius: 6px 18px 18px; background: var(--bubble); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .22);
   font-size: 12.5px; line-height: 1.32; color: var(--ink); text-wrap: pretty;
+  animation: aHop 2.6s ease-in-out infinite;
 }
+/* Бульбашка кавенятка «підстрибує», як у макеті ([data-hop]). */
+@keyframes aHop { 0%, 48%, 100% { transform: translateY(0) } 70% { transform: translateY(-8px) } 86% { transform: translateY(1px) } }
 .hero-bubble b { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 4px }
 .start-bonus { align-self: stretch; display: flex; flex-direction: column; gap: 10px; align-items: center }
 .start-bonus > b { font-size: 13.5px; font-weight: 800; text-align: center }
 .bonus-row { display: flex; align-items: flex-start; justify-content: center; gap: 14px }
 .bonus-tile { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px }
 .bonus-tile > span { width: 54px; height: 54px; border-radius: 13px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
-.bonus-tile > span.rare {
-  background: radial-gradient(circle at 50% 35%, rgba(90, 169, 255, .55) 0%, rgba(90, 169, 255, .16) 70%);
-  border: 1.5px solid #5AA9FF; box-shadow: 0 6px 16px rgba(90, 169, 255, .34);
+.bonus-tile > span.tier-common { --t: var(--tier-common) }
+.bonus-tile > span.tier-uncommon { --t: var(--tier-uncommon) }
+.bonus-tile > span.tier-rare { --t: var(--tier-rare) }
+.bonus-tile > span.tier-epic { --t: var(--tier-epic) }
+.bonus-tile > span[class^="tier-"] {
+  background: radial-gradient(circle at 50% 35%, rgba(var(--t), .55) 0%, rgba(var(--t), .16) 70%);
+  border: 1.5px solid rgb(var(--t)); box-shadow: 0 6px 16px rgba(var(--t), .34);
 }
 .bonus-tile > b { font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center }
 .bonus-tile > small { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.15; text-align: center }
@@ -696,15 +706,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 13px; font-weight: 700; color: var(--muted); white-space: nowrap;
 }
 .start-foot { display: flex; justify-content: center }
-.start-foot a, .start-foot button { font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px }
+.start-foot a, .start-foot button { font-size: 13px; font-weight: 700; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px }
 
 /* ── скарга «Що не працює?» ────────────────────────────────────────────
    Кадри «Повідомити про проблему» й «Проблема · заповнено». */
 .form18 { padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; min-height: 100% }
 .select-field {
   height: 46px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel);
-  display: flex; align-items: center; justify-content: space-between; padding: 0 14px; font-size: 15px; font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px; font-size: 15px; font-weight: 700;
 }
+.select-field > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.select-field > svg { flex: none }
 .check-row { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); width: 100%; text-align: left; font-size: 15px }
 .check-row > i {
   flex: none; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--line);
@@ -713,6 +725,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .check-row[aria-pressed="true"] { font-weight: 700 }
 .check-row[aria-pressed="true"] > i { border: 0; background: var(--grad) }
 .textarea.details { min-height: 72px; border-radius: var(--radius); padding: 13px; font-size: 14px; line-height: 1.35 }
+.details-field.grow { flex: 1; min-height: 0 }
+.details-field.grow .textarea.details { flex: 1; min-height: 48px }
 .file-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel) }
 .file-row > img, .file-row > .thumb {
   flex: none; width: 44px; height: 44px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line);
@@ -725,6 +739,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   height: 44px; border: 1px dashed var(--line); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center;
   gap: 8px; font-size: 12px; font-weight: 700; color: var(--muted); width: 100%;
 }
+.dashed-btn.big { height: 52px; border-radius: 14px; font-size: 13px }
+.cta.send.flush { margin-top: 0 }
 .cta.send { width: 100%; margin-top: 4px; height: 52px; font-size: 16px }
 
 /* Юридичні тексти: пігулки-вкладки, суцільний текст без панелей —

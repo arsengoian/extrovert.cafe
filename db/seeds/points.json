@@ -3,6 +3,7 @@
     "id": "kyiv-01",
     "name": "Кіберклуб «Арена»",
     "address": "вул. Миколи Мишуги, 8, Київ",
+    "short_address": "Мишуги 8",
     "timezone": "Europe/Kyiv"
   }
 ]

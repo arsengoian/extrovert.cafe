@@ -6,6 +6,7 @@
       "id",
       "name",
       "address",
+      "short_address",
       "timezone"
     ]
   },
