@@ -11,6 +11,7 @@ import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
+import { Sparks } from "../ui/fx.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -68,7 +69,11 @@ const Lock = ({ size, title }) => (
   </span>
 );
 
-function Shelf({ care, onApply }) {
+// Полив (дошка «Анімації»): лійка нахиляється, з носика падають краплі, а
+// число на кільці змінюється з легким підскоком — як і в решти препаратів.
+function Shelf({ care, onApply, pour }) {
+  const shown = useRef(care);
+  useEffect(() => { shown.current = care; });
   return (
     <div className="shelf">
       <img className="shelf-board" src="/assets/ui/shelf.png" alt="Поличка з препаратами" />
@@ -79,13 +84,21 @@ function Shelf({ care, onApply }) {
           <img src={`/assets/ui/${src}.png`} alt={alt}
                style={{ left: x, top: y, width: w, height: h, transform: s.mirror ? "scaleX(-1)" : undefined }} />
         );
+        const pouring = s.kind === "water" && pour;
+        const changed = (shown.current[s.key] ?? 0) !== n;
         return (
           <button key={s.key} className="shelf-item" title={s.title} onClick={() => onApply(s.kind)}
                   style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
-            {s.crop ? <span className="shelf-crop">{img}</span> : img}
+            {s.crop ? <span className="shelf-crop">{img}</span>
+              : s.kind === "water" ? <span className="shelf-tilt" key={pour?.id ?? "still"} data-pour={pouring ? "" : undefined}>{img}</span>
+              : img}
+            {pouring && [0, 1, 2].map((i) => (
+              <img key={`${pour.id}-${i}`} className="fx-drop" src="/assets/ui/droplet.png" alt=""
+                   style={{ left: 4 + i * 5, top: 38, animationDelay: `${300 + i * 150}ms` }} />
+            ))}
             <span className="shelf-ring" data-empty={n <= 0 || undefined} style={{ left: s.ring[0], top: s.ring[1] }}>
               <img src="/assets/ui/ring.png" alt="" />
-              <span><b>{n}</b><small>{s.unit}</small></span>
+              <span><b key={n} className={changed ? "fx-count" : undefined}>{n}</b><small>{s.unit}</small></span>
             </span>
           </button>
         );
@@ -216,7 +229,19 @@ export function Plant({ ctx }) {
   const [note, setNote] = useState(null);
   const [popup, setPopup] = useState(null);           // menu | gift | scythe | supply:<препарат>
   const touch = useRef(null);
+  const [fx, setFx] = useState(null);                 // перехід стадії: попередня сцена й куди виросло
+  const [pour, setPour] = useState(null);             // полив, що зараз грає
   const care = ctx.me?.care ?? {};
+  useEffect(() => {
+    if (!fx) return undefined;
+    const t = setTimeout(() => setFx(null), 2200);
+    return () => clearTimeout(t);
+  }, [fx]);
+  useEffect(() => {
+    if (!pour) return undefined;
+    const t = setTimeout(() => setPour(null), 1400);
+    return () => clearTimeout(t);
+  }, [pour]);
 
   // Кавенят може бути скільки завгодно (gamification_ui §MVP): стрілка
   // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
@@ -280,10 +305,14 @@ export function Plant({ ctx }) {
     if (!bought && (care[item?.key] ?? 0) <= 0) { setPopup(`supply:${kind}`); return; }
     if (growth.planting && kind === growth.need) { openPlanting(); return; }
     setNote(null);
+    const prev = instances;
+    const from = plant.growth_stage;
     try {
       const r = await api.post(`/me/plants/${plant.id}/care`, { kind });
+      if (kind === "water") setPour({ id: Date.now() });
       await ctx.refreshMe();
       await reload();
+      if (r.grown) setFx({ id: Date.now(), prev, from, to: r.stage });
       if (r.grown) setNote(`Я підріс! Тепер стадія ${r.stage}`);
       else if (r.progress) setNote(`Дякую! Ще ${r.applications - r.progress} – і підросту`);
     } catch (e) {
@@ -336,14 +365,21 @@ export function Plant({ ctx }) {
             </button>
           )}
           <div className="plant-scene">
-            {assets && <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />}
+            {assets && (fx ? (
+              // «Перехід стадії росту»: кросфейд старої сцени в нову
+              <>
+                <div className="fx-fade-out" key={`o${fx.id}`}><Scene instances={fx.prev} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} /></div>
+                <div className="fx-fade-in" key={`i${fx.id}`}><Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle /></div>
+              </>
+            ) : <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
-          <Shelf care={care} onApply={apply} />
+          <Shelf care={care} onApply={apply} pour={pour} />
           {plant.growth_stage >= 10 && (
-            <button className="plant-barrel" title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
+            <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
               <img src="/assets/ui/barrel.png" alt="" />
             </button>
           )}
+          {fx && <GrowthFx fx={fx} instances={instances} />}
         </div>
 
         <div className="plant-top">
@@ -408,5 +444,44 @@ export function Plant({ ctx }) {
                      onDone={async (id) => { close(); const list = await reload(); const i = list.findIndex((p) => p.id === id); if (i >= 0) setIndex(i); }} />
       )}
     </div>
+  );
+}
+
+// Точка сцени (1000×1300, масштаб 0.26 від кута .plant-scene) у координатах
+// .plant-area — там живуть іскорки й боби.
+const inArea = (i) => ({ x: 66 + i.x * 0.26, y: 66 + i.y * 0.26 });
+const isFruit = (i) => /^fruit_/.test(i.group ?? "");
+// Центр бочки: кнопка 277×260, картинка з відступом 2×3 і розміром 68×70.
+const BARREL_AT = { x: 277 + 2 + 34, y: 260 + 3 + 35 };
+
+// Перехід стадії: великий сплеск конфеті над кроною; бутон → квітка → біб —
+// маленькі іскорки на кожному плоді, що змінився; на стадії 10 сім бобів
+// летять дугою в бочку, і вона з'являється з підскоком.
+function GrowthFx({ fx, instances }) {
+  const body = instances.find((i) => /^body_stage/.test(i.group ?? ""));
+  const crown = body ? inArea(body) : { x: 196, y: 200 };
+  const fruits = instances.filter(isFruit);
+  const before = fx.prev.filter(isFruit);
+  const changed = fruits.filter((f, n) => before[n]?.sprite !== f.sprite);
+  return (
+    <>
+      <Sparks kind="stage" x={crown.x} y={crown.y} delay={350} duration={900} />
+      {changed.map((f, n) => {
+        const p = inArea(f);
+        return <Sparks key={`f${n}`} kind="fruit" x={p.x} y={p.y} delay={450 + n * 40} />;
+      })}
+      {fx.to === 10 && (
+        <>
+          {fruits.slice(0, 7).map((f, n) => {
+            const p = inArea(f);
+            return (
+              <img key={`b${n}`} className="fx-bean" src="/assets/ui/bean.png" alt=""
+                   style={{ left: p.x - 9, top: p.y - 10, "--bx": `${BARREL_AT.x - p.x}px`, "--by": `${BARREL_AT.y - p.y}px`, animationDelay: `${n * 90}ms` }} />
+            );
+          })}
+          <Sparks kind="barrel" x={BARREL_AT.x} y={BARREL_AT.y} delay={1150} />
+        </>
+      )}
+    </>
   );
 }

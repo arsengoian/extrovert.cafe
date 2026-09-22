@@ -2,7 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app.jsx";
 import { RepostLanding } from "./RepostLanding.jsx";
+import { installTapFx } from "./ui/fx.jsx";
 import "./theme.css";
+
+// Кільце тапу — один слухач на весь документ, а не обгортка кожної кнопки.
+installTapFx();
 
 // Два шляхи поза звичайним застосунком. Роутера немає (див. app.jsx), тож
 // розбираємо їх тут, до монтування:

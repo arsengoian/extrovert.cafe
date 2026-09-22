@@ -12,6 +12,8 @@
   --sky1: #16231C; --sky2: #0C0E11; --nav: #12151A;
   --radius: 16px; --radius-sm: 12px; --radius-pill: 999px;
   --gbtn: #131314; --gbtn-line: #8E918F; --gbtn-ink: #E3E3E3; --bubble: rgba(21, 24, 28, .55);
+  /* кільце тапу: на нейтральних кнопках — світле, на градієнтних і кольорових — біле густіше */
+  --ripple: rgba(242, 239, 230, .34); --ripple-strong: rgba(255, 255, 255, .55);
 }
 
 :root[data-theme="light"] {
@@ -20,6 +22,7 @@
   --grad: linear-gradient(96deg, #C9550A 8%, #C70D4D 92%);
   --sky1: #DDEBD5; --sky2: #F7F4EC; --nav: #FFFFFF;
   --gbtn: #FFFFFF; --gbtn-line: #747775; --gbtn-ink: #1F1F1F; --bubble: rgba(255, 255, 255, .72);
+  --ripple: rgba(20, 24, 29, .20); --ripple-strong: rgba(255, 255, 255, .6);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
@@ -1282,3 +1285,58 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .pm-info > small + small { margin-top: 3px }
 .pm-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 6px }
 .pm-buy > span { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 900 }
+/* ── анімації з дошки «Анімації» ────────────────────────────────────────
+   Ключові кадри — з макета; ті, що там крутяться по колу для демо, тут
+   разові (one-shot) і стиснуті до реального темпу. */
+@keyframes aSpark { 0% { transform: translate(-50%, -50%) translate(0, 0) scale(.2); opacity: 0 } 18% { opacity: 1 } 100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(.9); opacity: 0 } }
+@keyframes aRipple { 0% { transform: translate(-50%, -50%) scale(0); opacity: .55 } 100% { transform: translate(-50%, -50%) scale(1); opacity: 0 } }
+@keyframes aCoinFly { 0% { transform: translate(0, 0) scale(1); opacity: 0 } 12% { opacity: 1 } 100% { transform: translate(var(--cx), var(--cy)) scale(.55); opacity: 0 } }
+@keyframes aRollTo { from { transform: translateY(0) } to { transform: translateY(calc(var(--steps) * -1.3em)) } }
+/* посадка елемента: bounce через окрему властивість scale — transform
+   спрайта зайнятий центруванням і поворотом */
+@keyframes aGrow { 0% { scale: 0; opacity: 0 } 45% { scale: 1.12; opacity: 1 } 62% { scale: .96 } 75%, 100% { scale: 1; opacity: 1 } }
+@keyframes aFadeOut { from { opacity: 1 } to { opacity: 0 } }
+@keyframes aFadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes aTiltOnce { 0% { rotate: 0deg } 30%, 70% { rotate: -38deg } 100% { rotate: 0deg } }
+@keyframes aDrop { 0%, 22% { transform: translateY(0) scale(.7); opacity: 0 } 30% { opacity: 1 } 72% { transform: translateY(58px) scale(1); opacity: 0 } 100% { opacity: 0 } }
+@keyframes aCountIn { from { transform: translateY(8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes aArc { 0% { transform: translate(0, 0) scale(1); opacity: 0 } 10% { opacity: 1 } 100% { transform: translate(var(--bx), var(--by)) scale(.6); opacity: .15 } }
+@keyframes aPopIn { 0% { transform: scale(0); opacity: 0 } 55% { transform: scale(1.18); opacity: 1 } 78% { transform: scale(.94) } 100% { transform: scale(1); opacity: 1 } }
+@keyframes aCrateShake { 0%, 100% { transform: translate(0, 0) rotate(0) } 12% { transform: translate(-3px, 0) rotate(-2deg) } 25% { transform: translate(3px, 0) rotate(2deg) } 38% { transform: translate(-3px, 0) rotate(-2deg) } 50% { transform: translate(3px, 0) rotate(2deg) } 64% { transform: translate(-2px, 0) rotate(-1deg) } 80% { transform: translate(1px, 0) rotate(.5deg) } }
+@keyframes aLidOff { from { transform: translate(0, 0) rotate(0) } to { transform: translate(14px, -34px) rotate(38deg) } }
+@keyframes aGlowOnce { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.4) } 45% { opacity: .85; transform: translate(-50%, -50%) scale(1.05) } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.25) } }
+
+.fx-sparks { position: absolute; width: 0; height: 0; pointer-events: none; z-index: 5 }
+.fx-sparks > i { position: absolute; left: 50%; top: 50%; border-radius: 2px; opacity: 0; animation: aSpark .7s ease-out both }
+.fx-ink { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none }
+.fx-ink > span { position: absolute; border-radius: 999px; opacity: 0; transform: translate(-50%, -50%) scale(0); animation: aRipple .6s cubic-bezier(.2, .6, .3, 1) both }
+.fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 400; overflow: hidden }
+.fx-coin { position: absolute; width: 20px; height: 21px; opacity: 0; animation: aCoinFly 1.1s cubic-bezier(.3, .05, .6, .6) both }
+.fx-roll { display: inline-flex; align-items: flex-end }
+.fx-roll-col { display: inline-block; height: 1.3em; line-height: 1.3em; overflow: hidden }
+.fx-roll-col > span { display: block; animation: aRollTo 2s cubic-bezier(.16, .84, .3, 1) both }
+.fx-roll-col i { display: block; height: 1.3em; font-style: normal; text-align: center }
+.fx-roll-gap { white-space: pre }
+.fx-pop { animation: aPopIn .55s cubic-bezier(.34, 1.56, .64, 1) both }
+.fx-fade-out { position: absolute; inset: 0; animation: aFadeOut .9s ease-in-out both; pointer-events: none }
+.fx-fade-in { position: absolute; inset: 0; animation: aFadeIn .9s ease-in-out both }
+/* посаджений елемент на сцені */
+[data-pop] { animation: aGrow .7s cubic-bezier(.34, 1.56, .64, 1) both }
+@keyframes aPulse { 0%, 100% { transform: scale(1) } 50% { transform: scale(1.07) } }
+.fx-pulse { animation: aPulse 1s ease-in-out 2 }
+/* «Відкриття скриньки» — поверх розмиття, до попапа з результатом */
+.crate-opening { position: absolute; left: 50%; top: 42%; width: 130px; height: 126px; margin: -63px 0 0 -65px; z-index: 160; pointer-events: none }
+.crate-opening-glow { position: absolute; left: 50%; top: 40%; width: 220px; height: 220px; opacity: 0; transform: translate(-50%, -50%); animation: aGlowOnce .9s ease-out .7s both }
+.crate-opening-body { position: absolute; inset: 0; animation: aCrateShake .7s ease-in-out both }
+.crate-opening-body > img { position: absolute; left: 0; top: 0; width: 130px; height: 126px }
+.crate-opening-lid { position: absolute; left: 0; top: 0; width: 130px; height: 126px; transform-origin: 50% 40%; animation: aLidOff .45s cubic-bezier(.34, 1.56, .64, 1) .68s both }
+.crate-opening-lid img { position: absolute; left: 0; top: 0; width: 113.5px; height: 67.3px; transform-origin: 0 0; transform: matrix(1.0773, -.0487, .0457, .628, 3.58, 4.32); filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .3)) }
+/* полив: обгортка нахиляється, а дзеркало лійки лишається на своєму transform */
+.shelf-tilt { position: absolute; inset: 0; transform-origin: 80% 70% }
+.shelf-tilt > img { position: absolute; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .42)) }
+.shelf-tilt[data-pour] { animation: aTiltOnce 1.1s ease-in-out both }
+.fx-drop { position: absolute; width: 13px; height: 18px; opacity: 0; pointer-events: none; animation: aDrop .9s ease-in both }
+.fx-count { display: inline-block; animation: aCountIn .35s ease-out both }
+.fx-bean { position: absolute; width: 18px; height: 20px; opacity: 0; z-index: 81; pointer-events: none; animation: aArc .9s cubic-bezier(.4, .1, .8, .6) both }
+.plant-barrel.fx-barrel-in { animation: aPopIn .55s cubic-bezier(.34, 1.56, .64, 1) .95s both }
+.plant-area > .fx-sparks { z-index: 82 }

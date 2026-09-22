@@ -16,6 +16,10 @@ import { W0, fitCamera, growthFactor, smoothD } from "./geometry.js";
 import { ANCHOR, baseInstances, playerInstances } from "./scene.js";
 import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } from "./placement.js";
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
+import { Sparks } from "../ui/fx.jsx";
+
+// Іскорки посадки — одна механіка, різний масштаб часток (дошка «Анімації»).
+const POP_SPARKS = { leafBg: "leaf", leafFg: "leaf", branch: "branch", bud: "bud" };
 
 // Препарат переходу: картинка з пропорціями файлу, назви й одиниця.
 const CARE = {
@@ -105,6 +109,13 @@ export function Planting({ ctx, plantId, title, resume }) {
   const [sheetH, setSheetH] = useState(220);
   const [host, setHost] = useState(null);
   useEffect(() => setHost(document.querySelector(".app")), []);
+  // Щойно посаджений елемент: виростає з bounce, навколо — іскорки.
+  const [pop, setPop] = useState(null);
+  useEffect(() => {
+    if (!pop) return undefined;
+    const t = setTimeout(() => setPop(null), 900);
+    return () => clearTimeout(t);
+  }, [pop]);
 
   const id = plantId ?? ctx.me?.plants?.[0]?.id;
 
@@ -167,9 +178,10 @@ export function Planting({ ctx, plantId, title, resume }) {
       ...toStage(it), scale: it.scale * f, rotation: it.rotation,
       group: groupFor(phase === "leafFg" ? "leafBg" : phase), sprite: spriteFor(phase, it),
       z: cfg.z + n * 0.001,
+      pop: pop?.n === n,
     }));
     return [...base, ...planted, ...drafts].sort((a, b) => a.z - b.z);
-  }, [assets, data, stage, resolved, phase, cfg, f, toStage]);
+  }, [assets, data, stage, resolved, phase, cfg, f, toStage, pop]);
 
   // Підсвічені зони й криві — у тих самих координатах, що й сцена.
   const zones = useMemo(() => {
@@ -235,6 +247,8 @@ export function Planting({ ctx, plantId, title, resume }) {
       const skin = list[selected]?.skin ?? 1;
       setList([...list, createAt(point, cfg, { skin, targets })]);
       setSelected(list.length);
+      const box = rootRef.current.getBoundingClientRect();
+      setPop({ n: list.length, x: e.clientX - box.left, y: e.clientY - box.top, id: Date.now() });
     } else {
       setSelected(hit >= 0 ? hit : null);
       return;
@@ -380,6 +394,7 @@ export function Planting({ ctx, plantId, title, resume }) {
           })()}
         </svg>
       </Scene>
+      {pop && <Sparks key={pop.id} kind={POP_SPARKS[phase]} x={pop.x} y={pop.y} delay={120} />}
 
       {sheet !== "intro" && sheet !== "confirm" && (
         <div className="pl-chips">

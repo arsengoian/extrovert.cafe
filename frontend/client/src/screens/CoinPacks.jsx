@@ -5,6 +5,7 @@
 // рахунок «оплачується» одразу, а в проді роут відповідає 501 — кнопки,
 // яка мовчки нічого не робить, тут немає.
 import { useEffect, useState } from "react";
+import { markCoinSource } from "../ui/fx.jsx";
 import { api } from "../api.js";
 import { ConfirmSheet, ResultPopup } from "../ui/Popup.jsx";
 
@@ -23,7 +24,7 @@ const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 export function CoinsCredited({ code, coins, balance, onClose }) {
   return (
     <ResultPopup
-      art={<img src={`/assets/ui/${(ART[code] ?? ART.harvest).src}.png`} alt="набір монет" style={{ width: 78, height: 90 }} />}
+      art={<img ref={markCoinSource} className="fx-pulse" src={`/assets/ui/${(ART[code] ?? ART.harvest).src}.png`} alt="набір монет" style={{ width: 78, height: 90 }} />}
       glow={132}
       offset={96}
       title="Монети зараховано"

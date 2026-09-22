@@ -3,6 +3,7 @@
 // його відкривають із картки напою в «Покупках», звідти й item.
 // Один кредит — одне опитування (economy §2.4).
 import { useEffect, useState } from "react";
+import { markCoinSource } from "../ui/fx.jsx";
 import { api } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 
@@ -96,7 +97,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
 
       {done && (
         <ResultPopup
-          art={<img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 62, height: 65 }} />}
+          art={<img ref={markCoinSource} className="fx-pop" src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 62, height: 65 }} />}
           title="Дякуємо за відгук"
           onClose={ctx.pop}
         >

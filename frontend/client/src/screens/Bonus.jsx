@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
+import { Sparks, markCoinSource } from "../ui/fx.jsx";
 
 const ERRORS = {
   already_taken: "Цей бонус уже забрали",
@@ -52,13 +53,14 @@ export function BonusPopup({ token, ctx, onClose }) {
       {state && (
         <div className="loot">
           <div className="loot-tile">
-            <span><img src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+            <span className="fx-pop"><img ref={markCoinSource} src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
             <b>+{state.coins}</b>
           </div>
           {item && (
             <div className="loot-tile">
-              <span className={`tier-${item.tier}`}>
+              <span className={`tier-${item.tier} fx-pop`} style={{ position: "relative", animationDelay: "120ms" }}>
                 <ItemIcon sprite={item.sprite_id} size={66} alt={`${item.name} «${item.collection}»`} style={{ width: 66 }} />
+                <Sparks kind={item.tier} x="50%" y="50%" delay={370} />
               </span>
               <small>{item.name}{item.collection && <><br />«{item.collection}»</>}</small>
             </div>

@@ -1,6 +1,7 @@
 // Малювання сцени: список інстансів → шари <img> у координатах сцени.
 // Порядок — суто z (стабільне сортування лишає однакові z у порядку
 // посадки), тіні й підфарбовування настрою — як у рушії дизайну.
+import { useEffect, useRef, useState } from "react";
 import { FILTER_KEY, STAGE_H, STAGE_W } from "./geometry.js";
 
 const DEFAULT_SHADOW = { enabled: true, offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8 };
@@ -23,6 +24,17 @@ const filterCss = (cfg) => {
 };
 
 export function Scene({ instances, layout, mood = "healthy", camera, idle, style, children }) {
+  // «Поза екраном анімація ставиться на паузу» (дошка «Анімації»): гойдання
+  // вмикається, лише поки сцену видно.
+  const root = useRef(null);
+  const [seen, setSeen] = useState(true);
+  useEffect(() => {
+    if (!idle || !root.current || typeof IntersectionObserver === "undefined") return undefined;
+    const io = new IntersectionObserver(([entry]) => setSeen(entry.isIntersecting));
+    io.observe(root.current);
+    return () => io.disconnect();
+  }, [idle]);
+
   const filters = layout?.colorFilters ?? {};
   const shadow = { ...DEFAULT_SHADOW, ...(layout?.shadow ?? {}) };
   const faceShadow = { ...DEFAULT_FACE_SHADOW, ...(layout?.faceShadow ?? {}) };
@@ -35,7 +47,8 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
 
   return (
     <div
-      data-idle={idle || undefined}
+      ref={root}
+      data-idle={(idle && seen) || undefined}
       style={{
         position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H,
         transformOrigin: "0 0",
@@ -78,6 +91,7 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
             src={`/assets/sprites/${inst.group}/${inst.sprite}`}
             alt=""
             data-sway={swayOf(inst.group)}
+            data-pop={inst.pop || undefined}
             style={{
               position: "absolute", left: inst.x, top: inst.y, width: w, height: "auto",
               transform: `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
