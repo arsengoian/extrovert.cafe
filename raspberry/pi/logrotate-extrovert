@@ -1,0 +1,13 @@
+# /etc/logrotate.d/extrovert — логи стеку, щоб не росли на SD безкінечно.
+# supervisor пише їх через >>, тобто O_APPEND, тому copytruncate безпечний:
+# процес пише далі в той самий файл з нуля. Дамп з пристрою 21.09.2026.
+/home/pi/extrovert/logs/*.log {
+    size 1M
+    rotate 4
+    compress
+    delaycompress
+    copytruncate
+    missingok
+    notifempty
+    su pi pi
+}

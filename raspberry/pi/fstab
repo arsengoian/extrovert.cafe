@@ -1,0 +1,13 @@
+# /etc/fstab на pi. ДАМП з картки 21.09.2026, не реконструкція.
+#
+# /mnt/buf — USB-флешка під буфер запису з камери. Не за UUID, а за міткою:
+# нову флешку досить відформатувати з тією самою міткою
+#   sudo mkfs.ext4 -L buf -m 0 /dev/sda1
+# і fstab не чіпати (21.09.2026 флешку міняли саме так).
+# nofail обов'язковий: без нього відсутня флешка = emergency mode на кожному
+# завантаженні (так і сталося, README.md → «Провал завантаження»).
+# device-timeout=10s — щоб без флешки не чекати дефолтні 90 с.
+proc            /proc           proc    defaults          0       0
+/dev/mmcblk0p6  /boot           vfat    defaults          0       2
+/dev/mmcblk0p7  /               ext4    defaults,noatime  0       1
+LABEL=buf /mnt/buf ext4 defaults,noatime,nodiratime,errors=remount-ro,nofail,x-systemd.device-timeout=10s 0 2

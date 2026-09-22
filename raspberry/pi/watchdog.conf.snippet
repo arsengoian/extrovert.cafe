@@ -1,4 +1,7 @@
-# /etc/systemd/system.conf — апаратний watchdog BCM2835.
-# У systemd 232 (Stretch) параметр зветься ShutdownWatchdogSec, а не RebootWatchdogSec.
-RuntimeWatchdogUSec=14s
+# /etc/systemd/system.conf — апаратний watchdog BCM2835. Дамп з пристрою 21.09.2026.
+# Ключ у файлі — RuntimeWatchdogSec; RuntimeWatchdogUSec — це те, як той самий
+# параметр показує `systemctl show`. Невідомий ключ systemd мовчки ігнорує.
+# У systemd 232 (Stretch) другий параметр зветься ShutdownWatchdogSec, а не RebootWatchdogSec.
+# Перевірка: `systemctl show -p RuntimeWatchdogUSec` → 14s, у dmesg — «Set hardware watchdog to 14s».
+RuntimeWatchdogSec=14
 ShutdownWatchdogSec=2min

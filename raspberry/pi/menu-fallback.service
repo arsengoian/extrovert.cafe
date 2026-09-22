@@ -1,0 +1,37 @@
+# EXTROVERT.CAFE — запасна картинка меню у фреймбуфері (docs/raspberry-pi.md §6).
+#
+# fbi малює state/menu.png у фреймбуфер, ПІД dispmanx-шаром кіоска. Видно її,
+# коли кіоска на екрані немає: до першого меню після ввімкнення (кадр кіоска
+# тоді прозорий), якщо кіоск не піднявся взагалі, і між копіями на
+# overlap-підміні. menu.png кіоск перезаписує сам, коли змінюється меню, —
+# з цінами, які він показував останніми.
+#
+# Консоль — tty7, а не tty1, як планувалось (21.09.2026, обидві спроби на
+# tty1 вмирали на кожному завантаженні): getty@tty1 першим ділом робить
+# vhangup свого tty і вбиває fbi, що його тримає. Порядок After=getty не
+# рятує — getty має Type=idle, systemd вважає його запущеним раніше, ніж
+# agetty справді стартує. На tty7 getty немає (logind заводить їх лише на
+# tty1–6), а tty1 з логіном лишається за Ctrl+Alt+F1. Якщо завантаження
+# зламається раніше, fbi не стартує зовсім — emergency-консоль буде видно.
+#
+# After=plymouth-quit-wait: plymouth стартує й без splash і до виходу
+# тримає консоль — перемикати VT раніше означало б боротись із ним.
+#
+# Встановлення (один раз):
+#   sudo apt install fbi
+#   sudo install -m 0644 menu-fallback.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now menu-fallback
+
+[Unit]
+Description=extrovert.cafe — запасна картинка меню (fbi)
+After=plymouth-quit-wait.service
+ConditionPathExists=/home/pi/extrovert/state/menu.png
+
+[Service]
+# fbi сам іде у фон, лишаючи tty7 активним і в графічному режимі — консоль
+# не малює поверх картинки.
+Type=forking
+ExecStart=/usr/bin/fbi -T 7 -d /dev/fb0 -noverbose -a /home/pi/extrovert/state/menu.png
+
+[Install]
+WantedBy=multi-user.target

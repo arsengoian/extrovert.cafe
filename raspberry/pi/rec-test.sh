@@ -4,10 +4,10 @@
 # Пише те саме, що піде в прод: -c copy у MPEG-TS хвилинними сегментами.
 # Декодування немає — це demux+remux, чисте перекладання байтів.
 #
-#   CAM=rtsp://192.168.5.10:8554/cam1 BUF=/mnt/buf MIN=20 ./rec-test.sh
+#   CAM=rtsp://192.168.5.10:8554/cam1 MIN=20 ./rec-test.sh
 set -euo pipefail
 CAM="${CAM:?вкажи CAM=rtsp://<IP-ПК>:8554/cam1}"
-BUF="${BUF:-/home/pi/buf}"
+BUF="${BUF:-/mnt/buf}"        # USB-флешка з міткою buf (fstab)
 MIN="${MIN:-20}"                       # скільки хвилин крутити
 LOG="${LOG:-/home/pi/rec-test.csv}"
 
@@ -35,7 +35,7 @@ while [ "$(date +%s)" -lt "$END" ]; do
   sleep 10
   kill -0 $FF 2>/dev/null || { echo "!! ffmpeg помер, дивись вище"; break; }
   FCPU=$(ps -o %cpu= -p $FF 2>/dev/null | tr -d ' '); FCPU=${FCPU:-0}
-  CCPU=$(ps -C pos-native-pi -o %cpu= 2>/dev/null | awk '{s+=$1} END{printf "%.1f", s+0}')
+  CCPU=$(ps -C kiosk -o %cpu= 2>/dev/null | awk '{s+=$1} END{printf "%.1f", s+0}')
   LOAD=$(awk '{print $1}' /proc/loadavg)
   MEM=$(free -m | awk '/^Mem:/{print $7?$7:$4}')
   TEMP=$(awk '{printf "%.1f", $1/1000}' /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0)

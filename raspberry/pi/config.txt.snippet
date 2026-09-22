@@ -1,8 +1,10 @@
-# Фрагменти /boot/config.txt, які ми змінювали. РЕКОНСТРУКЦІЯ — звірити.
+# Рядки /boot/config.txt, які ми змінювали. Звірено з пристроєм 21.09.2026.
 disable_overscan=1        # без цього фреймбуфер був 1216×672 замість 1280×720
 hdmi_force_hotplug=1
 hdmi_group=1
 hdmi_mode=16              # 1080p60; монітор віддав його як (native) у EDID
 hdmi_drive=2
 hdmi_pixel_encoding=2     # повний RGB 0-255; інакше чорний виїздить сірим
-gpu_mem=128               # додано 18.08.2026; дефолт 64 голодував pos-native (білий екран)
+dtparam=watchdog=on       # апаратний watchdog BCM2835 — його тримає systemd (watchdog.conf.snippet)
+gpu_mem=128               # додано 18.08.2026; дефолт 64 голодував кіоск (білий екран)
+disable_splash=1          # 21.09.2026: без райдужного квадрата прошивки — тихе завантаження
