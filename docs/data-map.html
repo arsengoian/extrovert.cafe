@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело c47d9b4</p>
+  <p class="eyebrow">extrovert.cafe · джерело 4ab149f</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3086,6 +3086,11 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 боці реєстру, шари нікуди не їдуть). Комміт у один сервіс більше не
 перезбирає всі сім і не з&#39;їдає квоту реєстру.</p>
 <h3 id="deploy-секрети-які-треба-завести-в-github"><a class="anchor" href="#deploy-секрети-які-треба-завести-в-github" aria-hidden="true">#</a>Секрети, які треба завести в GitHub</h3>
+<p>Стан на 22.09.2026: заведені лише <code>R2_ENDPOINT</code>, <code>R2_ACCESS_KEY_ID</code>,
+<code>R2_SECRET_ACCESS_KEY</code> (реліз кіоска). Решти ще немає: деплой поки робиться
+через act з машини розробника (нижче), а робота <code>deploy</code> у GitHub без них
+упала б на ssh. Заводяться через API репозиторію (значення шифрується
+публічним ключем репозиторію, sealed box libsodium) або в Settings → Secrets.</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -10749,7 +10754,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел c47d9b4 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 4ab149f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
