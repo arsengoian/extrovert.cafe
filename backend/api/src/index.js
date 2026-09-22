@@ -5,6 +5,7 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { closeRedis } from "@extrovert/lib/redis.js";
 import { pool } from "./db.js";
 import { ephemeralKey } from "./auth.js";
+import { DEV } from "./env.js";
 import { registerErrorHandler } from "./errors.js";
 import authRoutes from "./routes/auth.js";
 import meRoutes, { nicknameRoutes } from "./routes/me.js";
@@ -43,11 +44,21 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, 
 
 // Клієнт живе на extrovert.cafe, api на піддомені; локально — різні порти.
 // Дозволяємо лише те, що справді ходить: інакше CORS перетворюється на
-// прикрасу.
+// прикрасу. localhost — тільки поза продом: у проді сторінці з чужої
+// машини говорити з нашим api нема чого.
+//
+// allow-credentials обовʼязковий: клієнт шле кожен запит із
+// credentials: "include" (кука сесії для /auth/refresh), і без цього
+// заголовка браузер відкидає відповідь цілком. Локально цього не видно —
+// там клієнт ходить через проксі Vite з того самого origin.
+const ORIGINS = DEV
+  ? /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/(extrovert|admin\.extrovert)\.cafe)$/
+  : /^https:\/\/(extrovert|admin\.extrovert)\.cafe$/;
 app.addHook("onRequest", async (req, reply) => {
   const origin = req.headers.origin;
-  if (origin && /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/(extrovert|admin\.extrovert)\.cafe)$/.test(origin)) {
+  if (origin && ORIGINS.test(origin)) {
     reply.header("access-control-allow-origin", origin);
+    reply.header("access-control-allow-credentials", "true");
     reply.header("vary", "origin");
     reply.header("access-control-allow-headers", "authorization,content-type");
     reply.header("access-control-allow-methods", "GET,POST,PATCH,DELETE,OPTIONS");
@@ -84,7 +95,13 @@ await app.register(supportRoutes, { prefix: "/api/v1" });
 const port = Number(process.env.PORT || 3001);
 try {
   await pool.query("select 1");
+  // Тимчасовий ключ — зручність для локалки. У проді він означав би, що
+  // кожен рестарт розлогінює всіх, а під час викочування дві копії api
+  // підписують різними ключами й не визнають токенів одна одної. Краще не
+  // стартувати зовсім: rollout.sh лишить стару версію працювати.
+  if (ephemeralKey && !DEV) throw new Error("JWT_PRIVATE_KEY не заданий — у проді api без нього не стартує");
   if (ephemeralKey) app.log.warn("JWT_PRIVATE_KEY не заданий — ключ згенеровано на час процесу, рестарт розлогінить усіх");
+  if (DEV) app.log.warn("DEV: девелоперський вхід, тестова оплата й /dev/* увімкнені (env.js)");
   await app.listen({ port, host: "0.0.0.0" });
 } catch (e) {
   app.log.error(e);

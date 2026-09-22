@@ -14,8 +14,8 @@ import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { notifyPlant } from "../notify.js";
 import { createInvoice, hasToken, invoiceStatus, verifyWebhook } from "../payments/mono.js";
+import { DEV } from "../env.js";
 
-const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
 const API_ORIGIN = process.env.API_ORIGIN || "https://api.extrovert.cafe";
 

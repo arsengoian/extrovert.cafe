@@ -3,8 +3,8 @@
 // (roadmap, крок 0-біс).
 import { redisClient } from "@extrovert/lib/redis.js";
 import { requireUser } from "../auth.js";
+import { DEV } from "../env.js";
 
-const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
 const redis = DEV ? redisClient() : null;
 
 export default async function routes(app) {

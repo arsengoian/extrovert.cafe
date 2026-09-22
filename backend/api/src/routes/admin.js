@@ -8,8 +8,8 @@
 // не більше сервісів.
 import { pool, one } from "../db.js";
 import { requireAdmin, signToken } from "../auth.js";
+import { DEV } from "../env.js";
 
-const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
 const ADMIN_TOKEN_TTL_S = 12 * 60 * 60;
 
 // Лічильники навмисно прості й незалежні один від одного: якщо котрийсь
@@ -96,7 +96,7 @@ export default async function routes(app) {
   });
 
   // Девелоперський вхід в адмінку — рівно як /auth/dev для гравця й з тією
-  // самою умовою: поза local його немає.
+  // самою умовою (env.js): у проді його немає.
   app.post("/admin/dev-login", async (req, reply) => {
     if (!DEV) return reply.code(404).send({ error: "not_found" });
 

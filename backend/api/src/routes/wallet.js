@@ -8,8 +8,6 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { notifyPlant } from "../notify.js";
 
-const DEV = process.env.DEV_TOOLS === "1" || process.env.NODE_ENV !== "production";
-
 // У бонусі лежать коди предметів; плитці потрібні назва, комплект,
 // рідкість і спрайт — «Капелюх / «Ковбой»» у рамці кольору тіру.
 async function itemsOf(list) {
