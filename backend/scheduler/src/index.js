@@ -15,6 +15,7 @@ import { publishOutbox } from "./jobs/outbox.js";
 import { flushImpressions } from "./jobs/impressions.js";
 import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
 import { deployMenus } from "./jobs/menu.js";
+import { backupDatabase } from "./jobs/backup.js";
 
 const log = makeLog("scheduler");
 const redis = redisClient();
@@ -32,6 +33,8 @@ const JOBS = [
   { name: "menu-deploy", every: 10_000, ttl: 60_000, run: () => deployMenus({ pool, log }) },
   { name: "np-tracking", every: HOUR, ttl: 50 * MINUTE, run: () => trackShipments({ pool, log }) },
   { name: "np-directory", every: 6 * HOUR, ttl: 3 * HOUR, run: () => syncDirectory({ pool, log }) },
+  // Щогодини лише перевірка «чи є сьогоднішній дамп» — сам дамп раз на добу.
+  { name: "db-backup", every: HOUR, ttl: 50 * MINUTE, run: () => backupDatabase({ log }) },
 ];
 
 const stops = JOBS.map((job) =>

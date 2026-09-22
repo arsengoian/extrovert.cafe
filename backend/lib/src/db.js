@@ -18,6 +18,9 @@ const url =
     `@${process.env.PGHOST || "postgres"}:5432/${process.env.POSTGRES_DB || "extrovert"}`;
 
 export const pool = new pg.Pool({ connectionString: url, max: 8 });
+// Та сама адреса для тих, кому потрібен не пул, а окремий процес — pg_dump
+// у щоденному бекапі (scheduler/jobs/backup.js).
+export const databaseUrl = url;
 
 export const query = (text, params) => pool.query(text, params);
 

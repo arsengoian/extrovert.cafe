@@ -33,6 +33,10 @@ RUN bun install --frozen-lockfile --production --filter "./backend/${SVC}"
 # запис у lock.
 COPY backend/lib/ ./backend/lib/
 COPY backend/${SVC}/ ./backend/${SVC}/
+# pg_dump для щоденного бекапу бази (scheduler/jobs/backup.js) — лише в
+# образі scheduler. Мажорна версія — як у postgres у compose (16): старіший
+# клієнт відмовиться дампити новіший сервер.
+RUN if [ "$SVC" = "scheduler" ]; then apk add --no-cache postgresql16-client; fi
 WORKDIR /app/backend/${SVC}
 ENV NODE_ENV=production
 CMD ["bun", "src/index.js"]

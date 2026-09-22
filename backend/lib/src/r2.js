@@ -27,6 +27,8 @@ export const BUCKETS = {
   // це чужі персональні дані, з іншим строком зберігання й іншим правом
   // доступу — гравець пише, адмінка читає, камери тут ні до чого.
   uploads: "extrovert-uploads",
+  // Щоденні дампи Postgres від scheduler, lifecycle 30 днів.
+  backups: "extrovert-backups",
 };
 
 // Оточення приходить із env-обʼєкта, а не лише з process.env: pos-скрипти
@@ -126,7 +128,7 @@ export async function put({ purpose, bucket = null, key, body, contentType, cach
 // хвилини, тому посилання не можна переслати «на потім».
 export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn = 600, contentType = null, env = process.env }) {
   const target = bucket ?? bucketFor(purpose, env);
-  if (method !== "GET") guard(target, env);
+  if (method !== "GET" && method !== "HEAD") guard(target, env);
   const { endpoint, key: access, secret, region } = r2Config(env);
   const host = new URL(endpoint).host;
   const { amz, date } = stamps();
