@@ -88,9 +88,8 @@ try {
 
 console.log("✓ .secrets готовий:", Object.keys(secrets).join(", "));
 if (!secrets.GHCR_TOKEN) {
-  console.log("  GHCR_TOKEN порожній — act-deploy не залогінить сервер у ghcr: викочування");
-  console.log("  пройде, лише якщо сервер уже залогінений. Образів act не пушить у будь-якому разі.");
-  console.log("  Потрібен — токен GitHub з write:packages у .env як GHCR_TOKEN.");
+  console.log("  GHCR_TOKEN порожній — act-build не зможе залити образи, а act-deploy не");
+  console.log("  залогінить сервер у ghcr. Потрібен токен GitHub з write:packages у .env як GHCR_TOKEN.");
 }
 if (!secrets.OPENAI_VECTOR_STORE) {
   console.log("  OPENAI_VECTOR_STORE порожній — робота knowledge лише перевірить базу, у сховище нічого не піде.");

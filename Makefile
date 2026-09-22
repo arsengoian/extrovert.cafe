@@ -76,7 +76,7 @@ help:
 	@echo   make ssh-public    зайти на публічний дроплет
 	@echo ---------------------------------------------------------------
 	@echo   make act-secrets   зібрати .secrets для act з локального .env
-	@echo   make act-build     прогнати збірку образів локально через act
+	@echo   make act-build     зібрати й залити образи в ghcr через act
 	@echo   make act-deploy    прогнати весь деплой локально через act
 	@echo   make act-knowledge залити базу знань у прод-сховище через act
 	@echo   make env-prod-check чи збігаються ключі .env.prod з .env.example
@@ -235,12 +235,13 @@ ssh-public:
 act-secrets:
 	$(BUN) scripts/act-secrets.mjs
 
-# Збірка без пуша: act сам виставляє ACT=true, і workflow це враховує.
+# Збірка й пуш образів у ghcr, як у CI: токен — GHCR_TOKEN із .secrets.
+# Незмінений сервіс не перезбирається — на наявний образ лише вішається тег.
 act-build:
 	act -j build --secret-file .secrets
 
-# Справжнє викочування на живий сервер з цієї машини. Образи мають бути в
-# реєстрі, тобто спершу або пуш у main, або act-build із GHCR_TOKEN.
+# Справжнє викочування на живий сервер з цієї машини. Образи з тегом
+# поточного коміту мають бути в реєстрі: спершу act-build (або пуш у main).
 act-deploy:
 	act -j deploy --secret-file .secrets
 

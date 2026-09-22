@@ -3,9 +3,12 @@
 # Той самий файл виконується локально через act (`make act-build`,
 # `make act-deploy`) — тому тут немає нічого, що працює лише на раннері
 # GitHub: жодних кроків з оточенням раннера, а замість `GITHUB_TOKEN`
-# береться `GHCR_TOKEN`, коли він є. Під act крок збірки не пушить образи
-# (`env.ACT` виставляє сам act) — локально це перевірка того, що Dockerfile
-# живий, а не спосіб залити щось у реєстр.
+# береться `GHCR_TOKEN`, коли він є. Під act (`env.ACT` виставляє сам act)
+# шлях той самий, що й у CI: збірка логіниться в ghcr токеном із .secrets і
+# пушить образи, деплой їх викочує (рішення власника 22.09.2026 — інакше
+# локальний прогін нічого не міг би викотити). Відрізняються лише кеш
+# збірки (GitHub Actions cache локально недоступний), реліз кіоска й
+# прибирання реєстру — вони під act не виконуються.
 name: deploy
 
 on:
@@ -41,12 +44,13 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      # З GHCR_TOKEN (особистий токен власника) логін — від імені власника:
+      # під act github.actor — це «nektos/act», а не людина.
       - name: Вхід у ghcr
-        if: ${{ env.ACT != 'true' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
+          username: ${{ secrets.GHCR_TOKEN && env.OWNER || github.actor }}
           password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
 
       # Хеш саме тих тек, з яких збирається цей образ. Комміт зачіпає один
@@ -68,7 +72,6 @@ jobs:
 
       - name: Чи такий образ уже є
         id: have
-        if: ${{ env.ACT != 'true' }}
         run: |
           image=${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}
           if docker manifest inspect "$image:src-${{ steps.src.outputs.hash }}" >/dev/null 2>&1; then
@@ -103,7 +106,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:src-${{ steps.src.outputs.hash }}
             ${{ env.REGISTRY }}/${{ env.OWNER }}/extrovert-${{ matrix.svc }}:latest
-          push: ${{ env.ACT != 'true' }}
+          push: true
           cache-from: ${{ env.ACT == 'true' && '' || format('type=gha,scope={0}', matrix.svc) }}
           cache-to: ${{ env.ACT == 'true' && '' || format('type=gha,mode=max,scope={0}', matrix.svc) }}
 
@@ -241,7 +244,7 @@ jobs:
           PORT: ${{ secrets.SERVER_PORT || '2222' }}
           USER_: ${{ secrets.SERVER_USER || 'root' }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          ACTOR: ${{ github.actor }}
+          ACTOR: ${{ secrets.GHCR_TOKEN && env.OWNER || github.actor }}
         run: |
           # Перевірка всередині кроку, а не в `if`: контекст secrets в умовах
           # кроку недоступний — умова просто ніколи б не справдилась.

@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 2216e33</p>
+  <p class="eyebrow">extrovert.cafe · джерело c47d9b4</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3111,7 +3111,7 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 </tr>
 <tr>
 <td><code>GHCR_TOKEN</code></td>
-<td>токен із <code>write:packages</code>: ним CI пушить образи (без нього — <code>GITHUB_TOKEN</code>) і логінить сервер у ghcr, щоб той тягнув приватні образи. Без секрету деплой вважає, що сервер уже залогінений. act бере його з локального <code>.env</code> лише для цього логіну — пушу під act немає</td>
+<td>токен із <code>write:packages</code>: ним CI пушить образи (без нього — <code>GITHUB_TOKEN</code>) і логінить сервер у ghcr, щоб той тягнув приватні образи. Без секрету деплой вважає, що сервер уже залогінений. act бере його з локального <code>.env</code> (через <code>.secrets</code>) і для пушу, і для логіну сервера</td>
 </tr>
 <tr>
 <td><code>R2_ENDPOINT</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code></td>
@@ -3129,9 +3129,12 @@ make act-build     # збирає всі образи, нічого не пуш�
 make act-deploy    # справжнє викочування на живий сервер
 </code></pre>
 <p><code>.secrets</code> у git не потрапляє — у ньому приватний ключ від сервера. Під act
-крок збірки не пушить образи й не логіниться в реєстр: локальний прогін —
-це перевірка того, що Dockerfile і workflow живі, а не спосіб залити щось
-у прод повз пайплайн.</p>
+шлях той самий, що й у CI (рішення власника 22.09.2026): збірка логіниться
+в ghcr токеном <code>GHCR_TOKEN</code> із <code>.secrets</code> і пушить образи з тегом поточного
+коміту, <code>act-deploy</code> їх викочує. Раніше act образів не пушив — і локальний
+прогін не міг викотити нічого. Відрізняються лише кеш збірки (GitHub
+Actions cache локально недоступний), реліз кіоска й прибирання реєстру: під
+act вони не виконуються.</p>
 <p>Виняток — робота <code>knowledge</code> (<code>make act-knowledge</code>): під act вона так само
 синхронізує прод-сховище OpenAI, ключами з <code>.secrets</code> (<code>act-secrets</code> бере
 <code>OPENAI_API_KEY</code> і <code>OPENAI_VECTOR_STORE</code> з <code>.env.prod</code>). <code>oven-sh/setup-bun@v2</code>
@@ -10746,7 +10749,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 2216e33 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел c47d9b4 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
