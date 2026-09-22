@@ -18,14 +18,16 @@ import { Onboarding } from "./screens/Onboarding.jsx";
 import { BonusPopup } from "./screens/Bonus.jsx";
 import "./theme.js";
 
-export function App({ bonusToken = null, returningFromPayment = false, login = null }) {
+export function App({ bonusToken = null, returningFromPayment = false, login = null, legalDoc = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState("plant");
   const [stack, setStack] = useState([]);           // екрани поверх вкладки
   // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
   // розділі «Поза авторизацією» — ними користуються ще без акаунта.
-  const [guest, setGuest] = useState(null);
+  // Адреса документа (/privacy-policy) відкриває його одразу — спершу
+  // екраном «поза авторизацією»; якщо акаунт є, нижче він переїде в стек.
+  const [guest, setGuest] = useState(() => (legalDoc ? { name: legalDoc } : null));
   // Бонус із QR кіоска, який чекає на вхід: сума й перша річ для стартового
   // екрана. Без нього — варіант «без бонусів».
   const [pendingBonus, setPendingBonus] = useState(null);
@@ -123,6 +125,21 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
       if (msg.event && msg.event !== "hello") refreshMe().catch(() => {});
     });
   }, [me?.id, refreshMe]);
+
+  // Документ за адресою, а людина з акаунтом: показуємо його поверх вкладки.
+  useEffect(() => {
+    if (me && legalDoc && guest?.name === legalDoc) {
+      setStack([{ name: legalDoc, props: {} }]);
+      setGuest(null);
+    }
+  }, [Boolean(me)]);
+
+  // Документ закрили — адреса стає звичайною: інакше оновлення сторінки
+  // відкривало б його знову.
+  useEffect(() => {
+    if (!legalDoc || window.location.pathname === "/") return;
+    if (guest?.name !== legalDoc && !stack.some((s) => s.name === legalDoc)) window.history.replaceState({}, "", "/");
+  }, [legalDoc, guest, stack]);
 
   // Апаратна «назад» на телефоні має закривати екран, а не виходити із
   // застосунку: кладемо запис в історію на кожен push.

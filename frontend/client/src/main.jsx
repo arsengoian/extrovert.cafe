@@ -25,9 +25,13 @@ const returningFromPayment = new URLSearchParams(window.location.search).has("pa
 const loginToken = window.location.pathname === "/login" ? window.location.hash.slice(1) : null;
 if (window.location.pathname === "/login") window.history.replaceState({}, "", "/");
 const login = loginToken ? api.emailVerify(loginToken) : null;
+// Постійні адреси документів — на них посилаються ззовні (екран згоди
+// Google OAuth, Mailgun, сторінки магазинів застосунків), тож вони мають
+// відкриватись самі по собі, і з акаунтом, і без.
+const legalDoc = { "/privacy-policy": "privacy" }[window.location.pathname] ?? null;
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} />}
+    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} legalDoc={legalDoc} />}
   </StrictMode>
 );
