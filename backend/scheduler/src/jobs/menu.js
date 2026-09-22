@@ -12,8 +12,23 @@ import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 
+// Клієнта беремо один на прохід і віддаємо його у finally. Черга
+// деплойментів майже завжди порожня, тож ранній вихід «нема чого котити»
+// трапляється шість разів на хвилину — і 22.09.2026 саме він з'їв пул:
+// release() стояв лише на щасливому шляху. За півтори хвилини вільних
+// клієнтів не лишилось, і весь scheduler завис на pool.connect() без
+// жодного рядка в лозі — бонуси лежали в outbox неопубліковані, а QR на
+// кіоску не з'являвся.
 export async function deployMenus({ pool, log }) {
   const client = await pool.connect();
+  try {
+    return await deployNext(client, log);
+  } finally {
+    client.release();
+  }
+}
+
+async function deployNext(client, log) {
   let deployment;
   try {
     await client.query("begin");
@@ -32,7 +47,6 @@ export async function deployMenus({ pool, log }) {
     await client.query("commit");
   } catch (e) {
     await client.query("rollback").catch(() => {});
-    client.release();
     throw e;
   }
 
@@ -89,7 +103,6 @@ export async function deployMenus({ pool, log }) {
     "update menu_deployments set status = $2, finished_at = now() where id = $1",
     [deployment.id, status]
   );
-  client.release();
 
   return { done: `меню #${deployment.id}: ${done} точок, ${failed} помилок`, extra: { status } };
 }
