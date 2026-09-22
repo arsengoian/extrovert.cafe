@@ -10,6 +10,7 @@
     "./outbox.js": "./src/outbox.js",
     "./log.js": "./src/log.js",
     "./jobs.js": "./src/jobs.js",
+    "./menu.js": "./src/menu.js",
     "./r2.js": "./src/r2.js",
     "./shutdown.js": "./src/shutdown.js"
   },
