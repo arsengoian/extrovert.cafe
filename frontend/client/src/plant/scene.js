@@ -164,9 +164,9 @@ export function playerInstances(appearance, stage, mood) {
   return out;
 }
 
-// Одяг: карта «спрайт предмета → шари в макеті». Повної мапи ще немає
-// (питання в questions.md), тому малюємо те, що намальоване — ковбойський
-// комплект; решта поки видно лише в слотах примірочної.
+// Одяг: карта «спрайт предмета → шари в макеті». Повної мапи ще немає —
+// намальований лише ковбойський комплект, тож малюємо його; решта поки
+// видно лише в слотах примірочної.
 const CLOTHING = {
   cowboy_head: ["clothing_cowboy_head/clothing_cowboy_head.png"],
   cowboy_body: ["clothing_cowboy/clothing_cowboy_body.png"],
