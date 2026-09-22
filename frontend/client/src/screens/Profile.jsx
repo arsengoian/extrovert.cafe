@@ -5,7 +5,7 @@ import { api } from "../api.js";
 import { ConfirmSheet } from "../ui/Popup.jsx";
 import { getThemeMode, setThemeMode } from "../theme.js";
 
-const PROVIDER = { google: "Google", apple: "Apple", dev: "Девелоперський вхід" };
+const PROVIDER = { google: "Google", email: "Пошта", dev: "Девелоперський вхід" };
 const THEMES = [
   { id: "system", label: "Як у пристрої" },
   { id: "light", label: "Світла" },

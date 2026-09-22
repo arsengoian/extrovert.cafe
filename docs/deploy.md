@@ -127,7 +127,8 @@ make deploy-qr       # викотити на qr.extrovert.cafe
 
 | Ключ | Без нього |
 |---|---|
-| `JWT_PRIVATE_KEY` | рестарт api розлогінює всіх |
+| `JWT_PRIVATE_KEY` | api не стартує: тимчасовий ключ у проді розлогінював би всіх на кожному рестарті |
+| `MAILGUN_API_KEY`/`DOMAIN`/`API` | вхід поштою відповідає 503 — гравці не можуть увійти. `MAILGUN_API` — за регіоном домену (`api.eu.mailgun.net` для EU) |
 | `OPENAI_API_KEY` | чат кавенятка відповідає уривками бази знань |
 | `NP_API_KEY` | scheduler не оновлює довідник і не трекає посилки |
 | `CHECKBOX_LOGIN`/`PASSWORD` | checkbox не опитує чеки |
@@ -345,6 +346,13 @@ make act-deploy    # справжнє викочування на живий с�
 `api.extrovert.cafe`, `ws.extrovert.cafe`, `errors.extrovert.cafe` — A-записи
 на адресу дроплета. Сертифікати Caddy бере сам; поки записів немає, він
 щоразу отримуватиме відмову від Let's Encrypt.
+
+`mail.extrovert.cafe` — записи, які показує Mailgun для домену (SPF і DKIM у
+TXT, за бажання MX для відповідей). Без SPF і DKIM листи для входу частіше
+падають у «Спам», а це і є єдиний вхід.
+
+Проксіювати `api` через Cloudflare варто заради Safari: інакше сесія на
+iPhone може жити 7 днів замість 180 (`services.md` §3).
 
 ## 3. Після першого викочування
 

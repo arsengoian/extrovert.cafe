@@ -2,10 +2,10 @@
 // екран» і «Стартовий екран · без бонусів»: сяйво, лого, кавенятко з
 // бульбашкою, бонуси за вхід і кнопки входу.
 //
-// Google/Apple ще не підключені (docs/services.md §3). Поки їх немає,
-// обидві кнопки ведуть у девелоперський вхід — але лише локально: api
-// поза local віддає на нього 404, і тоді ми чесно пишемо, що входу ще немає.
-// Так екран лишається піксель у піксель як у макеті, без зайвої кнопки.
+// Входів два: Google і пошта (docs/services.md §3). У макеті під Google
+// стоїть інша кнопка входу — пошта зайняла її місце тим самим стилем.
+// Google ще не підключений: у dev-збірці він веде в девелоперський вхід, у
+// проді чесно каже, що його ще немає.
 import { useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
@@ -19,9 +19,9 @@ const GoogleG = () => (
   </svg>
 );
 
-const AppleLogo = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-    <path d="M16.4 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.7.8-3.4.8-.7 0-1.8-.8-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.2.6-.9.9-1.7 1.1-2.2-2.5-1-2.4-3.7-2.4-3.8ZM14.2 5.8c.6-.8 1-1.8.9-2.8-.9 0-2 .6-2.6 1.4-.6.7-1 1.7-.9 2.7 1 .1 2-.5 2.6-1.3Z" />
+const MailIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round">
+    <rect x="3" y="5.5" width="18" height="13" rx="2.5" /><path d="m4 7.5 8 6 8-6" />
   </svg>
 );
 
@@ -33,18 +33,22 @@ const WarnIcon = () => (
 
 // bonus — бонуси, які чекають на вхід (QR на кіоску до реєстрації). Без
 // них — варіант «без бонусів»: блок із плитками просто не показуємо.
-export function Start({ onSignedIn, onProblem, onSupport, bonus = null }) {
+export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null, note = null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  const signIn = async () => {
+  const google = async () => {
+    if (!api.devLogin) {
+      setError("Вхід через Google з'явиться незабаром – поки що заходь через пошту");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
       await api.devLogin("dev");
       await onSignedIn();
     } catch (e) {
-      setError(e.status === 404 ? "Вхід через Google й Apple з'явиться незабаром" : e.message);
+      setError(e.message);
       setBusy(false);
     }
   };
@@ -89,10 +93,10 @@ export function Start({ onSignedIn, onProblem, onSupport, bonus = null }) {
           )}
 
           <div className="start-btns">
-            <button className="gbtn" disabled={busy} onClick={signIn}><GoogleG />Увійти через Google</button>
-            <button className="gbtn apple" disabled={busy} onClick={signIn}><AppleLogo />Увійти через Apple</button>
+            <button className="gbtn" disabled={busy} onClick={google}><GoogleG />Увійти через Google</button>
+            <button className="gbtn" disabled={busy} onClick={onEmail}><MailIcon />Увійти через пошту</button>
             <button className="ghost-pill" onClick={onProblem}><WarnIcon />Повідомити про проблему</button>
-            {error && <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>{error}</div>}
+            {(error || note) && <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>{error || note}</div>}
           </div>
         </div>
 

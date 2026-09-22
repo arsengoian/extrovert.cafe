@@ -412,6 +412,29 @@ ALTER SEQUENCE public.ledger_entries_id_seq OWNED BY public.ledger_entries.id;
 
 
 --
+-- Name: login_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.login_links (
+    token_hash bytea NOT NULL,
+    email public.citext NOT NULL,
+    next_path text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    ip inet,
+    user_agent text
+);
+
+
+--
+-- Name: TABLE login_links; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.login_links IS 'Одноразові посилання для входу поштою (хеш токена, 15 хвилин)';
+
+
+--
 -- Name: market_listings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1341,7 +1364,7 @@ CREATE TABLE public.user_identities (
     provider text NOT NULL,
     subject text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT user_identities_provider_check CHECK ((provider = ANY (ARRAY['google'::text, 'apple'::text])))
+    CONSTRAINT user_identities_provider_check CHECK ((provider = ANY (ARRAY['google'::text, 'email'::text])))
 );
 
 
@@ -1976,6 +1999,14 @@ ALTER TABLE ONLY public.ledger_entries
 
 
 --
+-- Name: login_links login_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.login_links
+    ADD CONSTRAINT login_links_pkey PRIMARY KEY (token_hash);
+
+
+--
 -- Name: market_listings market_listings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2496,6 +2527,27 @@ CREATE INDEX ledger_entries_ref_type_ref_id_idx ON public.ledger_entries USING b
 --
 
 CREATE INDEX ledger_entries_user_id_created_at_idx ON public.ledger_entries USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: login_links_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX login_links_created_idx ON public.login_links USING btree (created_at);
+
+
+--
+-- Name: login_links_email_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX login_links_email_created_idx ON public.login_links USING btree (email, created_at);
+
+
+--
+-- Name: login_links_ip_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX login_links_ip_created_idx ON public.login_links USING btree (ip, created_at);
 
 
 --
@@ -3301,4 +3353,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921140000'),
     ('20260921150000'),
     ('20260922100000'),
-    ('20260922110000');
+    ('20260922110000'),
+    ('20260922120000');

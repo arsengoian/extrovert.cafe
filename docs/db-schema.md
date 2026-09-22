@@ -116,7 +116,7 @@ erDiagram
     POINTS ||--o{ MENU_DEPLOYMENT_TARGETS : "яке меню стоїть"
     MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
     POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
-    USERS ||--o{ USER_IDENTITIES : "google/apple"
+    USERS ||--o{ USER_IDENTITIES : "пошта / google"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
     DRINKS ||--o{ RECEIPT_ITEMS : "system_code"
@@ -155,11 +155,21 @@ erDiagram
         timestamptz last_seen_at
         timestamptz created_at
     }
+    LOGIN_LINKS {
+        bytea token_hash PK "sha256 токена з листа"
+        citext email
+        text next_path "куди повернути: /b/<токен>"
+        timestamptz created_at
+        timestamptz expires_at "15 хвилин"
+        timestamptz used_at "одноразове"
+        inet ip
+        text user_agent
+    }
     USER_IDENTITIES {
         uuid id PK
         uuid user_id FK
-        text provider "google|apple"
-        text subject UK "sub від провайдера"
+        text provider "email|google"
+        text subject UK "пошта або sub від Google"
         timestamptz created_at
     }
     RECEIPTS {
@@ -275,6 +285,14 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 акаунти мають право міняти скрипти розробника (`roadmap.md`, крок 0-біс). У jsonb, а не колонкою — за тим самим правилом, що й
 косметика куща (§0): по ньому не будують звʼязків і не рахують баланси, а
 нові такі змінні не повинні означати міграцію.
+
+**`LOGIN_LINKS` — одноразові посилання для входу поштою** (22.09.2026,
+`services.md` §3). Сам токен є лише в листі, у таблиці — його sha256: дамп
+не має відкривати чужі акаунти. Звʼязку з `users` немає навмисно: рядок
+зʼявляється до того, як ми знаємо, чи є такий гравець, і акаунт за поштою
+знаходиться (або заводиться) лише тоді, коли посилання відкрили. Рядок
+живе добу — стільки треба для лімітів «лист на хвилину, п'ять на годину»
+й розбору скарги «не приходить лист»; прибирає старі сам роут.
 
 ---
 
@@ -800,7 +818,7 @@ Checkbox (пише `checkbox`), нічна синхронізація довід
 `SUPPORT_THREADS` і `SUPPORT_MESSAGES` — уся підтримка (`services.md` §4):
 тред на чат у Telegram, повідомлення в обидва боки. `user_id` заповнюється
 лише тоді, коли гравець прийшов із застосунку за одноразовим кодом: акаунт
-у нас Google/Apple, а в боті Telegram, і спільного ідентифікатора немає.
+у нас пошта чи Google, а в боті Telegram, і спільного ідентифікатора немає.
 Лічильник в адмінці — треди, де `last_user_at > last_admin_at`.
 
 `WEBHOOK_KEYS` — секрети підпису, які видає сам провайдер у відповідь на
@@ -822,7 +840,8 @@ Redis тут — **не база**. Втрата всього кейспейсу
 
 | Ключ | Тип | TTL | Хто пише | Хто читає | Навіщо |
 |---|---|---|---|---|---|
-| `sess:<id>` | hash | 30 діб | api | api | refresh-сесія гравця; сам доступ — JWT на 15 хв, у Redis його немає |
+| `sess:<id>` | string JSON | 180 діб, ковзний | api | api | refresh-сесія гравця; кожне оновлення токена відсуває TTL (`services.md` §3). Сам доступ — JWT на 15 хв, у Redis його немає |
+| `sess:user:<user_id>` | set id сесій | 180 діб, ковзний | api | api | усі сесії гравця: видалення акаунта гасить вхід на кожному пристрої |
 | `sess:admin:<id>` | hash | 12 год | api | api | refresh-сесія адміна, коротша |
 | `admin:login:fail:<email>` | string `INCR` | 15 хв | api | api | перебір пароля адміна впирається в лічильник, а не в базу (`services.md` §3) |
 | `revoked:point:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |

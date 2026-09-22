@@ -2,6 +2,10 @@
 // refresh — httpOnly-кука, яку ставить сервер (docs/services.md §3).
 // Токен короткий (15 хв), тож 401 — це нормальна подія, а не помилка:
 // один раз міняємо куку на новий токен і повторюємо запит.
+//
+// Вихід з акаунта — лише тоді, коли сервер сказав «сесії немає» (401 на
+// refresh). Обрив мережі чи api, що перезапускається під час деплою, — не
+// привід викидати людину: токен і кука лишаються, запит просто падає.
 const BASE = import.meta.env.VITE_API ?? "/api/v1";
 const TOKEN_KEY = "extrovert.token";
 
@@ -72,7 +76,8 @@ async function request(path, { method = "GET", body, auth = true, retry = true }
     try {
       await refresh();
       res = await send(path, { method, body, auth });
-    } catch {
+    } catch (e) {
+      if (!(e instanceof ApiError && e.status === 401)) throw e;
       setToken(null);
     }
   }
@@ -93,12 +98,25 @@ export const api = {
   put: (path, body) => request(path, { method: "PUT", body }),
   del: (path) => request(path, { method: "DELETE" }),
 
-  // Поки немає Google/Apple: вхід одним запитом, лише в local.
-  devLogin: (nickname) =>
-    request("/auth/dev", { method: "POST", body: { nickname }, auth: false }).then((r) => {
+  // Лист із посиланням для входу; next — куди повернутись після входу.
+  emailLogin: (email, next) => request("/auth/email", { method: "POST", body: { email, next }, auth: false }),
+
+  // Посилання з листа відкрите: токен із фрагмента міняємо на сесію.
+  emailVerify: (token) =>
+    request("/auth/email/verify", { method: "POST", body: { token }, auth: false }).then((r) => {
       setToken(r.token);
-      return r.user;
+      return r;
     }),
+
+  // Девелоперський вхід одним запитом. Лише в dev-збірці: у прод-бандл Vite
+  // цю гілку не кладе зовсім, а api в проді такого роуту не має (env.js).
+  devLogin: import.meta.env.DEV
+    ? (nickname) =>
+        request("/auth/dev", { method: "POST", body: { nickname }, auth: false }).then((r) => {
+          setToken(r.token);
+          return r.user;
+        })
+    : null,
 
   logout: () => request("/auth/logout", { method: "POST", auth: false }).finally(() => setToken(null)),
 

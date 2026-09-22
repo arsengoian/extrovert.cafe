@@ -22,7 +22,7 @@ export function DeleteAccount({ ctx }) {
         <div className="panel" style={{ textAlign: "center" }}>
           <div className="h2">Акаунт видалено</div>
           <p className="muted">
-            Тепер це {done.nickname}. Увійти в нього більше не можна – ні через Google, ні через Apple.
+            Тепер це {done.nickname}. Увійти в нього більше не можна – ні через пошту, ні через Google.
           </p>
           <button className="btn btn-primary" onClick={() => location.reload()}>Закрити</button>
         </div>
@@ -50,7 +50,7 @@ export function DeleteAccount({ ctx }) {
       <div className="panel" style={{ borderColor: "var(--accent)" }}>
         <div style={{ fontWeight: 800, marginBottom: 6 }}>Що зникне</div>
         <ul className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: 0, paddingLeft: 18 }}>
-          <li>вхід: пошта стирається, Google і Apple відвʼязуються назавжди</li>
+          <li>вхід: пошта стирається, способи входу відвʼязуються назавжди</li>
           <li>нікнейм звільняється, акаунт стає «deleted_account_…»</li>
           {state.listings > 0 && <li>лоти на маркеті знімаються з продажу ({state.listings})</li>}
           <li>

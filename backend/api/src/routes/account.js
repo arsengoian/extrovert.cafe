@@ -5,8 +5,9 @@
 // мають двох учасників, і стерти одного означає зламати картину другому.
 // Тому:
 //
-//   • пошта затирається, ідентичності Google/Apple видаляються — увійти
-//     в цей акаунт більше не можна нізвідки;
+//   • пошта затирається, способи входу (пошта, Google) видаляються —
+//     увійти в цей акаунт більше не можна нізвідки, а та сама пошта
+//     наступного разу заведе новий акаунт;
 //   • нікнейм звільняється (deleted_account_<n>), старий лягає в
 //     deleted_nickname, щоб підтримка могла звести стару скаргу з акаунтом;
 //   • лоти знімаються з маркету: продавця, який уже не зайде, там бути не
@@ -17,7 +18,7 @@
 import { one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
-import { dropSession, cookieFrom, clearCookie } from "../session.js";
+import { dropUserSessions, clearCookie } from "../session.js";
 
 export default async function routes(app) {
   // Що саме зникне, а що лишиться — показуємо до кнопки, а не після.
@@ -40,7 +41,7 @@ export default async function routes(app) {
       keeps: [
         "Історія покупок і чеки лишаються — на них тримається звітність точки.",
         "Угоди на маркеті лишаються видимими другій стороні.",
-        "Пошта стирається, вхід через Google чи Apple більше не спрацює.",
+        "Пошта стирається, вхід у цей акаунт більше не спрацює ні через пошту, ні через Google.",
       ],
     };
   });
@@ -80,7 +81,7 @@ export default async function routes(app) {
           where id = $1`,
         [user.id, newNickname]
       );
-      // Вхід більше нізвідки: зв'язки з Google і Apple прибираємо зовсім.
+      // Вхід більше нізвідки: способи входу прибираємо зовсім.
       await client.query("delete from user_identities where user_id = $1", [user.id]);
 
       // Лоти знімаються: купити в акаунта, який уже не зайде, не має сенсу
@@ -100,10 +101,9 @@ export default async function routes(app) {
       return { nickname: newNickname, listings_cancelled: pulled.length };
     });
 
-    // Сесію гасимо тут же: токен живе 15 хвилин, і лишати вхід у щойно
-    // видалений акаунт на цей час нема потреби.
-    const sid = cookieFrom(req);
-    if (sid) await dropSession(sid);
+    // Сесії гасимо тут же й на всіх пристроях: токен живе 15 хвилин, і
+    // лишати вхід у щойно видалений акаунт навіть на цей час нема потреби.
+    await dropUserSessions(user.id);
     reply.header("set-cookie", clearCookie());
 
     return { ok: true, ...result };

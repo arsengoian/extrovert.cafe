@@ -27,6 +27,7 @@ import { CoinPacks } from "./CoinPacks.jsx";
 import { PlantName } from "./PlantName.jsx";
 import { Legal } from "./Legal.jsx";
 import { DeleteAccount } from "./DeleteAccount.jsx";
+import { EmailLogin } from "./EmailLogin.jsx";
 import { PaymentResult } from "./PaymentResult.jsx";
 import { Checkout } from "./Checkout.jsx";
 import { SizeChart } from "./SizeChart.jsx";
@@ -57,6 +58,7 @@ export const SCREENS = {
   nicknameChange: { component: NicknameChange, presentation: "sheet" },
 
   problem: { component: Problem, title: "Що не працює?", hideNav: true },
+  emailLogin: { component: EmailLogin, title: "Вхід через пошту", hideNav: true },
   quizProfile: { component: QuizProfile, title: "Розкажи про себе", hideNav: true },
   // Заголовок — напій і дата покупки, як у кадрі: «Лате · 17.09».
   quizDrink: {

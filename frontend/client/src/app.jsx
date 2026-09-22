@@ -7,7 +7,7 @@
 // шторки (поверх поточної вкладки) — як у макетах.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
-import { api, getToken, setToken } from "./api.js";
+import { api, getToken } from "./api.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
 import { TopbarBack } from "./ui/TopbarBack.jsx";
@@ -18,7 +18,7 @@ import { Onboarding } from "./screens/Onboarding.jsx";
 import { BonusPopup } from "./screens/Bonus.jsx";
 import "./theme.js";
 
-export function App({ bonusToken = null, returningFromPayment = false }) {
+export function App({ bonusToken = null, returningFromPayment = false, login = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   const [tab, setTab] = useState("plant");
@@ -32,6 +32,9 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   // Попап над вкладкою: «Переказ виконано», «Монети зараховано» у макеті
   // висять над гаманцем, а не над екраном, з якого прийшли.
   const [notice, setNotice] = useState(null);
+  // Що сказати на стартовому екрані: посилання з листа не спрацювало чи
+  // api не відповідає.
+  const [bootNote, setBootNote] = useState(null);
 
   useEffect(() => {
     if (me || !bonusToken) return;
@@ -50,13 +53,42 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
   }, []);
 
   useEffect(() => {
-    // Токен у памʼяті може бути протухлим, зате кука жива — тоді застосунок
-    // має відкритись без екрана входу.
-    const boot = getToken()
-      ? refreshMe().catch(() => api.restore().then(refreshMe))
-      : api.restore().then(refreshMe);
-    boot.catch(() => setToken(null)).finally(() => setBooting(false));
-  }, [refreshMe]);
+    let alive = true;
+    const boot = async () => {
+      // Прийшли з листа: сесія вже є (main.jsx). Якщо вхід починався з бонусу
+      // кіоска, вертаємось на його адресу — там застосунок сам покаже бонус.
+      if (login) {
+        try {
+          const r = await login;
+          if (r.next && r.next !== "/") { window.location.replace(r.next); return false; }
+        } catch (e) {
+          setBootNote(e.status
+            ? "Посилання застаріло або вже використане – надішли нове"
+            : "Не вдалось увійти: немає зв'язку. Відкрий посилання з листа ще раз");
+        }
+      }
+      // Токен у памʼяті може бути протухлим, зате кука жива — тоді застосунок
+      // відкривається без екрана входу. 401 — сесії справді немає. Решта —
+      // мережа чи api посеред деплою: пробуємо ще, а не вилогінюємо.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          if (!getToken()) await api.restore();
+          await refreshMe();
+          return true;
+        } catch (e) {
+          if (e.status === 401) return true;
+          if (attempt >= 2) {
+            setBootNote("Немає зв'язку з сервером – спробуй трохи згодом");
+            return true;
+          }
+          await new Promise((ok) => setTimeout(ok, 1000 * 2 ** attempt));
+          if (!alive) return false;
+        }
+      }
+    };
+    boot().then((done) => { if (done && alive) setBooting(false); });
+    return () => { alive = false; };
+  }, [refreshMe, login]);
 
   const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
   const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
@@ -136,7 +168,9 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
       <div className="app">
         <Start
           bonus={pendingBonus}
+          note={bootNote}
           onSignedIn={async () => { await refreshMe(); setBooting(false); }}
+          onEmail={() => { setBootNote(null); setGuest({ name: "emailLogin", props: { next: bonusToken ? `/b/${bonusToken}` : "/" } }); }}
           onProblem={() => setGuest({ name: "problem" })}
           onSupport={support}
         />

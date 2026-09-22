@@ -636,15 +636,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .bonus-tile > b { font-size: 13px; font-weight: 800; line-height: 1.15; text-align: center }
 .bonus-tile > small { font-size: 9.5px; font-weight: 600; color: var(--muted); line-height: 1.15; text-align: center }
 .start-btns { align-self: stretch; display: flex; flex-direction: column; gap: 12px; align-items: center }
-/* Кнопки входу — за правилами бренду Google (і так само Apple): 40px,
-   пігулка, власний шрифт, не на всю ширину. */
+/* Кнопки входу — за правилами бренду Google: 40px, пігулка, власний
+   шрифт, не на всю ширину. Кнопка пошти — тим самим стилем. */
 .gbtn {
   height: 40px; border-radius: 20px; background: var(--gbtn); border: 1px solid var(--gbtn-line); color: var(--gbtn-ink);
   display: inline-flex; align-items: center; gap: 10px; padding: 0 12px;
   font-family: "Google Sans Text", "Google Sans", -apple-system, system-ui, sans-serif;
   font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap;
 }
-.gbtn.apple { font-family: -apple-system, "SF Pro Text", system-ui, sans-serif }
 .gbtn svg { flex: none }
 .ghost-pill {
   height: 40px; border-radius: 20px; border: 1px solid var(--line); background: var(--panel);
@@ -731,6 +730,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .nick-field[data-tone="bad"] { border-color: var(--line) }
 .nick-field[data-tone="bad"] span { color: var(--muted) }
 .nick-regen { align-self: flex-start; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted) }
+.nick-field input::placeholder { color: var(--muted); font-weight: 400 }
+/* «Вхід через пошту» після відправки листа: кавенятко зі стартового екрана
+   над поясненням, куди тепер дивитись. */
+.email-sent { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding-top: 8px }
+.email-sent > img { width: 132px; height: auto }
+.email-sent > b { font-size: 22px; font-weight: 900 }
+.email-sent .lead14 b { color: var(--ink); font-weight: 800; word-break: break-all }
 .consent { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; gap: 12px; align-items: flex-start }
 .consent > div { font-size: 13px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
 .consent-box { width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: #fff }
