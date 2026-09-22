@@ -219,16 +219,47 @@ static bonus_row_t *take_row(bonus_state_t *b, double now, const char *who) {
     return row;
 }
 
-/* Подія bonus_ready із ws (ws.c). Назву й картинку беремо зі свого ж меню за
- * system_code — тоді в рядку те саме, що на картці поруч; назва з події
- * потрібна лише коли напою в меню немає (його щойно прибрали, а чек уже
- * пробито). */
 static void fill_popup(const bonus_row_t *row, bonus_popup_t *out) {
     out->coins = row->coins;
     out->secret = row->secret;
     snprintf(out->qr_payload, sizeof(out->qr_payload), "%s", row->qr_payload);
 }
 
+/* Ідентифікатор точки з docs/urls.md: ^[a-z0-9][a-z0-9-]{1,30}$. Перевіряємо,
+ * бо рядок іде в URL як є — без екранування. */
+static bool point_id_ok(const char *p) {
+    size_t n = strlen(p);
+    if (n < 2 || n > 31) return false;
+    for (size_t i = 0; i < n; i++) {
+        char c = p[i];
+        bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || (c == '-' && i > 0);
+        if (!ok) return false;
+    }
+    return true;
+}
+
+/* Посилання, яке несе QR бонусу. /b/<токен> — той самий шлях, що розбирає
+ * застосунок (frontend/client/src/main.jsx): екран бонусу поверх гри.
+ * ?p=<точка> — звідки людина прийшла, той самий параметр, що на QR-наклейці
+ * автомата (docs/urls.md): за задумом сайт кладе його в localStorage і після
+ * входу записує в users.metadata.qr_pos (21.09.2026 на сайті ще не зроблено —
+ * поки параметр просто ігнорується). За токеном бекенд і так знає точку, але
+ * лише поки грант живий — p лишається, навіть коли бонус уже прострочений
+ * чи забраний, і привʼязує нового гравця до точки, де він прийшов.
+ * Тут саме публічний ідентифікатор (POINT, kyiv-01), а не config/point.key:
+ * ключ підписує запити точки, і в QR, який фотографує будь-хто, йому не місце. */
+static void bonus_link(char *out, size_t n, const char *token) {
+    const char *point = getenv("POINT");
+    if (point && point_id_ok(point))
+        snprintf(out, n, "https://extrovert.cafe/b/%s?p=%s", token, point);
+    else
+        snprintf(out, n, "https://extrovert.cafe/b/%s", token);
+}
+
+/* Подія bonus_ready із ws (ws.c). Назву й картинку беремо зі свого ж меню за
+ * system_code — тоді в рядку те саме, що на картці поруч; назва з події
+ * потрібна лише коли напою в меню немає (його щойно прибрали, а чек уже
+ * пробито). */
 bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
                      const char *code, const char *name, int coins,
                      const char *claim_token, int items, bonus_popup_t *out) {
@@ -256,10 +287,8 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
     if (items >= 0) row->secret = items > 0;
     else            row->secret = found && found->bonus_coins > 0;
 
-    /* Той самий шлях, що розбирає застосунок (frontend/client/src/main.jsx): /b/<токен>
-     * відкриває екран бонусу вже залогіненому гравцю. */
-    snprintf(row->qr_payload, sizeof(row->qr_payload), "https://extrovert.cafe/b/%s",
-             (claim_token && claim_token[0]) ? claim_token : "");
+    bonus_link(row->qr_payload, sizeof(row->qr_payload),
+               (claim_token && claim_token[0]) ? claim_token : "");
 
     b->count++;
     fill_popup(row, out);
@@ -296,8 +325,11 @@ bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_
     }
 
     /* Емуляція живе далі лише як запасний варіант без токена (main.c), тож
-     * payload тут так і лишається вигаданим. */
-    snprintf(row->qr_payload, sizeof(row->qr_payload), "https://extrovert.cafe/b/%08x", (unsigned)rand());
+     * токен тут вигаданий — але посилання того самого вигляду, що й
+     * справжнє, щоб на екрані був QR тієї самої щільності. */
+    char fake[16];
+    snprintf(fake, sizeof(fake), "%08x", (unsigned)rand());
+    bonus_link(row->qr_payload, sizeof(row->qr_payload), fake);
 
     b->count++;
     fill_popup(row, out);
@@ -308,7 +340,7 @@ void bonus_demo_popup(bonus_popup_t *out) {
     /* Рівно варіант із макета: +100 і секретний предмет. */
     out->coins = 100;
     out->secret = true;
-    snprintf(out->qr_payload, sizeof(out->qr_payload), "https://extrovert.cafe/b/demo");
+    bonus_link(out->qr_payload, sizeof(out->qr_payload), "demo");
 }
 
 void bonus_update(bonus_state_t *b, double now, const char *assets_dir, bool bake_ok) {
