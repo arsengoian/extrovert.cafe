@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f8fd78a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 158b242</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2879,7 +2879,7 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 </tr>
 <tr>
 <td><code>GHCR_TOKEN</code></td>
-<td>токен із <code>write:packages</code>; потрібен серверу, щоб тягти приватні образи, і act — щоб пушити локально</td>
+<td>токен із <code>write:packages</code>: ним CI пушить образи (без нього — <code>GITHUB_TOKEN</code>) і логінить сервер у ghcr, щоб той тягнув приватні образи. Без секрету деплой вважає, що сервер уже залогінений. act бере його з локального <code>.env</code> лише для цього логіну — пушу під act немає</td>
 </tr>
 <tr>
 <td><code>R2_ENDPOINT</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code></td>
@@ -10433,7 +10433,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел f8fd78a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 158b242 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

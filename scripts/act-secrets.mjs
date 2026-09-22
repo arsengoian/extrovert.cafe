@@ -83,7 +83,8 @@ try {
 
 console.log("✓ .secrets готовий:", Object.keys(secrets).join(", "));
 if (!secrets.GHCR_TOKEN) {
-  console.log("  GHCR_TOKEN порожній — локальна збірка образів працює, пуш у реєстр ні.");
-  console.log("  Потрібен — заведи токен GitHub з write:packages і поклади в .env як GHCR_TOKEN.");
+  console.log("  GHCR_TOKEN порожній — act-deploy не залогінить сервер у ghcr: викочування");
+  console.log("  пройде, лише якщо сервер уже залогінений. Образів act не пушить у будь-якому разі.");
+  console.log("  Потрібен — токен GitHub з write:packages у .env як GHCR_TOKEN.");
 }
 console.log("  сервер:", `${secrets.SERVER_USER}@${host}:${secrets.SERVER_PORT}`);
