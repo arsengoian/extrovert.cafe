@@ -76,6 +76,17 @@ const route = () => {
 
 export const go = (path) => { window.location.hash = `#/${path}`; };
 
+// Хто ми, якщо сесія не відповіла, а токен є: беремо з самого токена —
+// підпис уже перевірив api, коли віддав дані.
+function whoFromToken(token) {
+  try {
+    const claims = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    return { id: String(claims.sub).replace("admin:", ""), email: claims.email ?? "адмін", role: claims.role ?? "owner" };
+  } catch {
+    return { id: "?", email: "адмін", role: "owner" };
+  }
+}
+
 function Screen({ name, arg, counts }) {
   switch (name) {
     case "health": return <Health />;
@@ -108,10 +119,20 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    // Кука жива — заходимо без екрана входу; ні — показуємо його.
+    // Кука жива — заходимо без екрана входу. Якщо куки немає, але в руках
+    // ще чинний токен (його міг видати інший шлях входу), пробуємо ним:
+    // викидати на екран входу з робочим токеном — зайве.
     api.restore()
       .then(setAdmin)
-      .catch(() => { if (getToken()) setToken(null); })
+      .catch(async () => {
+        if (!getToken()) return;
+        try {
+          await api.overview();
+          setAdmin(whoFromToken(getToken()));
+        } catch {
+          setToken(null);
+        }
+      })
       .finally(() => setBooting(false));
   }, []);
 
