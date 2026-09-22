@@ -34,7 +34,7 @@ slot_of() { # slot_of <імʼя>
     [ -f "$_f" ] && cat "$_f" 2>/dev/null || echo 0
 }
 slot_set() { printf '%s\n' "$2" > "$EXTROVERT_STATE/slot.$1"; }
-sock_for() { echo "/tmp/pos-native-$2.sock"; }   # sock_for <імʼя> <слот>
+sock_for() { echo "/tmp/kiosk-$2.sock"; }   # sock_for <імʼя> <слот>
 
 component_env() { # component_env <імʼя> <слот>
     export EXTROVERT_STATE EXTROVERT_ROOT POINT
@@ -43,6 +43,16 @@ component_env() { # component_env <імʼя> <слот>
     export POPUP="${POPUP:-1}"
     export DISPMANX_LAYER="$2"
     export TELEMETRY_SOCK="$(sock_for "$1" "$2")"
+    # Статичне меню для fbi (запасний варіант, docs/raspberry-pi.md §6):
+    # кіоск перезаписує його сам, коли змінюється меню. У state/, бо це наша
+    # тека і пишеться без root — і після overlay на корінь теж.
+    export FALLBACK_PNG="${FALLBACK_PNG:-$EXTROVERT_STATE/menu.png}"
+    # Події точки (ws.c). config/env підключається без export, тож без цих
+    # рядків WS_URL із нього до кіоска не доходив би. Токен — файлом поза
+    # релізом (релізи публічні): нема файла — кіоск живе без каналу подій.
+    [ -n "${WS_URL:-}" ] && export WS_URL
+    _key="${WS_TOKEN_FILE:-$EXTROVERT_ROOT/config/point.key}"
+    [ -f "$_key" ] && export WS_TOKEN_FILE="$_key"
 }
 
 pid_of() {
@@ -70,7 +80,7 @@ start_component() { # start_component <імʼя> <exec> <слот> [аргуме
 }
 
 # Ґречна зупинка: SIGTERM, чекаємо STOP_GRACE_S, лише потім SIGKILL.
-# pos-native на SIGTERM закриває GL і звільняє dispmanx-шар; якщо просто
+# Кіоск на SIGTERM закриває GL і звільняє dispmanx-шар; якщо просто
 # вбити, VideoCore може лишити шар за мертвим процесом (спорідена пастка
 # з bcm_host_init, docs/roadmap.md).
 stop_component() { # stop_component <імʼя>

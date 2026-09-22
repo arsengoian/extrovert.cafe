@@ -17,8 +17,8 @@
 # інакше точка спробує скачати архів, якого ще немає).
 
 set -eu
-SRC=$(cd "$(dirname "$0")/.." && pwd)          # pi/
-PROJECT=$(cd "$SRC/.." && pwd)                 # code/
+SRC=$(cd "$(dirname "$0")/.." && pwd)          # raspberry/pi/
+PROJECT=$(cd "$SRC/../.." && pwd)              # code/
 NATIVE="$PROJECT/raspberry/kiosk"
 DIST="${DIST:-$PROJECT/dist}"
 BASE_URL="${BASE_URL:-https://pos.extrovert.cafe/releases/pi}"
@@ -36,7 +36,7 @@ if [ -z "$REL" ]; then
     REL="$(date '+%Y.%m.%d')-$SHA"
 fi
 
-BIN="$NATIVE/bin/pos-native-pi"
+BIN="$NATIVE/bin/kiosk"
 # Саме -f, а не -x: на теці Windows, змонтованій у Git Bash, біт виконання
 # не зберігається, і перевірка на -x відмовляла б у цілком нормальному
 # білді. Права виставляються нижче, уже в стейджі.
@@ -52,7 +52,7 @@ trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/bin" "$STAGE/assets" "$STAGE/stack"
 
 cp -a "$BIN" "$STAGE/bin/"
-chmod +x "$STAGE/bin/pos-native-pi"
+chmod +x "$STAGE/bin/kiosk"
 cp -a "$NATIVE/assets/." "$STAGE/assets/"
 cp -a "$SRC/stack/common.sh" "$SRC/stack/supervisor.sh" "$SRC/stack/updater.sh" \
       "$SRC/stack/components.conf" "$STAGE/stack/"

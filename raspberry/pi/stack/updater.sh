@@ -145,8 +145,8 @@ stage_release() { # stage_release <реліз> <url> <sha256> → 0 / 1 / 2
         log "в архіві нема stack/components.conf — це не наш реліз"; rm -rf "$_tmp"; return 1; }
     # Біт виконання не завжди переживає дорогу: реліз пакується на ПК, а на
     # NTFS його немає взагалі. Без цього selftest відмовиться від цілком
-    # нормального релізу ("нема bin/pos-native-pi") і занесе його в bad.
-    chmod +x "$_tmp/bin/pos-native-pi" "$_tmp/stack/"*.sh 2>/dev/null || true
+    # нормального релізу ("нема bin/kiosk") і занесе його в bad.
+    chmod +x "$_tmp/bin/kiosk" "$_tmp/stack/"*.sh 2>/dev/null || true
     rm -rf "${EXTROVERT_RELEASES:?}/$_rel"
     mv "$_tmp" "$EXTROVERT_RELEASES/$_rel" || { log "не змогли покласти реліз на місце"; return 1; }
     log "реліз $_rel розпаковано"
@@ -156,7 +156,7 @@ stage_release() { # stage_release <реліз> <url> <sha256> → 0 / 1 / 2
 # ── Крок 5: перевірка нової версії без дисплея ───────────────────────────
 selftest_release() { # selftest_release <реліз> → 0/1
     _dir="$EXTROVERT_RELEASES/$1"
-    _bin="$_dir/bin/pos-native-pi"
+    _bin="$_dir/bin/kiosk"
     [ -x "$_bin" ] || { log "selftest: нема $_bin"; return 1; }
     log "selftest нової версії…"
     EXTROVERT_STATE="$EXTROVERT_STATE" \
@@ -187,7 +187,7 @@ switch_to() { # switch_to <реліз> → 0/1
     while [ "$_w" -lt "${UPDATE_HEALTH_S:-90}" ]; do
         sleep 3; _w=$((_w + 3))
         _slot=$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0)
-        if telemetry_healthy "/tmp/pos-native-$_slot.sock"; then
+        if telemetry_healthy "/tmp/kiosk-$_slot.sock"; then
             log "нова версія жива (кадри йдуть) за ${_w}с"
             rm -f "$UPDATING_FLAG"
             state_write version "$_rel"

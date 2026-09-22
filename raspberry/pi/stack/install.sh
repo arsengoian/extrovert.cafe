@@ -5,6 +5,9 @@
 #   ./install.sh                      # чиста установка, перший реліз далі привезе апдейтер
 #   ./install.sh --adopt /home/pi/pos-native
 #                                     # забрати вже встановлений кіоск як реліз 0
+#   ./install.sh --release /tmp/<реліз>.tar.gz
+#                                     # поставити архів із make-release.sh руками —
+#                                     # коли бакет недоступний (перший раз по SSH)
 #
 # Після цього все наше живе в /home/pi/extrovert. Поза нею лишається один
 # файл — /etc/systemd/system/extrovert.service (його ставить цей скрипт).
@@ -13,10 +16,12 @@ set -eu
 ROOT="${EXTROVERT_ROOT:-/home/pi/extrovert}"
 HERE=$(cd "$(dirname "$0")" && pwd)
 ADOPT=""
+ARCHIVE=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --adopt) ADOPT=${2:?потрібен шлях}; shift 2 ;;
+        --release) ARCHIVE=${2:?потрібен архів}; shift 2 ;;
         *) echo "невідомий аргумент: $1" >&2; exit 2 ;;
     esac
 done
@@ -49,9 +54,13 @@ fi
 if [ -n "$ADOPT" ]; then
     REL="0000-adopted-$(date '+%Y%m%d')"
     echo "== забираю наявний кіоск з $ADOPT як реліз $REL =="
-    [ -x "$ADOPT/bin/pos-native-pi" ] || { echo "нема $ADOPT/bin/pos-native-pi" >&2; exit 1; }
+    # До 21.09.2026 бінарник звався pos-native-pi — саме таким він лежить
+    # на пристроях, які ще не переходили на стек. У релізі він уже kiosk.
+    OLD_BIN="$ADOPT/bin/kiosk"
+    [ -x "$OLD_BIN" ] || OLD_BIN="$ADOPT/bin/pos-native-pi"
+    [ -x "$OLD_BIN" ] || { echo "нема $ADOPT/bin/kiosk (чи pos-native-pi)" >&2; exit 1; }
     mkdir -p "$ROOT/releases/$REL/bin" "$ROOT/releases/$REL/assets" "$ROOT/releases/$REL/stack"
-    cp -a "$ADOPT/bin/pos-native-pi" "$ROOT/releases/$REL/bin/"
+    cp -a "$OLD_BIN" "$ROOT/releases/$REL/bin/kiosk"
     cp -a "$ADOPT/assets/." "$ROOT/releases/$REL/assets/"
     cp -a "$HERE/common.sh" "$HERE/supervisor.sh" "$HERE/updater.sh" \
           "$HERE/components.conf" "$ROOT/releases/$REL/stack/"
@@ -62,12 +71,32 @@ if [ -n "$ADOPT" ]; then
     echo "current → $REL"
 fi
 
+# Архів із make-release.sh — той самий, що апдейтер качає з бакета, тільки
+# привезений scp. Selftest тут теж обов'язковий: екран зараз у старої
+# версії, і битий реліз має відмовити до перемикання, а не після.
+if [ -n "$ARCHIVE" ]; then
+    REL=$(basename "$ARCHIVE" .tar.gz)
+    echo "== ставлю реліз $REL з $ARCHIVE =="
+    TMP="$ROOT/releases/.$REL.tmp"
+    rm -rf "$TMP" && mkdir -p "$TMP"
+    tar -xzf "$ARCHIVE" -C "$TMP"
+    [ -f "$TMP/stack/components.conf" ] || { echo "в архіві нема stack/components.conf" >&2; rm -rf "$TMP"; exit 1; }
+    chmod +x "$TMP/bin/kiosk" "$TMP/stack/"*.sh
+    EXTROVERT_STATE="$ROOT/state" ASSETS="$TMP/assets" "$TMP/bin/kiosk" --selftest \
+        || { echo "selftest провалено — реліз не ставлю" >&2; rm -rf "$TMP"; exit 1; }
+    rm -rf "${ROOT:?}/releases/$REL" && mv "$TMP" "$ROOT/releases/$REL"
+    PREV=""
+    [ -L "$ROOT/current" ] && PREV=$(basename "$(readlink "$ROOT/current")")
+    [ -n "$PREV" ] && [ "$PREV" != "$REL" ] && printf '%s\n' "$PREV" > "$ROOT/state/previous"
+    ln -sfn "$ROOT/releases/$REL" "$ROOT/current.new"
+    mv -Tf "$ROOT/current.new" "$ROOT/current"
+    printf '%s\n' "$REL" > "$ROOT/state/version"
+    echo "current → $REL${PREV:+ (попередній: $PREV)}"
+fi
+
 if [ ! -L "$ROOT/current" ]; then
     echo "!! $ROOT/current ще не вказує на реліз."
-    echo "   Або запусти з --adopt <тека наявного pos-native>,"
-    echo "   або розпакуй туди перший реліз руками:"
-    echo "     mkdir -p $ROOT/releases/<реліз> && tar -xzf <архів> -C $ROOT/releases/<реліз>"
-    echo "     ln -sfn $ROOT/releases/<реліз> $ROOT/current"
+    echo "   Запусти з --release <архів> або --adopt <тека старого кіоска>."
 fi
 
 echo "== systemd =="
@@ -80,16 +109,14 @@ else
     echo "  sudo install -m 0644 $HERE/extrovert.service /etc/systemd/system/"
     echo "  sudo systemctl daemon-reload"
 fi
-# Старий юніт мало вимкнути: `systemctl restart pos-native` (крон-сторож)
-# піднімає й вимкнений юніт — і поруч зі стеком стартував би другий кіоск.
-# `mask` тут не спрацює: файл юніта лежить у /etc/systemd/system, і systemd
-# відмовляється підміняти його симлінком. Тому файл відкладаємо вбік —
-# суфікс .off systemd не читає, а відкат — це `mv` назад.
+# Якщо на пристрої ще живе старий однокомпонентний pos-native.service (так
+# було на kyiv-01 до 21.09.2026), його треба прибрати ДО старту стеку:
+#   sudo systemctl disable --now pos-native.service
+#   sudo rm /etc/systemd/system/pos-native.service && sudo systemctl daemon-reload
+# і старий крон-рядок kiosk-watch — `systemctl restart` піднімає навіть
+# вимкнений юніт, і поруч зі стеком стартував би другий кіоск.
 cat <<'NEXT'
-  sudo systemctl disable --now pos-native.service   # старий однокомпонентний юніт
-  sudo mv /etc/systemd/system/pos-native.service /etc/systemd/system/pos-native.service.off
-  sudo systemctl daemon-reload
-  crontab -e   # рядок kiosk-watch замінити на stack-watch з raspberry/pi/crontab
-  sudo systemctl enable  --now extrovert.service
+  crontab -e   # рядок stack-watch з raspberry/pi/crontab
+  sudo systemctl enable --now extrovert.service
   journalctl -u extrovert -f
 NEXT

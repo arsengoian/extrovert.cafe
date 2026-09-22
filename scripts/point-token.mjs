@@ -1,4 +1,4 @@
-// Токен для кіоска: ним pos-native підписується на канал своєї точки в ws.
+// Токен для кіоска: ним кіоск підписується на канал своєї точки в ws.
 //
 //   bun scripts/point-token.mjs kyiv-01            # рік
 //   bun scripts/point-token.mjs kyiv-01 --days 90

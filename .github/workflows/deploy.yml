@@ -150,7 +150,7 @@ jobs:
             -f raspberry/kiosk/docker/pi.Dockerfile raspberry/kiosk
           docker run --rm --platform linux/arm/v6 \
             -v "$PWD/raspberry/kiosk":/work -w /work kiosk-builder make pi
-          file raspberry/kiosk/bin/pos-native-pi | grep -q ARM
+          file raspberry/kiosk/bin/kiosk | grep -q ARM
 
       - name: Зібрати архів релізу
         if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}

@@ -47,7 +47,7 @@ json_get_num() { # json_get_num <файл> <ключ>
 }
 
 # ── Телеметрія кіоска ────────────────────────────────────────────────────
-# Читає JSON із UNIX-сокета pos-native (telemetry.c). nc -U є в Stretch;
+# Читає JSON із UNIX-сокета кіоска (telemetry.c). nc -U є в Stretch;
 # python3 лишається запасним шляхом, бо на іншому образі nc може бути
 # traditional-збіркою без -U.
 telemetry_read() { # telemetry_read <шлях-сокета>
