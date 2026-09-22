@@ -17,7 +17,20 @@ const log = makeLog("checkbox");
 const redis = redisClient();
 const app = Fastify({ logger: false });
 const PORT = Number(process.env.PORT || 3003);
-const SECRET = process.env.CHECKBOX_WEBHOOK_KEY || "";
+
+// Ключ підпису видає сам Checkbox у відповідь на реєстрацію вебхука
+// (scripts/register-webhook.mjs), тож він лежить у базі, у webhook_keys, а
+// не в .env: це похідне значення, а не налаштування. Кеш на хвилину, а при
+// розбіжності підпису — одне перечитування: перереєстрація підхоплюється
+// без рестарту.
+const KEY_TTL_MS = 60_000;
+let cachedKey = { key: "", at: 0 };
+async function webhookKey({ fresh = false } = {}) {
+  if (!fresh && Date.now() - cachedKey.at < KEY_TTL_MS) return cachedKey.key;
+  const { rows } = await pool.query("select key from webhook_keys where provider = 'checkbox'");
+  cachedKey = { key: rows[0]?.key ?? "", at: Date.now() };
+  return cachedKey.key;
+}
 
 // Тіло потрібне байт-у-байт: підпис рахується від сирого тексту, а не від
 // перезібраного JSON (пробіли й порядок ключів зруйнували б збіг).
@@ -36,8 +49,10 @@ app.get("/healthz", async () => ({ ok: true, service: "checkbox" }));
 app.post("/webhook/checkbox", async (req, reply) => {
   const raw = req.rawBody ?? "";
   const signature = String(req.headers["x-signature"] ?? "");
-  const mine = SECRET ? crypto.createHmac("sha256", SECRET).update(raw, "utf8").digest("base64") : "";
-  if (!SECRET || !signature || !timingSafeEq(signature, mine)) {
+  const sign = (key) => (key ? crypto.createHmac("sha256", key).update(raw, "utf8").digest("base64") : "");
+  let key = await webhookKey();
+  if (key && signature && !timingSafeEq(signature, sign(key))) key = await webhookKey({ fresh: true });
+  if (!key || !signature || !timingSafeEq(signature, sign(key))) {
     log.warn("підпис не збігся", { ip: req.ip });
     return reply.code(401).send({ error: "bad_signature" });
   }

@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 10c12ba</p>
+  <p class="eyebrow">extrovert.cafe · джерело 7e0cc4d</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 19 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2915,10 +2915,19 @@ GET    /api/v1/webhook                            → url, created_at, updated_a
 DELETE /api/v1/webhook
 </code></pre>
 <p>Крім токена касира потребує <strong><code>X-License-Key</code></strong> — ключа ліцензії конкретної
-каси з кабінету (вебхук налаштовується на касу, а не на організацію). У
-<code>.env</code> його поки немає: знадобиться, коли дійде до реєстрації вебхука.</p>
-<p><code>key</code> — секрет для підпису. <code>last_error_*</code> показує, коли наш приймач не відповідав:
-дірки в даних будуть видимі, а не мовчазні. Варто перевіряти по крону.</p>
+каси з кабінету (вебхук налаштовується на касу, а не на організацію): у
+<code>.env</code> це <code>CHECKBOX_LICENSE_KEY</code> і тестовий <code>CHECKBOX_TEST_LICENSE_KEY</code>.</p>
+<p><code>key</code> — секрет для підпису. Він <strong>похідний</strong>: Checkbox видає його у
+відповідь на реєстрацію, тому в <code>.env</code> його немає (22.09.2026) — інакше
+програмі довелося б писати у власний конфіг. Реєструє й зберігає скрипт:</p>
+<pre><code>bun run --filter @extrovert/checkbox webhook:register               # стан: куди шле, чи падав
+bun run --filter @extrovert/checkbox webhook:register --set         # тестовий касир
+bun run --filter @extrovert/checkbox webhook:register --set --prod  # бойова каса
+</code></pre>
+<p>Ключ лягає в <code>webhook_keys</code> (<a class="doclink" href="#db"><code>db-schema.md</code></a> §4), приймач читає його звідти.
+Скрипт перевіряє <code>is_test</code> касира через <code>cashier/me</code>, як і <code>prices:sync</code>.
+<code>last_error_*</code> показує, коли наш приймач не відповідав: дірки в даних будуть
+видимі, а не мовчазні. Варто перевіряти по крону.</p>
 <h2 id="checkbox-підпис"><a class="anchor" href="#checkbox-підпис" aria-hidden="true">#</a>Підпис</h2>
 <pre><code>base64(HmacSHA256(key, тіло_запиту_як_UTF8_байти))
 </code></pre>
@@ -10274,7 +10283,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 10c12ba — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 7e0cc4d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

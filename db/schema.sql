@@ -1567,6 +1567,26 @@ ALTER SEQUENCE public.wardrobe_sets_id_seq OWNED BY public.wardrobe_sets.id;
 
 
 --
+-- Name: webhook_keys; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.webhook_keys (
+    provider text NOT NULL,
+    key text NOT NULL,
+    url text NOT NULL,
+    registered_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT webhook_keys_provider_check CHECK ((provider = 'checkbox'::text))
+);
+
+
+--
+-- Name: TABLE webhook_keys; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.webhook_keys IS 'Ключі підпису вебхуків, видані провайдером при реєстрації (не з .env)';
+
+
+--
 -- Name: bonus_grants id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2377,6 +2397,14 @@ ALTER TABLE ONLY public.wardrobe_set_items
 
 ALTER TABLE ONLY public.wardrobe_sets
     ADD CONSTRAINT wardrobe_sets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: webhook_keys webhook_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.webhook_keys
+    ADD CONSTRAINT webhook_keys_pkey PRIMARY KEY (provider);
 
 
 --
@@ -3272,4 +3300,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921130000'),
     ('20260921140000'),
     ('20260921150000'),
-    ('20260922100000');
+    ('20260922100000'),
+    ('20260922110000');
