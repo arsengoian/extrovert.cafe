@@ -33,7 +33,10 @@ const REGISTRY = "docs/README.md";
 
 // Якорі #db-… і #svc-… уже розіслані посиланнями з першої версії сторінки,
 // тому ключі цих двох доків фіксовані. Решта — з імені файла.
-const FIXED_KEYS = { "docs/db-schema.md": "db", "docs/services.md": "svc" };
+// raspberry/pi/README.md без фіксованого ключа стає «raspberry-pi» — рівно як
+// docs/raspberry-pi.md: дві секції з одним id, а посилання між цими доками
+// рендерились як посилання «на себе», тобто простим текстом (21.09.2026).
+const FIXED_KEYS = { "docs/db-schema.md": "db", "docs/services.md": "svc", "raspberry/pi/README.md": "pi-device" };
 
 const MERMAID_VERSION = "10.9.1";
 

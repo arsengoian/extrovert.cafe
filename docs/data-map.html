@@ -110,12 +110,12 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело c5ef29a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 4c72c6b</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 19 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
 <div class="layout">
-<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul><li class="nav-group"><details open><summary><a href="#g-архітектура-й-дані">Архітектура й дані</a></summary><ul><li class="nav-doc"><details><summary><a href="#svc">Сервіси: хто де живе, як спілкується, як доводить, що це він</a></summary><ul><li class="nav-section"><details><summary><a href="#svc-1-загальна-картина">1. Загальна картина</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-1"><span class="nav-badge">схема</span>Схема</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-2-хто-де-крутиться-і-чому-саме-там">2. Хто де крутиться і чому саме там</a></summary><ul><li class="nav-sub"><a href="#svc-2-1-бакети-r2-і-розмежування-оточень">2.1 Бакети R2 і розмежування оточень</a></li><li class="nav-sub"><a href="#svc-фонові-роботи-окремий-сервіс-scheduler">Фонові роботи — окремий сервіс scheduler</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-3-автентифікація-кожна-стрілка-окремо">3. Автентифікація: кожна стрілка окремо</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#svc-один-токен-на-обидва-бекенди">Один токен на обидва бекенди</a></li><li class="nav-sub"><a href="#svc-вебсокет-jwt-у-sec-websocket-protocol">Вебсокет: JWT у Sec-WebSocket-Protocol</a></li><li class="nav-sub"><a href="#svc-малина-ключ-у-файлі-який-можна-відкликати">Малина: ключ у файлі, який можна відкликати</a></li><li class="nav-sub"><a href="#svc-recorder-тимчасовий-доступ-до-r2">Recorder: тимчасовий доступ до R2</a></li><li class="nav-sub"><a href="#svc-telegram-ми-підтримка">Telegram → ми (підтримка)</a></li><li class="nav-sub"><a href="#svc-checkbox-ми">Checkbox → ми</a></li><li class="nav-sub"><a href="#svc-ми-checkbox">Ми → Checkbox</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-4-потоки-даних-які-варто-розуміти-цілком">4. Потоки даних, які варто розуміти цілком</a></summary><ul><li class="nav-sub"><a href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті">Продаж → бонус на екрані → бонус в акаунті</a></li><li class="nav-sub"><a href="#svc-скан-наклейки-на-автоматі">Скан наклейки на автоматі</a></li><li class="nav-sub"><a href="#svc-події-кіоска">Події кіоска</a></li><li class="nav-sub"><a href="#svc-що-лежить-у-menu-json">Що лежить у menu.json</a></li><li class="nav-sub"><a href="#svc-деплой-цін-і-акцій">Деплой цін і акцій</a></li><li class="nav-sub"><a href="#svc-p2p-маркет-які-лоти-пропонує-api">P2P-маркет: які лоти пропонує API</a></li><li class="nav-sub"><a href="#svc-доставка-новою-поштою">Доставка Новою Поштою</a></li><li class="nav-sub"><a href="#svc-підтримка-через-telegram-наш-бот">Підтримка через Telegram — наш бот</a></li><li class="nav-sub"><a href="#svc-помилки-glitchtip-кожен-у-свій-проєкт">Помилки: GlitchTip, кожен у свій проєкт</a></li><li class="nav-sub"><a href="#svc-оновлення-точки">Оновлення точки</a></li><li class="nav-sub"><a href="#svc-відео">Відео</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-5-що-з-цього-реально-існує">5. Що з цього реально існує</a></summary><ul><li class="nav-sub"><a href="#svc-як-воно-піднімається-локально">Як воно піднімається локально</a></li><li class="nav-sub"><a href="#svc-плавна-зупинка">Плавна зупинка</a></li><li class="nav-sub"><a href="#svc-спільний-блок-у-compose">Спільний блок у compose</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#db">Схема даних: Postgres і Redis</a></summary><ul><li class="nav-section"><details><summary><a href="#db-0-наскрізні-рішення">0. Наскрізні рішення</a></summary><ul><li class="nav-sub"><a href="#db-гроші-numeric-12-2-ігрові-валюти-integer">Гроші — numeric(12,2), ігрові валюти — integer</a></li><li class="nav-sub"><a href="#db-баланси-колонки-в-users-рухи-рядки-журналу">Баланси — колонки в users, рухи — рядки журналу</a></li><li class="nav-sub"><a href="#db-косметика-куща-в-jsonb-економіка-в-колонках">Косметика куща в jsonb, економіка в колонках</a></li><li class="nav-sub"><a href="#db-форма-plants-appearance-version-2">Форма plants.appearance (version 2)</a></li><li class="nav-sub"><a href="#db-ідемпотентність-на-кожному-вході-ззовні">Ідемпотентність на кожному вході ззовні</a></li><li class="nav-sub"><a href="#db-подія-пишеться-в-тій-самій-транзакції-що-й-зміна">Подія пишеться в тій самій транзакції, що й зміна</a></li><li class="nav-sub"><a href="#db-точка-текстовий-ключ-із-першого-дня">Точка — текстовий ключ із першого дня</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-1-ідентичність-і-продажі">1. Ідентичність і продажі</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-1"><span class="nav-badge">ER</span>10 таблиць</a></summary><ul><li class="nav-table"><a href="#t-points">points</a></li><li class="nav-table"><a href="#t-users">users</a></li><li class="nav-table"><a href="#t-user_identities">user_identities</a></li><li class="nav-table"><a href="#t-receipts">receipts</a></li><li class="nav-table"><a href="#t-receipt_items">receipt_items</a></li><li class="nav-table"><a href="#t-drinks">drinks</a></li><li class="nav-table"><a href="#t-menu_deployments">menu_deployments</a></li><li class="nav-table"><a href="#t-menu_deployment_targets">menu_deployment_targets</a></li><li class="nav-table"><a href="#t-bonus_grants">bonus_grants</a></li><li class="nav-table"><a href="#t-device_telemetry">device_telemetry</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-2-економіка-журнал-крамниця-маркет">2. Економіка: журнал, крамниця, маркет</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-2"><span class="nav-badge">ER</span>15 таблиць</a></summary><ul><li class="nav-table"><a href="#t-ledger_entries">ledger_entries</a></li><li class="nav-table"><a href="#t-item_defs">item_defs</a></li><li class="nav-table"><a href="#t-user_items">user_items</a></li><li class="nav-table"><a href="#t-crate_openings">crate_openings</a></li><li class="nav-table"><a href="#t-market_listings">market_listings</a></li><li class="nav-table"><a href="#t-market_trades">market_trades</a></li><li class="nav-table"><a href="#t-coin_transfers">coin_transfers</a></li><li class="nav-table"><a href="#t-redemptions">redemptions</a></li><li class="nav-table"><a href="#t-redemption_events">redemption_events</a></li><li class="nav-table"><a href="#t-np_cities">np_cities</a></li><li class="nav-table"><a href="#t-np_warehouses">np_warehouses</a></li><li class="nav-table"><a href="#t-pos_discount_codes">pos_discount_codes</a></li><li class="nav-table"><a href="#t-quiz_profile_responses">quiz_profile_responses</a></li><li class="nav-table"><a href="#t-quiz_drink_responses">quiz_drink_responses</a></li><li class="nav-table"><a href="#t-repost_verifications">repost_verifications</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-3-кавенятка-ріст-догляд-гардероб">3. Кавенятка: ріст, догляд, гардероб</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-3"><span class="nav-badge">ER</span>5 таблиць</a></summary><ul><li class="nav-table"><a href="#t-plants">plants</a></li><li class="nav-table"><a href="#t-plant_stage_transitions">plant_stage_transitions</a></li><li class="nav-table"><a href="#t-wardrobe_sets">wardrobe_sets</a></li><li class="nav-table"><a href="#t-wardrobe_set_items">wardrobe_set_items</a></li><li class="nav-table"><a href="#t-chat_messages">chat_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-4-операційка-відео-здоровʼя-адмінка">4. Операційка: відео, здоровʼя, адмінка</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-4"><span class="nav-badge">ER</span>10 таблиць</a></summary><ul><li class="nav-table"><a href="#t-video_segments">video_segments</a></li><li class="nav-table"><a href="#t-video_events">video_events</a></li><li class="nav-table"><a href="#t-health_samples">health_samples</a></li><li class="nav-table"><a href="#t-problem_reports">problem_reports</a></li><li class="nav-table"><a href="#t-news_broadcasts">news_broadcasts</a></li><li class="nav-table"><a href="#t-admin_users">admin_users</a></li><li class="nav-table"><a href="#t-outbox">outbox</a></li><li class="nav-table"><a href="#t-sync_cursors">sync_cursors</a></li><li class="nav-table"><a href="#t-support_threads">support_threads</a></li><li class="nav-table"><a href="#t-support_messages">support_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-5-redis-що-саме-там-лежить">5. Redis: що саме там лежить</a></summary><ul><li class="nav-sub"><a href="#db-ключі">Ключі</a></li><li class="nav-sub"><a href="#db-канали-pub-sub">Канали pub/sub</a></li><li class="nav-sub"><a href="#db-чому-pub-sub-а-не-streams">Чому pub/sub, а не Streams</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-6-міграції-окремий-інструмент-не-сервіс">6. Міграції: окремий інструмент, не сервіс</a></summary><ul><li class="nav-sub"><a href="#db-рішення-dbmate-15-09-2026">Рішення: dbmate, 15.09.2026</a></li><li class="nav-sub"><a href="#db-розкладка">Розкладка</a></li><li class="nav-sub"><a href="#db-правила-які-дешевше-прийняти-зараз">Правила, які дешевше прийняти зараз</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-7-сіди-контент-json-у-репозиторії">7. Сіди: контент — JSON у репозиторії</a></summary><ul><li class="nav-sub"><a href="#db-що-є-контентом">Що є контентом</a></li><li class="nav-sub"><a href="#db-розкладка-2">Розкладка</a></li><li class="nav-sub"><a href="#db-команди">Команди</a></li><li class="nav-sub"><a href="#db-apply">apply</a></li><li class="nav-sub"><a href="#db-pull">pull</a></li><li class="nav-sub"><a href="#db-коли-зʼявиться-адмінка">Коли зʼявиться адмінка</a></li><li class="nav-sub"><a href="#db-разом-із-міграціями">Разом із міграціями</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#urls">Схема URL</a></summary><ul><li class="nav-section"><a href="#urls-формат-ідентифікатора">Формат ідентифікатора</a></li><li class="nav-section"><a href="#urls-qr-на-наклейці-qr-extrovert-cafe">QR на наклейці — qr.extrovert.cafe</a></li><li class="nav-section"><a href="#urls-меню-й-релізи-публічний-бакет-r2">Меню й релізи — публічний бакет R2</a></li><li class="nav-section"><a href="#urls-бекенд-api-план">Бекенд (api) — план</a></li><li class="nav-section"><a href="#urls-події-ws">Події (ws)</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#deploy">Викочування</a></summary><ul><li class="nav-section"><details><summary><a href="#deploy-1-застосунок-гравця-cloudflare-workers">1. Застосунок гравця → Cloudflare Workers</a></summary><ul><li class="nav-sub"><a href="#deploy-адмінка-ті-самі-workers">Адмінка → ті самі Workers</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#deploy-2-бекенд-дроплет">2. Бекенд → дроплет</a></summary><ul><li class="nav-sub"><a href="#deploy-що-має-бути-в-env-на-сервері">Що має бути в .env на сервері</a></li></ul></details></li><li class="nav-section"><a href="#deploy-2-1-дроплет-і-файрвол-через-terraform">2.1 Дроплет і файрвол через terraform</a></li><li class="nav-section"><a href="#deploy-2-2-бакети-r2">2.2 Бакети R2</a></li><li class="nav-section"><details><summary><a href="#deploy-2-3-викочування-образи-реєстр-перемикання-без-розриву">2.3 Викочування: образи, реєстр, перемикання без розриву</a></summary><ul><li class="nav-sub"><a href="#deploy-що-лежить-на-сервері">Що лежить на сервері</a></li><li class="nav-sub"><a href="#deploy-реєстр">Реєстр</a></li><li class="nav-sub"><a href="#deploy-як-їде-нова-версія">Як їде нова версія</a></li><li class="nav-sub"><a href="#deploy-реліз-кіоска">Реліз кіоска</a></li><li class="nav-sub"><a href="#deploy-секрети-які-треба-завести-в-github">Секрети, які треба завести в GitHub</a></li><li class="nav-sub"><a href="#deploy-той-самий-деплой-локально">Той самий деплой локально</a></li><li class="nav-sub"><a href="#deploy-dns-який-має-існувати">DNS, який має існувати</a></li></ul></details></li><li class="nav-section"><a href="#deploy-3-після-першого-викочування">3. Після першого викочування</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#checkbox">ПРРО Checkbox</a></summary><ul><li class="nav-section"><a href="#checkbox-перевірити-перед-тим-як-щось-налаштовувати">Перевірити ПЕРЕД тим, як щось налаштовувати</a></li><li class="nav-section"><details><summary><a href="#checkbox-api-одна-адреса-один-токен">API: одна адреса, один токен</a></summary><ul><li class="nav-sub"><a href="#checkbox-тестовий-касир-ізолює-чеки-але-не-ціни">Тестовий касир ізолює чеки, але не ціни</a></li></ul></details></li><li class="nav-section"><a href="#checkbox-вебхук">Вебхук</a></li><li class="nav-section"><a href="#checkbox-підпис">Підпис</a></li><li class="nav-section"><a href="#checkbox-що-прилітає">Що прилітає</a></li><li class="nav-section"><details><summary><a href="#checkbox-товари-goods">Товари (goods)</a></summary><ul><li class="nav-sub"><a href="#checkbox-правимо-точково-а-не-імпортом-20-09-2026">Правимо точково, а не імпортом (20.09.2026)</a></li><li class="nav-sub"><a href="#checkbox-різні-ціни-на-різних-точках">Різні ціни на різних точках</a></li></ul></details></li><li class="nav-section"><a href="#checkbox-наш-приймач">Наш приймач</a></li><li class="nav-section"><a href="#checkbox-посилання">Посилання</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#video">Відео: запис, зберігання, обробка</a></summary><ul><li class="nav-section"><a href="#video-загальна-схема">Загальна схема</a></li><li class="nav-section"><details><summary><a href="#video-чому-два-дроплети">Чому два дроплети</a></summary><ul><li class="nav-sub"><a href="#video-мережа">Мережа</a></li><li class="nav-sub"><a href="#video-скільки-насправді-треба-дроплету-аналізу">Скільки насправді треба дроплету аналізу</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#video-edge-вузол-на-точці">Edge-вузол на точці</a></summary><ul><li class="nav-sub"><a href="#video-запис">Запис</a></li><li class="nav-sub"><a href="#video-вивантаження">Вивантаження</a></li></ul></details></li><li class="nav-section"><a href="#video-r2">R2</a></li><li class="nav-section"><details><summary><a href="#video-база">База</a></summary><ul><li class="nav-sub"><a href="#video-бекапи-в-r2">Бекапи в R2</a></li><li class="nav-sub"><a href="#video-що-ми-свідомо-приймаємо-на-себе">Що ми свідомо приймаємо на себе</a></li><li class="nav-sub"><a href="#video-схема">Схема</a></li><li class="nav-sub"><a href="#video-черга">Черга</a></li></ul></details></li><li class="nav-section"><a href="#video-воркер">Воркер</a></li><li class="nav-section"><a href="#video-ідентифікація-людей">Ідентифікація людей</a></li><li class="nav-section"><a href="#video-скільки-це-коштує">Скільки це коштує</a></li><li class="nav-section"><a href="#video-чого-свідомо-не-робимо">Чого свідомо не робимо</a></li><li class="nav-section"><a href="#video-джерела">Джерела</a></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-точка">Точка</a></summary><ul><li class="nav-doc"><details><summary><a href="#raspberry-pi">Raspberry Pi на точці: що крутиться і як туди потрапляє нова версія</a></summary><ul><li class="nav-section"><a href="#raspberry-pi-1-залізо-й-система">1. Залізо й система</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-2-що-крутиться-на-точці">2. Що крутиться на точці</a></summary><ul><li class="nav-graph"><a href="#raspberry-pi-diagram-1"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#raspberry-pi-хто-є-хто">Хто є хто</a></li><li class="nav-sub"><a href="#raspberry-pi-як-процеси-говорять-між-собою">Як процеси говорять між собою</a></li><li class="nav-sub"><a href="#raspberry-pi-що-лежить-поза-home-pi-extrovert">Що лежить поза /home/pi/extrovert</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#raspberry-pi-3-деплой-від-коміту-до-екрана">3. Деплой: від коміту до екрана</a></summary><ul><li class="nav-graph"><a href="#raspberry-pi-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#raspberry-pi-один-раз-перед-першим-релізом">Один раз перед першим релізом</a></li><li class="nav-sub"><a href="#raspberry-pi-кроки">Кроки</a></li><li class="nav-sub"><a href="#raspberry-pi-що-саме-відбувається-на-точці">Що саме відбувається на точці</a></li><li class="nav-sub"><a href="#raspberry-pi-відкат">Відкат</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-4-перехід-на-стек-один-раз-коли-малина-буде-онлайн">4. Перехід на стек — один раз, коли малина буде онлайн</a></li><li class="nav-section"><a href="#raspberry-pi-5-живлення-overlay-і-самооновлення">5. Живлення, overlay і самооновлення</a></li><li class="nav-section"><a href="#raspberry-pi-6-запасний-варіант-статична-картинка">6. Запасний варіант — статична картинка</a></li><li class="nav-section"><a href="#raspberry-pi-7-чого-ще-не-знаємо">7. Чого ще не знаємо</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#raspberry-pi-stack">Стек на точці й оновлення без поїздки</a></summary><ul><li class="nav-section"><a href="#raspberry-pi-stack-розкладка-на-пристрої">Розкладка на пристрої</a></li><li class="nav-section"><a href="#raspberry-pi-stack-хто-є-хто">Хто є хто</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-stack-як-проходить-оновлення">Як проходить оновлення</a></summary><ul><li class="nav-sub"><a href="#raspberry-pi-stack-чому-підміна-не-дає-чорного-екрана">Чому підміна не дає чорного екрана</a></li><li class="nav-sub"><a href="#raspberry-pi-stack-плашка-оновлення-в-шапці">Плашка «Оновлення» в шапці</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-stack-операції">Операції</a></li><li class="nav-section"><a href="#raspberry-pi-stack-чого-ще-не-знаємо-перевірити-коли-малина-повернеться">Чого ще не знаємо (перевірити, коли малина повернеться)</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#raspberry-pi">Raspberry Pi — кіоск точки</a></summary><ul><li class="nav-section"><a href="#raspberry-pi-що-вже-зроблено-на-пристрої">Що вже зроблено на пристрої</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-скрипти-в-цій-теці">Скрипти в цій теці</a></summary><ul><li class="nav-sub"><a href="#raspberry-pi-прод-нативний-рендерер-kiosk-без-x-з-18-08-2026">Прод: нативний рендерер (kiosk), без X — з 18.08.2026</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-годинник">Годинник</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео">Замір: чи тягне Pi 1 кіоск разом із записом відео</a></summary><ul><li class="nav-sub"><a href="#raspberry-pi-порядок">Порядок</a></li><li class="nav-sub"><a href="#raspberry-pi-що-вважати-провалом">Що вважати провалом</a></li><li class="nav-sub"><a href="#raspberry-pi-результат-заміру-17-08-2026">Результат заміру 17.08.2026</a></li><li class="nav-sub"><a href="#raspberry-pi-граблі-заміру-прочитати-перед-повторним-прогоном">Граблі заміру — прочитати перед повторним прогоном</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-бекапи-на-пристрої">Бекапи на пристрої</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#display-hardware">Екран меню — обрана модель</a></summary><ul><li class="nav-section"><details><summary><a href="#display-hardware-asus-vp227hf-артикул-90lm0880-b01o71-black">Asus VP227HF · артикул 90LM0880-B01O71 (Black)</a></summary><ul><li class="nav-sub"><a href="#display-hardware-характеристики">Характеристики</a></li><li class="nav-sub"><a href="#display-hardware-габарити-офіційний-datasheet-asus">Габарити (офіційний datasheet ASUS)</a></li><li class="nav-sub"><a href="#display-hardware-чому-саме-він">Чому саме він</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#display-hardware-раніше-планувалось-lenovo-l22-4e-артикул-67d5kac6ua-raven-bl">Раніше планувалось: Lenovo L22-4e · артикул 67D5KAC6UA (Raven Black)</a></summary><ul><li class="nav-sub"><a href="#display-hardware-відкинуті-варіанти-з-початкового-порівняння-09-08-2026">Відкинуті варіанти (з початкового порівняння 09.08.2026)</a></li></ul></details></li><li class="nav-section"><a href="#display-hardware-що-зробити-перед-монтажем">Що зробити перед монтажем</a></li><li class="nav-section"><a href="#display-hardware-джерела">Джерела</a></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-продукт-і-гра">Продукт і гра</a></summary><ul><li class="nav-doc"><details><summary><a href="#gamification-economy">Економіка гейміфікації (Coins + Coffee Beans) — v2</a></summary><ul><li class="nav-section"><a href="#gamification-economy-0-наукова-база-щоб-не-вигадувати-з-голови">0. Наукова база (щоб не вигадувати з голови)</a></li><li class="nav-section"><a href="#gamification-economy-1-ліміт-бюджету-без-змін">1. Ліміт бюджету — без змін</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-2-дві-валюти-тепер-три-токени">2. Дві валюти → тепер ТРИ токени</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-2-1-coins-розбито-на-yellow-silver">2.1 Coins розбито на Yellow / Silver 🔄</a></li><li class="nav-sub"><a href="#gamification-economy-2-2-гіфтинг-цілого-кавенятка-або-предмета">2.2 Гіфтинг цілого кавенятка або предмета</a></li><li class="nav-sub"><a href="#gamification-economy-2-3-coffee-beans-без-змін-по-суті">2.3 Coffee Beans — без змін по суті</a></li><li class="nav-sub"><a href="#gamification-economy-2-4-ліміти-на-free-coins-квіз-про-напій-і-репост-19-09-2026">2.4 Ліміти на Free coins: квіз про напій і репост 🆕 19.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу">3. Скільки стадій росту й скільки предметів у комплекті одягу</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле">3.1 Стадії росту кавенятка — 11 станів (0-10) 🔄 ПОВНІСТЮ ПЕРЕРОБЛЕНО</a></li><li class="nav-sub"><a href="#gamification-economy-3-2-догляд-компост-добриво-інсектицид-обов-язкові-для-росту-">3.2 Догляд: компост / добриво / інсектицид (обов'язкові для росту) і полив (символічний)</a></li><li class="nav-sub"><a href="#gamification-economy-3-3-розмір-комплекту-одягу">3.3 Розмір комплекту одягу</a></li><li class="nav-sub"><a href="#gamification-economy-3-4-збірка-комплекту-рідкість-зерна-за-збірку-замикання">3.4 Збірка комплекту: рідкість, зерна за збірку, замикання</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-4-модель-рідкості-й-сприйнятої-цінності">4. Модель рідкості й сприйнятої цінності</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-4-1-тіньова-ймовірність-дропу-на-звичайних-напоях">4.1 Тіньова ймовірність дропу на ЗВИЧАЙНИХ напоях 🔄</a></li><li class="nav-sub"><a href="#gamification-economy-4-2-що-саме-випадає-з-крейта-20-09-2026">4.2 Що саме випадає з крейта 🆕 20.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-5-coins-на-що-йдуть-з-фінальними-рішеннями">5. Coins — на що йдуть (з фінальними рішеннями)</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-5-1-пряма-покупка-одягу-за-монети-усі-тіри-19-09-2026">5.1 Пряма покупка одягу за монети — УСІ тіри 🆕 19.09.2026</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-6-coffee-beans-на-що-йдуть-з-курсом">6. Coffee Beans — на що йдуть (з курсом)</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-7-coins-на-напоях-тепер-від-профіту-не-ціни">7. Coins на напоях — тепер від ПРОФІТУ, не ціни 🔄</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-7-1-бонус-напої-coins-price-не-маржа-двічі-перекалібровано">7.1 Бонус-напої — coins = price, не маржа 🔄 (двічі перекалібровано)</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-8-що-не-робимо-явно-відхилені-ідеї-з-v1">8. Що НЕ робимо (явно відхилені ідеї з v1)</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-9-що-робимо-обов-язково-підтверджено-в-чаті">9. Що робимо ОБОВ'ЯЗКОВО (підтверджено в чаті)</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-9-1-купівля-монет-за-гривню-coin-packs-18-09-2026">9.1 Купівля монет за гривню (Coin Packs) 🆕 18.09.2026</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-10-технічний-висновок-оновлено">10. Технічний висновок (оновлено)</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#gamification-ui">Інтерфейс застосунку гравця</a></summary><ul><li class="nav-section"><a href="#gamification-ui-загальне">Загальне</a></li><li class="nav-section"><details><summary><a href="#gamification-ui-екрани">Екрани</a></summary><ul><li class="nav-sub"><details><summary><a href="#gamification-ui-неавторизований-користувач">Неавторизований користувач</a></summary><ul><li class="nav-subsub"><a href="#gamification-ui-екран-авторизації">Екран авторизації</a></li><li class="nav-subsub"><a href="#gamification-ui-повідомити-про-проблему">Повідомити про проблему</a></li><li class="nav-subsub"><a href="#gamification-ui-сторінка-terms-of-use-privacy-policy">Сторінка terms of use, privacy policy</a></li></ul></details></li><li class="nav-sub"><details><summary><a href="#gamification-ui-авторизований-ui">Авторизований UI</a></summary><ul><li class="nav-subsub"><a href="#gamification-ui-стартовий-екран">Стартовий екран</a></li><li class="nav-subsub"><a href="#gamification-ui-ріст-і-редагування-кавенятка">Ріст і редагування кавенятка</a></li><li class="nav-subsub"><a href="#gamification-ui-історія-замовлень">Історія замовлень</a></li><li class="nav-subsub"><a href="#gamification-ui-гаманець">Гаманець</a></li><li class="nav-subsub"><a href="#gamification-ui-склад">Склад</a></li><li class="nav-subsub"><a href="#gamification-ui-магазин">Магазин</a></li></ul></details></li><li class="nav-sub"><a href="#gamification-ui-попапи">Попапи</a></li><li class="nav-sub"><a href="#gamification-ui-сповіщення">Сповіщення</a></li><li class="nav-sub"><a href="#gamification-ui-рішення-для-mvp-закрито-14-09-2026-більше-не-todo">Рішення для MVP (закрито 14.09.2026, більше не TODO)</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#bush-graphics-customization">Кастомізація графіки кавенятка (кущ) — v1</a></summary><ul><li class="nav-section"><a href="#bush-graphics-customization-0-модель-рендеру-кущ-стек-шарів">0. Модель рендеру: кущ = стек шарів</a></li><li class="nav-section"><a href="#bush-graphics-customization-1-листя-розблоковується-на-переході-1-2-сходить-маленький-ку">1. Листя — розблоковується на переході 1→2 (&quot;Сходить&quot; → &quot;Маленький кущ&quot;)</a></li><li class="nav-section"><a href="#bush-graphics-customization-2-гілки-розблоковується-на-переході-2-3-маленький-кущ-здоров">2. Гілки — розблоковується на переході 2→3 (&quot;Маленький кущ&quot; → &quot;Здоровий кущ&quot;)</a></li><li class="nav-section"><a href="#bush-graphics-customization-3-бутони-квіти-боби-перший-цикл-стадії-4-10">3. Бутони → Квіти → Боби: перший цикл (стадії 4-10)</a></li><li class="nav-section"><a href="#bush-graphics-customization-4-настрій-здоров-я-полив-сум-зів-ялий-withered">4. Настрій/здоров'я: полив, сум, зів'ялий (withered)</a></li><li class="nav-section"><a href="#bush-graphics-customization-5-построжаєвий-регrowth-цикл-після-стадії-10-вже-без-покупко">5. Построжаєвий регrowth-цикл (після стадії 10) — вже без покупко/день-гейтингу</a></li><li class="nav-section"><a href="#bush-graphics-customization-6-гардероб-і-дарування-комплекту">6. Гардероб і дарування комплекту</a></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-7-контент-на-запуск-скільки-наборів-одягу-треба-на-3-6-місяц">7. Контент на запуск: скільки наборів одягу треба на 3-6 місяців</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-7-1-конкретні-концепти-15-наборів">7.1 Конкретні концепти 15 наборів</a></li></ul></details></li><li class="nav-section"><a href="#bush-graphics-customization-8-реєстр-зон-і-координат-що-статичне-а-що-в-стані-кавенятка">8. Реєстр зон і координат — що статичне, а що в стані кавенятка</a></li><li class="nav-section"><a href="#bush-graphics-customization-9-json-схема-стану-кавенятка-приклад-ілюстративний">9. JSON-схема стану кавенятка (приклад, ілюстративний)</a></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-10-вичерпний-перелік-спрайтів-та-анімацій-для-промальовки">10. Вичерпний перелік спрайтів та анімацій для промальовки</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-10-1-кущ-рання-стадія-стовбур">10.1 Кущ: рання стадія + стовбур</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-2-обличчя-5-наборів-кожен-із-роздільних-l-r-деталей-12-09">10.2 Обличчя — 5 наборів, кожен із роздільних L/R деталей 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-3-листя-1-10-скінів-зів-ялий-withered-окремим-набором-12-">10.3 Листя (§1) — 10 скінів, &quot;зів'ялий&quot; (withered) окремим набором 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-4-гілки-2-ліва-права-рука-різні-з-листям-у-комплекті-12-0">10.4 Гілки (§2) — ліва/права &quot;рука&quot; різні, з листям у комплекті 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-5-плоди-3-5-4-стани-5-скінів-квітки-5-скінів-бобa-стиглог">10.5 Плоди (§3, §5) — 4 стани, 5 скінів квітки, 5 скінів бобa (стиглого) 🔄 (12.09.2026 (11): +green_bean, підтверджено 5 скінів боба)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-6-реквізит-на-платформі">10.6 Реквізит на платформі</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-7-полив-відро-з-літрами-3-2-доку-економіки-4-12-09-2026-9">10.7 Полив — відро з літрами (§3.2 доку економіки, §4) 🔄 (12.09.2026 (9)(10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-8-хмаринка-з-думками-ai-чат-головний-екран-12-09-2026-10">10.8 Хмаринка з думками + AI-чат (головний екран) 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-9-крейти-лутбокси-багатший-арт-відкриття-12-09-2026-10">10.9 Крейти/лутбокси — багатший арт відкриття 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-10-валюта-zerno-окремою-іконкою-12-09-2026-10">10.10 Валюта — zerno окремою іконкою 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-11-магазин-redemption-іконки-5-6-доку-економіки">10.11 Магазин/redemption-іконки (§5-§6 доку економіки)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-12-гардероб-ui-6">10.12 Гардероб / UI (§6)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-13-одяг-wardrobe-items-уже-пораховано-в-7">10.13 Одяг (wardrobe items) — уже пораховано в §7</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-14-магічний-ефект-спільний-vfx">10.14 Магічний ефект (спільний VFX)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-15-перелік-анімацій-усе-transform-опційно-10-14">10.15 Перелік анімацій (усе — transform + опційно §10.14)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-16-тз-статична-анімація-погойдування-на-вітрі-ідле-стан-1">10.16 ТЗ: статична анімація погойдування на вітрі (ідле-стан) (12.09.2026 (11))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-17-навігація-й-топ-бар-18-09-2026-пряме-прохання-користув">10.17 Навігація й топ-бар 🔄 (18.09.2026, пряме прохання користувача)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-18-набори-монет-coin-packs-18-09-2026-пряме-прохання-кори">10.18 Набори монет (Coin Packs) 🔄 (18.09.2026, пряме прохання користувача)</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-11-відкриті-питання-todo-для-наступної-ітерації">11. Відкриті питання (TODO для наступної ітерації)</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-питання-вирішені-прототипом-claude-design-19-09-2026">Питання, вирішені прототипом Claude Design (19.09.2026)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-залишкові-відкриті-todo">Залишкові відкриті TODO</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#bush-planting-ui">UI посадки кавенятка — геометрія, зони, слайдери</a></summary><ul><li class="nav-section"><a href="#bush-planting-ui-1-типи-елементів-і-реальний-порядок-посадки">1. Типи елементів і реальний порядок посадки</a></li><li class="nav-section"><a href="#bush-planting-ui-2-спільний-геометричний-принцип-root-anchoring">2. Спільний геометричний принцип: root-anchoring</a></li><li class="nav-section"><a href="#bush-planting-ui-3-листя-фон-leafbg">3. Листя — фон (leafBg)</a></li><li class="nav-section"><a href="#bush-planting-ui-4-листя-передній-план-leaffg">4. Листя — передній план (leafFg)</a></li><li class="nav-section"><a href="#bush-planting-ui-5-гілки-branch">5. Гілки (branch)</a></li><li class="nav-section"><a href="#bush-planting-ui-6-бутони-bud">6. Бутони (bud)</a></li><li class="nav-section"><a href="#bush-planting-ui-7-z-шари-і-порядок-малювання-зведено">7. z-шари і порядок малювання — зведено</a></li><li class="nav-section"><a href="#bush-planting-ui-8-ліміти-й-слайдери-зведена-таблиця">8. Ліміти й слайдери — зведена таблиця</a></li><li class="nav-section"><a href="#bush-planting-ui-9-немає-серверної-валідації-посадки">9. ⚠️ Немає серверної валідації посадки</a></li><li class="nav-section"><a href="#bush-planting-ui-10-розбіжності-зі-старою-документацією">10. Розбіжності зі старою документацією</a></li><li class="nav-section"><a href="#bush-planting-ui-10-біс-як-це-зроблено-в-коді-20-09-2026">10-біс. Як це зроблено в коді (20.09.2026)</a></li><li class="nav-section"><a href="#bush-planting-ui-11-технічний-додаток-схема-planting-placement-json">11. Технічний додаток: схема planting_placement.json</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#sprite-generation-plan">План генерації спрайтів кавенятка через OpenAI Images API</a></summary><ul><li class="nav-section"><a href="#sprite-generation-plan-1-яку-модель-використовувати">1. Яку модель використовувати</a></li><li class="nav-section"><a href="#sprite-generation-plan-2-конвенція-розмірів-у-пікселях">2. Конвенція розмірів у пікселях</a></li><li class="nav-section"><a href="#sprite-generation-plan-3-як-групуються-спрайти-в-одну-генерацію">3. Як групуються спрайти в одну генерацію</a></li><li class="nav-section"><a href="#sprite-generation-plan-4-підсумок-56-генерацій-на-267-спрайтів">4. Підсумок: 56 генерацій на 267 спрайтів</a></li><li class="nav-section"><a href="#sprite-generation-plan-5-що-лишається-поза-вартістю-api">5. Що лишається поза вартістю API</a></li><li class="nav-section"><a href="#sprite-generation-plan-джерела">Джерела</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#chat">Чат із кавенятком</a></summary><ul><li class="nav-section"><a href="#chat-1-з-чого-складається-відповідь">1. З чого складається відповідь</a></li><li class="nav-section"><a href="#chat-2-база-знань">2. База знань</a></li><li class="nav-section"><a href="#chat-3-промпти">3. Промпти</a></li><li class="nav-section"><a href="#chat-4-гроші-й-ліміти">4. Гроші й ліміти</a></li><li class="nav-section"><a href="#chat-5-сповіщення">5. Сповіщення</a></li><li class="nav-section"><a href="#chat-6-модель">6. Модель</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#admin-panel">Адмінка</a></summary><ul><li class="nav-section"><details><summary><a href="#admin-panel-група-управління">Група &quot;управління&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-дашборд-здоров-я-за-замовчанням">Дашборд здоров'я - за замовчанням</a></li><li class="nav-sub"><a href="#admin-panel-дашборд-статистики">Дашборд статистики</a></li><li class="nav-sub"><a href="#admin-panel-дашборд-квізів">Дашборд квізів</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-операційка">Група &quot;операційка&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-ціни">Ціни</a></li><li class="nav-sub"><a href="#admin-panel-помилки-показує-к-ть-непрочитаних">Помилки (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-підтримка-показує-к-ть-непрочитаних">Підтримка (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-квізи-показує-к-ть-непрочитаних">Квізи (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-замовлення">Замовлення</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-користувачі">Група &quot;користувачі&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-користувачі">Користувачі</a></li><li class="nav-sub"><a href="#admin-panel-покупки">Покупки</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-відео">Група &quot;відео&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-відео">Відео</a></li><li class="nav-sub"><a href="#admin-panel-події">Події</a></li><li class="nav-sub"><a href="#admin-panel-аналітика">Аналітика</a></li></ul></details></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-план">План</a></summary><ul><li class="nav-doc"><details><summary><a href="#roadmap">Дорожня карта: відео, кіоск, гейміфікація, аналітика</a></summary><ul><li class="nav-section"><a href="#roadmap-0-де-ми-в-часі">0. Де ми в часі</a></li><li class="nav-section"><details><summary><a href="#roadmap-1-що-вирішено-і-чому-саме-так">1. Що вирішено — і чому саме так</a></summary><ul><li class="nav-sub"><a href="#roadmap-кому-продаємо-і-де-ставимо-точку">Кому продаємо і де ставимо точку</a></li><li class="nav-sub"><a href="#roadmap-відео-пишемо-обробляємо-окремо">Відео пишемо, обробляємо окремо</a></li><li class="nav-sub"><a href="#roadmap-записує-edge-вузол-а-не-камера-і-не-хмара">Записує edge-вузол, а не камера і не хмара</a></li><li class="nav-sub"><a href="#roadmap-ідентифікація-з-pos-а-не-з-облич">Ідентифікація — з POS, а не з облич</a></li><li class="nav-sub"><a href="#roadmap-хмара-два-дроплети-база-поки-в-докері">Хмара — два дроплети, база поки в докері</a></li><li class="nav-sub"><a href="#roadmap-кіоск-нативний-і-збирається-не-на-точці">Кіоск — нативний, і збирається не на точці</a></li><li class="nav-sub"><a href="#roadmap-меню-й-релізи-публічний-бакет-без-сервера-18-09-2026">Меню й релізи — публічний бакет, без сервера, 18.09.2026</a></li><li class="nav-sub"><a href="#roadmap-один-рантайм-на-бекенді-bun-20-09-2026">Один рантайм на бекенді — Bun, 20.09.2026</a></li><li class="nav-sub"><a href="#roadmap-один-фреймворк-на-фронтендах-react-16-09-2026">Один фреймворк на фронтендах — React, 16.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#roadmap-2-що-вже-зроблено">2. Що вже зроблено</a></summary><ul><li class="nav-sub"><a href="#roadmap-крок-1-замір-на-живому-pi-1-зроблено-17-08-2026">Крок 1 — замір на живому Pi 1, зроблено 17.08.2026</a></li><li class="nav-sub"><a href="#roadmap-спайк-нативний-рендерер-18-08-2026">Спайк — нативний рендерер, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-спайк-перший-запуск-на-реальному-pi-1-18-08-2026-60-fps">Спайк — перший запуск на реальному Pi 1, 18.08.2026: 60 fps</a></li><li class="nav-sub"><a href="#roadmap-перемикання-проду-на-pos-native-18-08-2026">Перемикання проду на pos-native, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-постмортем-білий-екран-одразу-після-перемикання-18-08-2026">Постмортем: білий екран одразу після перемикання, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-керований-стек-і-оновлення-без-поїздки-15-09-2026">Керований стек і оновлення без поїздки, 15.09.2026</a></li><li class="nav-sub"><a href="#roadmap-збірка-переїхала-на-пк-веб-версія-кіоска-прибрана-18-09-2026">Збірка переїхала на ПК, веб-версія кіоска прибрана, 18.09.2026</a></li><li class="nav-sub"><a href="#roadmap-виправлення-у-checkbox-один-домен-і-токен-касира-15-09-2026">Виправлення: у Checkbox один домен і токен касира, 15.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#roadmap-3-що-робити-далі">3. Що робити далі</a></summary><ul><li class="nav-sub"><a href="#roadmap-крок-0-база-й-міграції-перше-бо-на-цьому-стоїть-усе-інше">Крок 0. База й міграції — перше, бо на цьому стоїть усе інше</a></li><li class="nav-sub"><a href="#roadmap-крок-0-біс-скрипти-розробника-щойно-зʼявиться-база">Крок 0-біс. Скрипти розробника — щойно зʼявиться база</a></li><li class="nav-sub"><a href="#roadmap-крок-1-біс-закрити-хвости-заміру-дешево-поки-машини-немає">Крок 1-біс. Закрити хвости заміру — дешево, поки машини немає</a></li><li class="nav-sub"><a href="#roadmap-крок-2-розвʼязати-вузол-із-камерою-до-встановлення">Крок 2. Розвʼязати вузол із камерою — до встановлення</a></li><li class="nav-sub"><a href="#roadmap-крок-3-хмара-коли-замір-пройдено">Крок 3. Хмара — коли замір пройдено</a></li><li class="nav-sub"><a href="#roadmap-крок-4-аналітика-й-звʼязок-із-pos">Крок 4. Аналітика й звʼязок із POS</a></li><li class="nav-sub"><a href="#roadmap-крок-5-продуктовий-трек-по-порядку-залежностей">Крок 5. Продуктовий трек — по порядку залежностей</a></li><li class="nav-sub"><a href="#roadmap-крок-6-оновлення-точки-довести-до-кінця">Крок 6. Оновлення точки — довести до кінця</a></li></ul></details></li><li class="nav-section"><a href="#roadmap-4-відкриті-питання">4. Відкриті питання</a></li><li class="nav-section"><a href="#roadmap-5-свідомо-відхилено-щоб-не-переобговорювати">5. Свідомо відхилено — щоб не переобговорювати</a></li><li class="nav-section"><a href="#roadmap-6-гроші">6. Гроші</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#ideas">Ідеї на майбутнє</a></summary><ul><li class="nav-section"><a href="#ideas-коди-поповнення-steam-за-зерна">Коди поповнення Steam за зерна</a></li><li class="nav-section"><a href="#ideas-відвідування-випадкового-кавенятка">Відвідування випадкового кавенятка</a></li><li class="nav-section"><a href="#ideas-одяг-ширший-за-футболку">Одяг, ширший за футболку</a></li></ul></details></li></ul></details></li></ul></nav>
+<nav class="toc" aria-label="Зміст"><p class="toc-title">Зміст</p><ul><li class="nav-group"><details open><summary><a href="#g-архітектура-й-дані">Архітектура й дані</a></summary><ul><li class="nav-doc"><details><summary><a href="#svc">Сервіси: хто де живе, як спілкується, як доводить, що це він</a></summary><ul><li class="nav-section"><details><summary><a href="#svc-1-загальна-картина">1. Загальна картина</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-1"><span class="nav-badge">схема</span>Схема</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-2-хто-де-крутиться-і-чому-саме-там">2. Хто де крутиться і чому саме там</a></summary><ul><li class="nav-sub"><a href="#svc-2-1-бакети-r2-і-розмежування-оточень">2.1 Бакети R2 і розмежування оточень</a></li><li class="nav-sub"><a href="#svc-фонові-роботи-окремий-сервіс-scheduler">Фонові роботи — окремий сервіс scheduler</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-3-автентифікація-кожна-стрілка-окремо">3. Автентифікація: кожна стрілка окремо</a></summary><ul><li class="nav-graph"><a href="#svc-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#svc-один-токен-на-обидва-бекенди">Один токен на обидва бекенди</a></li><li class="nav-sub"><a href="#svc-вебсокет-jwt-у-sec-websocket-protocol">Вебсокет: JWT у Sec-WebSocket-Protocol</a></li><li class="nav-sub"><a href="#svc-малина-ключ-у-файлі-який-можна-відкликати">Малина: ключ у файлі, який можна відкликати</a></li><li class="nav-sub"><a href="#svc-recorder-тимчасовий-доступ-до-r2">Recorder: тимчасовий доступ до R2</a></li><li class="nav-sub"><a href="#svc-telegram-ми-підтримка">Telegram → ми (підтримка)</a></li><li class="nav-sub"><a href="#svc-checkbox-ми">Checkbox → ми</a></li><li class="nav-sub"><a href="#svc-ми-checkbox">Ми → Checkbox</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-4-потоки-даних-які-варто-розуміти-цілком">4. Потоки даних, які варто розуміти цілком</a></summary><ul><li class="nav-sub"><a href="#svc-продаж-бонус-на-екрані-бонус-в-акаунті">Продаж → бонус на екрані → бонус в акаунті</a></li><li class="nav-sub"><a href="#svc-скан-наклейки-на-автоматі">Скан наклейки на автоматі</a></li><li class="nav-sub"><a href="#svc-події-кіоска">Події кіоска</a></li><li class="nav-sub"><a href="#svc-що-лежить-у-menu-json">Що лежить у menu.json</a></li><li class="nav-sub"><a href="#svc-деплой-цін-і-акцій">Деплой цін і акцій</a></li><li class="nav-sub"><a href="#svc-p2p-маркет-які-лоти-пропонує-api">P2P-маркет: які лоти пропонує API</a></li><li class="nav-sub"><a href="#svc-доставка-новою-поштою">Доставка Новою Поштою</a></li><li class="nav-sub"><a href="#svc-підтримка-через-telegram-наш-бот">Підтримка через Telegram — наш бот</a></li><li class="nav-sub"><a href="#svc-помилки-glitchtip-кожен-у-свій-проєкт">Помилки: GlitchTip, кожен у свій проєкт</a></li><li class="nav-sub"><a href="#svc-оновлення-точки">Оновлення точки</a></li><li class="nav-sub"><a href="#svc-відео">Відео</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#svc-5-що-з-цього-реально-існує">5. Що з цього реально існує</a></summary><ul><li class="nav-sub"><a href="#svc-як-воно-піднімається-локально">Як воно піднімається локально</a></li><li class="nav-sub"><a href="#svc-плавна-зупинка">Плавна зупинка</a></li><li class="nav-sub"><a href="#svc-спільний-блок-у-compose">Спільний блок у compose</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#db">Схема даних: Postgres і Redis</a></summary><ul><li class="nav-section"><details><summary><a href="#db-0-наскрізні-рішення">0. Наскрізні рішення</a></summary><ul><li class="nav-sub"><a href="#db-гроші-numeric-12-2-ігрові-валюти-integer">Гроші — numeric(12,2), ігрові валюти — integer</a></li><li class="nav-sub"><a href="#db-баланси-колонки-в-users-рухи-рядки-журналу">Баланси — колонки в users, рухи — рядки журналу</a></li><li class="nav-sub"><a href="#db-косметика-куща-в-jsonb-економіка-в-колонках">Косметика куща в jsonb, економіка в колонках</a></li><li class="nav-sub"><a href="#db-форма-plants-appearance-version-2">Форма plants.appearance (version 2)</a></li><li class="nav-sub"><a href="#db-ідемпотентність-на-кожному-вході-ззовні">Ідемпотентність на кожному вході ззовні</a></li><li class="nav-sub"><a href="#db-подія-пишеться-в-тій-самій-транзакції-що-й-зміна">Подія пишеться в тій самій транзакції, що й зміна</a></li><li class="nav-sub"><a href="#db-точка-текстовий-ключ-із-першого-дня">Точка — текстовий ключ із першого дня</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-1-ідентичність-і-продажі">1. Ідентичність і продажі</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-1"><span class="nav-badge">ER</span>10 таблиць</a></summary><ul><li class="nav-table"><a href="#t-points">points</a></li><li class="nav-table"><a href="#t-users">users</a></li><li class="nav-table"><a href="#t-user_identities">user_identities</a></li><li class="nav-table"><a href="#t-receipts">receipts</a></li><li class="nav-table"><a href="#t-receipt_items">receipt_items</a></li><li class="nav-table"><a href="#t-drinks">drinks</a></li><li class="nav-table"><a href="#t-menu_deployments">menu_deployments</a></li><li class="nav-table"><a href="#t-menu_deployment_targets">menu_deployment_targets</a></li><li class="nav-table"><a href="#t-bonus_grants">bonus_grants</a></li><li class="nav-table"><a href="#t-device_telemetry">device_telemetry</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-2-економіка-журнал-крамниця-маркет">2. Економіка: журнал, крамниця, маркет</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-2"><span class="nav-badge">ER</span>15 таблиць</a></summary><ul><li class="nav-table"><a href="#t-ledger_entries">ledger_entries</a></li><li class="nav-table"><a href="#t-item_defs">item_defs</a></li><li class="nav-table"><a href="#t-user_items">user_items</a></li><li class="nav-table"><a href="#t-crate_openings">crate_openings</a></li><li class="nav-table"><a href="#t-market_listings">market_listings</a></li><li class="nav-table"><a href="#t-market_trades">market_trades</a></li><li class="nav-table"><a href="#t-coin_transfers">coin_transfers</a></li><li class="nav-table"><a href="#t-redemptions">redemptions</a></li><li class="nav-table"><a href="#t-redemption_events">redemption_events</a></li><li class="nav-table"><a href="#t-np_cities">np_cities</a></li><li class="nav-table"><a href="#t-np_warehouses">np_warehouses</a></li><li class="nav-table"><a href="#t-pos_discount_codes">pos_discount_codes</a></li><li class="nav-table"><a href="#t-quiz_profile_responses">quiz_profile_responses</a></li><li class="nav-table"><a href="#t-quiz_drink_responses">quiz_drink_responses</a></li><li class="nav-table"><a href="#t-repost_verifications">repost_verifications</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-3-кавенятка-ріст-догляд-гардероб">3. Кавенятка: ріст, догляд, гардероб</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-3"><span class="nav-badge">ER</span>5 таблиць</a></summary><ul><li class="nav-table"><a href="#t-plants">plants</a></li><li class="nav-table"><a href="#t-plant_stage_transitions">plant_stage_transitions</a></li><li class="nav-table"><a href="#t-wardrobe_sets">wardrobe_sets</a></li><li class="nav-table"><a href="#t-wardrobe_set_items">wardrobe_set_items</a></li><li class="nav-table"><a href="#t-chat_messages">chat_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-4-операційка-відео-здоровʼя-адмінка">4. Операційка: відео, здоровʼя, адмінка</a></summary><ul><li class="nav-er"><details><summary><a href="#db-diagram-4"><span class="nav-badge">ER</span>10 таблиць</a></summary><ul><li class="nav-table"><a href="#t-video_segments">video_segments</a></li><li class="nav-table"><a href="#t-video_events">video_events</a></li><li class="nav-table"><a href="#t-health_samples">health_samples</a></li><li class="nav-table"><a href="#t-problem_reports">problem_reports</a></li><li class="nav-table"><a href="#t-news_broadcasts">news_broadcasts</a></li><li class="nav-table"><a href="#t-admin_users">admin_users</a></li><li class="nav-table"><a href="#t-outbox">outbox</a></li><li class="nav-table"><a href="#t-sync_cursors">sync_cursors</a></li><li class="nav-table"><a href="#t-support_threads">support_threads</a></li><li class="nav-table"><a href="#t-support_messages">support_messages</a></li></ul></details></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-5-redis-що-саме-там-лежить">5. Redis: що саме там лежить</a></summary><ul><li class="nav-sub"><a href="#db-ключі">Ключі</a></li><li class="nav-sub"><a href="#db-канали-pub-sub">Канали pub/sub</a></li><li class="nav-sub"><a href="#db-чому-pub-sub-а-не-streams">Чому pub/sub, а не Streams</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-6-міграції-окремий-інструмент-не-сервіс">6. Міграції: окремий інструмент, не сервіс</a></summary><ul><li class="nav-sub"><a href="#db-рішення-dbmate-15-09-2026">Рішення: dbmate, 15.09.2026</a></li><li class="nav-sub"><a href="#db-розкладка">Розкладка</a></li><li class="nav-sub"><a href="#db-правила-які-дешевше-прийняти-зараз">Правила, які дешевше прийняти зараз</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#db-7-сіди-контент-json-у-репозиторії">7. Сіди: контент — JSON у репозиторії</a></summary><ul><li class="nav-sub"><a href="#db-що-є-контентом">Що є контентом</a></li><li class="nav-sub"><a href="#db-розкладка-2">Розкладка</a></li><li class="nav-sub"><a href="#db-команди">Команди</a></li><li class="nav-sub"><a href="#db-apply">apply</a></li><li class="nav-sub"><a href="#db-pull">pull</a></li><li class="nav-sub"><a href="#db-коли-зʼявиться-адмінка">Коли зʼявиться адмінка</a></li><li class="nav-sub"><a href="#db-разом-із-міграціями">Разом із міграціями</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#urls">Схема URL</a></summary><ul><li class="nav-section"><a href="#urls-формат-ідентифікатора">Формат ідентифікатора</a></li><li class="nav-section"><a href="#urls-qr-на-наклейці-qr-extrovert-cafe">QR на наклейці — qr.extrovert.cafe</a></li><li class="nav-section"><a href="#urls-меню-й-релізи-публічний-бакет-r2">Меню й релізи — публічний бакет R2</a></li><li class="nav-section"><a href="#urls-бекенд-api-план">Бекенд (api) — план</a></li><li class="nav-section"><a href="#urls-події-ws">Події (ws)</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#deploy">Викочування</a></summary><ul><li class="nav-section"><details><summary><a href="#deploy-1-застосунок-гравця-cloudflare-workers">1. Застосунок гравця → Cloudflare Workers</a></summary><ul><li class="nav-sub"><a href="#deploy-адмінка-ті-самі-workers">Адмінка → ті самі Workers</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#deploy-2-бекенд-дроплет">2. Бекенд → дроплет</a></summary><ul><li class="nav-sub"><a href="#deploy-що-має-бути-в-env-на-сервері">Що має бути в .env на сервері</a></li></ul></details></li><li class="nav-section"><a href="#deploy-2-1-дроплет-і-файрвол-через-terraform">2.1 Дроплет і файрвол через terraform</a></li><li class="nav-section"><a href="#deploy-2-2-бакети-r2">2.2 Бакети R2</a></li><li class="nav-section"><details><summary><a href="#deploy-2-3-викочування-образи-реєстр-перемикання-без-розриву">2.3 Викочування: образи, реєстр, перемикання без розриву</a></summary><ul><li class="nav-sub"><a href="#deploy-що-лежить-на-сервері">Що лежить на сервері</a></li><li class="nav-sub"><a href="#deploy-реєстр">Реєстр</a></li><li class="nav-sub"><a href="#deploy-як-їде-нова-версія">Як їде нова версія</a></li><li class="nav-sub"><a href="#deploy-реліз-кіоска">Реліз кіоска</a></li><li class="nav-sub"><a href="#deploy-секрети-які-треба-завести-в-github">Секрети, які треба завести в GitHub</a></li><li class="nav-sub"><a href="#deploy-той-самий-деплой-локально">Той самий деплой локально</a></li><li class="nav-sub"><a href="#deploy-dns-який-має-існувати">DNS, який має існувати</a></li></ul></details></li><li class="nav-section"><a href="#deploy-3-після-першого-викочування">3. Після першого викочування</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#checkbox">ПРРО Checkbox</a></summary><ul><li class="nav-section"><a href="#checkbox-перевірити-перед-тим-як-щось-налаштовувати">Перевірити ПЕРЕД тим, як щось налаштовувати</a></li><li class="nav-section"><details><summary><a href="#checkbox-api-одна-адреса-один-токен">API: одна адреса, один токен</a></summary><ul><li class="nav-sub"><a href="#checkbox-тестовий-касир-ізолює-чеки-але-не-ціни">Тестовий касир ізолює чеки, але не ціни</a></li></ul></details></li><li class="nav-section"><a href="#checkbox-вебхук">Вебхук</a></li><li class="nav-section"><a href="#checkbox-підпис">Підпис</a></li><li class="nav-section"><a href="#checkbox-що-прилітає">Що прилітає</a></li><li class="nav-section"><details><summary><a href="#checkbox-товари-goods">Товари (goods)</a></summary><ul><li class="nav-sub"><a href="#checkbox-правимо-точково-а-не-імпортом-20-09-2026">Правимо точково, а не імпортом (20.09.2026)</a></li><li class="nav-sub"><a href="#checkbox-різні-ціни-на-різних-точках">Різні ціни на різних точках</a></li></ul></details></li><li class="nav-section"><a href="#checkbox-наш-приймач">Наш приймач</a></li><li class="nav-section"><a href="#checkbox-посилання">Посилання</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#video">Відео: запис, зберігання, обробка</a></summary><ul><li class="nav-section"><a href="#video-загальна-схема">Загальна схема</a></li><li class="nav-section"><details><summary><a href="#video-чому-два-дроплети">Чому два дроплети</a></summary><ul><li class="nav-sub"><a href="#video-мережа">Мережа</a></li><li class="nav-sub"><a href="#video-скільки-насправді-треба-дроплету-аналізу">Скільки насправді треба дроплету аналізу</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#video-edge-вузол-на-точці">Edge-вузол на точці</a></summary><ul><li class="nav-sub"><a href="#video-запис">Запис</a></li><li class="nav-sub"><a href="#video-вивантаження">Вивантаження</a></li></ul></details></li><li class="nav-section"><a href="#video-r2">R2</a></li><li class="nav-section"><details><summary><a href="#video-база">База</a></summary><ul><li class="nav-sub"><a href="#video-бекапи-в-r2">Бекапи в R2</a></li><li class="nav-sub"><a href="#video-що-ми-свідомо-приймаємо-на-себе">Що ми свідомо приймаємо на себе</a></li><li class="nav-sub"><a href="#video-схема">Схема</a></li><li class="nav-sub"><a href="#video-черга">Черга</a></li></ul></details></li><li class="nav-section"><a href="#video-воркер">Воркер</a></li><li class="nav-section"><a href="#video-ідентифікація-людей">Ідентифікація людей</a></li><li class="nav-section"><a href="#video-скільки-це-коштує">Скільки це коштує</a></li><li class="nav-section"><a href="#video-чого-свідомо-не-робимо">Чого свідомо не робимо</a></li><li class="nav-section"><a href="#video-джерела">Джерела</a></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-точка">Точка</a></summary><ul><li class="nav-doc"><details><summary><a href="#raspberry-pi">Raspberry Pi на точці: що крутиться і як туди потрапляє нова версія</a></summary><ul><li class="nav-section"><a href="#raspberry-pi-1-залізо-й-система">1. Залізо й система</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-2-що-крутиться-на-точці">2. Що крутиться на точці</a></summary><ul><li class="nav-graph"><a href="#raspberry-pi-diagram-1"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#raspberry-pi-хто-є-хто">Хто є хто</a></li><li class="nav-sub"><a href="#raspberry-pi-як-процеси-говорять-між-собою">Як процеси говорять між собою</a></li><li class="nav-sub"><a href="#raspberry-pi-що-лежить-поза-home-pi-extrovert">Що лежить поза /home/pi/extrovert</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#raspberry-pi-3-деплой-від-коміту-до-екрана">3. Деплой: від коміту до екрана</a></summary><ul><li class="nav-graph"><a href="#raspberry-pi-diagram-2"><span class="nav-badge">схема</span>Схема</a></li><li class="nav-sub"><a href="#raspberry-pi-один-раз-перед-першим-релізом">Один раз перед першим релізом</a></li><li class="nav-sub"><a href="#raspberry-pi-кроки">Кроки</a></li><li class="nav-sub"><a href="#raspberry-pi-поки-бакет-не-привʼязаний-той-самий-архів-по-ssh">Поки бакет не привʼязаний — той самий архів по SSH</a></li><li class="nav-sub"><a href="#raspberry-pi-що-саме-відбувається-на-точці">Що саме відбувається на точці</a></li><li class="nav-sub"><a href="#raspberry-pi-відкат">Відкат</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-4-перехід-на-стек-зроблено-21-09-2026">4. Перехід на стек — зроблено 21.09.2026</a></li><li class="nav-section"><a href="#raspberry-pi-5-живлення-overlay-і-самооновлення">5. Живлення, overlay і самооновлення</a></li><li class="nav-section"><a href="#raspberry-pi-6-запасний-варіант-статична-картинка">6. Запасний варіант — статична картинка</a></li><li class="nav-section"><a href="#raspberry-pi-7-чого-ще-не-знаємо">7. Чого ще не знаємо</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#raspberry-pi-stack">Стек на точці й оновлення без поїздки</a></summary><ul><li class="nav-section"><a href="#raspberry-pi-stack-розкладка-на-пристрої">Розкладка на пристрої</a></li><li class="nav-section"><a href="#raspberry-pi-stack-хто-є-хто">Хто є хто</a></li><li class="nav-section"><details><summary><a href="#raspberry-pi-stack-як-проходить-оновлення">Як проходить оновлення</a></summary><ul><li class="nav-sub"><a href="#raspberry-pi-stack-чому-підміна-не-дає-чорного-екрана">Чому підміна не дає чорного екрана</a></li><li class="nav-sub"><a href="#raspberry-pi-stack-плашка-оновлення-в-шапці">Плашка «Оновлення» в шапці</a></li></ul></details></li><li class="nav-section"><a href="#raspberry-pi-stack-операції">Операції</a></li><li class="nav-section"><a href="#raspberry-pi-stack-чого-ще-не-знаємо">Чого ще не знаємо</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#pi-device">Raspberry Pi — кіоск точки</a></summary><ul><li class="nav-section"><a href="#pi-device-що-вже-зроблено-на-пристрої">Що вже зроблено на пристрої</a></li><li class="nav-section"><details><summary><a href="#pi-device-файли-в-цій-теці">Файли в цій теці</a></summary><ul><li class="nav-sub"><a href="#pi-device-кіоск-нативний-рендерер-kiosk-без-x">Кіоск: нативний рендерер (kiosk), без X</a></li></ul></details></li><li class="nav-section"><a href="#pi-device-годинник">Годинник</a></li><li class="nav-section"><details><summary><a href="#pi-device-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео">Замір: чи тягне Pi 1 кіоск разом із записом відео</a></summary><ul><li class="nav-sub"><a href="#pi-device-порядок">Порядок</a></li><li class="nav-sub"><a href="#pi-device-що-вважати-провалом">Що вважати провалом</a></li><li class="nav-sub"><a href="#pi-device-результат-заміру-17-08-2026">Результат заміру 17.08.2026</a></li><li class="nav-sub"><a href="#pi-device-граблі-заміру-прочитати-перед-повторним-прогоном">Граблі заміру — прочитати перед повторним прогоном</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#pi-device-провал-завантаження-emergency-mode-пароль-root-не-підходить">Провал завантаження: emergency mode, пароль root не підходить</a></summary><ul><li class="nav-sub"><a href="#pi-device-якщо-повториться">Якщо повториться</a></li></ul></details></li><li class="nav-section"><a href="#pi-device-бекапи-на-пристрої">Бекапи на пристрої</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#display-hardware">Екран меню — обрана модель</a></summary><ul><li class="nav-section"><details><summary><a href="#display-hardware-asus-vp227hf-артикул-90lm0880-b01o71-black">Asus VP227HF · артикул 90LM0880-B01O71 (Black)</a></summary><ul><li class="nav-sub"><a href="#display-hardware-характеристики">Характеристики</a></li><li class="nav-sub"><a href="#display-hardware-габарити-офіційний-datasheet-asus">Габарити (офіційний datasheet ASUS)</a></li><li class="nav-sub"><a href="#display-hardware-чому-саме-він">Чому саме він</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#display-hardware-раніше-планувалось-lenovo-l22-4e-артикул-67d5kac6ua-raven-bl">Раніше планувалось: Lenovo L22-4e · артикул 67D5KAC6UA (Raven Black)</a></summary><ul><li class="nav-sub"><a href="#display-hardware-відкинуті-варіанти-з-початкового-порівняння-09-08-2026">Відкинуті варіанти (з початкового порівняння 09.08.2026)</a></li></ul></details></li><li class="nav-section"><a href="#display-hardware-що-зробити-перед-монтажем">Що зробити перед монтажем</a></li><li class="nav-section"><a href="#display-hardware-джерела">Джерела</a></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-продукт-і-гра">Продукт і гра</a></summary><ul><li class="nav-doc"><details><summary><a href="#gamification-economy">Економіка гейміфікації (Coins + Coffee Beans) — v2</a></summary><ul><li class="nav-section"><a href="#gamification-economy-0-наукова-база-щоб-не-вигадувати-з-голови">0. Наукова база (щоб не вигадувати з голови)</a></li><li class="nav-section"><a href="#gamification-economy-1-ліміт-бюджету-без-змін">1. Ліміт бюджету — без змін</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-2-дві-валюти-тепер-три-токени">2. Дві валюти → тепер ТРИ токени</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-2-1-coins-розбито-на-yellow-silver">2.1 Coins розбито на Yellow / Silver 🔄</a></li><li class="nav-sub"><a href="#gamification-economy-2-2-гіфтинг-цілого-кавенятка-або-предмета">2.2 Гіфтинг цілого кавенятка або предмета</a></li><li class="nav-sub"><a href="#gamification-economy-2-3-coffee-beans-без-змін-по-суті">2.3 Coffee Beans — без змін по суті</a></li><li class="nav-sub"><a href="#gamification-economy-2-4-ліміти-на-free-coins-квіз-про-напій-і-репост-19-09-2026">2.4 Ліміти на Free coins: квіз про напій і репост 🆕 19.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу">3. Скільки стадій росту й скільки предметів у комплекті одягу</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле">3.1 Стадії росту кавенятка — 11 станів (0-10) 🔄 ПОВНІСТЮ ПЕРЕРОБЛЕНО</a></li><li class="nav-sub"><a href="#gamification-economy-3-2-догляд-компост-добриво-інсектицид-обов-язкові-для-росту-">3.2 Догляд: компост / добриво / інсектицид (обов'язкові для росту) і полив (символічний)</a></li><li class="nav-sub"><a href="#gamification-economy-3-3-розмір-комплекту-одягу">3.3 Розмір комплекту одягу</a></li><li class="nav-sub"><a href="#gamification-economy-3-4-збірка-комплекту-рідкість-зерна-за-збірку-замикання">3.4 Збірка комплекту: рідкість, зерна за збірку, замикання</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-4-модель-рідкості-й-сприйнятої-цінності">4. Модель рідкості й сприйнятої цінності</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-4-1-тіньова-ймовірність-дропу-на-звичайних-напоях">4.1 Тіньова ймовірність дропу на ЗВИЧАЙНИХ напоях 🔄</a></li><li class="nav-sub"><a href="#gamification-economy-4-2-що-саме-випадає-з-крейта-20-09-2026">4.2 Що саме випадає з крейта 🆕 20.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#gamification-economy-5-coins-на-що-йдуть-з-фінальними-рішеннями">5. Coins — на що йдуть (з фінальними рішеннями)</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-5-1-пряма-покупка-одягу-за-монети-усі-тіри-19-09-2026">5.1 Пряма покупка одягу за монети — УСІ тіри 🆕 19.09.2026</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-6-coffee-beans-на-що-йдуть-з-курсом">6. Coffee Beans — на що йдуть (з курсом)</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-7-coins-на-напоях-тепер-від-профіту-не-ціни">7. Coins на напоях — тепер від ПРОФІТУ, не ціни 🔄</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-7-1-бонус-напої-coins-price-не-маржа-двічі-перекалібровано">7.1 Бонус-напої — coins = price, не маржа 🔄 (двічі перекалібровано)</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-8-що-не-робимо-явно-відхилені-ідеї-з-v1">8. Що НЕ робимо (явно відхилені ідеї з v1)</a></li><li class="nav-section"><details><summary><a href="#gamification-economy-9-що-робимо-обов-язково-підтверджено-в-чаті">9. Що робимо ОБОВ'ЯЗКОВО (підтверджено в чаті)</a></summary><ul><li class="nav-sub"><a href="#gamification-economy-9-1-купівля-монет-за-гривню-coin-packs-18-09-2026">9.1 Купівля монет за гривню (Coin Packs) 🆕 18.09.2026</a></li></ul></details></li><li class="nav-section"><a href="#gamification-economy-10-технічний-висновок-оновлено">10. Технічний висновок (оновлено)</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#gamification-ui">Інтерфейс застосунку гравця</a></summary><ul><li class="nav-section"><a href="#gamification-ui-загальне">Загальне</a></li><li class="nav-section"><details><summary><a href="#gamification-ui-екрани">Екрани</a></summary><ul><li class="nav-sub"><details><summary><a href="#gamification-ui-неавторизований-користувач">Неавторизований користувач</a></summary><ul><li class="nav-subsub"><a href="#gamification-ui-екран-авторизації">Екран авторизації</a></li><li class="nav-subsub"><a href="#gamification-ui-повідомити-про-проблему">Повідомити про проблему</a></li><li class="nav-subsub"><a href="#gamification-ui-сторінка-terms-of-use-privacy-policy">Сторінка terms of use, privacy policy</a></li></ul></details></li><li class="nav-sub"><details><summary><a href="#gamification-ui-авторизований-ui">Авторизований UI</a></summary><ul><li class="nav-subsub"><a href="#gamification-ui-стартовий-екран">Стартовий екран</a></li><li class="nav-subsub"><a href="#gamification-ui-ріст-і-редагування-кавенятка">Ріст і редагування кавенятка</a></li><li class="nav-subsub"><a href="#gamification-ui-історія-замовлень">Історія замовлень</a></li><li class="nav-subsub"><a href="#gamification-ui-гаманець">Гаманець</a></li><li class="nav-subsub"><a href="#gamification-ui-склад">Склад</a></li><li class="nav-subsub"><a href="#gamification-ui-магазин">Магазин</a></li></ul></details></li><li class="nav-sub"><a href="#gamification-ui-попапи">Попапи</a></li><li class="nav-sub"><a href="#gamification-ui-сповіщення">Сповіщення</a></li><li class="nav-sub"><a href="#gamification-ui-рішення-для-mvp-закрито-14-09-2026-більше-не-todo">Рішення для MVP (закрито 14.09.2026, більше не TODO)</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#bush-graphics-customization">Кастомізація графіки кавенятка (кущ) — v1</a></summary><ul><li class="nav-section"><a href="#bush-graphics-customization-0-модель-рендеру-кущ-стек-шарів">0. Модель рендеру: кущ = стек шарів</a></li><li class="nav-section"><a href="#bush-graphics-customization-1-листя-розблоковується-на-переході-1-2-сходить-маленький-ку">1. Листя — розблоковується на переході 1→2 (&quot;Сходить&quot; → &quot;Маленький кущ&quot;)</a></li><li class="nav-section"><a href="#bush-graphics-customization-2-гілки-розблоковується-на-переході-2-3-маленький-кущ-здоров">2. Гілки — розблоковується на переході 2→3 (&quot;Маленький кущ&quot; → &quot;Здоровий кущ&quot;)</a></li><li class="nav-section"><a href="#bush-graphics-customization-3-бутони-квіти-боби-перший-цикл-стадії-4-10">3. Бутони → Квіти → Боби: перший цикл (стадії 4-10)</a></li><li class="nav-section"><a href="#bush-graphics-customization-4-настрій-здоров-я-полив-сум-зів-ялий-withered">4. Настрій/здоров'я: полив, сум, зів'ялий (withered)</a></li><li class="nav-section"><a href="#bush-graphics-customization-5-построжаєвий-регrowth-цикл-після-стадії-10-вже-без-покупко">5. Построжаєвий регrowth-цикл (після стадії 10) — вже без покупко/день-гейтингу</a></li><li class="nav-section"><a href="#bush-graphics-customization-6-гардероб-і-дарування-комплекту">6. Гардероб і дарування комплекту</a></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-7-контент-на-запуск-скільки-наборів-одягу-треба-на-3-6-місяц">7. Контент на запуск: скільки наборів одягу треба на 3-6 місяців</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-7-1-конкретні-концепти-15-наборів">7.1 Конкретні концепти 15 наборів</a></li></ul></details></li><li class="nav-section"><a href="#bush-graphics-customization-8-реєстр-зон-і-координат-що-статичне-а-що-в-стані-кавенятка">8. Реєстр зон і координат — що статичне, а що в стані кавенятка</a></li><li class="nav-section"><a href="#bush-graphics-customization-9-json-схема-стану-кавенятка-приклад-ілюстративний">9. JSON-схема стану кавенятка (приклад, ілюстративний)</a></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-10-вичерпний-перелік-спрайтів-та-анімацій-для-промальовки">10. Вичерпний перелік спрайтів та анімацій для промальовки</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-10-1-кущ-рання-стадія-стовбур">10.1 Кущ: рання стадія + стовбур</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-2-обличчя-5-наборів-кожен-із-роздільних-l-r-деталей-12-09">10.2 Обличчя — 5 наборів, кожен із роздільних L/R деталей 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-3-листя-1-10-скінів-зів-ялий-withered-окремим-набором-12-">10.3 Листя (§1) — 10 скінів, &quot;зів'ялий&quot; (withered) окремим набором 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-4-гілки-2-ліва-права-рука-різні-з-листям-у-комплекті-12-0">10.4 Гілки (§2) — ліва/права &quot;рука&quot; різні, з листям у комплекті 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-5-плоди-3-5-4-стани-5-скінів-квітки-5-скінів-бобa-стиглог">10.5 Плоди (§3, §5) — 4 стани, 5 скінів квітки, 5 скінів бобa (стиглого) 🔄 (12.09.2026 (11): +green_bean, підтверджено 5 скінів боба)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-6-реквізит-на-платформі">10.6 Реквізит на платформі</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-7-полив-відро-з-літрами-3-2-доку-економіки-4-12-09-2026-9">10.7 Полив — відро з літрами (§3.2 доку економіки, §4) 🔄 (12.09.2026 (9)(10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-8-хмаринка-з-думками-ai-чат-головний-екран-12-09-2026-10">10.8 Хмаринка з думками + AI-чат (головний екран) 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-9-крейти-лутбокси-багатший-арт-відкриття-12-09-2026-10">10.9 Крейти/лутбокси — багатший арт відкриття 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-10-валюта-zerno-окремою-іконкою-12-09-2026-10">10.10 Валюта — zerno окремою іконкою 🔄 (12.09.2026 (10))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-11-магазин-redemption-іконки-5-6-доку-економіки">10.11 Магазин/redemption-іконки (§5-§6 доку економіки)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-12-гардероб-ui-6">10.12 Гардероб / UI (§6)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-13-одяг-wardrobe-items-уже-пораховано-в-7">10.13 Одяг (wardrobe items) — уже пораховано в §7</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-14-магічний-ефект-спільний-vfx">10.14 Магічний ефект (спільний VFX)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-15-перелік-анімацій-усе-transform-опційно-10-14">10.15 Перелік анімацій (усе — transform + опційно §10.14)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-16-тз-статична-анімація-погойдування-на-вітрі-ідле-стан-1">10.16 ТЗ: статична анімація погойдування на вітрі (ідле-стан) (12.09.2026 (11))</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-17-навігація-й-топ-бар-18-09-2026-пряме-прохання-користув">10.17 Навігація й топ-бар 🔄 (18.09.2026, пряме прохання користувача)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-10-18-набори-монет-coin-packs-18-09-2026-пряме-прохання-кори">10.18 Набори монет (Coin Packs) 🔄 (18.09.2026, пряме прохання користувача)</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#bush-graphics-customization-11-відкриті-питання-todo-для-наступної-ітерації">11. Відкриті питання (TODO для наступної ітерації)</a></summary><ul><li class="nav-sub"><a href="#bush-graphics-customization-питання-вирішені-прототипом-claude-design-19-09-2026">Питання, вирішені прототипом Claude Design (19.09.2026)</a></li><li class="nav-sub"><a href="#bush-graphics-customization-залишкові-відкриті-todo">Залишкові відкриті TODO</a></li></ul></details></li></ul></details></li><li class="nav-doc"><details><summary><a href="#bush-planting-ui">UI посадки кавенятка — геометрія, зони, слайдери</a></summary><ul><li class="nav-section"><a href="#bush-planting-ui-1-типи-елементів-і-реальний-порядок-посадки">1. Типи елементів і реальний порядок посадки</a></li><li class="nav-section"><a href="#bush-planting-ui-2-спільний-геометричний-принцип-root-anchoring">2. Спільний геометричний принцип: root-anchoring</a></li><li class="nav-section"><a href="#bush-planting-ui-3-листя-фон-leafbg">3. Листя — фон (leafBg)</a></li><li class="nav-section"><a href="#bush-planting-ui-4-листя-передній-план-leaffg">4. Листя — передній план (leafFg)</a></li><li class="nav-section"><a href="#bush-planting-ui-5-гілки-branch">5. Гілки (branch)</a></li><li class="nav-section"><a href="#bush-planting-ui-6-бутони-bud">6. Бутони (bud)</a></li><li class="nav-section"><a href="#bush-planting-ui-7-z-шари-і-порядок-малювання-зведено">7. z-шари і порядок малювання — зведено</a></li><li class="nav-section"><a href="#bush-planting-ui-8-ліміти-й-слайдери-зведена-таблиця">8. Ліміти й слайдери — зведена таблиця</a></li><li class="nav-section"><a href="#bush-planting-ui-9-немає-серверної-валідації-посадки">9. ⚠️ Немає серверної валідації посадки</a></li><li class="nav-section"><a href="#bush-planting-ui-10-розбіжності-зі-старою-документацією">10. Розбіжності зі старою документацією</a></li><li class="nav-section"><a href="#bush-planting-ui-10-біс-як-це-зроблено-в-коді-20-09-2026">10-біс. Як це зроблено в коді (20.09.2026)</a></li><li class="nav-section"><a href="#bush-planting-ui-11-технічний-додаток-схема-planting-placement-json">11. Технічний додаток: схема planting_placement.json</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#sprite-generation-plan">План генерації спрайтів кавенятка через OpenAI Images API</a></summary><ul><li class="nav-section"><a href="#sprite-generation-plan-1-яку-модель-використовувати">1. Яку модель використовувати</a></li><li class="nav-section"><a href="#sprite-generation-plan-2-конвенція-розмірів-у-пікселях">2. Конвенція розмірів у пікселях</a></li><li class="nav-section"><a href="#sprite-generation-plan-3-як-групуються-спрайти-в-одну-генерацію">3. Як групуються спрайти в одну генерацію</a></li><li class="nav-section"><a href="#sprite-generation-plan-4-підсумок-56-генерацій-на-267-спрайтів">4. Підсумок: 56 генерацій на 267 спрайтів</a></li><li class="nav-section"><a href="#sprite-generation-plan-5-що-лишається-поза-вартістю-api">5. Що лишається поза вартістю API</a></li><li class="nav-section"><a href="#sprite-generation-plan-джерела">Джерела</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#chat">Чат із кавенятком</a></summary><ul><li class="nav-section"><a href="#chat-1-з-чого-складається-відповідь">1. З чого складається відповідь</a></li><li class="nav-section"><a href="#chat-2-база-знань">2. База знань</a></li><li class="nav-section"><a href="#chat-3-промпти">3. Промпти</a></li><li class="nav-section"><a href="#chat-4-гроші-й-ліміти">4. Гроші й ліміти</a></li><li class="nav-section"><a href="#chat-5-сповіщення">5. Сповіщення</a></li><li class="nav-section"><a href="#chat-6-модель">6. Модель</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#admin-panel">Адмінка</a></summary><ul><li class="nav-section"><details><summary><a href="#admin-panel-група-управління">Група &quot;управління&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-дашборд-здоров-я-за-замовчанням">Дашборд здоров'я - за замовчанням</a></li><li class="nav-sub"><a href="#admin-panel-дашборд-статистики">Дашборд статистики</a></li><li class="nav-sub"><a href="#admin-panel-дашборд-квізів">Дашборд квізів</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-операційка">Група &quot;операційка&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-ціни">Ціни</a></li><li class="nav-sub"><a href="#admin-panel-помилки-показує-к-ть-непрочитаних">Помилки (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-підтримка-показує-к-ть-непрочитаних">Підтримка (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-квізи-показує-к-ть-непрочитаних">Квізи (показує к-ть &quot;непрочитаних&quot;)</a></li><li class="nav-sub"><a href="#admin-panel-замовлення">Замовлення</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-користувачі">Група &quot;користувачі&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-користувачі">Користувачі</a></li><li class="nav-sub"><a href="#admin-panel-покупки">Покупки</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#admin-panel-група-відео">Група &quot;відео&quot;</a></summary><ul><li class="nav-sub"><a href="#admin-panel-відео">Відео</a></li><li class="nav-sub"><a href="#admin-panel-події">Події</a></li><li class="nav-sub"><a href="#admin-panel-аналітика">Аналітика</a></li></ul></details></li></ul></details></li></ul></details></li><li class="nav-group"><details open><summary><a href="#g-план">План</a></summary><ul><li class="nav-doc"><details><summary><a href="#roadmap">Дорожня карта: відео, кіоск, гейміфікація, аналітика</a></summary><ul><li class="nav-section"><a href="#roadmap-0-де-ми-в-часі">0. Де ми в часі</a></li><li class="nav-section"><details><summary><a href="#roadmap-1-що-вирішено-і-чому-саме-так">1. Що вирішено — і чому саме так</a></summary><ul><li class="nav-sub"><a href="#roadmap-кому-продаємо-і-де-ставимо-точку">Кому продаємо і де ставимо точку</a></li><li class="nav-sub"><a href="#roadmap-відео-пишемо-обробляємо-окремо">Відео пишемо, обробляємо окремо</a></li><li class="nav-sub"><a href="#roadmap-записує-edge-вузол-а-не-камера-і-не-хмара">Записує edge-вузол, а не камера і не хмара</a></li><li class="nav-sub"><a href="#roadmap-ідентифікація-з-pos-а-не-з-облич">Ідентифікація — з POS, а не з облич</a></li><li class="nav-sub"><a href="#roadmap-хмара-два-дроплети-база-поки-в-докері">Хмара — два дроплети, база поки в докері</a></li><li class="nav-sub"><a href="#roadmap-кіоск-нативний-і-збирається-не-на-точці">Кіоск — нативний, і збирається не на точці</a></li><li class="nav-sub"><a href="#roadmap-меню-й-релізи-публічний-бакет-без-сервера-18-09-2026">Меню й релізи — публічний бакет, без сервера, 18.09.2026</a></li><li class="nav-sub"><a href="#roadmap-один-рантайм-на-бекенді-bun-20-09-2026">Один рантайм на бекенді — Bun, 20.09.2026</a></li><li class="nav-sub"><a href="#roadmap-один-фреймворк-на-фронтендах-react-16-09-2026">Один фреймворк на фронтендах — React, 16.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#roadmap-2-що-вже-зроблено">2. Що вже зроблено</a></summary><ul><li class="nav-sub"><a href="#roadmap-крок-1-замір-на-живому-pi-1-зроблено-17-08-2026">Крок 1 — замір на живому Pi 1, зроблено 17.08.2026</a></li><li class="nav-sub"><a href="#roadmap-спайк-нативний-рендерер-18-08-2026">Спайк — нативний рендерер, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-спайк-перший-запуск-на-реальному-pi-1-18-08-2026-60-fps">Спайк — перший запуск на реальному Pi 1, 18.08.2026: 60 fps</a></li><li class="nav-sub"><a href="#roadmap-перемикання-проду-на-pos-native-18-08-2026">Перемикання проду на pos-native, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-постмортем-білий-екран-одразу-після-перемикання-18-08-2026">Постмортем: білий екран одразу після перемикання, 18.08.2026</a></li><li class="nav-sub"><a href="#roadmap-керований-стек-і-оновлення-без-поїздки-15-09-2026">Керований стек і оновлення без поїздки, 15.09.2026</a></li><li class="nav-sub"><a href="#roadmap-збірка-переїхала-на-пк-веб-версія-кіоска-прибрана-18-09-2026">Збірка переїхала на ПК, веб-версія кіоска прибрана, 18.09.2026</a></li><li class="nav-sub"><a href="#roadmap-виправлення-у-checkbox-один-домен-і-токен-касира-15-09-2026">Виправлення: у Checkbox один домен і токен касира, 15.09.2026</a></li></ul></details></li><li class="nav-section"><details><summary><a href="#roadmap-3-що-робити-далі">3. Що робити далі</a></summary><ul><li class="nav-sub"><a href="#roadmap-крок-0-база-й-міграції-перше-бо-на-цьому-стоїть-усе-інше">Крок 0. База й міграції — перше, бо на цьому стоїть усе інше</a></li><li class="nav-sub"><a href="#roadmap-крок-0-біс-скрипти-розробника-щойно-зʼявиться-база">Крок 0-біс. Скрипти розробника — щойно зʼявиться база</a></li><li class="nav-sub"><a href="#roadmap-крок-1-біс-закрити-хвости-заміру-дешево-поки-машини-немає">Крок 1-біс. Закрити хвости заміру — дешево, поки машини немає</a></li><li class="nav-sub"><a href="#roadmap-крок-2-розвʼязати-вузол-із-камерою-до-встановлення">Крок 2. Розвʼязати вузол із камерою — до встановлення</a></li><li class="nav-sub"><a href="#roadmap-крок-3-хмара-коли-замір-пройдено">Крок 3. Хмара — коли замір пройдено</a></li><li class="nav-sub"><a href="#roadmap-крок-4-аналітика-й-звʼязок-із-pos">Крок 4. Аналітика й звʼязок із POS</a></li><li class="nav-sub"><a href="#roadmap-крок-5-продуктовий-трек-по-порядку-залежностей">Крок 5. Продуктовий трек — по порядку залежностей</a></li><li class="nav-sub"><a href="#roadmap-крок-6-оновлення-точки-довести-до-кінця">Крок 6. Оновлення точки — довести до кінця</a></li></ul></details></li><li class="nav-section"><a href="#roadmap-4-відкриті-питання">4. Відкриті питання</a></li><li class="nav-section"><a href="#roadmap-5-свідомо-відхилено-щоб-не-переобговорювати">5. Свідомо відхилено — щоб не переобговорювати</a></li><li class="nav-section"><a href="#roadmap-6-гроші">6. Гроші</a></li></ul></details></li><li class="nav-doc"><details><summary><a href="#ideas">Ідеї на майбутнє</a></summary><ul><li class="nav-section"><a href="#ideas-коди-поповнення-steam-за-зерна">Коди поповнення Steam за зерна</a></li><li class="nav-section"><a href="#ideas-відвідування-випадкового-кавенятка">Відвідування випадкового кавенятка</a></li><li class="nav-section"><a href="#ideas-одяг-ширший-за-футболку">Одяг, ширший за футболку</a></li></ul></details></li></ul></details></li></ul></nav>
 <main>
 <div class="group-band" id="g-архітектура-й-дані"><span class="group-name">Архітектура й дані</span><span class="group-count">6 документів</span></div>
 <section class="doc" id="svc">
@@ -130,7 +130,7 @@ Vue й Laravel Filament) цим документом замінена й вид�
   <div class="plate-body"><pre class="mermaid">%%{init: {&quot;theme&quot;: &quot;default&quot;, &quot;er&quot;: {&quot;useMaxWidth&quot;: false}, &quot;flowchart&quot;: {&quot;useMaxWidth&quot;: false}}}%%
 graph TB
     subgraph edge[&quot;Точка (Raspberry Pi, /home/pi/extrovert)&quot;]
-        KIOSK[&quot;kiosk&lt;br/&gt;pos-native, C+GLES2&lt;br/&gt;dispmanx, без X&quot;]
+        KIOSK[&quot;kiosk&lt;br/&gt;C+GLES2&lt;br/&gt;dispmanx, без X&quot;]
         UPD[&quot;updater&lt;br/&gt;оновлює стек сам&quot;]
         REC[&quot;recorder&lt;br/&gt;ffmpeg -c copy (план)&quot;]
         SUP[&quot;supervisor&quot;]
@@ -887,8 +887,8 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 </tr>
 </thead>
 <tbody><tr>
-<td><code>kiosk</code> (pos-native)</td>
-<td><strong>працює на залізі</strong>, 60 fps, автозапуск; вебсокет подій зроблений (<code>ws.c</code>), GlitchTip ще немає</td>
+<td><code>kiosk</code></td>
+<td><strong>працює на залізі</strong> під керованим стеком (з 21.09.2026), 60 fps; вебсокет подій зроблений (<code>ws.c</code>), але без токена точки кіоск емулює бонуси; GlitchTip ще немає</td>
 </tr>
 <tr>
 <td><code>raspberry/pi/stack</code> (supervisor + updater)</td>
@@ -896,7 +896,7 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 </tr>
 <tr>
 <td>меню й релізи в R2</td>
-<td>бакет є; зробити його публічним і привʼязати домен <code>pos.extrovert.cafe</code> — <strong>ще не зроблено</strong>. На домені досі відповідає старий Worker (<code>/</code> → 302 на <code>/p/kyiv-01</code>): код прибрано з репозиторію, з Cloudflare — ні</td>
+<td>бакет є; зробити його публічним і привʼязати домен <code>pos.extrovert.cafe</code> — <strong>ще не зроблено</strong>. На домені досі відповідає старий Worker (<code>/</code> → 302 на <code>/p/kyiv-01</code>): код прибрано з репозиторію, з Cloudflare — ні. ⚠️ Кіоск на kyiv-01 бере меню саме з нього (<code>URL=…/api/v1/points/kyiv-01/menu</code> у <code>config/env</code> на пристрої, 21.09.2026): прибрати Worker = разом прибрати цей рядок, інакше меню зникне (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a> §2)</td>
 </tr>
 <tr>
 <td><code>qr.extrovert.cafe</code></td>
@@ -3235,7 +3235,7 @@ RestartSec=5
 <p><strong>Порядок дій: спершу стіл, потім точка — пройдено 17.08.2026.</strong> На Pi 1 з
 кіоском і ffmpeg поруч: меню тримає 52 fps і під час запису,
 <code>ffmpeg -c copy</code> бере 4,3 % CPU, 20 сегментів із 20 (<a class="doclink" href="#roadmap"><code>roadmap.md</code></a>,
-<a class="doclink" href="#raspberry-pi"><code>raspberry/pi/README.md</code></a>). Окремий вузол не купуємо. Хвости заміру — RTSP із
+<a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a>). Окремий вузол не купуємо. Хвости заміру — RTSP із
 справжнього джерела, USB-флешка, довгий прогін — у кроці 1-біс <a class="doclink" href="#roadmap"><code>roadmap.md</code></a>.</p>
 </blockquote>
 <h3 id="video-запис"><a class="anchor" href="#video-запис" aria-hidden="true">#</a>Запис</h3>
@@ -3615,9 +3615,10 @@ R2. Умови переїзду перелічені в розділі «Баз�
 <div class="group-band" id="g-точка"><span class="group-name">Точка</span><span class="group-count">4 документи</span></div>
 <section class="doc" id="raspberry-pi">
 <header class="doc-head"><p class="doc-src">docs/raspberry-pi.md</p><h1>Raspberry Pi на точці: що крутиться і як туди потрапляє нова версія</h1></header>
-<p>Стан на 17.09.2026. Малина стоїть у публічному коридорі й зараз <strong>offline</strong>,
-тому все, що стосується керованого стеку, перевірено на десктопі й у
-Linux-контейнері, але <strong>не на самому пристрої</strong> — список неперевіреного в §7.</p>
+<p>Стан на 21.09.2026. Малина стоїть у публічному коридорі, точка працює 24/7.
+<strong>Керований стек стоїть на пристрої й працює з 21.09.2026</strong> (§4). Бакет R2
+ще не привʼязаний до домену, тому оновлення поки везуться по SSH (§3), а
+все, що впирається в бакет, лишається неперевіреним — §7.</p>
 <p>Цей документ — карта й порядок дій. Подробиці живуть поруч:</p>
 <div class="tablewrap"><table>
 <thead>
@@ -3627,7 +3628,7 @@ Linux-контейнері, але <strong>не на самому пристро
 </tr>
 </thead>
 <tbody><tr>
-<td><code>raspberry/pi/README.md</code></td>
+<td><a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a></td>
 <td>стан пристрою, заміри, граблі</td>
 </tr>
 <tr>
@@ -3684,27 +3685,26 @@ GPU-памʼяті під 1080p-поверхню, і на екрані був б
 процесі (постмортем 18.08.2026 у <a class="doclink" href="#roadmap"><code>roadmap.md</code></a>). Під overlap-підміну
 потрібно дві такі поверхні одночасно — §7.</li>
 </ul>
-<p><strong>Watchdog.</strong> <code>dtparam=watchdog=on</code> + systemd тримає апаратний BCM2835.
-⚠️ У <code>raspberry/pi/watchdog.conf.snippet</code> записано <code>RuntimeWatchdogUSec=14s</code> — саме так
-параметр показує <code>systemctl show</code>, а ключ у <code>/etc/systemd/system.conf</code>
-зветься <code>RuntimeWatchdogSec</code>. Невідомий ключ systemd мовчки ігнорує.
-Звірити на пристрої: <code>systemctl show -p RuntimeWatchdogUSec</code> має віддати
-не <code>0</code>.</p>
-<p><strong>Тихе завантаження.</strong> Між подачею живлення і меню клієнт не має бачити ні
-логів ядра, ні райдужного квадрата прошивки, ні курсора, що блимає. Три
-місця:</p>
+<p><strong>Watchdog.</strong> <code>dtparam=watchdog=on</code> + systemd тримає апаратний BCM2835:
+<code>RuntimeWatchdogSec=14</code> у <code>/etc/systemd/system.conf</code>
+(<code>raspberry/pi/watchdog.conf.snippet</code>). Ключ саме <code>…Sec</code> — <code>RuntimeWatchdogUSec</code>
+лише так його показує <code>systemctl show</code>, а невідомий ключ systemd мовчки
+ігнорує. Перевірено 21.09.2026: у <code>dmesg</code> — <code>Set hardware watchdog to 14s</code>.</p>
+<p><strong>Тихе завантаження</strong> (зроблено 21.09.2026). Між подачею живлення і меню
+клієнт не має бачити ні логів ядра, ні райдужного квадрата прошивки, ні
+курсора, що блимає. Три місця:</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>Де</th>
-<th>Що дописати</th>
+<th>Що</th>
 <th>Що гасить</th>
 </tr>
 </thead>
 <tbody><tr>
-<td><code>/boot/cmdline.txt</code> (один рядок!)</td>
-<td><code>quiet loglevel=3 logo.nologo vt.global_cursor_default=0 consoleblank=0 systemd.show_status=false</code></td>
-<td>потік ядра, малину в кутку, курсор, засинання консолі, рядки <code>[ OK ]</code> від systemd</td>
+<td><code>/boot/cmdline.txt</code> (один рядок! копія — <code>raspberry/pi/cmdline.txt</code>)</td>
+<td>дописано <code>quiet loglevel=3 logo.nologo vt.global_cursor_default=0 consoleblank=0 systemd.show_status=false</code>, прибрано <code>splash plymouth.ignore-serial-consoles</code></td>
+<td>потік ядра, малину в кутку, курсор, засинання консолі, рядки <code>[ OK ]</code> від systemd, заставку plymouth</td>
 </tr>
 <tr>
 <td><code>/boot/config.txt</code></td>
@@ -3712,18 +3712,33 @@ GPU-памʼяті під 1080p-поверхню, і на екрані був б
 <td>райдужний квадрат прошивки</td>
 </tr>
 <tr>
-<td><code>/etc/rc.local</code></td>
+<td><code>menu-fallback.service</code></td>
 <td><code>fbi</code> зі статичним меню (§6)</td>
 <td>чорний екран до першого кадру кіоска</td>
 </tr>
 </tbody></table>
 </div>
-<p><code>consoleblank=0</code> тут не про тишу, а про вітрину: за замовчанням консоль
-гасить екран через 10 хвилин, і монітор у коридорі чорнів би доти, доки
-кіоск не перемалює кадр.</p>
+<p><code>splash</code> прибрано, бо з ним plymouth показував на весь екран свою заставку з
+малиною — рівно те, чого клієнт бачити не мав. <code>consoleblank=0</code> тут не про
+тишу, а про вітрину: за замовчанням консоль гасить екран через 10 хвилин.</p>
 <p>Getty на <code>tty1</code> лишається — це єдині двері з клавіатурою, якщо мережа
-відвалилась. Видно його не буде: кіоск малює у dispmanx-шар <strong>поверх</strong>
-фреймбуфера, тобто консоль просто нижче.</p>
+відвалилась: Ctrl+Alt+F1. Активна консоль після завантаження — <code>tty7</code>, на
+якій <code>fbi</code> тримає запасну картинку (§6). Видно консоль усе одно не буде:
+кіоск малює у dispmanx-шар <strong>поверх</strong> фреймбуфера.</p>
+<p><strong>Флешка-буфер.</strong> USB-флешка 29 ГБ, ext4 з міткою <code>buf</code>, змонтована в
+<code>/mnt/buf</code> через fstab з <code>nofail</code> (<code>raspberry/pi/fstab</code>). Без <code>nofail</code> відсутня
+флешка кидала малину в emergency mode — постмортем у <a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a>.
+Нова флешка: <code>sudo mkfs.ext4 -L buf -m 0 /dev/sda1</code>, fstab не чіпати. Перед
+форматуванням безіменні флешки варто перевірити на справжню ємність (вони
+буває брешуть, а для кільцевого буфера це тихе затирання) — як це зроблено
+21.09.2026, у <a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a>.</p>
+<p><strong>Що вимкнено.</strong> <code>apache2</code> (стояв з 2019-го, віддавав на порт 80 стандартну
+сторінку — зайва відкрита поверхня на пристрої в публічному коридорі),
+<code>ModemManager</code>, <code>hciuart</code> і <code>bluetooth</code> (у Pi 1 Bluetooth немає, <code>hciuart</code>
+щоразу 90 с чекав <code>/dev/serial1</code>). Не видалено — <code>systemctl enable</code> повертає.
+Назовні слухає лише SSH.</p>
+<p><strong>Логи.</strong> <code>/etc/logrotate.d/extrovert</code> (<code>raspberry/pi/logrotate-extrovert</code>):
+<code>logs/*.log</code> стеку ротуються по 1 МБ, щоб не рости на SD безкінечно.</p>
 <p><strong>Годинник.</strong> RTC немає, після знеструмлення час береться з <code>fake-hwclock</code>.
 Дата, що зʼїхала, ламає HTTPS — і меню, і апдейтер виглядатимуть як
 «немає мережі». Лікується <code>raspberry/pi/fix-clock.sh</code>.</p>
@@ -3742,15 +3757,16 @@ graph TB
     systemd[&quot;systemd&lt;br/&gt;extrovert.service&quot;]
     cron[&quot;cron · stack-watch&lt;br/&gt;раз на 5 хв&quot;]
     wdog[&quot;апаратний watchdog&lt;br/&gt;BCM2835&quot;]
+    fbi[&quot;menu-fallback · fbi&lt;br/&gt;фреймбуфер, під кіоском&quot;]
   end
 
   subgraph root[&quot;/home/pi/extrovert&quot;]
     sup[&quot;supervisor.sh&lt;br/&gt;єдиний власник pid-ів&quot;]
-    kiosk[&quot;kiosk · pos-native-pi&lt;br/&gt;dispmanx-шар 0 або 1&quot;]
+    kiosk[&quot;kiosk · bin/kiosk&lt;br/&gt;dispmanx-шар 0 або 1&quot;]
     upd[&quot;updater.sh&lt;br/&gt;раз на 15 хв&quot;]
     rec[&quot;recorder&lt;br/&gt;ще немає&quot;]:::planned
     tel[&quot;telemetry&lt;br/&gt;ще немає&quot;]:::planned
-    state[(&quot;state/&lt;br/&gt;updating · restart.kiosk&lt;br/&gt;check-now · version&quot;)]
+    state[(&quot;state/&lt;br/&gt;updating · restart.kiosk&lt;br/&gt;check-now · version · menu.png&quot;)]
     rels[(&quot;releases/&lt;br/&gt;current → реліз&quot;)]
     key[(&quot;config/point.key&lt;br/&gt;0600&quot;)]
   end
@@ -3777,6 +3793,8 @@ graph TB
   upd -- &quot;пише запити й плашку&quot; --&gt; state
   state -- &quot;restart.kiosk, раз на 2 с&quot; --&gt; sup
   state -- &quot;updating, stat раз на 1 с&quot; --&gt; kiosk
+  kiosk -- &quot;menu.png при зміні меню&quot; --&gt; state
+  state -- &quot;menu.png на старті&quot; --&gt; fbi
   upd -- &quot;сокет телеметрії: чи йдуть кадри&quot; --&gt; kiosk
   upd -- &quot;маніфест і архів: ETag, Range&quot; --&gt; r2
   kiosk -- &quot;меню точки після menu.deployed&quot; --&gt; r2
@@ -3801,22 +3819,27 @@ graph TB
 <tbody><tr>
 <td><code>extrovert.service</code></td>
 <td>підняти супервізора й більше нічого не знати</td>
-<td>написано</td>
+<td><strong>на пристрої з 21.09.2026</strong></td>
 </tr>
 <tr>
 <td><code>supervisor.sh</code></td>
 <td>піднімає компоненти з <code>components.conf</code>, ловить падіння, виконує запити на перезапуск</td>
-<td>написано, перевірено на десктопі</td>
+<td><strong>на пристрої</strong>; overlap-підміну перевірено на залізі (§7)</td>
 </tr>
 <tr>
-<td><code>pos-native-pi</code> (<code>kiosk</code>)</td>
-<td>меню на екрані; QR бонусів і нові ціни за подіями з <code>ws</code>; плашка «Оновлення» в шапці; <code>--selftest</code> без дисплея</td>
-<td><strong>прод із 18.08.2026</strong>, поки під старим <code>pos-native.service</code>; вебсокета ще немає</td>
+<td><code>bin/kiosk</code> (<code>kiosk</code>)</td>
+<td>меню на екрані; попап і QR бонусів за подіями з <code>ws</code>; плашка «Оновлення» в шапці; запасна картинка <code>state/menu.png</code>; <code>--selftest</code> без дисплея</td>
+<td><strong>прод</strong>; до 21.09.2026 звався <code>pos-native-pi</code> і жив під <code>pos-native.service</code>. Токена точки ще немає, тож бонуси емулюються</td>
 </tr>
 <tr>
 <td><code>updater.sh</code></td>
 <td>раз на 15 хв питає маніфест, привозить, перевіряє, підміняє, відкочує</td>
-<td>написано, перевірено в контейнері</td>
+<td><strong>на пристрої</strong>, але маніфест у бакеті — 404 (домен не привʼязаний), тож апдейтер тихо чекає</td>
+</tr>
+<tr>
+<td><code>menu-fallback.service</code></td>
+<td><code>fbi</code> малює <code>state/menu.png</code> у фреймбуфер під шаром кіоска (§6)</td>
+<td><strong>на пристрої з 21.09.2026</strong></td>
 </tr>
 <tr>
 <td><code>recorder</code></td>
@@ -3863,7 +3886,7 @@ graph TB
 <td>перевірити оновлення зараз, а не через 15 хв</td>
 </tr>
 <tr>
-<td><code>/tmp/pos-native-&lt;слот&gt;.sock</code></td>
+<td><code>/tmp/kiosk-&lt;слот&gt;.sock</code></td>
 <td>кіоск → апдейтер, супервізор</td>
 <td>«живий» означає «кадри йдуть» (<code>frames_total</code>), а не «процес існує»</td>
 </tr>
@@ -3875,7 +3898,17 @@ graph TB
 <tr>
 <td><code>WS_URL</code>, <code>WS_TOKEN_FILE</code></td>
 <td>супервізор → кіоск (оточення)</td>
-<td>адреса подій прошита в збірку (<code>wss://ws.extrovert.cafe</code> для малинової цілі), але лишається перебивною; токен — файлом, бо його міняють без перевикочування</td>
+<td>адреса подій прошита в збірку (<code>wss://ws.extrovert.cafe</code> для малинової цілі), але лишається перебивною; токен — файлом (<code>config/point.key</code>, якщо він є), бо його міняють без перевикочування. До 21.09.2026 супервізор їх не передавав: <code>config/env</code> підключається без <code>export</code></td>
+</tr>
+<tr>
+<td><code>URL</code> у <code>config/env</code></td>
+<td>людина → кіоск</td>
+<td>звідки брати меню. Поки домен не на бакеті — адреса старого Worker (<code>…/api/v1/points/kyiv-01/menu</code>); прибрати рядок разом із Worker&#39;ом, інакше меню зникне</td>
+</tr>
+<tr>
+<td><code>FALLBACK_PNG</code> → <code>state/menu.png</code></td>
+<td>кіоск → <code>fbi</code></td>
+<td>статична картинка меню для запасного варіанта; кіоск перезаписує її сам при зміні меню (§6)</td>
 </tr>
 <tr>
 <td><code>config/point.key</code></td>
@@ -3890,12 +3923,16 @@ graph TB
 </tbody></table>
 </div>
 <h3 id="raspberry-pi-що-лежить-поза-home-pi-extrovert"><a class="anchor" href="#raspberry-pi-що-лежить-поза-home-pi-extrovert" aria-hidden="true">#</a>Що лежить поза <code>/home/pi/extrovert</code></h3>
-<p>Лише системне, і змінюється вручну, а не релізом:</p>
+<p>Лише системне, і змінюється вручну, а не релізом. Копія кожного файла — у
+<code>raspberry/pi/</code> (дампи з пристрою 21.09.2026, не реконструкції):</p>
 <ul>
-<li><code>/etc/systemd/system/extrovert.service</code>;</li>
-<li>рядок крон-сторожа <code>stack-watch</code> (<code>raspberry/pi/crontab</code>);</li>
-<li><code>/boot/config.txt</code>, <code>/etc/systemd/system.conf</code> (§1);</li>
-<li><code>~/scripts/start.sh</code> — гасить світлодіоди, юніт викликає його перед стартом.</li>
+<li><code>/etc/systemd/system/extrovert.service</code> і <code>menu-fallback.service</code>;</li>
+<li>рядок крон-сторожа <code>stack-watch</code> (<code>crontab</code>); root-крон порожній;</li>
+<li><code>/boot/config.txt</code>, <code>/boot/cmdline.txt</code>, <code>/etc/systemd/system.conf</code> (§1);</li>
+<li><code>/etc/fstab</code> — рядок флешки <code>/mnt/buf</code>;</li>
+<li><code>/etc/logrotate.d/extrovert</code>;</li>
+<li><code>~/scripts/start.sh</code> — гасить світлодіоди мережевого чипа, юніт викликає
+його перед стартом від root (<code>ExecStartPre=-+</code>).</li>
 </ul>
 <p>⚠️ Новий рядок у <code>components.conf</code> і правки в <code>supervisor.sh</code> приїжджають
 релізом, але <strong>діють з наступного старту юніта</strong> (ребут або
@@ -3929,7 +3966,7 @@ sequenceDiagram
   participant S as supervisor.sh
   participant K as кіоск
 
-  PC-&gt;&gt;PC: docker/make-pi.sh — armv6-контейнер, bin/pos-native-pi
+  PC-&gt;&gt;PC: docker/make-pi.sh — armv6-контейнер, bin/kiosk
   PC-&gt;&gt;PC: raspberry/pi/stack/make-release.sh — архів і маніфест у dist/
   PC-&gt;&gt;R2: архів, immutable
   PC-&gt;&gt;R2: маніфест, ОСТАННІМ
@@ -3978,7 +4015,7 @@ sequenceDiagram
 <p>Усе з <code>code/</code> на ПК. Малина в кроках 1–3 не бере участі взагалі.</p>
 <p><strong>1. Зібрати ARM-бінарник у контейнері.</strong> Перший запуск ще й збирає образ
 (кілька хвилин), далі лишається тільки сам gcc під QEMU.</p>
-<pre><code class="language-bash">./raspberry/kiosk/docker/make-pi.sh        # → raspberry/kiosk/bin/pos-native-pi (ARM)
+<pre><code class="language-bash">./raspberry/kiosk/docker/make-pi.sh        # → raspberry/kiosk/bin/kiosk (ARM)
 </code></pre>
 <p><strong>2. Запакувати реліз.</strong> Версію задає ПК — на малині немає git.
 <code>make-release.sh</code> перевіряє, що бінарник справді ARM (сплутати з десктопним
@@ -4004,6 +4041,19 @@ ssh -i $KEY $PI &quot;tail -f /home/pi/extrovert/logs/updater.log&quot;
 <code>нова версія жива (кадри йдуть)</code>. Якщо там <code>ВІДКОТ</code>, реліз уже в
 <code>state/bad-releases</code> і повторно не ставитиметься: виправлення їде <strong>новим</strong>
 релізом з новою назвою, а не перезаливкою старого.</p>
+<h3 id="raspberry-pi-поки-бакет-не-привʼязаний-той-самий-архів-по-ssh"><a class="anchor" href="#raspberry-pi-поки-бакет-не-привʼязаний-той-самий-архів-по-ssh" aria-hidden="true">#</a>Поки бакет не привʼязаний — той самий архів по SSH</h3>
+<p>Кроки 3–4 зараз неможливі: маніфест у бакеті — 404 (§7). Так викочено всі
+релізи 21.09.2026. Архів той самий, що й для бакета, і перевірки ті самі —
+selftest нової версії до перемикання, overlap-перезапуск:</p>
+<pre><code class="language-bash">./raspberry/kiosk/docker/make-pi.sh
+./raspberry/pi/stack/make-release.sh 2026.09.21-ssh4      # назва — довільна, але нова
+PI=pi@192.168.5.45
+scp dist/2026.09.21-ssh4.tar.gz raspberry/pi/stack/install.sh $PI:/tmp/
+ssh $PI &quot;/tmp/install.sh --release /tmp/2026.09.21-ssh4.tar.gz &amp;&amp; echo overlap &gt; /home/pi/extrovert/state/restart.kiosk&quot;
+</code></pre>
+<p><code>install.sh --release</code> сам записує поточний реліз як <code>state/previous</code> — ціль
+ручного відкату. Правки в <code>supervisor.sh</code>/<code>components.conf</code> діють лише з
+<code>sudo systemctl restart extrovert</code> (§2).</p>
 <h3 id="raspberry-pi-що-саме-відбувається-на-точці"><a class="anchor" href="#raspberry-pi-що-саме-відбувається-на-точці" aria-hidden="true">#</a>Що саме відбувається на точці</h3>
 <div class="tablewrap"><table>
 <thead>
@@ -4065,44 +4115,55 @@ echo plain &gt; state/restart.kiosk
 з першою ж зміною маніфесту, допишіть його в <code>state/bad-releases</code>, а
 виправлення викотіть новим релізом.</p>
 </li>
-<li><p><strong>Зі стеку на старий однокомпонентний юніт</strong> — зворотний §4:
-<code>systemctl disable --now extrovert</code>, повернути <code>pos-native.service.off</code> на
-місце, <code>daemon-reload</code>, <code>enable --now pos-native</code>, крон-рядок <code>kiosk-watch</code>.</p>
+<li><p><strong>На кіоск, який був до стеку</strong> — реліз <code>0000-adopted-20260921</code>: це
+бінарник і ассети з 18.08.2026, забрані <code>install.sh --adopt</code> при
+переході. Відкочується так само, як пункт 2. Старого однокомпонентного
+юніта на пристрої більше немає: його файли — у <code>~/backup-2026-09-21/</code> і в
+git-історії.</p>
 </li>
 <li><p><strong>Якщо не піднімається жоден кіоск</strong> — статична картинка, §6. Це не
-відкат коду, а спосіб не лишити вітрину чорною, поки їдеш на точку.</p>
+відкат коду, а спосіб не лишити вітрину чорною, поки їдеш на точку.
+Вона ж видна й без нічого робити: <code>menu-fallback.service</code> тримає її під
+шаром кіоска постійно.</p>
 </li>
 </ol>
-<h2 id="raspberry-pi-4-перехід-на-стек-один-раз-коли-малина-буде-онлайн"><a class="anchor" href="#raspberry-pi-4-перехід-на-стек-один-раз-коли-малина-буде-онлайн" aria-hidden="true">#</a>4. Перехід на стек — один раз, коли малина буде онлайн</h2>
-<p>Сьогодні на пристрої працює <code>pos-native.service</code> + <code>kiosk-native.sh</code> із
-<code>/home/pi/pos-native</code>. Перехід забирає цей бінарник як реліз <code>0000-adopted-…</code>,
-тож першим екраном стеку буде рівно те, що вже висить.</p>
+<h2 id="raspberry-pi-4-перехід-на-стек-зроблено-21-09-2026"><a class="anchor" href="#raspberry-pi-4-перехід-на-стек-зроблено-21-09-2026" aria-hidden="true">#</a>4. Перехід на стек — зроблено 21.09.2026</h2>
+<p>До переходу на пристрої працював <code>pos-native.service</code> + <code>kiosk-native.sh</code> із
+<code>/home/pi/pos-native</code> (бінарник ще звався <code>pos-native-pi</code>, меню він брав зі
+старого Worker&#39;а). Що зроблено, по порядку, — щоб повторити на наступній
+точці:</p>
 <ol>
-<li>Поставити <code>raspberry/pi/stack</code> на малину, як у кроці 1 §3.</li>
-<li>Розкладка й юніт:<pre><code class="language-bash">cd /home/pi/extrovert/build/pi/stack
-./install.sh --adopt /home/pi/pos-native
-sudo install -m 0644 extrovert.service /etc/systemd/system/
+<li><strong>Стек і перший реліз по SSH</strong> (§3, «Поки бакет не привʼязаний»):<pre><code class="language-bash">./install.sh --adopt /home/pi/pos-native --release /tmp/&lt;реліз&gt;.tar.gz
 </code></pre>
+<code>--adopt</code> забрав старий кіоск як реліз <code>0000-adopted-20260921</code> — він
+лишився ціллю відкату (<code>state/previous</code>), а <code>--release</code> одразу поставив
+новий з selftest-ом. Першим екраном стеку став уже новий кіоск, а не
+усиновлений, як планувалось: інакше попап і перейменування їхали б окремим
+колом, а бакета, щоб це коло проїхало само, ще немає.</li>
+<li><strong><code>config/env</code></strong>: <code>URL</code> старого Worker&#39;а (домен ще не на бакеті — §2),
+<code>POPUP=0</code> (без токена ws кіоск і так показує попап на емульовані бонуси).</li>
+<li><strong>Старий автозапуск прибрано повністю</strong>, а не лише вимкнено:
+<code>systemctl disable --now pos-native.service</code>, файл юніта видалено, крон
+<code>kiosk-watch</code> → <code>stack-watch</code>. Інакше <code>systemctl restart pos-native</code> з
+крона підняв би й вимкнений юніт — і поруч зі стеком стартував би другий
+кіоск, який не дістане шару. Копії старих файлів — <code>~/backup-2026-09-21/</code>.</li>
+<li><code>extrovert.service</code> встановлено й увімкнено. Дві граблі, яких не було видно
+на десктопі:<ul>
+<li><code>~/scripts/start.sh</code> не мав <code>#!/bin/sh</code> — bash такий запускав, а systemd
+відмовляв (<code>Exec format error</code>);</li>
+<li><code>llctl</code> усередині нього без root мовчки нічого не робить: світлодіоди
+насправді гасив root-крон <code>@reboot</code>. Тепер <code>ExecStartPre=-+…</code> (запуск від
+root, systemd ≥ 231), а root-крон порожній.</li>
+</ul>
 </li>
-<li><strong>Прибрати старий автозапуск повністю</strong>, а не лише вимкнути:<pre><code class="language-bash">sudo systemctl disable --now pos-native.service
-sudo mv /etc/systemd/system/pos-native.service /etc/systemd/system/pos-native.service.off
-sudo systemctl daemon-reload
-crontab -e        # kiosk-watch → stack-watch з raspberry/pi/crontab
-</code></pre>
-Чому так: крон-рядок <code>kiosk-watch</code> робить <code>systemctl restart pos-native</code>, а
-<code>restart</code> піднімає й вимкнений юніт — поруч зі стеком стартував би другий
-кіоск, який не дістане шару. <code>mask</code> тут не спрацює: файл юніта лежить у
-<code>/etc/systemd/system</code>, і systemd відмовиться підміняти його симлінком.</li>
-<li><code>sudo systemctl enable --now extrovert.service</code>, далі
-<code>journalctl -u extrovert -f</code> і <code>cat /home/pi/extrovert/state/version</code>.</li>
-<li>Перевірити кадри: <code>nc -U /tmp/pos-native-0.sock</code>.
-Коли зʼявиться <code>api</code>: ключ точки з адмінки покласти по SSH у
-<code>/home/pi/extrovert/config/point.key</code> з правами <code>0600</code> — це єдиний раз,
-коли ключ їде не через ротацію.</li>
-<li>Прогнати §3 двічі: з навмисно битим релізом (прибраний шрифт з
-<code>assets/</code> — selftest має відмовити) і з нормальним (плашка, підміна
-без чорного екрана). Заодно закрити пункти §7.</li>
+<li>Перевірено: кадри (<code>nc -U /tmp/kiosk-&lt;слот&gt;.sock</code>), overlap-підміна,
+запасна картинка, повний ребут — §7.</li>
 </ol>
+<p>Лишилось: ключ точки. Коли зʼявиться <code>api</code>, ключ з адмінки покласти по SSH у
+<code>/home/pi/extrovert/config/point.key</code> з правами <code>0600</code> — це єдиний раз, коли
+ключ їде не через ротацію; супервізор сам передасть його кіоску
+(<code>WS_TOKEN_FILE</code>), і емуляція бонусів вимкнеться. Прогнати §3 з битим
+релізом через бакет — коли бакет буде привʼязаний.</p>
 <h2 id="raspberry-pi-5-живлення-overlay-і-самооновлення"><a class="anchor" href="#raspberry-pi-5-живлення-overlay-і-самооновлення" aria-hidden="true">#</a>5. Живлення, overlay і самооновлення</h2>
 <p>Раптове знеструмлення — штатна ситуація для точки в коридорі. Звична
 відповідь — overlay FS, коли корінь стає read-only, а записи живуть у RAM
@@ -4121,7 +4182,14 @@ crontab -e        # kiosk-watch → stack-watch з raspberry/pi/crontab
 логи, <code>state/</code>) — або USB-флешка, якщо вона однаково стоятиме під буфер
 відео (<a class="doclink" href="#video"><code>video.md</code></a>).</li>
 <li>Рядок у <code>/etc/fstab</code>:
-<code>/dev/mmcblk0p3  /home/pi/extrovert  ext4  defaults,noatime  0  2</code>.</li>
+<code>/dev/mmcblk0p3  /home/pi/extrovert  ext4  defaults,noatime  0  2</code>.
+⚠️ <code>p3</code> — приклад для стокового образу. Картка kyiv-01 розмічена NOOBS:
+p1 RECOVERY, p5 SETTINGS, p6 <code>/boot</code>, p7 корінь (перевірено 21.09.2026),
+тож новий розділ матиме інший номер — брати з <code>lsblk</code>, а краще писати в
+fstab <code>LABEL=</code>, як для флешки.
+Якщо це USB-флешка — додати <code>nofail,x-systemd.device-timeout=10s</code>: без
+<code>nofail</code> відсутня флешка кидає малину в emergency mode на кожному
+завантаженні (21.09.2026, <a class="doclink" href="#pi-device"><code>../raspberry/pi/README.md</code></a>).</li>
 <li><code>sudo raspi-config nonint enable_overlayfs</code> (у меню — Performance →
 Overlay FS), ребут. Корінь стає read-only, <code>/boot</code> теж — це навмисно:
 <code>config.txt</code> і <code>cmdline.txt</code> міняються рідко й лише руками.</li>
@@ -4131,8 +4199,10 @@ Overlay FS), ребут. Корінь стає read-only, <code>/boot</code> т�
 <p>Що це міняє в експлуатації: правка системного файла (юніт, крон, <code>fstab</code>)
 тепер вимагає <code>disable_overlayfs</code> + ребут, правку, <code>enable_overlayfs</code> +
 ребут. Релізів це не стосується — вони їдуть у rw-розділ і ставляться, поки
-корінь замкнений. Саме тому системного поза <code>/home/pi/extrovert</code> лишили
-рівно чотири файли (§2): що рідше туди лізти, то дешевше overlay.</p>
+корінь замкнений. Саме тому системного поза <code>/home/pi/extrovert</code> тримаємо
+мінімум, і все воно — одноразове налаштування заліза, а не код (перелік і
+копії — §2): що рідше туди лізти, то дешевше overlay. Запасна картинка
+(<code>state/menu.png</code>) і логи вже зараз пишуться в нашу теку, а не в систему.</p>
 <p>Атомарність самого оновлення від overlay не залежить: <code>mv</code> симлінка — одна
 операція, а обірване завантаження лишається <code>.part</code> поза <code>releases/</code>.</p>
 <p>Перед встановленням: п&#39;ять разів висмикнути живлення посеред роботи — і
@@ -4141,35 +4211,68 @@ Overlay FS), ребут. Корінь стає read-only, <code>/boot</code> т�
 <p>Один, і це не кіоск: якщо <code>kiosk</code> не піднімається взагалі, екран
 показує PNG з меню. Браузерного запасного кіоска немає — на цьому залізі
 він коштував дорожче, ніж давав (<a class="doclink" href="#roadmap"><code>roadmap.md</code></a>).</p>
-<pre><code class="language-bash">sudo apt install fbi
-# /etc/rc.local, перед exit 0:
-fbi -T 1 -d /dev/fb0 -noverbose -a /home/pi/menu.png &amp;
-</code></pre>
-<p>Картинка малюється у фреймбуфер, кіоск — у dispmanx-шар <strong>поверх</strong> нього.
-Тому та сама команда робить дві роботи: до першого кадру кіоска заповнює
-екран замість чорноти (§1, тихе завантаження), а якщо кадру так і не буде —
-лишається як вітрина. Ціни тоді міняються <code>scp</code>-ом картинки, без поїздки,
-але вже без QR і акцій.</p>
+<p>Як зроблено (21.09.2026):</p>
+<ul>
+<li><strong>Картинку пише сам кіоск.</strong> Щоразу, як змінюється меню, він зберігає
+меню з рекламою в <code>state/menu.png</code> (змінна <code>FALLBACK_PNG</code>, її виставляє
+супервізор) — без панелі бонусів і попапів: вигадані QR у статичній
+картинці нікому не потрібні. Через <code>.tmp</code> і <code>rename</code>, щоб знеструмлення
+посеред запису не лишило битий PNG. Отже ціни в запасній картинці ті, що
+кіоск показував останніми, і возити її <code>scp</code>-ом не треба.</li>
+<li><strong><code>menu-fallback.service</code></strong> (<code>raspberry/pi/menu-fallback.service</code>) запускає
+<code>fbi</code> на <code>tty7</code> після виходу plymouth. Картинка малюється у фреймбуфер,
+кіоск — у dispmanx-шар <strong>поверх</strong> нього, тож вона постійно лежить під
+кіоском.</li>
+<li><strong>Кіоск прозорий, поки немає меню.</strong> До першого вдалого запиту кадр
+кіоска порожній і прозорий, а запит повторюється раз на 5 с
+(<code>MENU_RETRY_S</code>), а не раз на хвилину. Після знеструмлення кіоск стартує
+раніше, ніж піднімається мережа, — і весь цей час видно запасну картинку з
+останніми цінами, а не порожній кадр.</li>
+</ul>
+<p>Чому не <code>/etc/rc.local</code>, як планувалось: <code>getty@tty1</code> стартує після нього й
+робить vhangup свого tty — <code>fbi</code> на <code>tty1</code> вмирав на кожному завантаженні.
+<code>After=getty@tty1</code> не рятує: getty має <code>Type=idle</code>, systemd вважає його
+запущеним раніше, ніж agetty справді стартує. На <code>tty7</code> getty немає зовсім.</p>
+<p>Та сама картинка робить три роботи: до першого кадру кіоска заповнює екран
+замість чорноти (§1, тихе завантаження), видна між копіями на
+overlap-підміні, а якщо кадру так і не буде — лишається вітриною, уже без QR
+і акцій.</p>
 <h2 id="raspberry-pi-7-чого-ще-не-знаємо"><a class="anchor" href="#raspberry-pi-7-чого-ще-не-знаємо" aria-hidden="true">#</a>7. Чого ще не знаємо</h2>
-<p>Перевірити, щойно малина буде онлайн:</p>
+<p>Заміряно на залізі 21.09.2026:</p>
 <ol>
-<li><strong>GPU-памʼять на overlap</strong> — дві 1080p-поверхні при <code>gpu_mem=128</code>.
-Не вистачить — спрацює перехід на послідовну заміну з коротким чорним
-екраном. Міряти <code>vcgencmd get_mem malloc</code> під час підміни.</li>
-<li><strong>Скільки триває вікно підміни на Pi 1.</strong> На десктопі до першого кадру
-~0,5 с, на малині EGL і шрифти помітно довші. Від цього залежить, чи
-вкладається overlap у свої 25 с.</li>
-<li><strong>Пастка <code>bcm_host_init</code> при двох dispmanx-клієнтах одночасно.</strong> Теоретично
-це штатний режим (так живе omxplayer), але саме на цьому залізі зупинка X
-на живій сесії вже вішала VideoCore до ребуту.</li>
-<li><strong>Watchdog</strong> — чи справді ввімкнений (§1).</li>
+<li><del><strong>GPU-памʼять на overlap</strong></del> — у найгірший момент підміни (дві копії
+кіоска з 1080p-поверхнями й попапом) вільно 24 МБ із 57 (<code>vcgencmd get_mem reloc</code>). Запас є.</li>
+<li><del><strong>Скільки триває вікно підміни на Pi 1</strong></del> — від запиту до «нова версія
+малює» ~45 с настінного часу: нова копія рендерить меню (на Pi 1 це
+~8 с чистого CPU, а тут ще й ділить процесор зі старою, що малює 60 fps)
+і основу попапу (~2 с). Весь цей час на екрані стара копія, чорного кадру
+немає. <code>OVERLAP_HEALTH_S=25</code> рахує ітерації перевірки, а не секунди, тож
+не спрацьовує завчасно; health апдейтера (90 с) теж укладається.</li>
+<li><del><strong>Пастка <code>bcm_host_init</code> при двох dispmanx-клієнтах</strong></del> — не спрацювала:
+дві копії поруч жили штатно, і втретє, з ручною копією на шарі 5, теж.</li>
+<li><del><strong>Watchdog</strong></del> — увімкнений, 14 с (§1).</li>
+</ol>
+<p>Лишилось, і все впирається в бакет:</p>
+<ol start="5">
 <li><strong>Реальний <code>curl</code> 7.52 на Stretch</strong> проти публічного бакета. Логіку
 апдейтера (selftest, відкат, успіх, повтор після обриву, <code>304</code>, битий
 sha) прогнано в Linux-контейнері, але <code>curl</code> там підміняла заглушка;
 справжній <code>curl</code> проти бакета перевірено лише з ПК.</li>
 <li><strong>Доба з кількома оновленнями поспіль</strong>, включно з битим релізом і
-висмикнутим живленням посеред підміни.</li>
+висмикнутим живленням посеред підміни. Висмикування живлення взагалі
+(§5, п&#39;ять разів) — лише наживо, на точці.</li>
 </ol>
+<p>Помічено по дорозі, окремими задачами:</p>
+<ul>
+<li><strong>Кадр стоїть, поки рендериться меню.</strong> <code>render_menu</code> на Pi 1 — ~8 с, і
+робиться в кадровому циклі при кожній зміні меню: стільки завмирає екран
+(смуги прогресу, попап). Рішення — рендер у фоновому потоці й підміна
+текстури готовим.</li>
+<li><strong>~43 fps замість 60, коли в панелі три бонуси.</strong> Смуги прогресу
+перемальовуються й перезаливаються в текстури щокадру (<code>bonus.c</code>,
+<code>redraw_bar</code>). Дешевше малювати один раз намальований градієнт квадом з
+обрізаними UV.</li>
+</ul>
 
 </section>
 <section class="doc" id="raspberry-pi-stack">
@@ -4177,24 +4280,25 @@ sha) прогнано в Linux-контейнері, але <code>curl</code> т
 <p>Малина стоїть у публічному коридорі. Кожна зміна, яку не можна викотити
 віддалено, — це поїздка. Тому все, що ми ставимо на точку, живе <strong>в одній
 теці</strong>, керується <strong>одним процесом</strong> і оновлюється <strong>саме собою</strong>.</p>
-<p>Стан на 15.09.2026: написано й перевірено на десктопній збірці, <strong>на живій
-малині ще не проганялось</strong> (пристрій offline). Що саме не перевірено —
-розділ «Чого ще не знаємо» в кінці.</p>
+<p>Стан на 21.09.2026: <strong>стоїть на kyiv-01 і працює</strong> (перехід — <a class="doclink" href="#raspberry-pi"><code>docs/raspberry-pi.md</code></a>
+§4). Overlap-підміну й відкат перевірено на залізі; усе, що впирається в
+бакет R2 (він ще не привʼязаний до домену), — ні. Подробиці — «Чого ще не
+знаємо» в кінці.</p>
 <h2 id="raspberry-pi-stack-розкладка-на-пристрої"><a class="anchor" href="#raspberry-pi-stack-розкладка-на-пристрої" aria-hidden="true">#</a>Розкладка на пристрої</h2>
 <pre><code>/home/pi/extrovert/            ← усе наше тут, пишеться без root
 ├── bin/supervisor.sh          стабільний шим: exec у current/stack/
-├── current -&gt; releases/2026.09.15-abc1234
+├── current -&gt; releases/2026.09.21-ssh4
 ├── releases/
-│   ├── 2026.09.15-abc1234/
-│   │   ├── bin/pos-native-pi
-│   │   ├── assets/…
+│   ├── 2026.09.21-ssh4/
+│   │   ├── bin/kiosk          до 21.09.2026 звався pos-native-pi
+│   │   ├── assets/…           шаблони SVG, шрифти, картинки
 │   │   ├── stack/{supervisor,updater,common}.sh + components.conf
 │   │   └── release.json
-│   └── 2026.09.10-ff31a02/    попередній — ціль відкату
-├── config/env                 POINT, UPDATE_URL… переживає оновлення
-├── config/point.key           ключ точки, 0600; відкликається й ротується з адмінки
-├── state/                     version, updating, slot.*, bad-releases
-└── logs/                      kiosk.log, updater.log
+│   └── 0000-adopted-20260921/ кіоск, що був до стеку (18.08) — ціль відкату
+├── config/env                 POINT, URL, UPDATE_URL… переживає оновлення
+├── config/point.key           ключ точки, 0600; відкликається й ротується з адмінки (ще немає)
+├── state/                     version, previous, updating, slot.*, bad-releases, menu.png
+└── logs/                      kiosk.log, updater.log (logrotate по 1 МБ)
 </code></pre>
 <p>Поза цією текою — юніт <code>/etc/systemd/system/extrovert.service</code> і рядок
 крон-сторожа (<code>raspberry/pi/crontab</code>, <code>stack-watch</code>). Юніт навмисно тупий (підняти
@@ -4224,7 +4328,7 @@ sha) прогнано в Linux-контейнері, але <code>curl</code> т
 <td>раз на <code>UPDATE_PERIOD_S</code> питає маніфест, привозить, перевіряє, підміняє, за потреби відкочує</td>
 </tr>
 <tr>
-<td><code>pos-native-pi</code></td>
+<td><code>bin/kiosk</code></td>
 <td>власне кіоск (компонент <code>kiosk</code>)</td>
 </tr>
 </tbody></table>
@@ -4329,10 +4433,11 @@ QR і плашку <strong>в памʼять, без дисплея</strong> —
 саме зараз рестартують, губиться назавжди. Кіоск робить <code>stat()</code> раз на
 секунду (<code>raspberry/kiosk/src/update.c</code>), перший рядок файла стає підписом.</p>
 <h2 id="raspberry-pi-stack-операції"><a class="anchor" href="#raspberry-pi-stack-операції" aria-hidden="true">#</a>Операції</h2>
-<pre><code class="language-bash"># перший раз на пристрої — повний чекліст у docs/raspberry-pi.md, §4
-cd /home/pi/extrovert/build/pi/stack &amp;&amp; ./install.sh --adopt /home/pi/pos-native
+<pre><code class="language-bash"># перший раз на пристрої — як це зроблено на kyiv-01, docs/raspberry-pi.md §4
+./install.sh --release /tmp/&lt;реліз&gt;.tar.gz        # + --adopt &lt;тека старого кіоска&gt;, якщо він є
 
-# зібрати й викотити реліз — docs/raspberry-pi.md, §3 (з ПК, по кроках)
+# зібрати й викотити реліз — docs/raspberry-pi.md, §3 (з ПК, по кроках);
+# поки бакет не привʼязаний — той самий архів по SSH (там само)
 
 # подивитись, що відбувається
 journalctl -u extrovert -f
@@ -4349,77 +4454,100 @@ ln -sfn /home/pi/extrovert/releases/&lt;старий&gt; /home/pi/extrovert/curr
 mv -Tf /home/pi/extrovert/current.new /home/pi/extrovert/current
 echo plain &gt; /home/pi/extrovert/state/restart.kiosk
 </code></pre>
-<p>Старі <code>raspberry/pi/kiosk-native.sh</code> + <code>raspberry/pi/pos-native.service</code> лишаються в репозиторії
-як робочий однокомпонентний варіант: саме з них стек «усиновлює» кіоск при
-переході. Одночасно вмикати їх і
-<code>extrovert.service</code> <strong>не можна</strong>: обидва запустять кіоск, і другий не
-дістане шару. «Вимкнути» тут означає й прибрати старий крон-рядок
-<code>kiosk-watch</code>, і відкласти файл <code>pos-native.service</code>: <code>systemctl restart</code>
-піднімає навіть вимкнений юніт.</p>
-<h2 id="raspberry-pi-stack-чого-ще-не-знаємо-перевірити-коли-малина-повернеться"><a class="anchor" href="#raspberry-pi-stack-чого-ще-не-знаємо-перевірити-коли-малина-повернеться" aria-hidden="true">#</a>Чого ще не знаємо (перевірити, коли малина повернеться)</h2>
+<p>Однокомпонентного варіанта (<code>kiosk-native.sh</code> + <code>pos-native.service</code>) більше
+немає ні в репозиторії, ні на пристрої — його замінив стек 21.09.2026. Він
+лишився в git-історії, а на kyiv-01 — у <code>~/backup-2026-09-21/</code>. Якщо колись
+доведеться ставити стек на пристрій, де він ще живе, — його треба прибрати
+ДО старту стеку разом із крон-рядком <code>kiosk-watch</code> (<code>install.sh</code> каже як):
+<code>systemctl restart</code> піднімає навіть вимкнений юніт, і другий кіоск не
+дістане шару.</p>
+<h2 id="raspberry-pi-stack-чого-ще-не-знаємо"><a class="anchor" href="#raspberry-pi-stack-чого-ще-не-знаємо" aria-hidden="true">#</a>Чого ще не знаємо</h2>
+<p>Перевірено на залізі 21.09.2026 (подробиці — <a class="doclink" href="#raspberry-pi"><code>docs/raspberry-pi.md</code></a> §7):</p>
 <ol>
-<li><strong>Чи вистачає GPU-памʼяті на overlap.</strong> Дві 1080p-поверхні одночасно при
-<code>gpu_mem=128</code>. Якщо ні — автоматичний відкат спрацює, але оновлення
-буде з коротким чорним екраном. Міряти: <code>vcgencmd get_mem malloc</code> під
-час підміни.</li>
-<li><strong>Скільки насправді триває вікно підміни на Pi 1.</strong> На десктопі старт до
-першого кадру ~0,5 с, на малині EGL+шрифти помітно довші.</li>
-<li><strong>Чи не спрацює пастка <code>bcm_host_init</code></strong> при швидкому старті другого
-процесу, поки перший ще тримає VideoCore. Теоретично це не зупинка X, а
-звичайні два dispmanx-клієнти (так живе omxplayer поруч із кіоском), але
-саме на цьому залізі варто перевірити окремо.</li>
+<li><del>GPU-памʼять на overlap</del> — у найгірший момент вільно 24 МБ із 57.</li>
+<li><del>Вікно підміни на Pi 1</del> — ~45 с від запиту до першого кадру нової
+копії (рендер меню на Pi 1 — ~8 с чистого CPU, а тут процесор ще й ділиться
+зі старою копією). Чорного кадру немає: весь час видно стару.</li>
+<li><del>Пастка <code>bcm_host_init</code></del> — не спрацювала, два dispmanx-клієнти живуть
+поруч штатно.</li>
+</ol>
+<p>Лишилось:</p>
+<ol start="4">
 <li><strong>Довгий прогін апдейтера</strong> — доба з реальним маніфестом і кількома
-оновленнями поспіль, включно з навмисно битим релізом.</li>
+оновленнями поспіль, включно з навмисно битим релізом. Упирається в бакет:
+маніфест поки 404.</li>
 </ol>
 
 </section>
-<section class="doc" id="raspberry-pi">
+<section class="doc" id="pi-device">
 <header class="doc-head"><p class="doc-src">raspberry/pi/README.md</p><h1>Raspberry Pi — кіоск точки</h1></header>
-<p>Стан пристрою, звірено з живою малиною 18.08.2026: Raspberry Pi 1 Model B rev 2
-(ARMv6), Raspbian 9 Stretch, <strong>ядро 4.14.79</strong>. <code>ssh pi@192.168.5.45</code>.</p>
-<p><strong>Кіоск — <code>kiosk</code>, без X.</strong> LXDE/lightdm вимкнені
-(<code>systemctl set-default multi-user.target</code>), автозапуск — <code>pos-native.service</code>
-(systemd, <code>WantedBy=multi-user.target</code>).</p>
-<p><strong>Наступний крок — керований стек (<code>stack/</code>)</strong>: супервізор, кіоск і апдейтер,
-який сам привозить релізи з R2. Написаний, на пристрій ще не поставлений.
-Що крутиться, як викотити реліз і як перейти на стек —
-<code>../docs/raspberry-pi.md</code>.</p>
+<p>Стан пристрою, звірено з живою малиною 21.09.2026: Raspberry Pi 1 Model B rev 2
+(ARMv6), Raspbian 9 Stretch, <strong>ядро 4.14.79</strong>, systemd 232. <code>ssh pi@192.168.5.45</code>
+(ключ <code>../kiosk/.deploy/id_ed25519</code> або ключ ПК розробника). Точка працює 24/7.</p>
+<p><strong>Кіоск — <code>kiosk</code> під керованим стеком (<code>stack/</code>), без X.</strong> LXDE/lightdm
+вимкнені (<code>systemctl set-default multi-user.target</code>), автозапуск —
+<code>extrovert.service</code>: супервізор, кіоск і апдейтер у <code>/home/pi/extrovert</code>.
+Стоїть з 21.09.2026 (до того — однокомпонентний <code>pos-native.service</code>). Бакет R2
+ще не привʼязаний до домену, тож релізи поки везуться по SSH. Що крутиться,
+як викотити реліз, що заміряно — <a class="doclink" href="#raspberry-pi"><code>../../docs/raspberry-pi.md</code></a>.</p>
 <p><strong>Малина нічого не компілює.</strong> ARM-бінарник збирається в Docker на ПК
-(<code>../raspberry/kiosk/docker/pi.Dockerfile</code>), на точку їде готовий архів релізу.
+(<code>../kiosk/docker/pi.Dockerfile</code>), на точку їде готовий архів релізу.
 Компіляція на пристрої з&#39;їдала ~80 с при 100 % CPU — рівно стільки кіоск
 смикався б на очах у клієнта.</p>
 <p>Памʼять: <code>gpu_mem=128</code> у <code>/boot/config.txt</code> (виправлено 18.08.2026 — до того не
 був заданий узагалі, тобто діяв дефолт 64 МБ, і <code>kiosk</code>&#39;у бракувало
 GPU-памʼяті під власну поверхню виводу — саме це, а не баг рендера, викликало
-білий екран одразу після першого перемикання; постмортем у <a class="doclink" href="#roadmap"><code>../docs/roadmap.md</code></a>).
-Не занижувати назад без причини — <code>vcgencmd get_mem malloc</code> мав 8 МБ вільних
-при 64, притому що один 1080p RGBA-буфер важить ~8 МБ сам по собі.</p>
-<p>⚠️ <strong>Файли в цій теці — реконструкція з робочої сесії, а не дамп із пристрою.</strong>
-Перед тим як накочувати, звірити з тим, що реально лежить на Pi. Реальний
-<code>kiosk-native.sh</code> на пристрої ще й гасить світлодіоди через <code>~/scripts/start.sh</code>
-і чекає мережу по <code>healthz</code> — цього в реконструкції немає.</p>
-<h2 id="raspberry-pi-що-вже-зроблено-на-пристрої"><a class="anchor" href="#raspberry-pi-що-вже-зроблено-на-пристрої" aria-hidden="true">#</a>Що вже зроблено на пристрої</h2>
+білий екран одразу після першого перемикання; постмортем у <a class="doclink" href="#roadmap"><code>../../docs/roadmap.md</code></a>).
+Не занижувати: на overlap-підміні (дві копії кіоска) лишається 24 МБ вільних.</p>
+<p><strong>Системні файли в цій теці — дампи з пристрою 21.09.2026</strong>, не
+реконструкції: <code>crontab</code>, <code>fstab</code>, <code>cmdline.txt</code>, <code>config.txt.snippet</code>,
+<code>watchdog.conf.snippet</code>, <code>logrotate-extrovert</code>, <code>start.sh</code>,
+<code>menu-fallback.service</code>, <code>stack/extrovert.service</code>.</p>
+<h2 id="pi-device-що-вже-зроблено-на-пристрої"><a class="anchor" href="#pi-device-що-вже-зроблено-на-пристрої" aria-hidden="true">#</a>Що вже зроблено на пристрої</h2>
 <ul>
-<li><input checked="" disabled="" type="checkbox"> автозапуск <code>kiosk</code> через systemd (<code>pos-native.service</code>), без X/LXDE</li>
-<li><input checked="" disabled="" type="checkbox"> апаратний watchdog BCM2835, <code>RuntimeWatchdogUSec=14s</code></li>
-<li><input checked="" disabled="" type="checkbox"> сторожовий крон раз на 5 хвилин (перевіряє процес, <code>systemctl restart</code> при потребі)</li>
-<li><input checked="" disabled="" type="checkbox"> 1080p (<code>hdmi_group=1</code>, <code>hdmi_mode=16</code>)</li>
-<li><input checked="" disabled="" type="checkbox"> повний діапазон RGB (<code>hdmi_pixel_encoding=2</code>)</li>
+<li><input checked="" disabled="" type="checkbox"> керований стек (<code>extrovert.service</code>): супервізор, кіоск, апдейтер; overlap-підміна перевірена на залізі (21.09.2026)</li>
+<li><input checked="" disabled="" type="checkbox"> апаратний watchdog BCM2835, <code>RuntimeWatchdogSec=14</code> (перевірено в <code>dmesg</code>)</li>
+<li><input checked="" disabled="" type="checkbox"> крон-сторож <code>stack-watch</code> раз на 5 хвилин (юніт не active → <code>systemctl restart</code>)</li>
+<li><input checked="" disabled="" type="checkbox"> 1080p (<code>hdmi_group=1</code>, <code>hdmi_mode=16</code>), повний RGB (<code>hdmi_pixel_encoding=2</code>)</li>
 <li><input checked="" disabled="" type="checkbox"> прибрано запит пароля PolicyKit (з <code>start.sh</code> викинуто <code>service ssh start</code>)</li>
-<li><input disabled="" type="checkbox"> тихе завантаження без консольних логів (<code>../docs/raspberry-pi.md</code> §1)</li>
-<li><input disabled="" type="checkbox"> overlay на корінь + окремий розділ під <code>/home/pi/extrovert</code> (§5 там само)</li>
-<li><input disabled="" type="checkbox"> 5 тестів раптового знеструмлення</li>
+<li><input checked="" disabled="" type="checkbox"> флешка-буфер <code>/mnt/buf</code> (ext4, мітка <code>buf</code>) у fstab з <code>nofail</code> — малина вантажиться й без неї (21.09.2026)</li>
+<li><input checked="" disabled="" type="checkbox"> тихе завантаження: ні логів, ні заставок, ні курсора (21.09.2026, <a class="doclink" href="#raspberry-pi"><code>../../docs/raspberry-pi.md</code></a> §1)</li>
+<li><input checked="" disabled="" type="checkbox"> запасна картинка меню під кіоском (<code>fbi</code>, <code>menu-fallback.service</code>), кіоск сам оновлює її при зміні меню (21.09.2026)</li>
+<li><input checked="" disabled="" type="checkbox"> ротація логів стеку (<code>logrotate-extrovert</code>); вимкнено <code>apache2</code>, <code>ModemManager</code>, Bluetooth — назовні лише SSH</li>
+<li><input disabled="" type="checkbox"> ключ точки <code>config/point.key</code> → справжні бонуси з <code>ws</code> замість емуляції (чекає <code>api</code>)</li>
+<li><input disabled="" type="checkbox"> overlay на корінь + окремий розділ під <code>/home/pi/extrovert</code> (<a class="doclink" href="#raspberry-pi"><code>../../docs/raspberry-pi.md</code></a> §5)</li>
+<li><input disabled="" type="checkbox"> 5 тестів раптового знеструмлення — лише наживо, на точці</li>
 </ul>
-<h2 id="raspberry-pi-скрипти-в-цій-теці"><a class="anchor" href="#raspberry-pi-скрипти-в-цій-теці" aria-hidden="true">#</a>Скрипти в цій теці</h2>
+<h2 id="pi-device-файли-в-цій-теці"><a class="anchor" href="#pi-device-файли-в-цій-теці" aria-hidden="true">#</a>Файли в цій теці</h2>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>Файл</th>
-<th>Де запускати</th>
-<th>Що робить</th>
+<th>Де</th>
+<th>Що це</th>
 </tr>
 </thead>
 <tbody><tr>
+<td><code>stack/</code></td>
+<td>ПК + Pi</td>
+<td><strong>прод</strong>: супервізор, апдейтер, <code>extrovert.service</code>, <code>install.sh</code>, збирання релізу — <a class="doclink" href="#raspberry-pi-stack"><code>stack/README.md</code></a></td>
+</tr>
+<tr>
+<td><code>menu-fallback.service</code></td>
+<td>Pi</td>
+<td><code>fbi</code> із запасною картинкою меню на <code>tty7</code>, під шаром кіоска</td>
+</tr>
+<tr>
+<td><code>crontab</code></td>
+<td>Pi</td>
+<td>крон-сторож <code>stack-watch</code></td>
+</tr>
+<tr>
+<td><code>fstab</code>, <code>cmdline.txt</code>, <code>config.txt.snippet</code>, <code>watchdog.conf.snippet</code>, <code>logrotate-extrovert</code>, <code>start.sh</code></td>
+<td>Pi</td>
+<td>системні файли, які ми міняли, — дампи</td>
+</tr>
+<tr>
 <td><code>fix-clock.sh</code></td>
 <td>ПК</td>
 <td>синхронізує годинник Pi з цією машиною + <code>fake-hwclock save</code></td>
@@ -4432,54 +4560,34 @@ GPU-памʼяті під власну поверхню виводу — сам�
 <tr>
 <td><code>rec-test.sh</code></td>
 <td>Pi</td>
-<td>костиль запису <code>-c copy</code> у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV</td>
-</tr>
-<tr>
-<td><code>kiosk-native.sh</code></td>
-<td>Pi</td>
-<td><strong>поточний прод</strong>: запускає й перезапускає бінарник <code>kiosk</code>, керується <code>pos-native.service</code></td>
-</tr>
-<tr>
-<td><code>pos-native.service</code></td>
-<td>Pi</td>
-<td>systemd-юніт автозапуску <code>kiosk-native.sh</code> (<code>WantedBy=multi-user.target</code>)</td>
-</tr>
-<tr>
-<td><code>stack/</code></td>
-<td>ПК + Pi</td>
-<td><strong>наступний прод</strong>: супервізор, апдейтер, <code>extrovert.service</code>, збирання релізу — <a class="doclink" href="#raspberry-pi-stack"><code>stack/README.md</code></a></td>
-</tr>
-<tr>
-<td><code>crontab</code></td>
-<td>Pi</td>
-<td>крон-сторож: <code>kiosk-watch</code> зараз, <code>stack-watch</code> після переходу на стек</td>
-</tr>
-<tr>
-<td><code>config.txt.snippet</code>, <code>watchdog.conf.snippet</code></td>
-<td>Pi</td>
-<td>фрагменти системних конфігів, які ми міняли</td>
+<td>костиль запису <code>-c copy</code> у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV; пише в <code>/mnt/buf</code></td>
 </tr>
 </tbody></table>
 </div>
-<h3 id="raspberry-pi-прод-нативний-рендерер-kiosk-без-x-з-18-08-2026"><a class="anchor" href="#raspberry-pi-прод-нативний-рендерер-kiosk-без-x-з-18-08-2026" aria-hidden="true">#</a>Прод: нативний рендерер (<code>kiosk</code>), без X — з 18.08.2026</h3>
-<p><code>../raspberry/kiosk/</code> — Cairo+GLES2 рендерер меню: малює сторінку прямо в
-dispmanx-шар, без X/LXDE. Архітектура й вимір — <a class="doclink" href="#roadmap"><code>../docs/roadmap.md</code></a>.
-<strong>60 fps (vsync), ~19,5 % CPU, <code>GL_RENDERER=VideoCore IV HW</code>.</strong></p>
-<p>Збірка — на ПК у контейнері (<code>../raspberry/kiosk/docker/pi.Dockerfile</code>), той самий
+<h3 id="pi-device-кіоск-нативний-рендерер-kiosk-без-x"><a class="anchor" href="#pi-device-кіоск-нативний-рендерер-kiosk-без-x" aria-hidden="true">#</a>Кіоск: нативний рендерер (<code>kiosk</code>), без X</h3>
+<p><code>../kiosk/</code> — Cairo+GLES2 рендерер меню: малює сторінку прямо в dispmanx-шар,
+без X/LXDE. Екрани — SVG-шаблони (<code>../kiosk/assets/templates/</code>), зокрема
+фінальний попап бонусу з макета 21.09.2026 (<code>popup.svg</code>). Архітектура й
+виміри — <a class="doclink" href="#roadmap"><code>../../docs/roadmap.md</code></a>. <strong>60 fps (vsync), <code>GL_RENDERER=VideoCore IV HW</code>.</strong></p>
+<p>Збірка — на ПК у контейнері (<code>../kiosk/docker/pi.Dockerfile</code>), той самий
 Raspbian Stretch під armv6 через QEMU: та сама glibc 2.24 і gcc 6.3, що на
-пристрої. На малину їде готовий <code>bin/pos-native-pi</code> у складі релізу
-(<code>../docs/raspberry-pi.md</code> §3).</p>
-<p>Автозапуск: <code>systemctl status pos-native</code> / <code>journalctl -u pos-native -f</code>.
-Живий лог самого кіоска (не юніта) — <code>~/kiosk-native.log</code>. Конфігурація:
-<code>~/kiosk.env</code> (точка, <code>POINT=</code>) і <code>~/kiosk.extra</code> (руками, переживає
-перезапис). Після переходу на стек — <code>config/env</code> у теці стеку.</p>
+пристрої. На малину їде готовий <code>bin/kiosk</code> у складі релізу
+(<a class="doclink" href="#raspberry-pi"><code>../../docs/raspberry-pi.md</code></a> §3).</p>
+<p>Подивитись, що відбувається: <code>journalctl -u extrovert -f</code>, лог самого кіоска —
+<code>/home/pi/extrovert/logs/kiosk.log</code>, кадри — <code>nc -U /tmp/kiosk-&lt;слот&gt;.sock</code>
+(слот — у <code>state/slot.kiosk</code>). Конфігурація точки — <code>/home/pi/extrovert/config/env</code>
+(<code>POINT</code>, <code>URL</code>, <code>POPUP</code>). Показати попап вручну — <code>pkill -USR1 -x kiosk</code>,
+знімок кадру кіоска — <code>pkill -USR2 -x kiosk</code> (<code>/tmp/kiosk-frame.png</code>), знімок
+усього екрана разом із фреймбуфером — <code>../kiosk/tools/dispmanx-snap.c</code>
+(<code>./docker/make-pi.sh tools</code>). ⚠️ Не <code>pkill -f kiosk</code> по SSH: під шаблон
+потрапить і командний рядок самої SSH-сесії.</p>
 <p><strong>Граблі, які легко наступити знову:</strong> зупиняти вже запущений X
 (<code>systemctl stop lightdm</code> на живій сесії) кладе <code>bcm_host_init()</code> у стан,
 який не знімає навіть <code>SIGKILL</code> — лікується тільки перезавантаженням. Якщо X
 взагалі не стартував за це завантаження — усе працює миттєво й чисто. Тобто
 будь-яке вимикання/увімкнення X <strong>тільки через reboot</strong>, не <code>stop</code>/<code>start</code>
-на льоту. Подробиці — <a class="doclink" href="#roadmap"><code>../docs/roadmap.md</code></a>.</p>
-<h2 id="raspberry-pi-годинник"><a class="anchor" href="#raspberry-pi-годинник" aria-hidden="true">#</a>Годинник</h2>
+на льоту. Подробиці — <a class="doclink" href="#roadmap"><code>../../docs/roadmap.md</code></a>.</p>
+<h2 id="pi-device-годинник"><a class="anchor" href="#pi-device-годинник" aria-hidden="true">#</a>Годинник</h2>
 <p>У Pi 1 <strong>немає RTC</strong>. Після знеструмлення він піднімається з часом, збереженим
 <code>fake-hwclock</code>, тобто з моменту останнього коректного вимкнення. Якщо дата
 з᾿їхала на рік, ламається не лише статистика: <strong>HTTPS до Cloudflare відвалюється</strong>
@@ -4487,11 +4595,11 @@ Raspbian Stretch під armv6 через QEMU: та сама glibc 2.24 і gcc 6
 «немає звʼязку». Симптом виглядає як проблема з мережею, а насправді — годинник.</p>
 <pre><code class="language-bash">./fix-clock.sh pi@192.168.5.45
 </code></pre>
-<h2 id="raspberry-pi-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео"><a class="anchor" href="#raspberry-pi-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео" aria-hidden="true">#</a>Замір: чи тягне Pi 1 кіоск разом із записом відео</h2>
+<h2 id="pi-device-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео"><a class="anchor" href="#pi-device-замір-чи-тягне-pi-1-кіоск-разом-із-записом-відео" aria-hidden="true">#</a>Замір: чи тягне Pi 1 кіоск разом із записом відео</h2>
 <p>Мета — з᾿ясувати, чи тягне Pi 1 одночасно кіоск і буферизацію відеопотоку
-(<a class="doclink" href="#video"><code>../docs/video.md</code></a>). Запис нічого не декодує, це <code>-c copy</code>, тобто
+(<a class="doclink" href="#video"><code>../../docs/video.md</code></a>). Запис нічого не декодує, це <code>-c copy</code>, тобто
 перекладання вже стиснених пакетів у контейнер.</p>
-<h3 id="raspberry-pi-порядок"><a class="anchor" href="#raspberry-pi-порядок" aria-hidden="true">#</a>Порядок</h3>
+<h3 id="pi-device-порядок"><a class="anchor" href="#pi-device-порядок" aria-hidden="true">#</a>Порядок</h3>
 <pre><code class="language-bash"># 1. годинник
 ./fix-clock.sh
 
@@ -4507,7 +4615,7 @@ CAM=rtsp://192.168.5.10:8554/cam1 MIN=20 ~/rec-test.sh
 памʼяттю, температурою, кількістю сегментів і обсягом буфера — раз на 10 секунд.
 Наприкінці перевіряє <code>ffprobe</code> останні три сегменти: якщо вони читаються,
 значить обраний контейнер (MPEG-TS) переживає обрив, як і замислювалось.</p>
-<h3 id="raspberry-pi-що-вважати-провалом"><a class="anchor" href="#raspberry-pi-що-вважати-провалом" aria-hidden="true">#</a>Що вважати провалом</h3>
+<h3 id="pi-device-що-вважати-провалом"><a class="anchor" href="#pi-device-що-вважати-провалом" aria-hidden="true">#</a>Що вважати провалом</h3>
 <ul>
 <li>fps у кіоску просідає нижче <strong>24</strong> або найгірший кадр перевалює <strong>100 мс</strong></li>
 <li>вільної памʼяті лишається менше <strong>40 МБ</strong> — далі OOM-killer прибере кіоск</li>
@@ -4515,10 +4623,10 @@ CAM=rtsp://192.168.5.10:8554/cam1 MIN=20 ~/rec-test.sh
 <li>ffmpeg не встигає: сегментів менше, ніж хвилин, або вони меншають</li>
 </ul>
 <p>Будь-що з цього — беремо окремий вузол під запис і лишаємо Pi 1 самому кіоску.</p>
-<h3 id="raspberry-pi-результат-заміру-17-08-2026"><a class="anchor" href="#raspberry-pi-результат-заміру-17-08-2026" aria-hidden="true">#</a>Результат заміру 17.08.2026</h3>
+<h3 id="pi-device-результат-заміру-17-08-2026"><a class="anchor" href="#pi-device-результат-заміру-17-08-2026" aria-hidden="true">#</a>Результат заміру 17.08.2026</h3>
 <p>Пройдено, вузол не потрібен. Сирі CSV — у <code>measurements/</code>. Стисло:
 <code>ffmpeg -c copy</code> → 4,3 % CPU, 20 сегментів із 20, температура максимум 63,8 °C.</p>
-<h3 id="raspberry-pi-граблі-заміру-прочитати-перед-повторним-прогоном"><a class="anchor" href="#raspberry-pi-граблі-заміру-прочитати-перед-повторним-прогоном" aria-hidden="true">#</a>Граблі заміру — прочитати перед повторним прогоном</h3>
+<h3 id="pi-device-граблі-заміру-прочитати-перед-повторним-прогоном"><a class="anchor" href="#pi-device-граблі-заміру-прочитати-перед-повторним-прогоном" aria-hidden="true">#</a>Граблі заміру — прочитати перед повторним прогоном</h3>
 <ul>
 <li><strong>ffmpeg 3.2 на Stretch не вміє <code>-rtsp_flags listen</code></strong> — порт просто не
 біндиться, лог порожній. Це стосується лише серверного боку; клієнтський
@@ -4531,10 +4639,63 @@ RTSP (те, що потрібно для камери) працює. <code>cam-s
 значення рахуються по дельтах <code>/proc/&lt;pid&gt;/stat</code> — так зроблено в
 <code>measurements/sampler.csv</code>.</li>
 <li><strong>Хвости заміру, які ще відкриті:</strong> RTSP із справжньої камери й запис на
-USB-флешку замість системної SD (<a class="doclink" href="#roadmap"><code>../docs/roadmap.md</code></a>, крок 1-біс).</li>
+USB-флешку замість системної SD (<a class="doclink" href="#roadmap"><code>../../docs/roadmap.md</code></a>, крок 1-біс).</li>
 </ul>
-<h2 id="raspberry-pi-бекапи-на-пристрої"><a class="anchor" href="#raspberry-pi-бекапи-на-пристрої" aria-hidden="true">#</a>Бекапи на пристрої</h2>
-<p><code>~/backup-2026-08-09/</code> — <code>config.txt</code> до кожної правки, <code>start.sh</code> до правки PolicyKit.</p>
+<h2 id="pi-device-провал-завантаження-emergency-mode-пароль-root-не-підходить"><a class="anchor" href="#pi-device-провал-завантаження-emergency-mode-пароль-root-не-підходить" aria-hidden="true">#</a>Провал завантаження: emergency mode, пароль root не підходить</h2>
+<p><strong>Симптом (21.09.2026):</strong> малина не доходить до кіоска, на екрані
+<code>You are in emergency mode… Give root password for maintenance</code>, пароль root
+не приймається. Виглядає як убита картка — насправді картка ціла: образ
+знявся без жодної помилки читання, ext4 без пошкоджень.</p>
+<p><strong>Причина — рядок <code>/mnt/buf</code> у <code>/etc/fstab</code> без <code>nofail</code>.</strong> Флешку-буфер
+(запис з камери) прописали 18.08. Точка монтування з fstab без <code>nofail</code> —
+жорстка залежність <code>local-fs.target</code>: systemd чекає пристрій 90 с, не
+дочікується й кидає в emergency. Після 30.08 флешку витягли — і з того
+дня жодного успішного завантаження.</p>
+<p>Як це видно без робочої малини: у <code>/var/log/syslog</code> на картці останній запис —
+це останнє <strong>вдале</strong> вимкнення (30.08 12:43). Провальні завантаження в лог не
+потрапляють узагалі — rsyslog в emergency mode не стартує. А на вдалих
+завантаженнях видно <code>File System Check on /dev/disk/by-uuid/9e2e35c2…</code>, тобто
+флешка тоді ще стояла.</p>
+<p><strong>Правило:</strong> усе знімне в fstab — лише з <code>nofail,x-systemd.device-timeout=10s</code>.
+Тоді без флешки малина чекає 10 с і вантажиться далі. Поточний fstab — <code>fstab</code>
+у цій теці; флешка тепер за міткою (<code>LABEL=buf</code>), а не за UUID, тож заміна
+флешки — це <code>mkfs.ext4 -L buf</code>, без правки fstab.</p>
+<p><strong>Нова флешка 21.09.2026</strong> — безіменна (<code>VendorCo ProductCode</code>), 29 ГБ. Такі
+часто брешуть про ємність, а для кільцевого буфера це тихе затирання старого
+запису новим. Перед форматуванням її перевірили: унікальні мітки по 1 МБ з
+кроком 1 ГБ по всьому обʼєму (<code>dd … oflag=direct</code>), потім читання назад в
+обхід кешу — 31 точка, розбіжностей нуль. Потім одна розмітка на весь диск
+(початок з 1 МіБ), <code>mkfs.ext4 -L buf -m 0</code>, власник <code>/mnt/buf</code> — <code>pi</code>.</p>
+<p><strong>Пароль root</strong> на пристрої змінено 09.08.2026 (у стоковому Raspbian root
+заблокований). Невідомий — <code>sudo passwd root</code> з-під <code>pi</code>; з хеша не відновлюється.</p>
+<h3 id="pi-device-якщо-повториться"><a class="anchor" href="#pi-device-якщо-повториться" aria-hidden="true">#</a>Якщо повториться</h3>
+<ul>
+<li><strong>Найшвидше:</strong> повернути в малину флешку з міткою <code>buf</code>.</li>
+<li><strong>На самій малині, без пароля root:</strong> у <code>cmdline.txt</code> на boot-розділі (FAT —
+Windows його бачить) дописати в кінець рядка <code>systemd.debug-shell=1</code>. В
+emergency mode Ctrl+Alt+F9 дає root-шелл без пароля:
+<code>mount -o remount,rw /</code>, виправити <code>/etc/fstab</code>, <code>sync</code>. Потім <strong>обов&#39;язково
+прибрати параметр</strong> — інакше будь-хто з клавіатурою біля кіоска має root.
+(Emergency-консоль видно на екрані: запасна картинка <code>fbi</code> стартує лише в
+кінці вдалого завантаження.)</li>
+<li><strong>З ПК через кардрідер (так зроблено 21.09):</strong> Windows ext4 не читає, а
+<code>wsl --mount</code> не бере знімні носії («Removable media cannot be set to
+offline»). Тому: з правами адміна посекторно зняти образ картки
+(<code>\.\PHYSICALDRIVE&lt;N&gt;</code>), у WSL — <code>losetup -r -P</code> на образ,
+<code>debugfs -R &quot;blocks /etc/fstab&quot;</code> → номер блоку, і записати на картку новий
+fstab у <strong>той самий блок, того самого розміру</strong>. Тоді inode й метадані не
+міняються, і replay журналу ext4 на малині нічого не відкотить (дані файлів
+у <code>data=ordered</code> в журнал не пишуться).</li>
+</ul>
+<h2 id="pi-device-бекапи-на-пристрої"><a class="anchor" href="#pi-device-бекапи-на-пристрої" aria-hidden="true">#</a>Бекапи на пристрої</h2>
+<ul>
+<li><code>~/backup-2026-08-09/</code> — <code>config.txt</code> до кожної правки, <code>start.sh</code> до правки PolicyKit.</li>
+<li><code>~/backup-2026-09-21/</code> — усе системне до переходу на стек і тихого
+завантаження (<code>cmdline.txt</code>, <code>config.txt</code>, <code>rc.local</code>, <code>fstab</code>, крони,
+<code>system.conf</code>, <code>pos-native.service</code>, <code>kiosk-native.sh</code>, <code>start.sh</code>), а в
+<code>legacy-kiosk.tar.gz</code> — прибране з домашньої теки: вихідники й бінарник
+<code>~/pos-native</code>, HTML-кіоск часів Chromium, старі логи й заміри.</li>
+</ul>
 
 </section>
 <section class="doc" id="display-hardware">
@@ -4746,8 +4907,10 @@ DisplayPort, але від 3 999 ₴ і контраст 1000:1. Друге мі
 <li><input disabled="" type="checkbox"> Купити 2 шт Asus VP227HF (90LM0880-B01O71)</li>
 <li><input disabled="" type="checkbox"> Кронштейн VESA 100×100 — стельовий, під нахил ~6° (та сама модель, що й
 планувалась під Lenovo, глибина на 4,8 мм більша — перевірити перед покупкою)</li>
-<li><input disabled="" type="checkbox"> Гасити підсвітку вночі: <code>vcgencmd display_power 0</code> по крону на Pi</li>
-<li><input disabled="" type="checkbox"> Зсув пікселів у <code>kiosk</code> — проти вигорання статичного меню</li>
+<li><input disabled="" type="checkbox"> Зсув пікселів у <code>kiosk</code> — проти вигорання статичного меню. Гасити
+підсвітку на ніч <strong>не будемо</strong>: точка працює 24/7 (21.09.2026), тож
+екран світить цілодобово, і захист від вигорання й перегріву лягає
+лише на цей і наступний пункти</li>
 <li><input disabled="" type="checkbox"> Не замуровувати в глухий короб: +10 °C ≈ удвічі коротший ресурс електролітів</li>
 <li><input disabled="" type="checkbox"> Перевірити кути огляду наживо (VA-застереження вище) під реальним кутом
 підходу клієнтів, перед фінальним монтажем на кронштейн</li>
@@ -9057,7 +9220,7 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <p><strong>Стан на 15.09.2026.</strong> Документ живий — коли крок зроблено, він переїжджає з
 «далі» в «зроблено», а не дописується новим абзацом унизу.</p>
 <p>Що читати поруч: <a class="doclink" href="#video"><code>video.md</code></a> — архітектура відео · <a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a> — що
-крутиться на малині й деплой релізу · <a class="doclink" href="#raspberry-pi"><code>raspberry/pi/README.md</code></a> і <a class="doclink" href="#raspberry-pi-stack"><code>raspberry/pi/stack/README.md</code></a>
+крутиться на малині й деплой релізу · <a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a> і <a class="doclink" href="#raspberry-pi-stack"><code>raspberry/pi/stack/README.md</code></a>
 — заміри й нутрощі стеку · <a class="doclink" href="#svc"><code>services.md</code></a> — хто де
 живе й як автентифікується · <a class="doclink" href="#db"><code>db-schema.md</code></a> — схема Postgres, ключі Redis,
 міграції · <a class="doclink" href="#gamification-economy"><code>gamification_economy.md</code></a> + <a class="doclink" href="#gamification-ui"><code>gamification_ui.md</code></a> +
@@ -9320,7 +9483,7 @@ ffmpeg 3.2 на Stretch не вміє <code>-rtsp_flags listen</code> (порт 
 тримав CPU на 90 %, бо крутив вічний кадровий цикл. Міряти треба те, що
 працює в проді, а не режим із увімкненим HUD.</li>
 <li>У малині <code>gpu_mem</code> не заданий узагалі, тобто 64 МБ, а не 128 як записано в
-<a class="doclink" href="#raspberry-pi"><code>raspberry/pi/README.md</code></a>; вільної системної памʼяті 433 МБ, ядро 4.14, не 4.9.</li>
+<a class="doclink" href="#pi-device"><code>raspberry/pi/README.md</code></a>; вільної системної памʼяті 433 МБ, ядро 4.14, не 4.9.</li>
 </ul>
 <h3 id="roadmap-спайк-нативний-рендерер-18-08-2026"><a class="anchor" href="#roadmap-спайк-нативний-рендерер-18-08-2026" aria-hidden="true">#</a>Спайк — нативний рендерер, 18.08.2026</h3>
 <p>Питання від «а якщо на Pi 1 колись додасться ще одне навантаження»: скільки
@@ -9703,10 +9866,10 @@ GlitchTip — з першого ж сервісу, кожен компонент
 у публічному бакеті, сервера між точкою й файлами немає.</p>
 <p>Коли малина повернеться:</p>
 <ol>
-<li>Перейти на стек за чеклістом §4 — з прибиранням старого крон-рядка й
-файла <code>pos-native.service</code>, інакше поруч стартує другий кіоск.</li>
-<li>Пройти «Чого ще не знаємо» (§7): GPU-памʼять на overlap, вікно
-підміни, watchdog.</li>
+<li><del>Перейти на стек за чеклістом §4</del> — зроблено 21.09.2026 по SSH
+(реліз з архіву, <code>install.sh --release</code>), старий юніт і крон-рядок прибрано.</li>
+<li><del>Пройти «Чого ще не знаємо» (§7): GPU-памʼять на overlap, вікно
+підміни, watchdog</del> — заміряно 21.09.2026, результати в <a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a> §7.</li>
 <li>Викотити перший справжній реліз через R2 і <strong>навмисно зламати один</strong> —
 переконатись, що selftest або health-check його зупинять, а відкат
 спрацює. Механізм, відкат якого не перевіряли, — це не механізм відкату.</li>
@@ -10040,7 +10203,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел c5ef29a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 4c72c6b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -57,7 +57,8 @@ make seed                 # дев-гравець, кавенятко, чек, �
 
 ```bash
 raspberry/kiosk/docker/build.sh       # один раз: образ із тулчейном
-raspberry/kiosk/docker/make.sh        # нативний кіоск для ПК; на малині — make pi
+raspberry/kiosk/docker/make.sh        # кіоск для ПК (bin/kiosk-desktop)
+raspberry/kiosk/docker/make-pi.sh     # кіоск для малини (bin/kiosk), теж у контейнері на ПК
 # меню котить scheduler за командою з адмінки (POST /admin/menu/deployments)
 ```
 

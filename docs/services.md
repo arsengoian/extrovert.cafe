@@ -12,7 +12,7 @@ Vue й Laravel Filament) цим документом замінена й вид�
 ```mermaid
 graph TB
     subgraph edge["Точка (Raspberry Pi, /home/pi/extrovert)"]
-        KIOSK["kiosk<br/>pos-native, C+GLES2<br/>dispmanx, без X"]
+        KIOSK["kiosk<br/>C+GLES2<br/>dispmanx, без X"]
         UPD["updater<br/>оновлює стек сам"]
         REC["recorder<br/>ffmpeg -c copy (план)"]
         SUP["supervisor"]
@@ -668,9 +668,9 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 
 | Компонент | Стан на 21.09.2026 |
 |---|---|
-| `kiosk` (pos-native) | **працює на залізі**, 60 fps, автозапуск; вебсокет подій зроблений (`ws.c`), GlitchTip ще немає |
+| `kiosk` | **працює на залізі** під керованим стеком (з 21.09.2026), 60 fps; вебсокет подій зроблений (`ws.c`), але без токена точки кіоск емулює бонуси; GlitchTip ще немає |
 | `raspberry/pi/stack` (supervisor + updater) | написано; апдейтер прогнано в Linux-контейнері, **на малині не проганялось** (`raspberry-pi.md` §7) |
-| меню й релізи в R2 | бакет є; зробити його публічним і привʼязати домен `pos.extrovert.cafe` — **ще не зроблено**. На домені досі відповідає старий Worker (`/` → 302 на `/p/kyiv-01`): код прибрано з репозиторію, з Cloudflare — ні |
+| меню й релізи в R2 | бакет є; зробити його публічним і привʼязати домен `pos.extrovert.cafe` — **ще не зроблено**. На домені досі відповідає старий Worker (`/` → 302 на `/p/kyiv-01`): код прибрано з репозиторію, з Cloudflare — ні. ⚠️ Кіоск на kyiv-01 бере меню саме з нього (`URL=…/api/v1/points/kyiv-01/menu` у `config/env` на пристрої, 21.09.2026): прибрати Worker = разом прибрати цей рядок, інакше меню зникне (`raspberry-pi.md` §2) |
 | `qr.extrovert.cafe` | **наклейка надрукована** (`?p=1`), але хоста немає навіть у DNS (NXDOMAIN): скан зараз закінчується помилкою. Потрібні запис `AAAA 100::` і правило переадресації (`urls.md`) |
 | Postgres | **12 міграцій, 41 таблиця** (dbmate), `schema.sql` комітиться |
 | сіди контенту (`db/seeds`) | працюють: `bun run seed:pull` / `seed:apply`, 4 таблиці контенту в JSON |

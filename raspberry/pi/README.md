@@ -1,81 +1,86 @@
 # Raspberry Pi — кіоск точки
 
-Стан пристрою, звірено з живою малиною 18.08.2026: Raspberry Pi 1 Model B rev 2
-(ARMv6), Raspbian 9 Stretch, **ядро 4.14.79**. `ssh pi@192.168.5.45`.
+Стан пристрою, звірено з живою малиною 21.09.2026: Raspberry Pi 1 Model B rev 2
+(ARMv6), Raspbian 9 Stretch, **ядро 4.14.79**, systemd 232. `ssh pi@192.168.5.45`
+(ключ `../kiosk/.deploy/id_ed25519` або ключ ПК розробника). Точка працює 24/7.
 
-**Кіоск — `kiosk`, без X.** LXDE/lightdm вимкнені
-(`systemctl set-default multi-user.target`), автозапуск — `pos-native.service`
-(systemd, `WantedBy=multi-user.target`).
-
-**Наступний крок — керований стек (`stack/`)**: супервізор, кіоск і апдейтер,
-який сам привозить релізи з R2. Написаний, на пристрій ще не поставлений.
-Що крутиться, як викотити реліз і як перейти на стек —
-`../docs/raspberry-pi.md`.
+**Кіоск — `kiosk` під керованим стеком (`stack/`), без X.** LXDE/lightdm
+вимкнені (`systemctl set-default multi-user.target`), автозапуск —
+`extrovert.service`: супервізор, кіоск і апдейтер у `/home/pi/extrovert`.
+Стоїть з 21.09.2026 (до того — однокомпонентний `pos-native.service`). Бакет R2
+ще не привʼязаний до домену, тож релізи поки везуться по SSH. Що крутиться,
+як викотити реліз, що заміряно — `../../docs/raspberry-pi.md`.
 
 **Малина нічого не компілює.** ARM-бінарник збирається в Docker на ПК
-(`../raspberry/kiosk/docker/pi.Dockerfile`), на точку їде готовий архів релізу.
+(`../kiosk/docker/pi.Dockerfile`), на точку їде готовий архів релізу.
 Компіляція на пристрої з'їдала ~80 с при 100 % CPU — рівно стільки кіоск
 смикався б на очах у клієнта.
 
 Памʼять: `gpu_mem=128` у `/boot/config.txt` (виправлено 18.08.2026 — до того не
 був заданий узагалі, тобто діяв дефолт 64 МБ, і `kiosk`'у бракувало
 GPU-памʼяті під власну поверхню виводу — саме це, а не баг рендера, викликало
-білий екран одразу після першого перемикання; постмортем у `../docs/roadmap.md`).
-Не занижувати назад без причини — `vcgencmd get_mem malloc` мав 8 МБ вільних
-при 64, притому що один 1080p RGBA-буфер важить ~8 МБ сам по собі.
+білий екран одразу після першого перемикання; постмортем у `../../docs/roadmap.md`).
+Не занижувати: на overlap-підміні (дві копії кіоска) лишається 24 МБ вільних.
 
-⚠️ **Файли в цій теці — реконструкція з робочої сесії, а не дамп із пристрою.**
-Перед тим як накочувати, звірити з тим, що реально лежить на Pi. Реальний
-`kiosk-native.sh` на пристрої ще й гасить світлодіоди через `~/scripts/start.sh`
-і чекає мережу по `healthz` — цього в реконструкції немає.
+**Системні файли в цій теці — дампи з пристрою 21.09.2026**, не
+реконструкції: `crontab`, `fstab`, `cmdline.txt`, `config.txt.snippet`,
+`watchdog.conf.snippet`, `logrotate-extrovert`, `start.sh`,
+`menu-fallback.service`, `stack/extrovert.service`.
 
 ## Що вже зроблено на пристрої
 
-- [x] автозапуск `kiosk` через systemd (`pos-native.service`), без X/LXDE
-- [x] апаратний watchdog BCM2835, `RuntimeWatchdogUSec=14s`
-- [x] сторожовий крон раз на 5 хвилин (перевіряє процес, `systemctl restart` при потребі)
-- [x] 1080p (`hdmi_group=1`, `hdmi_mode=16`)
-- [x] повний діапазон RGB (`hdmi_pixel_encoding=2`)
+- [x] керований стек (`extrovert.service`): супервізор, кіоск, апдейтер; overlap-підміна перевірена на залізі (21.09.2026)
+- [x] апаратний watchdog BCM2835, `RuntimeWatchdogSec=14` (перевірено в `dmesg`)
+- [x] крон-сторож `stack-watch` раз на 5 хвилин (юніт не active → `systemctl restart`)
+- [x] 1080p (`hdmi_group=1`, `hdmi_mode=16`), повний RGB (`hdmi_pixel_encoding=2`)
 - [x] прибрано запит пароля PolicyKit (з `start.sh` викинуто `service ssh start`)
-- [ ] тихе завантаження без консольних логів (`../docs/raspberry-pi.md` §1)
-- [ ] overlay на корінь + окремий розділ під `/home/pi/extrovert` (§5 там само)
-- [ ] 5 тестів раптового знеструмлення
+- [x] флешка-буфер `/mnt/buf` (ext4, мітка `buf`) у fstab з `nofail` — малина вантажиться й без неї (21.09.2026)
+- [x] тихе завантаження: ні логів, ні заставок, ні курсора (21.09.2026, `../../docs/raspberry-pi.md` §1)
+- [x] запасна картинка меню під кіоском (`fbi`, `menu-fallback.service`), кіоск сам оновлює її при зміні меню (21.09.2026)
+- [x] ротація логів стеку (`logrotate-extrovert`); вимкнено `apache2`, `ModemManager`, Bluetooth — назовні лише SSH
+- [ ] ключ точки `config/point.key` → справжні бонуси з `ws` замість емуляції (чекає `api`)
+- [ ] overlay на корінь + окремий розділ під `/home/pi/extrovert` (`../../docs/raspberry-pi.md` §5)
+- [ ] 5 тестів раптового знеструмлення — лише наживо, на точці
 
-## Скрипти в цій теці
+## Файли в цій теці
 
-| Файл | Де запускати | Що робить |
+| Файл | Де | Що це |
 |---|---|---|
+| `stack/` | ПК + Pi | **прод**: супервізор, апдейтер, `extrovert.service`, `install.sh`, збирання релізу — `stack/README.md` |
+| `menu-fallback.service` | Pi | `fbi` із запасною картинкою меню на `tty7`, під шаром кіоска |
+| `crontab` | Pi | крон-сторож `stack-watch` |
+| `fstab`, `cmdline.txt`, `config.txt.snippet`, `watchdog.conf.snippet`, `logrotate-extrovert`, `start.sh` | Pi | системні файли, які ми міняли, — дампи |
 | `fix-clock.sh` | ПК | синхронізує годинник Pi з цією машиною + `fake-hwclock save` |
 | `cam-sim.sh` | ПК | емулятор камери C100: RTSP 1080p15 @ 0,76 Мбіт/с |
-| `rec-test.sh` | Pi | костиль запису `-c copy` у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV |
-| `kiosk-native.sh` | Pi | **поточний прод**: запускає й перезапускає бінарник `kiosk`, керується `pos-native.service` |
-| `pos-native.service` | Pi | systemd-юніт автозапуску `kiosk-native.sh` (`WantedBy=multi-user.target`) |
-| `stack/` | ПК + Pi | **наступний прод**: супервізор, апдейтер, `extrovert.service`, збирання релізу — `stack/README.md` |
-| `crontab` | Pi | крон-сторож: `kiosk-watch` зараз, `stack-watch` після переходу на стек |
-| `config.txt.snippet`, `watchdog.conf.snippet` | Pi | фрагменти системних конфігів, які ми міняли |
+| `rec-test.sh` | Pi | костиль запису `-c copy` у MPEG-TS + метрики CPU/пам᾿яті/температури в CSV; пише в `/mnt/buf` |
 
-### Прод: нативний рендерер (`kiosk`), без X — з 18.08.2026
+### Кіоск: нативний рендерер (`kiosk`), без X
 
-`../raspberry/kiosk/` — Cairo+GLES2 рендерер меню: малює сторінку прямо в
-dispmanx-шар, без X/LXDE. Архітектура й вимір — `../docs/roadmap.md`.
-**60 fps (vsync), ~19,5 % CPU, `GL_RENDERER=VideoCore IV HW`.**
+`../kiosk/` — Cairo+GLES2 рендерер меню: малює сторінку прямо в dispmanx-шар,
+без X/LXDE. Екрани — SVG-шаблони (`../kiosk/assets/templates/`), зокрема
+фінальний попап бонусу з макета 21.09.2026 (`popup.svg`). Архітектура й
+виміри — `../../docs/roadmap.md`. **60 fps (vsync), `GL_RENDERER=VideoCore IV HW`.**
 
-Збірка — на ПК у контейнері (`../raspberry/kiosk/docker/pi.Dockerfile`), той самий
+Збірка — на ПК у контейнері (`../kiosk/docker/pi.Dockerfile`), той самий
 Raspbian Stretch під armv6 через QEMU: та сама glibc 2.24 і gcc 6.3, що на
-пристрої. На малину їде готовий `bin/pos-native-pi` у складі релізу
-(`../docs/raspberry-pi.md` §3).
+пристрої. На малину їде готовий `bin/kiosk` у складі релізу
+(`../../docs/raspberry-pi.md` §3).
 
-Автозапуск: `systemctl status pos-native` / `journalctl -u pos-native -f`.
-Живий лог самого кіоска (не юніта) — `~/kiosk-native.log`. Конфігурація:
-`~/kiosk.env` (точка, `POINT=`) і `~/kiosk.extra` (руками, переживає
-перезапис). Після переходу на стек — `config/env` у теці стеку.
+Подивитись, що відбувається: `journalctl -u extrovert -f`, лог самого кіоска —
+`/home/pi/extrovert/logs/kiosk.log`, кадри — `nc -U /tmp/kiosk-<слот>.sock`
+(слот — у `state/slot.kiosk`). Конфігурація точки — `/home/pi/extrovert/config/env`
+(`POINT`, `URL`, `POPUP`). Показати попап вручну — `pkill -USR1 -x kiosk`,
+знімок кадру кіоска — `pkill -USR2 -x kiosk` (`/tmp/kiosk-frame.png`), знімок
+усього екрана разом із фреймбуфером — `../kiosk/tools/dispmanx-snap.c`
+(`./docker/make-pi.sh tools`). ⚠️ Не `pkill -f kiosk` по SSH: під шаблон
+потрапить і командний рядок самої SSH-сесії.
 
 **Граблі, які легко наступити знову:** зупиняти вже запущений X
 (`systemctl stop lightdm` на живій сесії) кладе `bcm_host_init()` у стан,
 який не знімає навіть `SIGKILL` — лікується тільки перезавантаженням. Якщо X
 взагалі не стартував за це завантаження — усе працює миттєво й чисто. Тобто
 будь-яке вимикання/увімкнення X **тільки через reboot**, не `stop`/`start`
-на льоту. Подробиці — `../docs/roadmap.md`.
+на льоту. Подробиці — `../../docs/roadmap.md`.
 
 ## Годинник
 
@@ -92,7 +97,7 @@ Raspbian Stretch під armv6 через QEMU: та сама glibc 2.24 і gcc 6
 ## Замір: чи тягне Pi 1 кіоск разом із записом відео
 
 Мета — з᾿ясувати, чи тягне Pi 1 одночасно кіоск і буферизацію відеопотоку
-(`../docs/video.md`). Запис нічого не декодує, це `-c copy`, тобто
+(`../../docs/video.md`). Запис нічого не декодує, це `-c copy`, тобто
 перекладання вже стиснених пакетів у контейнер.
 
 ### Порядок
@@ -142,8 +147,66 @@ CAM=rtsp://192.168.5.10:8554/cam1 MIN=20 ~/rec-test.sh
   значення рахуються по дельтах `/proc/<pid>/stat` — так зроблено в
   `measurements/sampler.csv`.
 - **Хвости заміру, які ще відкриті:** RTSP із справжньої камери й запис на
-  USB-флешку замість системної SD (`../docs/roadmap.md`, крок 1-біс).
+  USB-флешку замість системної SD (`../../docs/roadmap.md`, крок 1-біс).
+
+## Провал завантаження: emergency mode, пароль root не підходить
+
+**Симптом (21.09.2026):** малина не доходить до кіоска, на екрані
+`You are in emergency mode… Give root password for maintenance`, пароль root
+не приймається. Виглядає як убита картка — насправді картка ціла: образ
+знявся без жодної помилки читання, ext4 без пошкоджень.
+
+**Причина — рядок `/mnt/buf` у `/etc/fstab` без `nofail`.** Флешку-буфер
+(запис з камери) прописали 18.08. Точка монтування з fstab без `nofail` —
+жорстка залежність `local-fs.target`: systemd чекає пристрій 90 с, не
+дочікується й кидає в emergency. Після 30.08 флешку витягли — і з того
+дня жодного успішного завантаження.
+
+Як це видно без робочої малини: у `/var/log/syslog` на картці останній запис —
+це останнє **вдале** вимкнення (30.08 12:43). Провальні завантаження в лог не
+потрапляють узагалі — rsyslog в emergency mode не стартує. А на вдалих
+завантаженнях видно `File System Check on /dev/disk/by-uuid/9e2e35c2…`, тобто
+флешка тоді ще стояла.
+
+**Правило:** усе знімне в fstab — лише з `nofail,x-systemd.device-timeout=10s`.
+Тоді без флешки малина чекає 10 с і вантажиться далі. Поточний fstab — `fstab`
+у цій теці; флешка тепер за міткою (`LABEL=buf`), а не за UUID, тож заміна
+флешки — це `mkfs.ext4 -L buf`, без правки fstab.
+
+**Нова флешка 21.09.2026** — безіменна (`VendorCo ProductCode`), 29 ГБ. Такі
+часто брешуть про ємність, а для кільцевого буфера це тихе затирання старого
+запису новим. Перед форматуванням її перевірили: унікальні мітки по 1 МБ з
+кроком 1 ГБ по всьому обʼєму (`dd … oflag=direct`), потім читання назад в
+обхід кешу — 31 точка, розбіжностей нуль. Потім одна розмітка на весь диск
+(початок з 1 МіБ), `mkfs.ext4 -L buf -m 0`, власник `/mnt/buf` — `pi`.
+
+**Пароль root** на пристрої змінено 09.08.2026 (у стоковому Raspbian root
+заблокований). Невідомий — `sudo passwd root` з-під `pi`; з хеша не відновлюється.
+
+### Якщо повториться
+
+- **Найшвидше:** повернути в малину флешку з міткою `buf`.
+- **На самій малині, без пароля root:** у `cmdline.txt` на boot-розділі (FAT —
+  Windows його бачить) дописати в кінець рядка `systemd.debug-shell=1`. В
+  emergency mode Ctrl+Alt+F9 дає root-шелл без пароля:
+  `mount -o remount,rw /`, виправити `/etc/fstab`, `sync`. Потім **обов'язково
+  прибрати параметр** — інакше будь-хто з клавіатурою біля кіоска має root.
+  (Emergency-консоль видно на екрані: запасна картинка `fbi` стартує лише в
+  кінці вдалого завантаження.)
+- **З ПК через кардрідер (так зроблено 21.09):** Windows ext4 не читає, а
+  `wsl --mount` не бере знімні носії («Removable media cannot be set to
+  offline»). Тому: з правами адміна посекторно зняти образ картки
+  (`\.\PHYSICALDRIVE<N>`), у WSL — `losetup -r -P` на образ,
+  `debugfs -R "blocks /etc/fstab"` → номер блоку, і записати на картку новий
+  fstab у **той самий блок, того самого розміру**. Тоді inode й метадані не
+  міняються, і replay журналу ext4 на малині нічого не відкотить (дані файлів
+  у `data=ordered` в журнал не пишуться).
 
 ## Бекапи на пристрої
 
-`~/backup-2026-08-09/` — `config.txt` до кожної правки, `start.sh` до правки PolicyKit.
+- `~/backup-2026-08-09/` — `config.txt` до кожної правки, `start.sh` до правки PolicyKit.
+- `~/backup-2026-09-21/` — усе системне до переходу на стек і тихого
+  завантаження (`cmdline.txt`, `config.txt`, `rc.local`, `fstab`, крони,
+  `system.conf`, `pos-native.service`, `kiosk-native.sh`, `start.sh`), а в
+  `legacy-kiosk.tar.gz` — прибране з домашньої теки: вихідники й бінарник
+  `~/pos-native`, HTML-кіоск часів Chromium, старі логи й заміри.
