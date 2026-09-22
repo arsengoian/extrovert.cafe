@@ -189,12 +189,13 @@ jobs:
         with:
           bun-version: 1.4.2
 
-      # Перевірка не потребує ні ключа, ні мережі — вона йде і під act.
+      # Перевірка не потребує ні ключа, ні мережі.
       - name: Перевірити базу знань
         run: bun run kb:check
 
+      # Під act теж: сховище має збігатись із тим, що в робочій копії, і
+      # ключі для цього act бере з .secrets (make act-secrets, з .env.prod).
       - name: Синхронізувати з OpenAI
-        if: ${{ env.ACT != 'true' }}
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_VECTOR_STORE: ${{ secrets.OPENAI_VECTOR_STORE }}

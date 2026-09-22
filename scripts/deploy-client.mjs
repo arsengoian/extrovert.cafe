@@ -78,7 +78,7 @@ if (!wrangler.routes && Object.values(wrangler).some((v) => v && typeof v === "o
 const bound = Boolean(wrangler.routes?.length);
 console.log(bound
   ? "домен: маршрут прописаний у wrangler.toml — деплой перехопить його"
-  : "домен: маршрутів у wrangler.toml немає, поїде на *.workers.dev (прод привʼязується в дашборді)");
+  : "домен: маршрутів у wrangler.toml немає — extrovert.cafe привʼязує terraform (infra/terraform/cloudflare.tf)");
 
 if (dry) {
   console.log("\n→ wrangler deploy --dry-run");

@@ -8,6 +8,7 @@
 |---|---|---|
 | застосунок гравця (`client`) | Cloudflare Workers, статика + SPA-фолбек | `bun run deploy:client` |
 | переадресація з QR-наклейки (`qr`) | Cloudflare Workers, лише 302 | `make deploy-qr` (§1) |
+| DNS, бакети R2, домени воркерів | Cloudflare | terraform, той самий стан, що й дроплет (§2.1–2.2) |
 | бекенд (`api`, `ws`, `checkbox`, `scheduler`, `overseer`) | дроплет, docker compose | розділ 2 |
 | меню точок | публічний бакет R2 | котить `scheduler` за деплойментом з адмінки (`services.md` §4) |
 | релізи кіоска | публічний бакет R2 | GitHub Actions, робота `kiosk-release` (§2.3) |
@@ -33,17 +34,22 @@ bun run deploy:client         # зібрати, перевірити, викот
 4. каже, чи є маршрут у `wrangler.toml` — тобто чи перехопить цей деплой
    продовий домен.
 
-**Домен привʼязується один раз у дашборді Cloudflare.** У `wrangler.toml`
-`routes` навмисно закоментовані: поки їх немає, деплой їде на
-`*.workers.dev`, і випадковий запуск скрипта не забирає `extrovert.cafe`.
-Рядок стоїть до першої таблиці (`[assets]`, `[vars]`) і розкоментовується
-на місці: після заголовка таблиці TOML поклав би його в неї
-(`assets.routes`), і маршрут мовчки не застосувався б. `deploy-client`
-розбирає `wrangler.toml` і зупиняється, якщо бачить таке.
+**Домени воркерів привʼязує terraform** (22.09.2026,
+`cloudflare_workers_custom_domain` в `infra/terraform/cloudflare.tf`):
+`extrovert.cafe`, `admin.`, `qr.`, `r.`. wrangler лише заливає код, тож
+прив'язка прод-домену — рішення, яке видно в `make tf-plan`, а не побічний
+ефект випадкового деплою. У `wrangler.toml` `routes` навмисно закоментовані.
+Рядок стоїть до першої таблиці (`[assets]`, `[vars]`): після заголовка
+таблиці TOML поклав би його в неї (`assets.routes`), і маршрут мовчки не
+застосувався б. `deploy-client` розбирає `wrangler.toml` і зупиняється,
+якщо бачить таке.
 
-Що ще потрібно зробити руками один раз:
+Цілі `make deploy-admin`, `deploy-qr`, `deploy-redirect` запускають bun із
+`--env-file=.env`: з `--filter` скрипт стартує в теці пакета, де `.env`
+немає, і wrangler без `CLOUDFLARE_API_TOKEN` просить логін у браузері.
 
-- `api.extrovert.cafe` → дроплет (A/AAAA), інакше застосунок зʼїде на CORS;
+Що ще лишається:
+
 - `extrovert.cafe/r/*` — поки що це SPA-фолбек самого застосунку (сторінка
   стукає в api й веде гостя далі). Якщо захочемо справжній 302 без JS —
   окремий Worker на цей маршрут;
@@ -57,8 +63,9 @@ make deploy-admin
 
 Адмінка (`frontend/admin/`) — така сама статика, як застосунок гравця: свого сервіса
 в бекенді вона не має й не потребує, бо все, що робить, — показує дані з
-api (`/admin/overview`). Домен — `admin.extrovert.cafe`, привʼязується в
-дашборді Cloudflare; у `api` цей origin уже дозволений CORS-ом.
+api (`/admin/overview`). Домен — `admin.extrovert.cafe`, його привʼязує
+terraform; у `api` цей origin уже дозволений CORS-ом. `deploy` адмінки
+спершу збирає Vite — раніше він заливав той `dist`, що лежав.
 
 Справжнього входу ще немає: поки що працює девелоперський (`POST
 /admin/dev-login`, вимкнений поза local), а в проді сторінка чесно каже, що
@@ -74,11 +81,9 @@ make deploy-qr       # викотити на qr.extrovert.cafe
 
 `frontend/qr` — воркер без статики: будь-який запит на `qr.extrovert.cafe`
 отримує 302 на `extrovert.cafe/` із тим самим query (`?p=1` з наклейки).
-На відміну від клієнта й адмінки, домен записаний у `wrangler.toml` одразу:
-перехоплювати нічого — хоста ще немає навіть у DNS, а воркер існує лише
-заради нього. `custom_domain` заводить DNS-запис і сертифікат сам, тож
-руками в дашборді робити нічого. Чому воркер, а не правило переадресації, —
-`urls.md`.
+Домен, як і в решти воркерів, привʼязує terraform: Workers самі заводять
+під нього DNS-запис і сертифікат, руками в дашборді робити нічого. Чому
+воркер, а не правило переадресації, — `urls.md`.
 
 ## 2. Бекенд → дроплет
 
@@ -122,8 +127,35 @@ make deploy-qr       # викотити на qr.extrovert.cafe
 
 ### Що має бути в `.env` на сервері
 
-Ті самі ключі, що в `.env.example`, і додатково — ті, без яких частина
-сервісів мовчки нічого не робить:
+**`.env.prod`** (22.09.2026) — оточення сервера. Живе на машині розробника
+поруч із `.env` (у git його немає) і їде на сервер цілим файлом:
+
+```bash
+make env-prod-check   # ключі й порядок — як у .env.example
+make env-push         # /opt/extrovert/.env.prod, а .env — симлінк на нього
+```
+
+Зібраний раз зі звичайного `.env` (`bun scripts/env-prod.mjs init`) і далі
+правиться руками. Від локального відрізняється тим, що:
+
+- адреси й оточення продові (`APP_ENV=production`, `APP_ORIGIN`,
+  `REDIS_URL=redis://redis:6379` — його читає й GlitchTip);
+- секрети, які ми генеруємо самі, свої: `POSTGRES_PASSWORD`,
+  `JWT_PRIVATE_KEY` (локальний ключ, що підписує й прод, дозволяв би з
+  ноутбука випускати токени для живих гравців), `GLITCHTIP_SECRET_KEY`;
+- `OPENAI_VECTOR_STORE` — окреме прод-сховище `extrovert-kb-production`;
+- порожнє все, що потрібне лише розробнику: тестові облікові записи Checkbox
+  (`*_TEST_*`), MinIO (`R2_DEV_*`), `CLOUDFLARE_*`, `DIGITALOCEAN_API_KEY`,
+  `GHCR_TOKEN`, `DATABASE_URL_LOCAL`. На сервері цих ключів бути не повинно.
+
+`MONO_TOKEN` і `OPENAI_API_KEY` поки ті самі, що локально (тестові) —
+бойові власник поставить сам.
+
+`TAG` на сервері пише `rollout.sh` (`sed -i --follow-symlinks`, щоб не
+замінити симлінк файлом), а `env-push` цей рядок зберігає — локальний файл
+про версію, що крутиться, не знає.
+
+Ключі, без яких частина сервісів мовчки нічого не робить:
 
 | Ключ | Без нього |
 |---|---|
@@ -196,23 +228,45 @@ debug_beacon=true`: перші 15 хвилин дроплет віддає на 
 підніме **другий** дроплет замість того, щоб побачити наявний. На новій
 машині спершу `terraform import digitalocean_droplet.public <id>`.
 
-Дві речі, які **не** робить terraform і які треба памʼятати: DNS на
-`api.extrovert.cafe` і вміст `.env` на сервері.
+**Cloudflare — у тому самому стані** (22.09.2026, `cloudflare.tf`):
+записи `api`/`ws`/`errors` → дроплет (адреса береться з ресурсу дроплета,
+тож новий сервер = новий план DNS), записи Mailgun, бакети R2 із CORS,
+lifecycle і блокуванням, домени воркерів. Токен рівня акаунта з `.env`
+(`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`). В акаунті багато
+стороннього, і terraform бачить лише описане: зону він не керує (лише
+записи в ній), чужих бакетів і воркерів не знає. Те, що існувало раніше
+(записи Mailgun, бакет `extrovert-pos`), імпортоване блоками `import` —
+план після імпорту не показав жодної різниці. На бакетах і записах пошти
+стоїть `prevent_destroy`.
+
+Поза terraform навмисно: `pos.extrovert.cafe` — старий воркер
+`extrovert-pos`, з якого кіоск на kyiv-01 досі бере меню (`services.md`
+§5). Прибрати його можна лише разом зі зміною `config/env` на малині.
+
+Чого terraform **не** робить: вміст `.env` на сервері (`make env-push`,
+вище) і код воркерів (wrangler, §1).
 
 ## 2.2 Бакети R2
 
-У Cloudflare створюються **чотири** бакети (EU jurisdiction), по одному на
-призначення — `extrovert-pos`, `extrovert-video`, `extrovert-evidence`,
-`extrovert-uploads`. Дев-копій у хмарі немає: локально їх замінює MinIO з
-compose (`services.md` §2.1).
+**П'ять** бакетів, по одному на призначення, усі описані в terraform
+(`infra/terraform/cloudflare.tf`, 22.09.2026). Дев-копій у хмарі немає:
+локально їх замінює MinIO з compose (`services.md` §2.1).
 
-Разові налаштування, без яких воно не працює:
+**Юрисдикція — default, розташування EEUR**, а не EU jurisdiction, як
+планувалось: `extrovert-pos` уже жив у default, а EU-бакети мають інший
+S3-ендпоїнт (`<акаунт>.eu.r2.cloudflarestorage.com`). Бакети в різних
+юрисдикціях вимагали б двох ендпоїнтів і двох наборів ключів у
+`lib/r2.js`. EEUR — підказка розташування (Східна Європа), не юридична
+гарантія; якщо колись знадобиться саме EU jurisdiction — переїзд усіх
+бакетів разом, зі зміною `R2_ENDPOINT`.
 
-| Бакет | Що зробити |
+| Бакет | Налаштування (terraform) |
 |---|---|
-| `extrovert-pos` | публічний доступ на читання + домен `pos.extrovert.cafe` |
-| `extrovert-video` | lifecycle 7 днів + bucket lock на 7 днів |
+| `extrovert-pos` | меню й релізи. Публічного доступу й домену `pos.extrovert.cafe` на самому бакеті поки немає: домен тримає старий воркер (§2.1) |
 | `extrovert-uploads` | **CORS**: `PUT` з `https://extrovert.cafe`, заголовок `content-type`. Lifecycle не заводимо: фото зі скарг живуть без обмеження (рішення власника 21.09.2026) |
+| `extrovert-backups` | щоденні дампи Postgres (§2.4), lifecycle 30 днів |
+| `extrovert-video` | lifecycle 7 днів + bucket lock на 7 днів |
+| `extrovert-evidence` | без обмеження |
 | усі | ключ доступу лише для сервера; на машині розробника прод-ключів тримати не треба |
 
 CORS для `extrovert-uploads` обовʼязковий: телефон заливає фото **напряму**
@@ -341,18 +395,43 @@ make act-deploy    # справжнє викочування на живий с�
 це перевірка того, що Dockerfile і workflow живі, а не спосіб залити щось
 у прод повз пайплайн.
 
+Виняток — робота `knowledge` (`make act-knowledge`): під act вона так само
+синхронізує прод-сховище OpenAI, ключами з `.secrets` (`act-secrets` бере
+`OPENAI_API_KEY` і `OPENAI_VECTOR_STORE` з `.env.prod`). `oven-sh/setup-bun@v2`
+тепер на Node 24, і act 0.2.59 його не запускає — потрібен act ≥ 0.2.8x.
+
 ### DNS, який має існувати
 
-`api.extrovert.cafe`, `ws.extrovert.cafe`, `errors.extrovert.cafe` — A-записи
-на адресу дроплета. Сертифікати Caddy бере сам; поки записів немає, він
-щоразу отримуватиме відмову від Let's Encrypt.
-
-`mail.extrovert.cafe` — записи, які показує Mailgun для домену (SPF і DKIM у
-TXT, за бажання MX для відповідей). Без SPF і DKIM листи для входу частіше
-падають у «Спам», а це і є єдиний вхід.
+Усі — в terraform (§2.1). `api`, `ws`, `errors` — A і AAAA на дроплет, без
+проксі Cloudflare; сертифікати Caddy бере сам. `mail.extrovert.cafe` —
+записи Mailgun (SPF, DKIM, DMARC, MX, CNAME трекінгу), заведені руками й
+імпортовані: без SPF і DKIM листи для входу частіше падають у «Спам», а це
+і є єдиний вхід. Записи під домени воркерів заводить сам Cloudflare.
 
 Проксіювати `api` через Cloudflare варто заради Safari: інакше сесія на
 iPhone може жити 7 днів замість 180 (`services.md` §3).
+
+## 2.4 Бекапи бази
+
+Раз на добу `scheduler` робить `pg_dump` у форматі custom і кладе в
+`extrovert-backups` як `postgres/<дата UTC>.dump`
+(`backend/scheduler/src/jobs/backup.js`). Робота щогодини питає бакет, чи є
+вже сьогоднішній файл: пропущена ніч наздоганяється тієї ж години, як
+scheduler піднявся, і двічі за добу дамп не робиться. Lifecycle бакета
+тримає 30 днів. `pg_dump` — в образі scheduler (`postgresql16-client` у
+`docker/bun.Dockerfile`), тієї ж мажорної версії, що й сервер: піднімуть
+postgres у compose — піднімати й тут.
+
+Відновлення — на сервері, з дампа, скачаного з R2:
+
+```bash
+docker compose exec -T postgres pg_restore -U extrovert -d extrovert --clean --if-exists --no-owner < 2026-09-22.dump
+# одна таблиця замість усієї бази:
+docker compose exec -T postgres pg_restore -U extrovert -d extrovert --clean --if-exists --no-owner -t users < 2026-09-22.dump
+```
+
+Перевірено 22.09.2026 на локальній базі: дамп у MinIO, `pg_restore --list`
+бачить дані всіх 46 таблиць.
 
 ## 3. Після першого викочування
 
@@ -361,15 +440,18 @@ iPhone може жити 7 днів замість 180 (`services.md` §3).
   потрібен `CHECKBOX_LICENSE_KEY`; ключ підпису скрипт кладе в базу
   (`webhook_keys`), у `.env` його писати не треба. Після цього `overseer`
   почне бачити `last_error_date` і скаржитись, коли вебхуки до нас не доходять;
+- база GlitchTip: `rollout.sh` створює її сам (`createdb glitchtip`, якщо
+  немає) — postgres на першому старті заводить лише свою. Реєстрація в
+  GlitchTip відкрита для першого користувача: зареєструватись треба
+  відразу, як `errors.extrovert.cafe` відповів;
 - вебхук бота підтримки `api` реєструє сам на старті, щойно в `.env` є
   `SUPPORT_BOT_*`; перевірити — `docker compose exec api bun run support:webhook`
   (адреса, черга, остання помилка);
-- база знань чату в OpenAI — якщо переходимо з локального пошуку на
-  `file_search`: прод-сховище створюється один раз,
-  `make kb-store APP_ENV=production OPENAI_VECTOR_STORE=` (порожнє значення —
-  щоб не заважав локальний id із `.env`). Надрукований id — у `.env`
-  сервера й у секрет GitHub `OPENAI_VECTOR_STORE` поруч з `OPENAI_API_KEY`;
-  далі сховище наздоганяє репозиторій саме, на кожен пуш у `main` (робота
-  `knowledge`), а руками — `make kb-push`;
+- база знань чату в OpenAI: прод-сховище `extrovert-kb-production`
+  створене 22.09.2026 (`make kb-store APP_ENV=production OPENAI_VECTOR_STORE=`
+  — порожнє значення, щоб не заважав локальний id із `.env`) і заповнене.
+  Його id лежить у `.env.prod`, а для CI — у секреті GitHub
+  `OPENAI_VECTOR_STORE` поруч з `OPENAI_API_KEY`; далі сховище наздоганяє
+  репозиторій саме, на кожен пуш у `main` (робота `knowledge`);
 - перевірити, що `scheduler` справді публікує `outbox`: рядки з
   `published_at is null` не мають накопичуватись.

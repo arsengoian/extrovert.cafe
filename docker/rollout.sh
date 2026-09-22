@@ -29,9 +29,11 @@ cd "$DIR"
 echo "── тег $TAG"
 # Тег лишається в .env, щоб будь-який `docker compose` на сервері бачив ту
 # саму версію, що й викотили. Інакше ручний `up -d` мовчки відкотив би все
-# до :latest.
+# до :latest. .env — симлінк на .env.prod (make env-push), і --follow-symlinks
+# обовʼязковий: без нього sed -i замінив би симлінк звичайним файлом, і
+# наступне оновлення оточення вже нічого б не змінило.
 if grep -q '^TAG=' .env 2>/dev/null; then
-  sed -i "s|^TAG=.*|TAG=$TAG|" .env
+  sed -i --follow-symlinks "s|^TAG=.*|TAG=$TAG|" .env
 else
   printf '\nTAG=%s\n' "$TAG" >> .env
 fi
@@ -41,6 +43,11 @@ docker compose pull --quiet
 
 echo "── база й черга"
 docker compose up -d --wait postgres redis
+
+# База GlitchTip: postgres на першому старті створює лише свою (POSTGRES_DB),
+# а glitchtip без власної бази падає в циклі перезапусків. Ідемпотентно.
+echo "── база glitchtip"
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -tAc "select 1 from pg_database where datname = '\''glitchtip'\''" | grep -q 1 || createdb -U "$POSTGRES_USER" glitchtip'
 
 echo "── міграції"
 docker compose run --rm migrate up

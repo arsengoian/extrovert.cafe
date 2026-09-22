@@ -28,7 +28,7 @@ qr.extrovert.cafe?p=1  →  302  →  https://extrovert.cafe/?p=1
 | Що | Як |
 |---|---|
 | Воркер | `frontend/qr`: будь-який шлях → `https://extrovert.cafe/`, **зі збереженням query** — інакше `p` загубиться. Шлях відкидається: `qr.*` не має ставати другим входом у маршрути застосунку |
-| Домен | `custom_domain` у `wrangler.toml`: DNS-запис і сертифікат Cloudflare заводить сам при деплої |
+| Домен | `cloudflare_workers_custom_domain` у terraform (`infra/terraform/cloudflare.tf`): DNS-запис і сертифікат Cloudflare заводить сам |
 | Код | **302**, не 301, і `cache-control: no-store` |
 | Викотити | `make deploy-qr-dry`, потім `make deploy-qr` |
 

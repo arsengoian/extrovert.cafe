@@ -22,7 +22,7 @@ endif
         deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
         tf-plan tf-apply tf-output ssh-public \
         act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \
-        release-push deploy-qr deploy-qr-dry
+        release-push deploy-qr deploy-qr-dry deploy-redirect env-prod-check env-push act-knowledge
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -63,6 +63,7 @@ help:
 	@echo   make deploy-admin        викотити адмінку на Cloudflare Workers
 	@echo   make deploy-qr-dry       перевірити воркер QR-наклейки, не викочуючи
 	@echo   make deploy-qr           викотити воркер QR-наклейки на qr.extrovert.cafe
+	@echo   make deploy-redirect     викотити воркер коротких посилань r.extrovert.cafe
 	@echo   make release-push        залити реліз кіоска в публічний бакет R2
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
@@ -77,6 +78,9 @@ help:
 	@echo   make act-secrets   зібрати .secrets для act з локального .env
 	@echo   make act-build     прогнати збірку образів локально через act
 	@echo   make act-deploy    прогнати весь деплой локально через act
+	@echo   make act-knowledge залити базу знань у прод-сховище через act
+	@echo   make env-prod-check чи збігаються ключі .env.prod з .env.example
+	@echo   make env-push      залити .env.prod на сервер, .env - симлінк на нього
 	@echo ---------------------------------------------------------------
 
 # Лише інфраструктура: сервіси локально крутяться через bun (make api, ws…),
@@ -176,21 +180,27 @@ deploy-client:
 	$(BUN) scripts/deploy-client.mjs
 
 # Адмінка — така сама статика на Workers, як і клієнт (docs/services.md §4).
+# --env-file: з --filter bun запускає скрипт із теки пакета, де .env немає, а
+# wrangler без CLOUDFLARE_API_TOKEN просить логін у браузері.
 admin:
 	$(BUN) run --filter @extrovert/admin dev
 
 deploy-admin-dry:
-	$(BUN) run --filter @extrovert/admin deploy:dry
+	$(BUN) --env-file=.env run --filter @extrovert/admin deploy:dry
 
 deploy-admin:
-	$(BUN) run --filter @extrovert/admin deploy
+	$(BUN) --env-file=.env run --filter @extrovert/admin deploy
 
 # qr.extrovert.cafe — лише 302 з наклейки на застосунок (docs/urls.md).
 deploy-qr-dry:
-	$(BUN) run --filter @extrovert/qr deploy:dry
+	$(BUN) --env-file=.env run --filter @extrovert/qr deploy:dry
 
 deploy-qr:
-	$(BUN) run --filter @extrovert/qr deploy
+	$(BUN) --env-file=.env run --filter @extrovert/qr deploy
+
+# r.extrovert.cafe — короткі посилання-репости (frontend/redirect).
+deploy-redirect:
+	$(BUN) --env-file=.env run --filter @extrovert/redirect deploy
 
 # Звичайний шлях релізу — CI; руками це лише для випадку «треба повз нього».
 release-push:
@@ -233,3 +243,18 @@ act-build:
 # реєстрі, тобто спершу або пуш у main, або act-build із GHCR_TOKEN.
 act-deploy:
 	act -j deploy --secret-file .secrets
+
+# Робота knowledge з workflow: перевірка бази й синхронізація прод-сховища
+# OpenAI ключами з .secrets (їх туди кладе act-secrets із .env.prod).
+act-knowledge:
+	act -j knowledge --secret-file .secrets
+
+## ── прод-оточення ───────────────────────────────────────────────────────
+
+env-prod-check:
+	$(BUN) scripts/env-prod.mjs check
+
+# .env.prod живе тут і їде на сервер цілим файлом; там .env — симлінк на
+# нього. TAG, який поставив rollout.sh, лишається серверним.
+env-push:
+	$(BUN) scripts/env-prod.mjs push

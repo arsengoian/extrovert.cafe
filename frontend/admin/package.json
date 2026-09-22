@@ -7,8 +7,8 @@
     "dev": "bunx --bun vite",
     "build": "bunx --bun vite build",
     "preview": "bunx --bun vite preview",
-    "deploy": "bunx wrangler@4 deploy",
-    "deploy:dry": "bunx wrangler@4 deploy --dry-run"
+    "deploy": "bun run build && bunx wrangler@4 deploy",
+    "deploy:dry": "bun run build && bunx wrangler@4 deploy --dry-run"
   },
   "dependencies": {
     "react": "^19.0.0",

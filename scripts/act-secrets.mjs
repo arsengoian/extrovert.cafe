@@ -2,9 +2,9 @@
 // було ганяти локально.
 //
 // Файл збирається з того, що вже є на машині: приватний ключ із keys/,
-// адреса дроплета зі стану terraform, токен реєстру з .env. Нічого нового
-// вигадувати не треба, і жодне значення не друкується — у вивід іде лише
-// перелік ключів.
+// адреса дроплета зі стану terraform, токен реєстру з .env, ключі проду
+// (OpenAI для роботи knowledge) — з .env.prod. Нічого нового вигадувати не
+// треба, і жодне значення не друкується — у вивід іде лише перелік ключів.
 //
 // .secrets у git не потрапляє (.gitignore), і це не формальність: у ньому
 // лежить приватний ключ від сервера.
@@ -17,14 +17,14 @@ const OUT = path.join(ROOT, ".secrets");
 
 // Мінімальний парсер .env: нам звідти потрібні одне-два значення, тягти
 // залежність заради цього немає сенсу.
-function readEnv() {
-  const file = path.join(ROOT, ".env");
+function readEnv(name = ".env") {
+  const file = path.join(ROOT, name);
   if (!existsSync(file)) return {};
   const out = {};
   for (const line of readFileSync(file, "utf8").split("\n")) {
     const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
     if (!m) continue;
-    out[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
+    out[m[1]] = m[2].replace(/^\s+#.*$/, "").replace(/\s+#.*$/, "").trim().replace(/^["']|["']$/g, "");
   }
   return out;
 }
@@ -49,6 +49,9 @@ function serverFromTerraform() {
 }
 
 const env = readEnv();
+// Робота knowledge пише у продове сховище OpenAI — його id і ключ лежать у
+// .env.prod, а не в локальному .env (там сховище локальне).
+const prod = readEnv(".env.prod");
 const keyFile = path.join(ROOT, "keys", "extrovert_ed25519");
 if (!existsSync(keyFile)) {
   console.error("✗ немає keys/extrovert_ed25519 — зроби `make keys-ssh`");
@@ -67,6 +70,8 @@ const secrets = {
   SERVER_PORT: env.SERVER_PORT || "2222",
   SERVER_USER: env.SERVER_USER || "root",
   GHCR_TOKEN: env.GHCR_TOKEN || "",
+  OPENAI_API_KEY: prod.OPENAI_API_KEY || "",
+  OPENAI_VECTOR_STORE: prod.OPENAI_VECTOR_STORE || "",
 };
 
 // Багаторядкове значення в подвійних лапках: саме так його читає парсер act.
@@ -86,5 +91,9 @@ if (!secrets.GHCR_TOKEN) {
   console.log("  GHCR_TOKEN порожній — act-deploy не залогінить сервер у ghcr: викочування");
   console.log("  пройде, лише якщо сервер уже залогінений. Образів act не пушить у будь-якому разі.");
   console.log("  Потрібен — токен GitHub з write:packages у .env як GHCR_TOKEN.");
+}
+if (!secrets.OPENAI_VECTOR_STORE) {
+  console.log("  OPENAI_VECTOR_STORE порожній — робота knowledge лише перевірить базу, у сховище нічого не піде.");
+  console.log("  Потрібен — .env.prod з прод-сховищем (make kb-store APP_ENV=production OPENAI_VECTOR_STORE=).");
 }
 console.log("  сервер:", `${secrets.SERVER_USER}@${host}:${secrets.SERVER_PORT}`);

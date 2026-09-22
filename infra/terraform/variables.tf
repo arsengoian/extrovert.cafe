@@ -1,3 +1,20 @@
+variable "cloudflare_api_token" {
+  description = "Токен Cloudflare рівня акаунта. З .env (CLOUDFLARE_API_TOKEN) через scripts/tf.mjs"
+  type        = string
+  sensitive   = true
+}
+
+variable "cloudflare_account_id" {
+  description = "Акаунт Cloudflare. З .env (CLOUDFLARE_ACCOUNT_ID) через scripts/tf.mjs"
+  type        = string
+}
+
+variable "cloudflare_zone_id" {
+  description = "Зона extrovert.cafe. Сама зона terraform-ом не керується — лише записи в ній"
+  type        = string
+  default     = "e3593ac2e5ede759bcc77e517a837519"
+}
+
 variable "do_token" {
   description = "Токен DigitalOcean. Береться з .env (DIGITALOCEAN_API_KEY) через scripts/tf.mjs"
   type        = string

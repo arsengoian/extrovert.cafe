@@ -8,9 +8,20 @@ terraform {
       source  = "digitalocean/digitalocean"
       version = "~> 2.43"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 5.0"
+    }
   }
 }
 
 provider "digitalocean" {
   token = var.do_token
+}
+
+# Токен рівня акаунта з .env (CLOUDFLARE_API_TOKEN) через scripts/tf.mjs.
+# В акаунті багато чужого — terraform торкається лише того, що описано в
+# cloudflare.tf; решту він не бачить і не чіпає.
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
 }

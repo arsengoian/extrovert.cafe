@@ -1,5 +1,5 @@
-// Обгортка над terraform: підставляє токен із .env і працює з
-// infra/terraform, звідки б її не запустили.
+// Обгортка над terraform: підставляє токени з .env (DigitalOcean і
+// Cloudflare) і працює з infra/terraform, звідки б її не запустили.
 //
 //   bun scripts/tf.mjs plan
 //   bun scripts/tf.mjs apply
@@ -69,6 +69,9 @@ const res = spawnSync("terraform", args, {
     ...process.env,
     TF_VAR_do_token: token,
     DIGITALOCEAN_TOKEN: token,
+    // Cloudflare: DNS, R2, домени воркерів (infra/terraform/cloudflare.tf).
+    TF_VAR_cloudflare_api_token: process.env.CLOUDFLARE_API_TOKEN ?? "",
+    TF_VAR_cloudflare_account_id: process.env.CLOUDFLARE_ACCOUNT_ID ?? "",
     // Кольори в логах Claude Code читаються гірше, ніж без них.
     TF_CLI_ARGS: process.env.TF_CLI_ARGS ?? "",
   },
