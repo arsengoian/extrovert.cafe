@@ -6,6 +6,7 @@
 // затримкою фіскалізації.
 import { readCursor, writeCursor } from "@extrovert/lib/jobs.js";
 import { pool } from "@extrovert/lib/db.js";
+import { cashierToken } from "./cashier.js";
 import { ingest } from "./receipts.js";
 
 const API = process.env.CHECKBOX_API || "https://api.checkbox.ua";
@@ -13,41 +14,10 @@ const OVERLAP_MS = 10 * 60_000;
 const PAGE = 100;
 const CURSOR = "checkbox-receipts";
 
-// Тестові дані живуть паралельно зі справжніми: у local беремо тестового
-// касира, щоб випадково не смикнути бойовий ПРРО.
-const creds = () => {
-  const test = process.env.NODE_ENV !== "production";
-  return {
-    login: (test && process.env.CHECKBOX_TEST_LOGIN) || process.env.CHECKBOX_LOGIN,
-    password: (test && process.env.CHECKBOX_TEST_PASSWORD) || process.env.CHECKBOX_PASSWORD,
-    test,
-  };
-};
-
-let token = null;
-let tokenAt = 0;
-const TOKEN_TTL_MS = 50 * 60_000;          // токен касира живе годину
-
-async function cashierToken(log) {
-  if (token && Date.now() - tokenAt < TOKEN_TTL_MS) return token;
-  const { login, password, test } = creds();
-  if (!login || !password) return null;
-
-  const res = await fetch(`${API}/api/v1/cashier/signin`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ login, password }),
-  });
-  if (!res.ok) throw new Error(`signin: HTTP ${res.status}`);
-  const data = await res.json();
-  token = data.access_token;
-  tokenAt = Date.now();
-  log?.info("токен касира отримано", { test });
-  return token;
-}
-
+// Токен касира — у cashier.js: там же правило, що чеки створює лише
+// тестовий касир. Опитування — читання, тож write не потрібен.
 export async function pollReceipts({ log }) {
-  const auth = await cashierToken(log);
+  const auth = await cashierToken({ log });
   if (!auth) return {};                     // без логіна касира просто не працюємо
 
   const cursor = await readCursor(pool, CURSOR);
