@@ -307,6 +307,7 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 | `SERVER_USER` | `root`, якщо не задано |
 | `GHCR_TOKEN` | токен із `write:packages`: ним CI пушить образи (без нього — `GITHUB_TOKEN`) і логінить сервер у ghcr, щоб той тягнув приватні образи. Без секрету деплой вважає, що сервер уже залогінений. act бере його з локального `.env` лише для цього логіну — пушу під act немає |
 | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | заливка релізу кіоска в публічний бакет. Лише ці три — і лише в CI: на точку ключі не потрапляють ніколи |
+| `OPENAI_API_KEY`, `OPENAI_VECTOR_STORE` | робота `knowledge`: після `kb:check` синхронізує базу знань чату з vector store (`kb:push`, лише змінене). Без них робота тільки перевіряє базу, під act — теж |
 
 ### Той самий деплой локально
 
@@ -337,8 +338,12 @@ make act-deploy    # справжнє викочування на живий с�
 - вебхук бота підтримки `api` реєструє сам на старті, щойно в `.env` є
   `SUPPORT_BOT_*`; перевірити — `docker compose exec api bun run support:webhook`
   (адреса, черга, остання помилка);
-- залити базу знань чату в OpenAI — якщо переходимо з локального пошуку на
-  `file_search`: `bun run kb:store` створить сховище й надрукує
-  `OPENAI_VECTOR_STORE` для `.env`, далі `bun run kb:push`;
+- база знань чату в OpenAI — якщо переходимо з локального пошуку на
+  `file_search`: прод-сховище створюється один раз,
+  `make kb-store APP_ENV=production OPENAI_VECTOR_STORE=` (порожнє значення —
+  щоб не заважав локальний id із `.env`). Надрукований id — у `.env`
+  сервера й у секрет GitHub `OPENAI_VECTOR_STORE` поруч з `OPENAI_API_KEY`;
+  далі сховище наздоганяє репозиторій саме, на кожен пуш у `main` (робота
+  `knowledge`), а руками — `make kb-push`;
 - перевірити, що `scheduler` справді публікує `outbox`: рядки з
   `published_at is null` не мають накопичуватись.

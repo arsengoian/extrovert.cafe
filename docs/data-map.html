@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 296731c</p>
+  <p class="eyebrow">extrovert.cafe · джерело 5ebb266</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2885,6 +2885,10 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 <td><code>R2_ENDPOINT</code>, <code>R2_ACCESS_KEY_ID</code>, <code>R2_SECRET_ACCESS_KEY</code></td>
 <td>заливка релізу кіоска в публічний бакет. Лише ці три — і лише в CI: на точку ключі не потрапляють ніколи</td>
 </tr>
+<tr>
+<td><code>OPENAI_API_KEY</code>, <code>OPENAI_VECTOR_STORE</code></td>
+<td>робота <code>knowledge</code>: після <code>kb:check</code> синхронізує базу знань чату з vector store (<code>kb:push</code>, лише змінене). Без них робота тільки перевіряє базу, під act — теж</td>
+</tr>
 </tbody></table>
 </div>
 <h3 id="deploy-той-самий-деплой-локально"><a class="anchor" href="#deploy-той-самий-деплой-локально" aria-hidden="true">#</a>Той самий деплой локально</h3>
@@ -2910,9 +2914,13 @@ make act-deploy    # справжнє викочування на живий с�
 <li>вебхук бота підтримки <code>api</code> реєструє сам на старті, щойно в <code>.env</code> є
 <code>SUPPORT_BOT_*</code>; перевірити — <code>docker compose exec api bun run support:webhook</code>
 (адреса, черга, остання помилка);</li>
-<li>залити базу знань чату в OpenAI — якщо переходимо з локального пошуку на
-<code>file_search</code>: <code>bun run kb:store</code> створить сховище й надрукує
-<code>OPENAI_VECTOR_STORE</code> для <code>.env</code>, далі <code>bun run kb:push</code>;</li>
+<li>база знань чату в OpenAI — якщо переходимо з локального пошуку на
+<code>file_search</code>: прод-сховище створюється один раз,
+<code>make kb-store APP_ENV=production OPENAI_VECTOR_STORE=</code> (порожнє значення —
+щоб не заважав локальний id із <code>.env</code>). Надрукований id — у <code>.env</code>
+сервера й у секрет GitHub <code>OPENAI_VECTOR_STORE</code> поруч з <code>OPENAI_API_KEY</code>;
+далі сховище наздоганяє репозиторій саме, на кожен пуш у <code>main</code> (робота
+<code>knowledge</code>), а руками — <code>make kb-push</code>;</li>
 <li>перевірити, що <code>scheduler</code> справді публікує <code>outbox</code>: рядки з
 <code>published_at is null</code> не мають накопичуватись.</li>
 </ul>
@@ -9296,23 +9304,32 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 </tr>
 </thead>
 <tbody><tr>
-<td><code>bun run kb:check</code></td>
+<td><code>make kb-check</code></td>
 <td>дублі id, порожні теги, надто короткі чи довгі документи</td>
 </tr>
 <tr>
-<td><code>bun run kb:ask &quot;…&quot;</code></td>
+<td><code>make kb-ask Q=&quot;…&quot;</code></td>
 <td>що знайде пошук на такий запит (з оцінками)</td>
 </tr>
 <tr>
-<td><code>bun run kb:embed</code></td>
+<td><code>make kb-embed</code></td>
 <td>рахує вектори в <code>knowledge/embeddings.json</code> (потрібен <code>OPENAI_API_KEY</code>)</td>
 </tr>
 <tr>
-<td><code>bun run kb:push</code></td>
-<td>заливає документи у vector store OpenAI (<code>OPENAI_VECTOR_STORE</code>)</td>
+<td><code>make kb-store</code></td>
+<td>створює vector store в OpenAI (раз на оточення) і друкує рядок <code>OPENAI_VECTOR_STORE</code> для <code>.env</code></td>
+</tr>
+<tr>
+<td><code>make kb-push</code></td>
+<td>приводить vector store у відповідність до репозиторію: заливає нові й змінені документи, прибирає видалені</td>
 </tr>
 </tbody></table>
 </div>
+<p>Vector store синхронізує й CI: робота <code>knowledge</code> у <code>deploy.yml</code> на
+кожен пуш у <code>main</code> робить <code>kb:check</code> і <code>kb:push</code> (через <code>bun run</code>).
+<code>kb:push</code> пам&#39;ятає в атрибутах кожного файла id документа й хеш тексту,
+тож прогін без змін у базі — це один запит-список і жодної заливки. Api
+поки шукає локально (нижче), сховище — заділ під перехід на <code>file_search</code>.</p>
 <p>Пошук працює у двох режимах. Якщо поруч лежить <code>embeddings.json</code> і є ключ —
 векторний (скалярний добуток нормованих векторів, поріг 0.2). Якщо ні —
 словесний: токени обрізаються до основи (це груба, але робоча модель
@@ -10434,7 +10451,7 @@ DTF-друк від однієї штуки, виготовлення від 3 �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 296731c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 5ebb266 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

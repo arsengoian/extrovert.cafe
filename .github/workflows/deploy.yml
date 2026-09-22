@@ -175,6 +175,38 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: bun scripts/push-release.mjs
 
+  # База знань чату у vector store OpenAI (docs/chat.md §2). Тексти живуть у
+  # репозиторії, і сховище має з ними збігатись; kb:push звіряє хеші й
+  # заливає лише змінене, тож прогін без змін у базі — один запит-список.
+  # Через bun, а не make: скрипт не має залежностей, крім самого bun, тож і
+  # bun install не потрібен.
+  knowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      # Перевірка не потребує ні ключа, ні мережі — вона йде і під act.
+      - name: Перевірити базу знань
+        run: bun run kb:check
+
+      - name: Синхронізувати з OpenAI
+        if: ${{ env.ACT != 'true' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_VECTOR_STORE: ${{ secrets.OPENAI_VECTOR_STORE }}
+        run: |
+          # Як і з GHCR_TOKEN: secrets в умові кроку недоступні, тож
+          # перевіряємо тут.
+          if [ -z "$OPENAI_API_KEY" ] || [ -z "$OPENAI_VECTOR_STORE" ]; then
+            echo "OPENAI_API_KEY чи OPENAI_VECTOR_STORE не заданий — сховище не чіпаємо"
+            exit 0
+          fi
+          bun run kb:push
+
   deploy:
     needs: build
     runs-on: ubuntu-latest

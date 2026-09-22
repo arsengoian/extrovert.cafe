@@ -18,7 +18,7 @@ endif
 .DEFAULT_GOAL := help
 .PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
         plant api ws scheduler checkbox overseer client build \
-        docs docs-check kb-check kb-ask planting-data \
+        docs docs-check kb-check kb-embed kb-store kb-push kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
         tf-plan tf-apply tf-output ssh-public \
         act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \
@@ -50,6 +50,9 @@ help:
 	@echo   make docs          перезібрати docs/data-map.html
 	@echo   make docs-check    перевірити, що карта актуальна
 	@echo   make kb-check      перевірити базу знань чату
+	@echo   make kb-embed      перерахувати вектори бази знань
+	@echo   make kb-store      створити vector store в OpenAI - раз на оточення
+	@echo   make kb-push       залити базу знань у vector store, лише змінене
 	@echo   make kb-ask Q=...  що знайде пошук по базі знань
 	@echo   make planting-data перерахувати геометрію спрайтів посадки
 	@echo ---------------------------------------------------------------
@@ -146,6 +149,15 @@ docs-check:
 
 kb-check:
 	$(BUN) scripts/kb.mjs check
+
+kb-embed:
+	$(BUN) scripts/kb.mjs embed
+
+kb-store:
+	$(BUN) scripts/kb.mjs store
+
+kb-push:
+	$(BUN) scripts/kb.mjs push
 
 kb-ask:
 	$(BUN) scripts/kb.mjs ask "$(Q)"

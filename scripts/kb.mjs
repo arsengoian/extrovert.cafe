@@ -1,14 +1,18 @@
 // База знань чату: перевірка, ембединги й заливка в OpenAI.
 //
-//   bun run kb:check    — що лежить у базі, дублі id, довжини, пошук
-//   bun run kb:embed    — рахує вектори в backend/api/data/knowledge/embeddings.json
-//   bun run kb:store    — створює vector store в OpenAI й друкує рядок OPENAI_VECTOR_STORE для .env
-//   bun run kb:push     — заливає документи у vector store OpenAI
-//   bun run kb:ask "…"  — що знайде пошук на такий запит
+//   make kb-check       — що лежить у базі, дублі id, довжини, пошук
+//   make kb-embed       — рахує вектори в backend/api/data/knowledge/embeddings.json
+//   make kb-store       — створює vector store в OpenAI й друкує рядок OPENAI_VECTOR_STORE для .env
+//   make kb-push        — приводить vector store у відповідність до репозиторію
+//   make kb-ask Q="…"   — що знайде пошук на такий запит
+//
+// CI (робота knowledge у deploy.yml) робить kb:check і kb:push через
+// bun run — make на раннері ні до чого.
 //
 // Тексти живуть у репозиторії (backend/api/data/knowledge/*.json) і саме звідси
 // їдуть в OpenAI — щоб «те, що знає кавенятко» можна було прочитати в
 // гіті, а не лише в чужій панелі.
+import { createHash } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { documents, embed, plainText, search, KB_DIR, EMBEDDING_MODEL } from "../backend/api/src/chat/knowledge.js";
@@ -60,34 +64,103 @@ async function embedAll() {
 }
 
 // Заливка у vector store: кожен документ — окремий файл, щоб file_search
-// повертав його цілком і з назвою.
+// повертав його цілком і з назвою. Сховище дзеркалить репозиторій і належить
+// базі знань цілком. В атрибутах файла — id документа й хеш тексту, тож
+// повторний прогін (CI робить його на кожен пуш у main) заливає лише змінене,
+// а файли переписаних і видалених документів прибирає: інакше file_search
+// знаходив би стару й нову версію поруч.
 async function push() {
   const token = key();
   const store = process.env.OPENAI_VECTOR_STORE;
   if (!store) {
-    console.error("немає OPENAI_VECTOR_STORE у .env — створи сховище: bun run kb:store");
+    console.error("немає OPENAI_VECTOR_STORE у .env — створи сховище: make kb-store");
     process.exit(1);
   }
-  const api = (p, init) => fetch(`https://api.openai.com/v1${p}`, {
-    ...init,
-    headers: { authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
-  });
-
-  for (const doc of documents) {
-    const body = new FormData();
-    body.append("purpose", "assistants");
-    body.append("file", new Blob([`# ${doc.title}\n\n${doc.body}\n\nТеги: ${(doc.tags ?? []).join(", ")}\n`],
-      { type: "text/markdown" }), `${doc.id}.md`);
-    const upload = await api("/files", { method: "POST", body });
-    if (!upload.ok) { console.error(`✗ ${doc.id}: ${await upload.text()}`); continue; }
-    const file = await upload.json();
-    const attach = await api(`/vector_stores/${store}/files`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ file_id: file.id }),
+  const api = async (p, init = {}, { missingOk = false } = {}) => {
+    const res = await fetch(`https://api.openai.com/v1${p}`, {
+      ...init,
+      headers: { authorization: `Bearer ${token}`, ...(init.headers ?? {}) },
     });
-    console.log(attach.ok ? `✓ ${doc.id}` : `✗ ${doc.id}: ${await attach.text()}`);
+    if (missingOk && res.status === 404) return null;
+    if (!res.ok) throw new Error(`${init.method ?? "GET"} ${p}: ${res.status} ${await res.text()}`);
+    return res.json();
+  };
+
+  const wanted = new Map(documents.map((doc) => {
+    const text = `# ${doc.title}\n\n${doc.body}\n\nТеги: ${(doc.tags ?? []).join(", ")}\n`;
+    return [doc.id, { doc, text, hash: createHash("sha256").update(text).digest("hex").slice(0, 16) }];
+  }));
+
+  // Що вже лежить у сховищі — сторінками по 100.
+  const present = [];
+  for (let after = ""; ;) {
+    const page = await api(`/vector_stores/${store}/files?limit=100${after && `&after=${after}`}`);
+    present.push(...page.data);
+    if (!page.has_more || !page.data.length) break;
+    after = page.data.at(-1).id;
   }
+
+  // Актуальна копія документа — та, що з тим самим хешем і не впала при
+  // індексації. Решта (старі версії, дублі, файли без наших атрибутів) — під
+  // видалення.
+  const fresh = new Set();
+  const stale = [];
+  for (const file of present) {
+    const want = wanted.get(file.attributes?.doc);
+    const alive = file.status === "completed" || file.status === "in_progress";
+    if (want && file.attributes.hash === want.hash && alive && !fresh.has(want.doc.id)) fresh.add(want.doc.id);
+    else stale.push(file);
+  }
+
+  let added = 0, removed = 0;
+  const failed = new Set();
+  for (const { doc, text, hash } of wanted.values()) {
+    if (fresh.has(doc.id)) continue;
+    try {
+      const body = new FormData();
+      body.append("purpose", "assistants");
+      body.append("file", new Blob([text], { type: "text/markdown" }), `${doc.id}.md`);
+      const file = await api("/files", { method: "POST", body });
+      try {
+        await api(`/vector_stores/${store}/files`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ file_id: file.id, attributes: { doc: doc.id, hash } }),
+        });
+      } catch (e) {
+        await api(`/files/${file.id}`, { method: "DELETE" }, { missingOk: true }).catch(() => {});
+        throw e;
+      }
+      console.log(`+ ${doc.id}`);
+      added++;
+    } catch (e) {
+      console.error(`✗ ${doc.id}: ${e.message}`);
+      failed.add(doc.id);
+    }
+  }
+
+  // Прибираємо вже після заливки: пошук не лишається без документа навіть на
+  // мить, а якщо нова версія не залилась — стара краща, ніж нічого.
+  for (const file of stale) {
+    const doc = file.attributes?.doc;
+    if (failed.has(doc)) continue;
+    try {
+      await api(`/vector_stores/${store}/files/${file.id}`, { method: "DELETE" }, { missingOk: true });
+      await api(`/files/${file.id}`, { method: "DELETE" }, { missingOk: true });
+      console.log(`− ${doc ?? file.id}`);
+      removed++;
+    } catch (e) {
+      console.error(`✗ прибрати ${doc ?? file.id}: ${e.message}`);
+      failed.add(doc ?? file.id);
+    }
+  }
+
+  console.log(`залито ${added}, прибрано ${removed}, без змін ${fresh.size}`);
+  if (failed.size) {
+    console.error(`✗ не вдалось: ${failed.size} — повторний прогін дозальє`);
+    process.exit(1);
+  }
+  console.log("✓ сховище збігається з репозиторієм");
 }
 
 // Сховище створюється один раз на оточення: у назві APP_ENV, щоб локальне
@@ -121,12 +194,12 @@ async function store() {
   const vs = await res.json();
   console.log(`Сховище «${name}» створено. Додай у .env:\n`);
   console.log(`OPENAI_VECTOR_STORE=${vs.id}`);
-  console.log("\nДалі — bun run kb:push, щоб залити туди базу знань.");
+  console.log("\nДалі — make kb-push, щоб залити туди базу знань.");
 }
 
 async function ask() {
   const query = rest.join(" ");
-  if (!query) { console.error("що питаємо? bun run kb:ask \"скільки коштує скринька\""); process.exit(1); }
+  if (!query) { console.error("що питаємо? make kb-ask Q=\"скільки коштує скринька\""); process.exit(1); }
   const found = await search(query, 5);
   for (const { doc, score } of found) {
     console.log(`${score.toFixed(2)}  ${doc.id} — ${doc.title}`);
