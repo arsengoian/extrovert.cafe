@@ -26,6 +26,7 @@
     "dev:plant": "bun scripts/dev-plant.mjs",
     "kb:check": "bun scripts/kb.mjs check",
     "kb:embed": "bun scripts/kb.mjs embed",
+    "kb:store": "bun scripts/kb.mjs store",
     "kb:push": "bun scripts/kb.mjs push",
     "kb:ask": "bun scripts/kb.mjs ask",
     "deploy:client": "bun scripts/deploy-client.mjs",

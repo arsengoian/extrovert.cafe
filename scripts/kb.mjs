@@ -2,6 +2,7 @@
 //
 //   bun run kb:check    — що лежить у базі, дублі id, довжини, пошук
 //   bun run kb:embed    — рахує вектори в backend/api/data/knowledge/embeddings.json
+//   bun run kb:store    — створює vector store в OpenAI й друкує рядок OPENAI_VECTOR_STORE для .env
 //   bun run kb:push     — заливає документи у vector store OpenAI
 //   bun run kb:ask "…"  — що знайде пошук на такий запит
 //
@@ -64,7 +65,7 @@ async function push() {
   const token = key();
   const store = process.env.OPENAI_VECTOR_STORE;
   if (!store) {
-    console.error("немає OPENAI_VECTOR_STORE у .env — створи сховище в OpenAI і впиши його id");
+    console.error("немає OPENAI_VECTOR_STORE у .env — створи сховище: bun run kb:store");
     process.exit(1);
   }
   const api = (p, init) => fetch(`https://api.openai.com/v1${p}`, {
@@ -89,6 +90,40 @@ async function push() {
   }
 }
 
+// Сховище створюється один раз на оточення: у назві APP_ENV, щоб локальне
+// й бойове не змішались, якщо ключ OpenAI в них спільний. id — не секрет
+// (без ключа він нічого не дає), тож друкуємо його готовим рядком для .env.
+async function store() {
+  const token = key();
+  const current = process.env.OPENAI_VECTOR_STORE;
+  if (current) {
+    // Значення не друкуємо: сюди легко помилково вставити сам API-ключ —
+    // сусідній рядок у .env, — і тоді він опинився б у виводі.
+    console.error(current.startsWith("sk-")
+      ? "в OPENAI_VECTOR_STORE схоже лежить API-ключ (sk-…): перенеси його в OPENAI_API_KEY, а цей рядок очисти"
+      : "OPENAI_VECTOR_STORE уже заданий — друге сховище не створюю");
+    process.exit(1);
+  }
+  if (token.startsWith("vs_")) {
+    console.error("в OPENAI_API_KEY лежить id сховища (vs_…), а не ключ — переплутані рядки в .env");
+    process.exit(1);
+  }
+  const name = `extrovert-kb-${process.env.APP_ENV || "local"}`;
+  const res = await fetch("https://api.openai.com/v1/vector_stores", {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    console.error(`✗ ${res.status}: ${await res.text()}`);
+    process.exit(1);
+  }
+  const vs = await res.json();
+  console.log(`Сховище «${name}» створено. Додай у .env:\n`);
+  console.log(`OPENAI_VECTOR_STORE=${vs.id}`);
+  console.log("\nДалі — bun run kb:push, щоб залити туди базу знань.");
+}
+
 async function ask() {
   const query = rest.join(" ");
   if (!query) { console.error("що питаємо? bun run kb:ask \"скільки коштує скринька\""); process.exit(1); }
@@ -99,9 +134,9 @@ async function ask() {
   if (!found.length) console.log("нічого не знайшлось");
 }
 
-const commands = { check, embed: embedAll, push, ask };
+const commands = { check, embed: embedAll, store, push, ask };
 if (!commands[command]) {
-  console.error("команди: check | embed | push | ask <запит>");
+  console.error("команди: check | embed | store | push | ask <запит>");
   process.exit(1);
 }
 await commands[command]();

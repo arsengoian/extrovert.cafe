@@ -337,7 +337,8 @@ make act-deploy    # справжнє викочування на живий с�
 - вебхук бота підтримки `api` реєструє сам на старті, щойно в `.env` є
   `SUPPORT_BOT_*`; перевірити — `docker compose exec api bun run support:webhook`
   (адреса, черга, остання помилка);
-- залити базу знань чату в OpenAI (`bun run kb:push`) — якщо переходимо з
-  локального пошуку на `file_search`;
+- залити базу знань чату в OpenAI — якщо переходимо з локального пошуку на
+  `file_search`: `bun run kb:store` створить сховище й надрукує
+  `OPENAI_VECTOR_STORE` для `.env`, далі `bun run kb:push`;
 - перевірити, що `scheduler` справді публікує `outbox`: рядки з
   `published_at is null` не мають накопичуватись.
