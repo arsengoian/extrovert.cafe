@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 4ab149f</p>
+  <p class="eyebrow">extrovert.cafe · джерело 8e452d2</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -969,11 +969,18 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 <p><a class="doclink" href="#video"><code>video.md</code></a> — запис, тимчасові ключі R2, черга через <code>SKIP LOCKED</code>, звід події з
 чеком за таймстемпом.</p>
 <h2 id="svc-5-що-з-цього-реально-існує"><a class="anchor" href="#svc-5-що-з-цього-реально-існує" aria-hidden="true">#</a>5. Що з цього реально існує</h2>
+<p><strong>Прод піднятий 22.09.2026.</strong> На дроплеті крутиться весь стек (postgres,
+redis, api, ws, checkbox, scheduler, overseer, caddy, glitchtip), 24
+міграції накочені, сертифікати Let&#39;s Encrypt узяті, перший дамп бази вже в
+R2. На Cloudflare живуть чотири воркери: <code>extrovert.cafe</code>,
+<code>admin.extrovert.cafe</code>, <code>qr.extrovert.cafe</code>, <code>r.extrovert.cafe</code>. Образи
+зібрані й залиті через act з машини розробника — у самому GitHub CI ще не
+запускався (<a class="doclink" href="#deploy"><code>deploy.md</code></a> §2.3).</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
 <th>Компонент</th>
-<th>Стан на 21.09.2026</th>
+<th>Стан на 22.09.2026</th>
 </tr>
 </thead>
 <tbody><tr>
@@ -990,11 +997,11 @@ breakpad) важко зібрати під ARMv6 на Stretch, а дампи щ�
 </tr>
 <tr>
 <td><code>qr.extrovert.cafe</code></td>
-<td><strong>наклейка надрукована</strong> (<code>?p=1</code>). Воркер <code>frontend/qr</code> викочений (22.09.2026), домен привʼязує terraform разом із рештою воркерів (<a class="doclink" href="#deploy"><code>deploy.md</code></a> §1)</td>
+<td><strong>працює</strong>: скан наклейки (<code>?p=1</code>) дає 302 на <code>extrovert.cafe/?p=1</code> (22.09.2026). Сам параметр <code>p</code> застосунок поки не забирає (<a class="doclink" href="#urls"><code>urls.md</code></a>)</td>
 </tr>
 <tr>
 <td>Postgres</td>
-<td><strong>12 міграцій, 41 таблиця</strong> (dbmate), <code>schema.sql</code> комітиться</td>
+<td><strong>24 міграції, 46 таблиць</strong> (dbmate), <code>schema.sql</code> комітиться</td>
 </tr>
 <tr>
 <td>сіди контенту (<code>db/seeds</code>)</td>
@@ -10754,7 +10761,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 4ab149f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 8e452d2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

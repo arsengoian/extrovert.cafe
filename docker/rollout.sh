@@ -44,13 +44,18 @@ docker compose pull --quiet
 echo "── база й черга"
 docker compose up -d --wait postgres redis
 
+# </dev/null у командах нижче — не прикраса: сам цей скрипт їде в `bash -s`
+# через stdin, і будь-яка команда, що читає stdin, з'їдає його решту. На
+# першому викочуванні 22.09.2026 rollout так і обірвався — мовчки, одразу
+# після створення бази glitchtip, лишивши підняті тільки postgres і redis.
+#
 # База GlitchTip: postgres на першому старті створює лише свою (POSTGRES_DB),
 # а glitchtip без власної бази падає в циклі перезапусків. Ідемпотентно.
 echo "── база glitchtip"
-docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -tAc "select 1 from pg_database where datname = '\''glitchtip'\''" | grep -q 1 || createdb -U "$POSTGRES_USER" glitchtip'
+docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -tAc "select 1 from pg_database where datname = '\''glitchtip'\''" | grep -q 1 || createdb -U "$POSTGRES_USER" glitchtip' </dev/null
 
 echo "── міграції"
-docker compose run --rm migrate up
+docker compose run --rm migrate up </dev/null
 
 wait_healthy() {
   local id="$1" name="$2" waited=0
