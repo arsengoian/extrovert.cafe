@@ -5,12 +5,24 @@
 # Windows: цілі навмисно однорядкові й без && та пайпів — так вони
 # працюють і через cmd.exe, і через sh.
 
+# bun — із PATH, а на Windows спершу зі стандартного місця інсталятора
+# (%USERPROFILE%\.bun\bin): термінал або IDE, відкриті до встановлення bun,
+# тримають старий PATH без нього, і make падав з «CreateProcess ... failed».
+ifeq ($(OS),Windows_NT)
+BUN_EXE := $(subst \,/,$(USERPROFILE))/.bun/bin/bun.exe
+BUN ?= $(if $(wildcard $(BUN_EXE)),$(BUN_EXE),bun)
+else
+BUN ?= bun
+endif
+
 .DEFAULT_GOAL := help
 .PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \n        release-push
+        tf-plan tf-apply tf-output ssh-public \
+        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \
+        release-push
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -86,111 +98,111 @@ migrate-status:
 	docker compose run --rm migrate status
 
 seed:
-	bun scripts/dev-seed.mjs
+	$(BUN) scripts/dev-seed.mjs
 
 # Приклад: make plant STAGE=1 RESET=1 SUPPLY=9
 plant:
-	bun scripts/dev-plant.mjs $(if $(STAGE),--stage $(STAGE)) $(if $(RESET),--reset) $(if $(SUPPLY),--supply $(SUPPLY))
+	$(BUN) scripts/dev-plant.mjs $(if $(STAGE),--stage $(STAGE)) $(if $(RESET),--reset) $(if $(SUPPLY),--supply $(SUPPLY))
 
 seed-pull:
-	bun scripts/seed.mjs pull
+	$(BUN) scripts/seed.mjs pull
 
 seed-apply:
-	bun scripts/seed.mjs apply
+	$(BUN) scripts/seed.mjs apply
 
 ## ── сервіси ─────────────────────────────────────────────────────────────
 
 api:
-	bun --watch backend/api/src/index.js
+	$(BUN) --watch backend/api/src/index.js
 
 ws:
-	bun backend/ws/src/index.js
+	$(BUN) backend/ws/src/index.js
 
 scheduler:
-	bun backend/scheduler/src/index.js
+	$(BUN) backend/scheduler/src/index.js
 
 checkbox:
-	bun backend/checkbox/src/index.js
+	$(BUN) backend/checkbox/src/index.js
 
 overseer:
-	bun backend/overseer/src/index.js
+	$(BUN) backend/overseer/src/index.js
 
 client:
-	bun --cwd frontend/client run dev
+	$(BUN) --cwd frontend/client run dev
 
 build:
 	docker compose build api ws checkbox scheduler overseer
 
 smoke:
-	bun scripts/smoke.mjs
+	$(BUN) scripts/smoke.mjs
 
 ## ── доки й база знань ───────────────────────────────────────────────────
 
 docs:
-	bun scripts/build-data-map.mjs
+	$(BUN) scripts/build-data-map.mjs
 
 docs-check:
-	bun scripts/build-data-map.mjs --check
+	$(BUN) scripts/build-data-map.mjs --check
 
 kb-check:
-	bun scripts/kb.mjs check
+	$(BUN) scripts/kb.mjs check
 
 kb-ask:
-	bun scripts/kb.mjs ask "$(Q)"
+	$(BUN) scripts/kb.mjs ask "$(Q)"
 
 planting-data:
-	bun scripts/build-planting-data.mjs
+	$(BUN) scripts/build-planting-data.mjs
 
 ## ── викочування й ключі ─────────────────────────────────────────────────
 
 deploy-client-dry:
-	bun scripts/deploy-client.mjs --dry
+	$(BUN) scripts/deploy-client.mjs --dry
 
 deploy-client:
-	bun scripts/deploy-client.mjs
+	$(BUN) scripts/deploy-client.mjs
 
 # Адмінка — така сама статика на Workers, як і клієнт (docs/services.md §4).
 admin:
-	bun run --filter @extrovert/admin dev
+	$(BUN) run --filter @extrovert/admin dev
 
 deploy-admin-dry:
-	bun run --filter @extrovert/admin deploy:dry
+	$(BUN) run --filter @extrovert/admin deploy:dry
 
 deploy-admin:
-	bun run --filter @extrovert/admin deploy
+	$(BUN) run --filter @extrovert/admin deploy
 
 # Звичайний шлях релізу — CI; руками це лише для випадку «треба повз нього».
 release-push:
-	bun scripts/push-release.mjs
+	$(BUN) scripts/push-release.mjs
 
 keys-jwt:
-	bun scripts/keys.mjs jwt
+	$(BUN) scripts/keys.mjs jwt
 
 keys-secret:
-	bun scripts/keys.mjs secret
+	$(BUN) scripts/keys.mjs secret
 
 keys-ssh:
-	bun scripts/keys.mjs ssh
+	$(BUN) scripts/keys.mjs ssh
 
 ## ── сервери (terraform) ─────────────────────────────────────────────────
 
 tf-plan:
-	bun scripts/tf.mjs plan
+	$(BUN) scripts/tf.mjs plan
 
 tf-apply:
-	bun scripts/tf.mjs apply
+	$(BUN) scripts/tf.mjs apply
 
 tf-output:
-	bun scripts/tf.mjs output
+	$(BUN) scripts/tf.mjs output
 
 # Порт 2222, бо з частини мереж вихідний 22 закритий (docs/deploy.md §2.1).
 ssh-public:
-	bun scripts/tf.mjs ssh
+	$(BUN) scripts/tf.mjs ssh
 
 ## ── той самий деплой, тільки локально (act) ─────────────────────────────
 
 act-secrets:
-	bun scripts/act-secrets.mjs
+	$(BUN) scripts/act-secrets.mjs
 
 # Збірка без пуша: act сам виставляє ACT=true, і workflow це враховує.
 act-build:
