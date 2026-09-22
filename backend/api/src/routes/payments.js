@@ -1,4 +1,4 @@
-// Купівля монет за гривні через mono pay.
+// Купівля за гривні через mono pay: набори монет і скринька на склад.
 //
 // Нарахування живе в одному місці — settle() — і викликається двома
 // шляхами: вебхуком від mono й опитуванням статусу з клієнта. Так само, як
@@ -23,6 +23,7 @@ const packBy = (code) => economy.coin_packs.find((p) => p.code === code) ?? null
 
 const view = (row) => ({
   invoice_id: row.invoice_id,
+  product: row.product,
   status: row.status,
   coins: row.coins,
   // пачка — щоб попап «Монети зараховано» показав її картинку
@@ -50,6 +51,19 @@ async function settle(invoiceId, status, raw = null) {
       [payment.id, status, raw]
     );
     if (status !== "success") return { payment: { ...payment, status }, credited: false };
+
+    // Скринька не рухає монети — вона лягає на склад, і журнал монет тут
+    // ні до чого: відкриття саме запише своє.
+    if (payment.product === "crate") {
+      await client.query(
+        `insert into user_crates (user_id, source, paid_currency, paid_amount, payment_id)
+         values ($1, 'cash', 'uah', $2, $3)`,
+        [payment.user_id, payment.amount_uah, payment.id]
+      );
+      await client.query("update payments set credited_at = now() where id = $1", [payment.id]);
+      await notifyPlant(payment.user_id, "Оплата пройшла: щаслива скринька чекає на складі.", { client });
+      return { payment: { ...payment, status, credited_at: new Date() }, credited: true };
+    }
 
     await client.query("update users set coins_yellow = coins_yellow + $2 where id = $1",
       [payment.user_id, payment.coins]);
@@ -88,7 +102,7 @@ export default async function routes(app) {
         [user.id, invoiceId, pack.code, pack.coins, pack.price_uah]
       );
       await settle(invoiceId, "success", { test: true });
-      return { test: true, invoice_id: invoiceId, status: "success", coins: pack.coins, pack_code: pack.code };
+      return { test: true, invoice_id: invoiceId, status: "success", product: "coins", coins: pack.coins, pack_code: pack.code };
     }
 
     const reference = crypto.randomUUID();
@@ -117,6 +131,43 @@ export default async function routes(app) {
     );
 
     return { invoice_id: invoiceId, page_url: pageUrl, coins: pack.coins, amount_uah: pack.price_uah };
+  });
+
+  // Скринька за гривні — той самий шлях, що й набір монет, лише товар інший:
+  // після оплати вона лягає на склад (user_crates), а не відкривається,
+  // бо гравець повертається з банку невідомо коли й звідки.
+  app.post("/shop/crate/invoice", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const price = economy.crate.price_uah;
+
+    if (!hasToken()) {
+      if (!DEV) fail(501, "payments_not_connected");
+      const invoiceId = `test-${crypto.randomUUID()}`;
+      await query(
+        `insert into payments (user_id, provider, invoice_id, product, pack_code, coins, amount_uah, status)
+         values ($1, 'test', $2, 'crate', 'crate', 0, $3, 'processing')`,
+        [user.id, invoiceId, price]
+      );
+      await settle(invoiceId, "success", { test: true });
+      return { test: true, invoice_id: invoiceId, status: "success", product: "crate" };
+    }
+
+    const reference = crypto.randomUUID();
+    const { invoiceId, pageUrl } = await createInvoice({
+      amountUah: price,
+      reference,
+      destination: "extrovert.cafe: щаслива скринька",
+      redirectUrl: `${APP_ORIGIN}/?pay=1`,
+      webHookUrl: `${API_ORIGIN}/api/v1/webhook/mono`,
+      basket: [{ name: "Щаслива скринька", qty: 1, sum: Math.round(Number(price) * 100), unit: "шт", code: "crate" }],
+    });
+    await query(
+      `insert into payments (user_id, provider, invoice_id, product, pack_code, coins, amount_uah, status, raw)
+       values ($1, 'mono', $2, 'crate', 'crate', 0, $3, 'created', $4)`,
+      [user.id, invoiceId, price, { reference, pageUrl }]
+    );
+    return { invoice_id: invoiceId, page_url: pageUrl, product: "crate", amount_uah: price };
   });
 
   // Статус для клієнта. Якщо платіж ще не зарахований — питаємо mono самі:

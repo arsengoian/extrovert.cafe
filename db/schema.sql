@@ -388,7 +388,7 @@ CREATE TABLE public.ledger_entries (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT ledger_entries_check CHECK (((delta_yellow <> 0) OR (delta_silver <> 0) OR (delta_beans <> 0))),
     CONSTRAINT ledger_entries_reason_check CHECK ((reason = ANY (ARRAY['purchase'::text, 'quiz'::text, 'repost'::text, 'crate'::text, 'care'::text, 'chat'::text, 'transfer'::text, 'market'::text, 'exchange'::text, 'pos_discount'::text, 'delivery'::text, 'sapling'::text, 'wardrobe_set'::text, 'harvest'::text, 'admin'::text]))),
-    CONSTRAINT ledger_entries_ref_type_check CHECK ((ref_type = ANY (ARRAY['receipt'::text, 'crate_opening'::text, 'market_trade'::text, 'coin_transfer'::text, 'redemption'::text])))
+    CONSTRAINT ledger_entries_ref_type_check CHECK ((ref_type = ANY (ARRAY['receipt'::text, 'crate_opening'::text, 'market_trade'::text, 'coin_transfer'::text, 'redemption'::text, 'user_crate'::text])))
 );
 
 
@@ -724,11 +724,20 @@ CREATE TABLE public.payments (
     raw jsonb,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    product text DEFAULT 'coins'::text NOT NULL,
     CONSTRAINT payments_amount_uah_check CHECK ((amount_uah > (0)::numeric)),
-    CONSTRAINT payments_coins_check CHECK ((coins > 0)),
+    CONSTRAINT payments_coins_check CHECK ((coins >= 0)),
+    CONSTRAINT payments_product_check CHECK ((product = ANY (ARRAY['coins'::text, 'crate'::text]))),
     CONSTRAINT payments_provider_check CHECK ((provider = ANY (ARRAY['mono'::text, 'test'::text]))),
     CONSTRAINT payments_status_check CHECK ((status = ANY (ARRAY['created'::text, 'processing'::text, 'success'::text, 'failure'::text, 'expired'::text, 'reversed'::text])))
 );
+
+
+--
+-- Name: COLUMN payments.product; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.payments.product IS 'Що куплено: coins — набір монет (pack_code з coin_packs), crate — скринька на склад (coins = 0)';
 
 
 --
@@ -1277,6 +1286,52 @@ CREATE TABLE public.sync_cursors (
 
 
 --
+-- Name: user_crates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_crates (
+    id bigint NOT NULL,
+    user_id uuid NOT NULL,
+    source text NOT NULL,
+    paid_currency text,
+    paid_amount numeric(10,2),
+    payment_id bigint,
+    acquired_at timestamp with time zone DEFAULT now() NOT NULL,
+    opened_at timestamp with time zone,
+    opening_id bigint,
+    CONSTRAINT user_crates_check CHECK (((opened_at IS NULL) = (opening_id IS NULL))),
+    CONSTRAINT user_crates_paid_currency_check CHECK ((paid_currency = ANY (ARRAY['yellow'::text, 'uah'::text]))),
+    CONSTRAINT user_crates_source_check CHECK ((source = ANY (ARRAY['coins'::text, 'cash'::text, 'bonus_drink'::text])))
+);
+
+
+--
+-- Name: TABLE user_crates; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.user_crates IS 'Невідкриті й відкриті скриньки гравця; відкрита має opening_id';
+
+
+--
+-- Name: user_crates_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.user_crates_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: user_crates_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.user_crates_id_seq OWNED BY public.user_crates.id;
+
+
+--
 -- Name: user_identities; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1712,6 +1767,13 @@ ALTER TABLE ONLY public.support_messages ALTER COLUMN id SET DEFAULT nextval('pu
 --
 
 ALTER TABLE ONLY public.support_threads ALTER COLUMN id SET DEFAULT nextval('public.support_threads_id_seq'::regclass);
+
+
+--
+-- Name: user_crates id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates ALTER COLUMN id SET DEFAULT nextval('public.user_crates_id_seq'::regclass);
 
 
 --
@@ -2198,6 +2260,30 @@ ALTER TABLE ONLY public.sync_cursors
 
 
 --
+-- Name: user_crates user_crates_opening_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_opening_id_key UNIQUE (opening_id);
+
+
+--
+-- Name: user_crates user_crates_payment_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_payment_id_key UNIQUE (payment_id);
+
+
+--
+-- Name: user_crates user_crates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: user_identities user_identities_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2578,6 +2664,13 @@ CREATE INDEX support_messages_thread_id_created_at_idx ON public.support_message
 --
 
 CREATE INDEX support_threads_status_last_user_at_idx ON public.support_threads USING btree (status, last_user_at DESC);
+
+
+--
+-- Name: user_crates_user_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_crates_user_id_idx ON public.user_crates USING btree (user_id) WHERE (opened_at IS NULL);
 
 
 --
@@ -3027,6 +3120,30 @@ ALTER TABLE ONLY public.support_threads
 
 
 --
+-- Name: user_crates user_crates_opening_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_opening_id_fkey FOREIGN KEY (opening_id) REFERENCES public.crate_openings(id);
+
+
+--
+-- Name: user_crates user_crates_payment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payments(id);
+
+
+--
+-- Name: user_crates user_crates_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_crates
+    ADD CONSTRAINT user_crates_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: user_identities user_identities_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3154,4 +3271,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921120000'),
     ('20260921130000'),
     ('20260921140000'),
-    ('20260921150000');
+    ('20260921150000'),
+    ('20260922100000');

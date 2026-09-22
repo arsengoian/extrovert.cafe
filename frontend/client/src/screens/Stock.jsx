@@ -8,6 +8,7 @@ import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
 import { StockItemSheet } from "./StockItem.jsx";
+import { openStockCrate } from "./Crate.jsx";
 
 // Порядок слотів у ряду — як у примірочній: голова, тіло, штани, взуття,
 // аксесуар. Порожній слот — пунктирна клітинка.
@@ -18,8 +19,9 @@ export function Stock({ ctx }) {
   const [crates, setCrates] = useState(0);
   const [lots, setLots] = useState([]);
 
+  const loadItems = () => api.get("/me/items").then((r) => { setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setItems([]));
   useEffect(() => {
-    api.get("/me/items").then((r) => { setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setItems([]));
+    loadItems();
     api.get("/me/listings").then((r) => setLots(r.listings ?? [])).catch(() => {});
   }, []);
 
@@ -43,7 +45,7 @@ export function Stock({ ctx }) {
       </div>
 
       {crates > 0 && (
-        <button className="crate-open" onClick={() => ctx.push("shopItem", { item: { kind: "crate", code: "crate" } })}>
+        <button className="crate-open" onClick={() => openStockCrate(ctx, loadItems)}>
           <span className="crate-art">
             <img src="/assets/ui/crate.png" alt="щаслива скринька" />
             <img src="/assets/ui/crate_lid.png" alt="" />

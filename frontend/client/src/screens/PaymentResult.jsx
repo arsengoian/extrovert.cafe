@@ -30,8 +30,10 @@ export function PaymentResult({ ctx, invoiceId }) {
         if (r.credited || ["failure", "expired", "reversed"].includes(r.status)) {
           localStorage.removeItem(PENDING_KEY);
           const fresh = await ctx.refreshMe();
-          // Зараховано — у гаманець із попапом, як після тестової оплати.
-          if (r.credited) {
+          // Зараховано — монети в гаманець із попапом, як після тестової
+          // оплати; скринька — на склад, де вона чекає «Відкрити».
+          if (r.credited && r.product === "crate") ctx.openTab("stock");
+          else if (r.credited) {
             ctx.openTab("wallet");
             ctx.notify(<CoinsCredited code={r.pack_code} coins={r.coins} balance={fresh.balances.yellow} onClose={() => ctx.notify(null)} />);
           }
@@ -56,8 +58,10 @@ export function PaymentResult({ ctx, invoiceId }) {
 
         {!error && payment?.credited && (
           <>
-            <div className="h2">+{coinsWord(payment.coins)}</div>
-            <p className="muted">Оплату на {payment.amount_uah} ₴ отримано, монети вже в гаманці.</p>
+            <div className="h2">{payment.product === "crate" ? "Щаслива скринька" : `+${coinsWord(payment.coins)}`}</div>
+            <p className="muted">
+              Оплату на {payment.amount_uah} ₴ отримано, {payment.product === "crate" ? "скринька вже на складі" : "монети вже в гаманці"}.
+            </p>
           </>
         )}
 

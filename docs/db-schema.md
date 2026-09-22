@@ -285,6 +285,10 @@ erDiagram
     USERS ||--o{ LEDGER_ENTRIES : "кожна операція"
     USERS ||--o{ USER_ITEMS : "склад"
     USERS ||--o{ CRATE_OPENINGS : "відкриття крейтів"
+    USERS ||--o{ USER_CRATES : "скриньки на складі"
+    USERS ||--o{ PAYMENTS : "оплати гривнями через mono"
+    PAYMENTS ||--o| USER_CRATES : "скринька, куплена за гривні"
+    USER_CRATES ||--o| CRATE_OPENINGS : "чим відкрилась"
     USERS ||--o{ MARKET_LISTINGS : "продає"
     USERS ||--o{ COIN_TRANSFERS : "переказ жовтих"
     USERS ||--o{ REDEMPTIONS : "доставки Новою Поштою"
@@ -309,7 +313,7 @@ erDiagram
         int delta_silver "знакова"
         int delta_beans "знакова"
         text reason "purchase|quiz|repost|crate|care|chat|transfer|market|exchange|pos_discount|delivery|sapling|admin"
-        text ref_type "receipt|crate_opening|market_trade|coin_transfer|redemption"
+        text ref_type "receipt|crate_opening|market_trade|coin_transfer|redemption|user_crate"
         bigint ref_id
         text idem_key UK "повтор запиту не пише рядок удруге"
         jsonb meta "курс обміну, що саме купили"
@@ -349,6 +353,32 @@ erDiagram
         boolean was_duplicate "такий предмет у гравця вже був"
         text rolled_tier
         timestamptz opened_at
+    }
+    USER_CRATES {
+        bigserial id PK
+        uuid user_id FK
+        text source "coins|cash|bonus_drink - переходить у crate_openings"
+        text paid_currency "yellow|uah"
+        numeric paid_amount
+        bigint payment_id FK "куплена за гривні: рівно одна на платіж"
+        timestamptz acquired_at
+        timestamptz opened_at "null - ще на складі"
+        bigint opening_id FK
+    }
+    PAYMENTS {
+        bigserial id PK
+        uuid user_id FK
+        text provider "mono|test"
+        text invoice_id UK
+        text product "coins|crate"
+        text pack_code "набір монет; для скриньки - crate"
+        int coins "0 для скриньки"
+        numeric amount_uah
+        text status "created|processing|success|failure|expired|reversed"
+        bigint ledger_entry_id FK
+        timestamptz credited_at "нараховано рівно раз"
+        jsonb raw
+        timestamptz created_at
     }
     MARKET_LISTINGS {
         bigserial id PK
@@ -580,6 +610,18 @@ erDiagram
 `was_duplicate` не виводиться з інших таблиць заднім числом (інвентар до
 моменту відкриття вже не відновити), а частка дублів — перше, на що
 подивишся, коли вирішуватимеш, чи потрібен pity-захист.
+
+**Купівля й відкриття скриньки — два кроки** (22.09.2026). Куплена
+скринька, за монети чи за гривні, лягає рядком у `user_crates` і чекає на
+Складі («Щасливі скриньки · Відкрити»); рол відбувається лише при
+відкритті. Гривнева оплата приходить вебхуком або опитуванням невідомо
+коли, тож відкривати «одразу» там і не було б кому, а два різні шляхи для
+монет і гривень означали б два різні відчуття від тієї самої скриньки.
+Списання монет пишеться в журнал у момент купівлі (`ref_type =
+'user_crate'`), монети зі скриньки — при відкритті, як і раніше. Ціна
+купівлі переходить у `crate_openings.paid_*`, тож аналітика відкриттів не
+змінилась. `payments.product` каже, що купили за гривні: набір монет чи
+скриньку.
 
 **Інвентар догляду — у гравця, не в куща** (20.09.2026). Відро з водою,
 компост, добриво й інсектицид — колонки `users`. Кавенят у гравця може бути

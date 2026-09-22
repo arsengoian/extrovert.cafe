@@ -81,7 +81,10 @@ export default async function routes(app) {
         order by d.collection, d.slot`,
       [user.id]
     );
-    return { items: rows };
+    // Невідкриті скриньки — картка «Щасливі скриньки» над комплектами.
+    const crates = await one(
+      "select count(*)::int as n from user_crates where user_id = $1 and opened_at is null", [user.id]);
+    return { items: rows, crates: crates.n };
   });
 
   // Покупки: чеки з ПРРО, зведені з бонусами за них.
