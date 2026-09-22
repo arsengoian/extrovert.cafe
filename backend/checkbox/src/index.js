@@ -44,17 +44,50 @@ const timingSafeEq = (a, b) => {
   return A.length === B.length && crypto.timingSafeEqual(A, B);
 };
 
+// Підпис: HMAC-SHA256 тіла ключем із webhook_keys. Формат ключа й кодування
+// підпису Checkbox у документації описує як base64 — але тестова каса
+// 22.09.2026 слала щось інше, і кожен вебхук відлітав із «підпис не
+// збігся». Тому пробуємо всі розумні варіанти: ключ як текст / як hex / як
+// base64, підпис у base64 чи hex. Безпеки це не послаблює — усі варіанти
+// однаково вимагають знати секрет, — а в лозі лишається той, що збігся, щоб
+// звузити перевірку, коли стане ясно.
+const KEY_FORMS = (key) => [
+  ["text", Buffer.from(key, "utf8")],
+  ["hex", /^[0-9a-f]+$/i.test(key) && key.length % 2 === 0 ? Buffer.from(key, "hex") : null],
+  ["base64", /^[A-Za-z0-9+/=_-]+$/.test(key) ? Buffer.from(key, "base64") : null],
+].filter(([, buf]) => buf && buf.length);
+
+function matchSignature(key, raw, signature) {
+  if (!key || !signature) return null;
+  for (const [form, secret] of KEY_FORMS(key)) {
+    for (const digest of ["base64", "hex"]) {
+      const mine = crypto.createHmac("sha256", secret).update(raw, "utf8").digest(digest);
+      if (timingSafeEq(signature, mine)) return `${form}/${digest}`;
+    }
+  }
+  return null;
+}
+let knownForm = null;
+
 app.get("/healthz", async () => ({ ok: true, service: "checkbox" }));
 
 app.post("/webhook/checkbox", async (req, reply) => {
   const raw = req.rawBody ?? "";
   const signature = String(req.headers["x-signature"] ?? "");
-  const sign = (key) => (key ? crypto.createHmac("sha256", key).update(raw, "utf8").digest("base64") : "");
   let key = await webhookKey();
-  if (key && signature && !timingSafeEq(signature, sign(key))) key = await webhookKey({ fresh: true });
-  if (!key || !signature || !timingSafeEq(signature, sign(key))) {
-    log.warn("підпис не збігся", { ip: req.ip });
+  let form = matchSignature(key, raw, signature);
+  // Не збіглося — можливо, вебхук перереєстрували: перечитуємо ключ один раз.
+  if (!form) {
+    key = await webhookKey({ fresh: true });
+    form = matchSignature(key, raw, signature);
+  }
+  if (!form) {
+    log.warn("підпис не збігся", { ip: req.ip, ключ: key ? "є" : "немає", підпис: signature ? signature.length : 0 });
     return reply.code(401).send({ error: "bad_signature" });
+  }
+  if (form !== knownForm) {
+    knownForm = form;
+    log.info("підпис вебхука сходиться", { формат: form });
   }
 
   const body = req.body ?? {};

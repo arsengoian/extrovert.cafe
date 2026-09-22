@@ -1,0 +1,94 @@
+// Емуляція продажу: чек у Checkbox → вебхук → бонус → QR на кіоску.
+//
+//   bun scripts/dev-sale.mjs                       # перший активний напій, оплата карткою
+//   bun scripts/dev-sale.mjs --drink a033 --pay cash
+//   bun scripts/dev-sale.mjs --list                # які напої є в сідах
+//
+// **Чек створює лише тестовий касир** (рішення власника 22.09.2026):
+// фіскальний чек бойової каси — це подія в ДПС і рядок у звітності точки.
+// Тому токен береться через cashierToken({ write: true }), який без
+// CHECKBOX_TEST_* просто не видається, а перед продажем ще й питаємо
+// cashier/me: is_test має бути true.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { assertTestCashier, cashierToken } from "../backend/checkbox/src/cashier.js";
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const API = (process.env.CHECKBOX_API || "https://api.checkbox.ua").replace(/\/+$/, "");
+const args = process.argv.slice(2);
+const flag = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : null; };
+
+const drinks = JSON.parse(readFileSync(path.join(ROOT, "db", "seeds", "drinks.json"), "utf8"));
+if (args.includes("--list")) {
+  for (const d of drinks.filter((x) => x.active)) console.log(`${d.system_code}\t${d.name}\t${d.price_uah} ₴\tбонус ${d.bonus_coins}`);
+  process.exit(0);
+}
+
+const code = flag("drink");
+const drink = code ? drinks.find((d) => d.system_code === code) : drinks.find((d) => d.active);
+if (!drink) {
+  console.error(code ? `✗ немає напою з кодом ${code} (--list покаже наявні)` : "✗ у сідах немає активних напоїв");
+  process.exit(1);
+}
+const kopecks = Math.round(Number(drink.price_uah) * 100);
+const payment = (flag("pay") ?? "card") === "cash" ? "CASH" : "CASHLESS";
+
+const token = await cashierToken({ write: true, log: { info: (m, x) => console.log(m, x ?? "") } });
+if (!token) {
+  console.error("✗ немає логіна тестового касира: CHECKBOX_TEST_LOGIN / CHECKBOX_TEST_PASSWORD");
+  process.exit(1);
+}
+const me = await assertTestCashier(token);
+console.log(`касир: ${me.full_name ?? me.id} (тестовий)`);
+
+// X-License-Key — ключ самої каси: без нього Checkbox не відкриває зміну й
+// не приймає чек (лише тестовий, CHECKBOX_TEST_LICENSE_KEY).
+const LICENSE = process.env.CHECKBOX_TEST_LICENSE_KEY;
+if (!LICENSE) {
+  console.error("✗ немає CHECKBOX_TEST_LICENSE_KEY — це ключ тестової каси, без нього чек не створити");
+  process.exit(1);
+}
+
+const call = async (method, path, body) => {
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers: { authorization: `Bearer ${token}`, "X-License-Key": LICENSE, ...(body ? { "content-type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : null;
+  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${text.slice(0, 200)}`);
+  return data;
+};
+
+// Зміна: чек без відкритої зміни Checkbox не приймає.
+let shift = await call("GET", "/api/v1/cashier/shift").catch(() => null);
+if (!shift || shift.status !== "OPENED") {
+  console.log("відкриваємо зміну…");
+  shift = await call("POST", "/api/v1/shifts", {});
+  for (let i = 0; i < 30 && shift.status !== "OPENED"; i++) {
+    await Bun.sleep(1000);
+    shift = await call("GET", `/api/v1/shifts/${shift.id}`);
+  }
+  if (shift.status !== "OPENED") throw new Error(`зміна не відкрилась: ${shift.status}`);
+}
+console.log(`зміна: ${shift.serial ?? shift.id} (${shift.status})`);
+
+// Продаж. Кількість у тисячних, суми в копійках — так вимагає Checkbox.
+let receipt = await call("POST", "/api/v1/receipts/sell", {
+  goods: [{ good: { code: drink.system_code, name: drink.name, price: kopecks }, quantity: 1000 }],
+  payments: [{ type: payment, value: kopecks, label: payment === "CASH" ? "Готівка" : "Картка" }],
+});
+console.log(`чек створений: ${receipt.id} (${receipt.status})`);
+
+for (let i = 0; i < 40 && !["DONE", "SIGNED", "DELIVERED"].includes(receipt.status); i++) {
+  await Bun.sleep(1500);
+  receipt = await call("GET", `/api/v1/receipts/${receipt.id}`);
+}
+console.log(`\n✓ ${drink.name} за ${drink.price_uah} ₴ (${payment})`);
+console.log(`  статус: ${receipt.status}`);
+console.log(`  фіскальний номер: ${receipt.fiscal_code ?? "—"}`);
+console.log(`  id: ${receipt.id}`);
+if (receipt.tax_url) console.log(`  ДПС: ${receipt.tax_url}`);
+console.log("\nДалі: вебхук → бонус → QR на кіоску (docs/services.md §4).");

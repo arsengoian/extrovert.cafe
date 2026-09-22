@@ -45,7 +45,10 @@ export async function ingest(receipt, { source, log }) {
       [
         pointId, receipt.id, receipt.shift?.id ?? null, receipt.fiscal_code ?? null,
         receipt.fiscal_date ?? new Date().toISOString(), uah(receipt.total_sum),
-        receipt.payments ?? null, receipt.tax_url ?? null, source, receipt,
+        // jsonb — рядком: масив (payments) драйвер інакше віддає як масив
+        // Postgres, і вставка падає на «invalid input syntax for type json».
+        receipt.payments ? JSON.stringify(receipt.payments) : null,
+        receipt.tax_url ?? null, source, JSON.stringify(receipt),
       ]
     );
 
