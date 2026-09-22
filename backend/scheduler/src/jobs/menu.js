@@ -6,43 +6,11 @@
 // ключами, що й решта прода, а людина лише ставить деплоймент у чергу
 // (POST /admin/menu/deployments) — і видно, хто, коли й що саме.
 //
-// Склад menu.json: напої з таблиці `drinks` (єдине джерело правди) плюс
-// акція з payload деплоймента. Усе інше — бренд, розміри стаканів, період
-// опитування — зашите в кіоск (raspberry/kiosk/src/config.h): воно не
-// змінювалось жодного разу, а кожне зайве поле в меню — ще одне місце, де
-// бакет і екран розходяться.
+// Склад menu.json рахує @extrovert/lib/menu.js: те саме меню віддає кіоску
+// роут api, тож формат має бути один на двох.
+import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
-
-export async function buildMenu(client, ad) {
-  // active = false прибирає напій з екрана, але лишає в базі: сезонні
-  // позиції повертаються, а чеки на них мають на що посилатись.
-  const { rows } = await client.query(
-    `select system_code, name, vol, cup, price_uah, color, foam, sprite, bonus_coins
-       from drinks
-      where active
-      order by sort_order, name`
-  );
-  if (!rows.length) throw new Error("у базі немає активних напоїв");
-
-  return {
-    updated: new Date().toISOString().slice(0, 10),
-    drinks: rows.map((d) => ({
-      name: d.name,
-      vol: d.vol ?? "",
-      price: Number(d.price_uah),
-      color: d.color ?? "#402212",
-      foam: d.foam,
-      cup: d.cup ?? "M",
-      sprite: d.sprite ?? "",
-      system_code: d.system_code,
-      // Нуль у меню не потрібен: картка з бейджем бонусу й без нього — різні
-      // шаблони, і кіоск вибирає їх саме за наявністю поля.
-      ...(d.bonus_coins > 0 ? { bonus_coins: d.bonus_coins } : {}),
-    })),
-    ...(ad ? { ad } : {}),
-  };
-}
 
 export async function deployMenus({ pool, log }) {
   const client = await pool.connect();
