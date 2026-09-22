@@ -22,7 +22,7 @@ endif
         deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
         tf-plan tf-apply tf-output ssh-public \
         act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \
-        release-push
+        release-push deploy-qr deploy-qr-dry
 
 ## ── оточення ────────────────────────────────────────────────────────────
 
@@ -61,6 +61,8 @@ help:
 	@echo   make admin               адмінка локально на :5174
 	@echo   make deploy-admin-dry    зібрати адмінку й перевірити, не викочуючи
 	@echo   make deploy-admin        викотити адмінку на Cloudflare Workers
+	@echo   make deploy-qr-dry       перевірити воркер QR-наклейки, не викочуючи
+	@echo   make deploy-qr           викотити воркер QR-наклейки на qr.extrovert.cafe
 	@echo   make release-push        залити реліз кіоска в публічний бакет R2
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
@@ -182,6 +184,13 @@ deploy-admin-dry:
 
 deploy-admin:
 	$(BUN) run --filter @extrovert/admin deploy
+
+# qr.extrovert.cafe — лише 302 з наклейки на застосунок (docs/urls.md).
+deploy-qr-dry:
+	$(BUN) run --filter @extrovert/qr deploy:dry
+
+deploy-qr:
+	$(BUN) run --filter @extrovert/qr deploy
 
 # Звичайний шлях релізу — CI; руками це лише для випадку «треба повз нього».
 release-push:

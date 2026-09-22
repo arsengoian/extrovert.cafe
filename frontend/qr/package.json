@@ -1,0 +1,12 @@
+{
+  "name": "@extrovert/qr",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "description": "qr.extrovert.cafe — переадресація з QR-наклейки на застосунок",
+  "scripts": {
+    "dev": "bunx wrangler@4 dev",
+    "deploy": "bunx wrangler@4 deploy",
+    "deploy:dry": "bunx wrangler@4 deploy --dry-run"
+  }
+}

@@ -92,6 +92,10 @@
         "vite": "^6.0.0",
       },
     },
+    "frontend/qr": {
+      "name": "@extrovert/qr",
+      "version": "0.0.1",
+    },
     "frontend/redirect": {
       "name": "@extrovert/redirect",
       "version": "0.0.1",
@@ -199,6 +203,8 @@
     "@extrovert/lib": ["@extrovert/lib@workspace:backend/lib"],
 
     "@extrovert/overseer": ["@extrovert/overseer@workspace:backend/overseer"],
+
+    "@extrovert/qr": ["@extrovert/qr@workspace:frontend/qr"],
 
     "@extrovert/redirect": ["@extrovert/redirect@workspace:frontend/redirect"],
 

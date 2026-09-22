@@ -11,7 +11,8 @@
     "backend/scheduler",
     "frontend/client",
     "frontend/admin",
-    "frontend/redirect"
+    "frontend/redirect",
+    "frontend/qr"
   ],
   "scripts": {
     "up": "docker compose --profile local up -d postgres redis minio minio-buckets",

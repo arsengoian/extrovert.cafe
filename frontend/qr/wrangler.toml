@@ -1,0 +1,21 @@
+# qr.extrovert.cafe — переадресація з QR-наклейки на автоматі (docs/urls.md).
+#
+# Воркер, а не правило переадресації в дашборді: правило живе лише в панелі
+# Cloudflare, і куди веде надрукована адреса, з репозиторію не видно. Тут
+# ціль лежить у git і змінюється деплоєм, як решта коду.
+name = "extrovert-qr"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# На відміну від client і admin, домен записаний одразу: перехоплювати
+# нічого — хоста qr немає навіть у DNS (NXDOMAIN, 22.09.2026), а воркер
+# існує лише заради нього. custom_domain сам заводить DNS-запис і
+# сертифікат. Рядок стоїть до [vars] навмисно: після заголовка таблиці TOML
+# записав би його в vars.routes, і маршрут мовчки не застосувався б.
+routes = [{ pattern = "qr.extrovert.cafe", custom_domain = true }]
+
+[vars]
+APP_ORIGIN = "https://extrovert.cafe"
+
+[observability]
+enabled = true
