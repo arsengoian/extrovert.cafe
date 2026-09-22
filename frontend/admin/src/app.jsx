@@ -1,107 +1,170 @@
-// Адмінка. Зведені числа з api (/admin/overview), перший справжній розділ —
-// «Підтримка» (переписка з Telegram-бота) — і перелік розділів, яких ще
-// немає. Решта навмисно нічого не змінює: кнопка «видалити» без екрана, що
-// пояснює наслідки, небезпечніша за відсутню адмінку.
+// Оболонка адмінки: ліве меню, шапка екрана й маршрут у хеші адреси
+// (design/admin «Admin Screens», docs/admin_panel.md).
+//
+// Роутера тут немає навмисно, як і в застосунку гравця: сімнадцять екранів
+// і жодного вкладеного маршруту — це `location.hash` і `switch`, а не
+// кілобайти бібліотеки. Адреса при цьому справжня: екран можна переслати
+// посиланням, і «назад» працює.
 import { useCallback, useEffect, useState } from "react";
-import { api, devLoginPossible, getToken } from "./api.js";
+import { api, getToken, setToken } from "./api.js";
+import { Login } from "./screens/Login.jsx";
+import { Health } from "./screens/Health.jsx";
+import { Pos } from "./screens/Pos.jsx";
+import { Stats } from "./screens/Stats.jsx";
+import { Quizzes } from "./screens/Quizzes.jsx";
+import { Prices } from "./screens/Prices.jsx";
+import { Deployments } from "./screens/Deployments.jsx";
+import { Problems } from "./screens/Problems.jsx";
 import { Support } from "./Support.jsx";
+import { QuizResponses } from "./screens/QuizResponses.jsx";
+import { Orders } from "./screens/Orders.jsx";
+import { Order } from "./screens/Order.jsx";
+import { Users } from "./screens/Users.jsx";
+import { User } from "./screens/User.jsx";
+import { Receipts } from "./screens/Receipts.jsx";
+import { Video } from "./screens/Video.jsx";
 
-// Список розділів тут, а не в доці: хай заглушка сама каже, чого в ній ще
-// немає.
-const SECTIONS = [
-  ["Точки", "чеки, мовчання автомата, телеметрія"],
-  ["Гравці", "пошук за нікнеймом, історія балансу, бани"],
-  ["Доставки", "замовлення за зерна, статуси Нової Пошти"],
-  ["Економіка", "курс зерна, ціни, ліміти — зараз усе в backend/api/data/economy.json"],
+const I = {
+  health: "M3 12h3l2-5 3 10 2-6 2 3h4",
+  stats: "M4 19V9m5 10V5m5 14v-7m5 7V8",
+  quiz: "M8 9h8M8 13h5M4 5h16v11H9l-5 4V5z",
+  price: "M4 7h16M4 12h16M4 17h10",
+  deploy: "M12 3v12m0 0 4-4m-4 4-4-4M4 19h16",
+  problem: "m12 4 9 16H3L12 4zm0 6v4m0 3h.01",
+  support: "M4 5h16v10H9l-5 4V5z",
+  answers: "M5 6h14M5 12h14M5 18h9",
+  orders: "M4 7h16l-1.5 12h-13L4 7zm4 0a4 4 0 1 1 8 0",
+  users: "M4 20a6 6 0 0 1 12 0M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8",
+  cart: "M3 5h2l2 10h11M9 19a1 1 0 1 0 0-2 1 1 0 0 0 0 2m8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2",
+  video: "M3 7h12v10H3zM15 11l6-3v8l-6-3",
+  events: "m13 3-8 10h6l-2 8 8-10h-6l2-8z",
+  pie: "M12 3v9h9a9 9 0 1 1-9-9z",
+};
+
+// Меню: групи й порядок — як у макеті.
+const MENU = [
+  ["управління", [
+    ["health", "Здоров'я", I.health],
+    ["stats", "Статистика", I.stats],
+    ["quizzes", "Опитування", I.quiz],
+  ]],
+  ["операційка", [
+    ["prices", "Ціни", I.price],
+    ["deployments", "Деплойменти", I.deploy],
+    ["problems", "Проблеми", I.problem, "problems_open"],
+    ["support", "Підтримка", I.support, "support_waiting"],
+    ["quiz-responses", "Відповіді", I.answers, "quiz_week"],
+    ["orders", "Замовлення", I.orders, "orders_open"],
+  ]],
+  ["користувачі", [
+    ["users", "Користувачі", I.users],
+    ["receipts", "Покупки", I.cart],
+  ]],
+  ["відео", [
+    ["video", "Записи", I.video],
+    ["video/events", "Події", I.events],
+    ["video/analytics", "Аналітика", I.pie],
+  ]],
 ];
 
-export function App() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
+const route = () => {
+  const raw = window.location.hash.replace(/^#\/?/, "") || "health";
+  const [head, ...rest] = raw.split("/");
+  if (head === "video") return { name: rest[0] ? `video/${rest[0]}` : "video", arg: null };
+  return { name: head, arg: rest.join("/") || null };
+};
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      setData(await api.overview());
-    } catch (e) {
-      setData(null);
-      setError(e.status === 401 ? "unauthorized" : e.message);
-    }
+export const go = (path) => { window.location.hash = `#/${path}`; };
+
+function Screen({ name, arg, counts }) {
+  switch (name) {
+    case "health": return <Health />;
+    case "pos": return <Pos id={arg} />;
+    case "stats": return <Stats />;
+    case "quizzes": return <Quizzes />;
+    case "prices": return <Prices />;
+    case "deployments": return <Deployments />;
+    case "problems": return <Problems />;
+    case "support": return <Support />;
+    case "quiz-responses": return <QuizResponses />;
+    case "orders": return arg ? <Order id={arg} /> : <Orders />;
+    case "users": return arg ? <User id={arg} /> : <Users />;
+    case "receipts": return <Receipts />;
+    case "video": case "video/events": case "video/analytics": return <Video tab={name.split("/")[1] ?? "segments"} />;
+    default: return <Health />;
+  }
+}
+
+export function App() {
+  const [admin, setAdmin] = useState(null);
+  const [booting, setBooting] = useState(true);
+  const [counts, setCounts] = useState({});
+  const [at, setAt] = useState(route());
+
+  useEffect(() => {
+    const onHash = () => { setAt(route()); window.scrollTo(0, 0); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  useEffect(() => { if (getToken()) load(); else setError("unauthorized"); }, [load]);
+  useEffect(() => {
+    // Кука жива — заходимо без екрана входу; ні — показуємо його.
+    api.restore()
+      .then(setAdmin)
+      .catch(() => { if (getToken()) setToken(null); })
+      .finally(() => setBooting(false));
+  }, []);
 
-  const devLogin = async () => {
-    setBusy(true);
-    try {
-      await api.devLogin();
-      await load();
-    } catch (e) {
-      setError(e.status === 404 ? "девелоперський вхід вимкнений на цьому api" : e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
+  const loadCounts = useCallback(() => {
+    api.overview()
+      .then((o) => setCounts(Object.fromEntries((o.counts ?? []).map((c) => [c.key, c.value]))))
+      .catch(() => {});
+  }, []);
+  useEffect(() => { if (admin) loadCounts(); }, [admin, at.name, loadCounts]);
+
+  if (booting) return <div className="login" />;
+  if (!admin) return <Login onIn={setAdmin} />;
+
+  const initials = (admin.email ?? "?").slice(0, 2).toUpperCase();
 
   return (
-    <div className="wrap">
-      <h1>Адмінка</h1>
-      <p className="muted">
-        Статика на Workers, дані з api, як і в застосунку гравця. Поки що —
-        зведені числа й підтримка; решта розділів нижче.
-      </p>
+    <div className="shell">
+      <aside className="side">
+        <div className="brand">
+          <span className="brand-mark" />
+          <span><b>extrovert.cafe</b><small>АДМІНКА</small></span>
+        </div>
 
-      {error === "unauthorized" && (
-        <>
-          <h2>Вхід</h2>
-          <p className="muted">
-            Справжнього входу ще немає: він зʼявиться разом із першими екранами —
-            пошта з паролем із <code>admin_users</code> або той самий Google.
-          </p>
-          {devLoginPossible && (
-            <div className="row">
-              <button className="btn" onClick={devLogin} disabled={busy}>
-                {busy ? "заходимо…" : "Девелоперський вхід"}
+        {MENU.map(([group, items]) => (
+          <nav className="side-group" key={group}>
+            <div className="side-title">{group.toUpperCase()}</div>
+            {items.map(([name, title, icon, countKey]) => (
+              <button
+                key={name}
+                className="side-item"
+                aria-current={at.name === name ? "page" : undefined}
+                onClick={() => go(name)}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>
+                {title}
+                {countKey && counts[countKey] > 0 && <span className="count">{counts[countKey]}</span>}
               </button>
-              <span className="muted">працює лише проти локального api</span>
-            </div>
-          )}
-        </>
-      )}
-
-      {error && error !== "unauthorized" && <p className="muted">Не вдалось: {error}</p>}
-
-      {data && (
-        <>
-          <div className="grid">
-            {data.counts.map((c) => (
-              <div className="card" key={c.key}>
-                <div className="n">{c.value === null ? "—" : c.value}</div>
-                <div className="muted">{c.label}</div>
-              </div>
             ))}
-          </div>
-          <div className="row">
-            <button className="btn" onClick={load}>Оновити</button>
-            <button className="btn" onClick={() => { api.logout(); setData(null); setError("unauthorized"); }}>
-              Вийти
-            </button>
-            <span className="muted">{new Date(data.at).toLocaleTimeString("uk-UA")}</span>
-          </div>
-        </>
-      )}
-
-      {data && <Support />}
-
-      <h2>Що тут буде</h2>
-      <ul>
-        {SECTIONS.map(([name, what]) => (
-          <li key={name}>
-            <b>{name}</b> — <span className="muted">{what}</span>
-          </li>
+          </nav>
         ))}
-      </ul>
+
+        <div className="side-foot">
+          <span className="who">{initials}</span>
+          <span>
+            <b>{admin.email}</b>
+            <button onClick={() => api.logout().finally(() => setAdmin(null))}>вийти</button>
+          </span>
+        </div>
+      </aside>
+
+      <main>
+        <Screen name={at.name} arg={at.arg} counts={counts} />
+      </main>
     </div>
   );
 }

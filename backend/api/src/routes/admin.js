@@ -7,10 +7,28 @@
 // зʼявиться разом із першими екранами — і тоді тут стане більше роутів, а
 // не більше сервісів.
 import { pool, one } from "../db.js";
+import { redisClient } from "@extrovert/lib/redis.js";
 import { requireAdmin, signToken } from "../auth.js";
+import { verifyPassword } from "../admin-auth.js";
 import { DEV } from "../env.js";
+import { fail } from "../errors.js";
+import { ADMIN_COOKIE, clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie } from "../session.js";
 
-const ADMIN_TOKEN_TTL_S = 12 * 60 * 60;
+const redis = redisClient();
+// Перебір пароля впирається в лічильник у Redis, а не в базу
+// (docs/services.md §3): десять невдалих спроб на адресу — і чверть години
+// пауза. Лічильник живе у вікні, тож забутий пароль не блокує назавжди.
+const LOGIN_TRIES = 10;
+const LOGIN_WINDOW_S = 15 * 60;
+
+async function issueAdmin(reply, admin) {
+  const { id, ttl } = await createSession(admin.id, { admin: true });
+  reply.header("set-cookie", sessionCookie(id, ttl, { name: ADMIN_COOKIE }));
+  return {
+    token: signToken(`admin:${admin.id}`, admin.role),
+    admin: { id: admin.id, email: admin.email, role: admin.role },
+  };
+}
 
 // Лічильники навмисно прості й незалежні один від одного: якщо котрийсь
 // запит упаде (стара база, перейменована колонка), решта однаково
@@ -21,6 +39,8 @@ const COUNTS = [
   ["problems_open", "скарг відкритих", "select count(*)::int as n from problem_reports where status <> 'closed'"],
   ["listings_active", "лотів на маркеті", "select count(*)::int as n from market_listings where status = 'active'"],
   ["support_waiting", "звернень без відповіді", "select count(*)::int as n from support_threads where status = 'open' and last_user_at > coalesce(last_admin_at, 'epoch')"],
+  ["orders_open", "замовлень у роботі", "select count(*)::int as n from redemptions where status in ('new', 'printing', 'packing')"],
+  ["quiz_week", "відповідей за тиждень", "select (select count(*) from quiz_profile_responses where created_at > now() - interval '7 days') + (select count(*) from quiz_drink_responses where created_at > now() - interval '7 days') as n"],
 ];
 
 export default async function routes(app) {
@@ -95,6 +115,57 @@ export default async function routes(app) {
     return { ...deployment, points, ad };
   });
 
+  // Вхід адміна: пошта й пароль із admin_users. Форми «зареєструватися»
+  // немає ніде — адміна заводить scripts/admin.mjs.
+  app.post("/admin/login", async (req, reply) => {
+    const email = String(req.body?.email ?? "").trim().toLowerCase();
+    const password = String(req.body?.password ?? "");
+    if (!email || !password) fail(400, "bad_credentials");
+
+    const key = `admin:login:fail:${email}`;
+    if (Number(await redis.get(key)) >= LOGIN_TRIES) fail(429, "too_many_tries");
+
+    const admin = await one("select * from admin_users where email = $1", [email]);
+    // Однакова відповідь на «немає такого» й «пароль не той»: інакше форма
+    // входу розповідала б, які адреси заведені.
+    const ok = admin && !admin.disabled_at && (await verifyPassword(password, admin.password_hash));
+    if (!ok) {
+      await redis.multi().incr(key).expire(key, LOGIN_WINDOW_S).exec();
+      fail(401, "bad_credentials");
+    }
+    await redis.del(key);
+    await pool.query("update admin_users set last_login_at = now() where id = $1", [admin.id]);
+    return issueAdmin(reply, admin);
+  });
+
+  // Обмін куки на свіжий токен — як у гравця, але сесія адміна не ковзна:
+  // 12 годин, і по тому вхід ще раз.
+  app.post("/admin/refresh", async (req, reply) => {
+    const sid = cookieFrom(req, ADMIN_COOKIE);
+    const session = await readSession(sid);
+    if (!session?.admin) {
+      reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
+      return reply.code(401).send({ error: "no_session" });
+    }
+    const admin = await one("select id, email, role, disabled_at from admin_users where id = $1", [session.user]);
+    // Вимкнений адмін не оновлює сесію: доступ зникає за ≤15 хвилин.
+    if (!admin || admin.disabled_at) {
+      await dropSession(sid);
+      reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
+      return reply.code(401).send({ error: "disabled" });
+    }
+    return {
+      token: signToken(`admin:${admin.id}`, admin.role),
+      admin: { id: admin.id, email: admin.email, role: admin.role },
+    };
+  });
+
+  app.post("/admin/logout", async (req, reply) => {
+    await dropSession(cookieFrom(req, ADMIN_COOKIE));
+    reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
+    return { ok: true };
+  });
+
   // Девелоперський вхід в адмінку — рівно як /auth/dev для гравця й з тією
   // самою умовою (env.js): у проді його немає.
   app.post("/admin/dev-login", async (req, reply) => {
@@ -107,12 +178,8 @@ export default async function routes(app) {
         ["dev@extrovert.cafe"]
       ));
 
-    // Куки тут немає навмисно: оновлювати цей токен нікому, а 12 годин —
-    // це рівно одна зміна. Коли зʼявиться справжній вхід, разом із ним
-    // прийде й сесія (session.js уже вміє admin-сесії).
-    return {
-      token: signToken(`admin:${admin.id}`, "owner", {}, ADMIN_TOKEN_TTL_S),
-      admin: { id: admin.id, email: admin.email, role: admin.role },
-    };
+    // Сесія така сама, як у справжнього входу: перезавантаження сторінки
+    // локально не має викидати на екран входу.
+    return issueAdmin(reply, admin);
   });
 }

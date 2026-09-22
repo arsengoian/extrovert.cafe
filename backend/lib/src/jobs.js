@@ -44,6 +44,17 @@ export async function writeCursor(pool, name, { cursorAt = null, error = null } 
 // Це і є вся «плавна зупинка» фонового сервіса — робота, яку вбили
 // посередині, лишає по собі взяте блокування й недописаний курсор, тобто
 // наступний запуск або дублює зроблене, або пропускає його.
+// Сервіс без порту не пропінгуєш ззовні, тож він сам лишає по собі
+// позначку: hb:<сервіс> з TTL удвічі більшим за інтервал. Немає позначки —
+// немає сервісу (backend/overseer/src/health.js).
+export function heartbeat(redis, name, ms = 60_000) {
+  const beat = () => redis.set(`hb:${name}`, new Date().toISOString(), "EX", Math.ceil((ms * 2) / 1000)).catch(() => {});
+  beat();
+  const timer = setInterval(beat, ms);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
 export function every(ms, name, fn, log) {
   let stopped = false;
   // Пауза має вміти прокидатись: інакше зупинка scheduler чекала б до

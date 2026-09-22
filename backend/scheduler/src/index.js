@@ -10,7 +10,7 @@ import { pool } from "@extrovert/lib/db.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
-import { every, withLock } from "@extrovert/lib/jobs.js";
+import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { publishOutbox } from "./jobs/outbox.js";
 import { flushImpressions } from "./jobs/impressions.js";
 import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
@@ -37,6 +37,9 @@ const JOBS = [
   { name: "db-backup", every: HOUR, ttl: 50 * MINUTE, run: () => backupDatabase({ log }) },
 ];
 
+// Порту в scheduler немає — про те, що він живий, каже позначка в Redis.
+const stopBeat = heartbeat(redis, "scheduler");
+
 const stops = JOBS.map((job) =>
   every(job.every, job.name, async () => {
     const { skipped, result } = await withLock(redis, job.name, job.ttl, job.run);
@@ -50,7 +53,7 @@ log.info("scheduler піднявся", { jobs: JOBS.map((j) => j.name) });
 // stop() тепер чекає, поки поточний прохід роботи допрацює: робота,
 // вбита посередині, лишає по собі взяте блокування й недописаний курсор.
 onShutdown({
-  "роботи": () => Promise.all(stops.map((stop) => stop())),
+  "роботи": () => { stopBeat(); return Promise.all(stops.map((stop) => stop())); },
   "redis": () => closeRedis(),
   "postgres": () => pool.end(),
 }, { log, timeoutMs: 40_000 });

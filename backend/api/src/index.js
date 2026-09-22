@@ -27,6 +27,8 @@ import legalRoutes from "./routes/legal.js";
 import deliveryRoutes from "./routes/delivery.js";
 import accountRoutes from "./routes/account.js";
 import adminRoutes from "./routes/admin.js";
+import adminOpsRoutes from "./routes/admin-ops.js";
+import adminDataRoutes from "./routes/admin-data.js";
 import paymentRoutes from "./routes/payments.js";
 import supportRoutes from "./routes/support.js";
 import { ensureWebhook } from "./support/telegram.js";
@@ -89,6 +91,8 @@ await app.register(legalRoutes, { prefix: "/api/v1" });
 await app.register(deliveryRoutes, { prefix: "/api/v1" });
 await app.register(accountRoutes, { prefix: "/api/v1" });
 await app.register(adminRoutes, { prefix: "/api/v1" });
+await app.register(adminOpsRoutes, { prefix: "/api/v1" });
+await app.register(adminDataRoutes, { prefix: "/api/v1" });
 await app.register(paymentRoutes, { prefix: "/api/v1" });
 await app.register(supportRoutes, { prefix: "/api/v1" });
 

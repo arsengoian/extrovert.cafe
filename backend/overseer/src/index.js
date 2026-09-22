@@ -11,8 +11,9 @@ import { pool } from "@extrovert/lib/db.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
-import { every, withLock } from "@extrovert/lib/jobs.js";
+import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { checkPoints, checkWebhook, dailyReport } from "./checks.js";
+import { sampleHealth } from "./health.js";
 import { send } from "./telegram.js";
 
 const log = makeLog("overseer");
@@ -66,7 +67,15 @@ async function reportTick() {
   await send(await dailyReport(pool), { log });
 }
 
+const stopBeat = heartbeat(redis, "overseer");
+
 const stops = [
+  // Проби здоровʼя для адмінки. Частіше за алерти: відро півгодинне, і
+  // кілька проб у ньому — це різниця між «моргнуло» й «лежало».
+  every(2 * MINUTE, "health-samples", async () => {
+    const { skipped } = await withLock(redis, "health-samples", 110_000, () => sampleHealth({ pool, redis, log }));
+    if (skipped) log.info("проби здоровʼя вже йдуть в іншій копії");
+  }, log),
   every(INTERVAL, "overseer-checks", async () => {
     const { skipped } = await withLock(redis, "overseer-checks", INTERVAL - 1000, tick);
     if (skipped) log.info("перевірки вже йдуть в іншій копії");
@@ -77,7 +86,7 @@ const stops = [
 log.info("overseer піднявся", { intervalMs: INTERVAL, telegram: Boolean(process.env.TELEGRAM_BOT_TOKEN) });
 
 onShutdown({
-  "перевірки": () => Promise.all(stops.map((stop) => stop())),
+  "перевірки": () => { stopBeat(); return Promise.all(stops.map((stop) => stop())); },
   "redis": () => closeRedis(),
   "postgres": () => pool.end(),
 }, { log, timeoutMs: 30_000 });

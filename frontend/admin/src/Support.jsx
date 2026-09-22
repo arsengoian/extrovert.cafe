@@ -105,17 +105,23 @@ export function Support() {
 
   return (
     <section>
-      <h2>Підтримка</h2>
-      {list && !list.connected && (
-        <p className="muted">Бот підтримки не підключений: без SUPPORT_BOT_TOKEN повідомлення не приходять і відповіді не йдуть.</p>
-      )}
-      <div className="row">
-        {[["open", "Відкриті"], ["closed", "Закриті"]].map(([s, label]) => (
-          <button key={s} className={`btn${status === s ? " on" : ""}`} onClick={() => { setStatus(s); setOpen(null); }}>{label}</button>
-        ))}
-        <button className="btn" onClick={load}>Оновити</button>
-        {error && <span className="muted">Не вдалось: {error}</span>}
+      <div className="head">
+        <div>
+          <h1>Підтримка · Telegram</h1>
+          <p>
+            {list && !list.connected
+              ? "Бот не підключений: без SUPPORT_BOT_TOKEN повідомлення не приходять і відповіді не йдуть"
+              : "розмови з бота · відповідь іде гравцю в Telegram від імені бота"}
+          </p>
+        </div>
+        <div className="right">
+          {[["open", "Відкриті"], ["closed", "Закриті"]].map(([s, label]) => (
+            <button key={s} className={`btn${status === s ? " primary" : ""}`} onClick={() => { setStatus(s); setOpen(null); }}>{label}</button>
+          ))}
+          <button className="btn" onClick={load}>Оновити</button>
+        </div>
       </div>
+      {error && <p className="muted">Не вдалось: {error}</p>}
       <div className="support">
         <ul className="threads">
           {list?.threads.length === 0 && <li className="muted">Порожньо</li>}

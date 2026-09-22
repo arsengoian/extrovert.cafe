@@ -18,6 +18,10 @@ const redis = redisClient();
 const PLAYER_IDLE_S = 180 * 24 * 60 * 60;   // 180 діб без жодного оновлення
 const ADMIN_TTL_S = 12 * 60 * 60;           // 12 годин і не продовжується
 export const COOKIE = "sid";
+// Адмінка живе на сусідньому домені, але кука — на api.extrovert.cafe, тож
+// імʼя має бути своє: інакше вхід в адмінку з того самого браузера
+// перезаписував би сесію гравця (і навпаки).
+export const ADMIN_COOKIE = "asid";
 
 const key = (id) => `sess:${id}`;
 // Усі сесії гравця: видалення акаунта має гасити вхід на кожному пристрої,
@@ -68,9 +72,9 @@ export async function dropUserSessions(userId) {
 
 // Кука ставиться на шлях /api, бо більше нікуди вона не їде. Secure лише
 // поза локалкою: на http://localhost браузер таку куку просто викине.
-export function sessionCookie(id, ttl, { secure = PROD } = {}) {
+export function sessionCookie(id, ttl, { secure = PROD, name = COOKIE } = {}) {
   const parts = [
-    `${COOKIE}=${id}`,
+    `${name}=${id}`,
     "Path=/api",
     "HttpOnly",
     "SameSite=Lax",
@@ -80,14 +84,14 @@ export function sessionCookie(id, ttl, { secure = PROD } = {}) {
   return parts.join("; ");
 }
 
-export const clearCookie = () => `${COOKIE}=; Path=/api; HttpOnly; SameSite=Lax; Max-Age=0`;
+export const clearCookie = (name = COOKIE) => `${name}=; Path=/api; HttpOnly; SameSite=Lax; Max-Age=0`;
 
-export function cookieFrom(req) {
+export function cookieFrom(req, want = COOKIE) {
   const raw = req.headers.cookie;
   if (!raw) return null;
   for (const part of raw.split(";")) {
     const [name, ...rest] = part.trim().split("=");
-    if (name === COOKIE) return rest.join("=");
+    if (name === want) return rest.join("=");
   }
   return null;
 }
