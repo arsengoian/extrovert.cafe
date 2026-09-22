@@ -1,0 +1,26 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="130" viewBox="500 220 200 130" fill="#F2EFE6">
+  <!-- Змінна частина попапу: плитки «+монети» і «секретний предмет».
+       Координати — ті самі, що в popup.svg (1200×888), а viewBox вирізає з
+       них лише смугу x 500..700, y 220..350, де плитки живуть: popup.c малює
+       цю поверхню поверх готової основи в точці (500, 220). Так на кожен
+       бонус Pi 1 рендерить 200×130 замість цілого попапа. QR (центр 844,696)
+       popup.c домальовує прямим Cairo — чому не SVG, пояснено в qr.h. -->
+  <defs>
+    <radialGradient id="tileEpic" cx="0.5" cy="0.35" r="0.72">
+      <stop offset="0" stop-color="#B07CFF" stop-opacity="0.55"></stop>
+      <stop offset="0.7" stop-color="#B07CFF" stop-opacity="0.16"></stop>
+      <stop offset="1" stop-color="#B07CFF" stop-opacity="0.1"></stop>
+    </radialGradient>
+  </defs>
+
+  <g transform="translate(600 226)">
+    <!-- COIN_TILE_TX: -52, коли поруч плитка предмета, інакше 0 (по центру). -->
+    <g transform="translate({{COIN_TILE_TX}} 0)">
+      <rect x="-36" y="0" width="72" height="72" rx="17" ry="17" fill="#1B1F24" stroke="#F2EFE6" stroke-opacity="0.12" stroke-width="1.5"></rect>
+      <image x="-28" y="7" width="56" height="58" preserveAspectRatio="xMidYMid meet" href="{{ASSETS}}/ui/coin_gold.png" xlink:href="{{ASSETS}}/ui/coin_gold.png"></image>
+      <!-- У макеті font-weight 800; Extro800 не існує, браузер брав 1000. -->
+      <text x="0" y="99.9" text-anchor="middle" font-family="Extro1000" font-size="18" fill="#F2EFE6">+{{COINS}}</text>
+    </g>
+    {{SECRET_TILE}}
+  </g>
+</svg>

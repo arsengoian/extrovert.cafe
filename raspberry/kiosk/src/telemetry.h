@@ -23,7 +23,7 @@ typedef struct {
     int sock_fd;                /* слухаючий UNIX-сокет, -1 якщо вимкнено */
 } telemetry_t;
 
-/* path — напр. /tmp/pos-native.sock. NULL/"" — телеметрія працює, але без
+/* path — напр. /tmp/kiosk.sock. NULL/"" — телеметрія працює, але без
  * сокета (лічильник у памʼяті все одно ведеться, знадобиться для HUD). */
 void telemetry_init(telemetry_t *t, const char *sock_path);
 

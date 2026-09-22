@@ -2,8 +2,8 @@
  * справжніх SVG-шаблонів (svgtpl.c/h, assets/templates/) замість
  * ручних Cairo-викликів. Тут лишились: (1) дві точки входу, що збирають
  * і рендерять шаблони, (2) текстові хелпери, спільні з bonus.c (bonus.c
- * досі малює прямим Cairo — смугу прогресу й попап, бо це або рухається
- * щосекунди, або ще не має дизайну). */
+ * досі малює прямим Cairo смугу прогресу й відлік — вони змінюються
+ * щосекунди). Попап — окремо, popup.c. */
 #ifndef POS_NATIVE_RENDER_H
 #define POS_NATIVE_RENDER_H
 
@@ -35,11 +35,6 @@ void draw_text_vc(cairo_t *cr, double x, double y_center, const char *font_spec,
                    double r, double g, double b, const char *text);
 void draw_text_vc_ellipsized(cairo_t *cr, double x, double y_center, const char *font_spec,
                               double r, double g, double b, const char *text, double max_w);
-
-/* Панель попапу POPUP_W×POPUP_H, прозорий фон. Дизайну під бонус-попап ще
- * нема (bonus.c:render_bonus_popup) — цей лишається generic-варіантом
- * для демо-циклу (POPUP=1/SIGUSR1). */
-cairo_surface_t *render_popup(const char *title, const char *text);
 
 /* Плашка "оновлення" в шапці (update.h). Ширина рахується з тексту, тому
  * повертається через *out_w — композитор має знати квад, у який класти

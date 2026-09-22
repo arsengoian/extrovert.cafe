@@ -1,0 +1,59 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="888" viewBox="0 0 1200 888" fill="#F2EFE6">
+  <!-- Попап «бонус нараховано» — design/monitor-menu/Monitor Menu SVG.dc.html,
+       група sc-if showPopup, без translate(360 96): кіоск сам центрує квад
+       на сцені (main.c), а затемнення під ним — окремий GL-квад на весь
+       екран, не частина цієї текстури.
+
+       Тут лише СТАТИЧНЕ: панель, заголовки, кавенятко, бульбашка, кільце під
+       QR. Рендериться один раз на старті (popup.c). Плитки монет/предмета й
+       сам QR щоразу інші — вони в popup_bonus.svg і домальовуються поверх.
+
+       y текстів — базова лінія, не центр: dominant-baseline="central" librsvg
+       2.40 не рендерить, тож y зсунуто на (ascent-descent)/2 = 0,329 кегля
+       (hhea Extro: 1011/-353), як і в решті шаблонів (29.08.2026). -->
+  <defs>
+    <linearGradient id="popTint" x1="0" y1="0" x2="0.55" y2="1">
+      <stop offset="0" stop-color="#FE810B" stop-opacity="0.085"></stop>
+      <stop offset="0.5" stop-color="#FE810B" stop-opacity="0"></stop>
+      <stop offset="1" stop-color="#FF2D6F" stop-opacity="0.075"></stop>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0.5" x2="1" y2="0.42">
+      <stop offset="0.08" stop-color="#FE810B"></stop>
+      <stop offset="0.88" stop-color="#FF2D6F"></stop>
+    </linearGradient>
+    <radialGradient id="popGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FE810B" stop-opacity="0.16"></stop>
+      <stop offset="1" stop-color="#FE810B" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="888" rx="34" ry="34" fill="#0B0D10"></rect>
+  <rect x="0" y="0" width="1200" height="888" rx="34" ry="34" fill="url(#popTint)"></rect>
+  <rect x="0.75" y="0.75" width="1198.5" height="886.5" rx="33.25" ry="33.25" fill="none" stroke="#F2EFE6" stroke-opacity="0.1" stroke-width="1.5"></rect>
+
+  <text x="600" y="125.1" text-anchor="middle" font-family="Extro1000" font-size="52" fill="#F2EFE6">Кава готується</text>
+  <text x="600" y="185.9" text-anchor="middle" font-family="Extro700" font-size="30" fill="url(#ring)">А тобі — бонус!</text>
+
+  <g transform="translate(0 424)">
+    <ellipse cx="600" cy="158" rx="248" ry="206" fill="url(#popGlow)"></ellipse>
+    <!-- 396² уже на диску (tools/import-ui-assets.mjs): оригінал 1024²
+         довелося б масштабувати на Pi 1 при кожному рендері. -->
+    <image x="402" y="-40" width="396" height="396" preserveAspectRatio="xMidYMid meet" href="{{ASSETS}}/ui/hero_bush.png" xlink:href="{{ASSETS}}/ui/hero_bush.png"></image>
+
+    <!-- Бульбашка: верхній лівий кут — дуга r22 з (0,22) у (8,0), тобто
+         м'який «хвостик» у бік кавенятка. -->
+    <g transform="translate(742 20)">
+      <path d="M8 0h404a8 8 0 0 1 8 8v96a22 22 0 0 1-22 22H22A22 22 0 0 1 0 104V22A22 22 0 0 1 8 0Z" fill="#12151A" fill-opacity="0.94"></path>
+      <path d="M8 0.75h404a7.25 7.25 0 0 1 7.25 7.25v96a21.25 21.25 0 0 1-21.25 21.25H22A21.25 21.25 0 0 1 0.75 104V22A21.25 21.25 0 0 1 8 0.75Z" fill="none" stroke="#F2EFE6" stroke-opacity="0.12" stroke-width="1.5"></path>
+      <text x="24" y="34.3" font-family="Extro700" font-size="13" letter-spacing="2" fill="#FE810B">ТВОЄ КАВЕНЯТКО</text>
+      <text x="24" y="69.6" font-family="Extro400" font-size="17" fill="#F2EFE6">Бонус зникне з екрана за 2 хвилини.</text>
+      <text x="24" y="96.6" font-family="Extro400" font-size="17" fill="#F2EFE6">Проскануй або сфотографуй, щоб не втратити.</text>
+    </g>
+
+    <!-- Кільце під QR. Самі модулі — у popup_bonus.svg (центр 844,696). -->
+    <g transform="translate(844 272)">
+      <circle cx="0" cy="0" r="102" fill="url(#ring)"></circle>
+      <circle cx="0" cy="0" r="94" fill="#08090B"></circle>
+    </g>
+  </g>
+</svg>

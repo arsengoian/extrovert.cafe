@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Запит телеметрії pos-native через UNIX-сокет.
+"""Запит телеметрії кіоска через UNIX-сокет.
 
 Сокет — request/response: підключився, отримав один рядок JSON, зʼєднання
 закрилось. Той самий принцип, яким раніше знімався fps з Chromium через
@@ -24,7 +24,7 @@ def query(path):
 
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    path = args[0] if args else "/tmp/pos-native.sock"
+    path = args[0] if args else "/tmp/kiosk.sock"
     watch = "--watch" in sys.argv
     interval = float(args[1]) if watch and len(args) > 1 else 1.0
 

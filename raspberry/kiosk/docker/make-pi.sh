@@ -12,7 +12,7 @@
 # свого часу відхилили. Ціна — QEMU: збірка триває хвилини замість секунд,
 # але процесор при цьому чужий, не той, що показує меню.
 #
-#   ./docker/make-pi.sh              # bin/pos-native-pi
+#   ./docker/make-pi.sh              # bin/kiosk
 #   ./docker/make-pi.sh clean pi     # свої цілі make
 #
 # Образ збереться сам при першому запуску. Потрібен binfmt для armv6:
@@ -21,7 +21,7 @@ set -eu
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/.." && pwd)
-IMAGE=${IMAGE:-pos-native-pi-builder}
+IMAGE=${IMAGE:-kiosk-pi-builder}
 
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
     echo "== образу $IMAGE немає, збираю (перший раз — кілька хвилин)"
@@ -35,7 +35,7 @@ docker image inspect "$IMAGE" >/dev/null 2>&1 || {
 # Windows не переписав /work у C:\Program Files\Git\work.
 MSYS_NO_PATHCONV=1 docker run --rm -v "$ROOT":/work -w /work "$IMAGE" make "$@"
 
-BIN="$ROOT/bin/pos-native-pi"
+BIN="$ROOT/bin/kiosk"
 if [ -x "$BIN" ] && command -v file >/dev/null 2>&1; then
     file "$BIN" | grep -q ARM || {
         echo "✗ $BIN не ARM — зібралось не тим компілятором" >&2; exit 1; }

@@ -32,6 +32,11 @@ typedef struct {
     int coins;
     char claim_token[64];     /* із нього кіоск робить QR */
     int expires_in_s;
+    /* Скільки предметів випало разом із бонусом (плитка «секретний предмет»
+     * у попапі). -1 — поля в події немає: checkbox його ще не шле
+     * (receipts.js не заповнює bonus_grants.items), і тоді кіоск вгадує
+     * з меню — bonus.c. Приймається число або масив (тоді — його довжина). */
+    int items;
 } ws_event_t;
 
 typedef struct ws_client ws_client_t;

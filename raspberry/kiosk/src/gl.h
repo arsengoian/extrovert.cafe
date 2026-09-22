@@ -8,6 +8,7 @@
 
 #include <GLES2/gl2.h>
 #include <cairo/cairo.h>
+#include <stdbool.h>
 
 typedef struct {
     GLuint id;
@@ -44,6 +45,9 @@ void gl_draw_quad(gl_compositor_t *c, const gl_texture_t *tex,
                    double dst_x, double dst_y, double dst_w, double dst_h,
                    double alpha);
 
-void gl_clear(void);
+/* transparent=true — прозорий кадр: dispmanx складає шар кіоска з
+ * попіксельною альфою, тож крізь нього видно те, що нижче (запасну картинку
+ * fbi у фреймбуфері або старшу копію кіоска на overlap-підміні). */
+void gl_clear(bool transparent);
 
 #endif

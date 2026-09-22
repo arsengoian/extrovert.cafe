@@ -8,35 +8,6 @@
 #include <time.h>
 #include <math.h>
 
-static cairo_surface_t *g_coin_png = NULL;
-
-/* Лишається для render_bonus_popup() — єдиний споживач coin.png через
- * прямий Cairo, що лишився. bonus_row.svg/bonus_empty.svg тепер тягнуть
- * coin.png сам через <image>, без участі цього коду. */
-static void ensure_coin_loaded(const char *assets_dir) {
-    if (g_coin_png) return;
-    char path[1024];
-    snprintf(path, sizeof(path), "%s/coin.png", assets_dir);
-    g_coin_png = cairo_image_surface_create_from_png(path);
-    if (cairo_surface_status(g_coin_png) != CAIRO_STATUS_SUCCESS) {
-        fprintf(stderr, "bonus: не завантажив %s\n", path);
-        cairo_surface_destroy(g_coin_png);
-        g_coin_png = NULL;
-    }
-}
-
-static void draw_png_scaled(cairo_t *cr, cairo_surface_t *png, double x, double y, double w, double h) {
-    if (!png) return;
-    int pw = cairo_image_surface_get_width(png), ph = cairo_image_surface_get_height(png);
-    if (pw <= 0 || ph <= 0) return;
-    cairo_save(cr);
-    cairo_translate(cr, x, y);
-    cairo_scale(cr, w / pw, h / ph);
-    cairo_set_source_surface(cr, png, 0, 0);
-    cairo_paint(cr);
-    cairo_restore(cr);
-}
-
 /* -------- смуга прогресу: єдине, що перемальовується щокадру --------
  * Локальні координати (0,0)-(BONUS_BAR_W,BONUS_BAR_H) — зсув у рядку
  * (BONUS_BAR_X/Y) застосовується тільки при композитингу (bonus_draw),
@@ -94,7 +65,12 @@ static cairo_surface_t *render_row_timer(int sec) {
     if (h < 1) h = 1;
     cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
     cairo_t *cr = cairo_create(s);
-    draw_text(cr, 0, 0, font, TEXT_MUTED_R, TEXT_MUTED_G, TEXT_MUTED_B, txt);
+    /* Останні пів хвилини — рожевим акцентом, як у макеті: клієнт має
+     * встигнути помітити, що бонус от-от зникне. */
+    if (sec < BONUS_URGENT_S)
+        draw_text(cr, 0, 0, font, ACCENT2_R, ACCENT2_G, ACCENT2_B, txt);
+    else
+        draw_text(cr, 0, 0, font, TIMER_FG_R, TIMER_FG_G, TIMER_FG_B, txt);
     cairo_destroy(cr);
     return s;
 }
@@ -130,15 +106,41 @@ static cairo_surface_t *render_row_chrome(const bonus_row_t *row, const char *as
     char pill_w_s[16];
     snprintf(pill_w_s, sizeof(pill_w_s), "%.1f", pill_w);
 
-    const char *keys[] = { "ASSETS", "IMG", "NAME", "EARNED_AT", "COIN_PILL_W", "COINS" };
-    const char *vals[] = { assets_dir, img, name, row->earned_at, pill_w_s, coin_text };
-    char *full = svgtpl_sub(tpl, keys, vals, 6);
+    /* Бейдж-подарунок стоїть одразу за пігулкою, тому його x залежить від
+     * тієї самої виміряної ширини (8,5 — відступ із макета). */
+    char *badge = NULL;
+    if (row->secret) {
+        char bpath[1024];
+        snprintf(bpath, sizeof(bpath), "%s/templates/bonus_secret.svg", assets_dir);
+        char *btpl = svgtpl_load(bpath);
+        if (btpl) {
+            char bx[16];
+            snprintf(bx, sizeof(bx), "%.1f", BONUS_COIN_PILL_X + pill_w + BONUS_SECRET_GAP);
+            const char *bkeys[] = { "X" };
+            const char *bvals[] = { bx };
+            badge = svgtpl_sub(btpl, bkeys, bvals, 1);
+            free(btpl);
+        }
+    }
+
+    const char *keys[] = { "ASSETS", "IMG", "NAME", "EARNED_AT", "COIN_PILL_W", "COINS", "SECRET_BADGE" };
+    const char *vals[] = { assets_dir, img, name, row->earned_at, pill_w_s, coin_text,
+                           badge ? badge : "" };
+    char *full = svgtpl_sub(tpl, keys, vals, 7);
     free(tpl);
     free(name);
+    free(badge);
     if (!full) return NULL;
 
     cairo_surface_t *surf = svgtpl_render(full, (int)BONUS_ROW_W, (int)BONUS_ROW_H, assets_dir);
     free(full);
+    /* QR — поверх SVG-шару прямим Cairo, в ту саму поверхню: одна текстура
+     * на рядок, а не рядок і окремий квад під код (чому не SVG — qr.h). */
+    if (surf) {
+        cairo_t *cr = cairo_create(surf);
+        qr_paint(cr, row->qr_payload, QR_ROW_X, QR_ROW_Y, QR_ROW_SIZE);
+        cairo_destroy(cr);
+    }
     return surf;
 }
 
@@ -175,7 +177,6 @@ static void bonus_row_free(bonus_row_t *row) {
     if (row->bar_surf) cairo_surface_destroy(row->bar_surf);
     if (row->timer_surf) cairo_surface_destroy(row->timer_surf);
     gl_texture_destroy(&row->chrome_tex);
-    gl_texture_destroy(&row->qr_tex);
     gl_texture_destroy(&row->bar_tex);
     gl_texture_destroy(&row->timer_tex);
     memset(row, 0, sizeof(*row));
@@ -187,7 +188,6 @@ void bonus_init(bonus_state_t *b, double now, const char *assets_dir) {
     memset(b, 0, sizeof(*b));
     b->next_emulated_at = now + BONUS_EMULATE_PERIOD_S;
     srand((unsigned)time(NULL));
-    ensure_coin_loaded(assets_dir);
     b->panel_surf = render_panel_frame(false, assets_dir);
     if (b->panel_surf) b->panel_tex = gl_texture_from_cairo(b->panel_surf);
     b->panel_has_rows = false;
@@ -223,10 +223,15 @@ static bonus_row_t *take_row(bonus_state_t *b, double now, const char *who) {
  * system_code — тоді в рядку те саме, що на картці поруч; назва з події
  * потрібна лише коли напою в меню немає (його щойно прибрали, а чек уже
  * пробито). */
+static void fill_popup(const bonus_row_t *row, bonus_popup_t *out) {
+    out->coins = row->coins;
+    out->secret = row->secret;
+    snprintf(out->qr_payload, sizeof(out->qr_payload), "%s", row->qr_payload);
+}
+
 bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
                      const char *code, const char *name, int coins,
-                     const char *claim_token,
-                     char out_drink_name[64], int *out_coins) {
+                     const char *claim_token, int items, bonus_popup_t *out) {
     bonus_row_t *row = take_row(b, now, "подію");
     if (!row) return false;
 
@@ -243,6 +248,13 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
         snprintf(row->drink_name, sizeof(row->drink_name), "%s", (name && name[0]) ? name : "Кавенятко");
     }
     row->coins = coins;
+    /* Предмет: якщо подія каже прямо — віримо їй. Поки checkbox цього не
+     * шле (ws.h: items = -1), вгадуємо з меню: напій «з бонусами» за
+     * економікою дає лутдроп завжди (gamification_economy.md). Звичайні
+     * напої мають лише 15 % шанс, і його без поля в події не вгадати —
+     * тоді плитки просто не буде. */
+    if (items >= 0) row->secret = items > 0;
+    else            row->secret = found && found->bonus_coins > 0;
 
     /* Той самий шлях, що розбирає застосунок (frontend/client/src/main.jsx): /b/<токен>
      * відкриває екран бонусу вже залогіненому гравцю. */
@@ -250,41 +262,56 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
              (claim_token && claim_token[0]) ? claim_token : "");
 
     b->count++;
-    snprintf(out_drink_name, 64, "%s", row->drink_name);
-    *out_coins = row->coins;
-    fprintf(stderr, "bonus: подія — %s, %d монет\n", row->drink_name, row->coins);
+    fill_popup(row, out);
+    fprintf(stderr, "bonus: подія — %s, %d монет%s\n", row->drink_name, row->coins,
+            row->secret ? " + предмет" : "");
     return true;
 }
 
-bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
-                         char out_drink_name[64], int *out_coins) {
+bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_popup_t *out) {
     if (now < b->next_emulated_at) return false;
     b->next_emulated_at = now + BONUS_EMULATE_PERIOD_S;
 
     bonus_row_t *row = take_row(b, now, "емуляцію");
     if (!row) return false;
 
+    const drink_t *d = NULL;
     if (menu->drink_count > 0) {
-        int idx = rand() % menu->drink_count;
-        const drink_t *d = &menu->drinks[idx];
+        d = &menu->drinks[rand() % menu->drink_count];
         snprintf(row->drink_name, sizeof(row->drink_name), "%s", d->name);
         snprintf(row->sprite, sizeof(row->sprite), "%s", d->sprite);
     } else {
         snprintf(row->drink_name, sizeof(row->drink_name), "Кавенятко");
     }
-    row->coins = 1 + rand() % 5;
+    /* Правдоподібні числа, а не 1..5: бонусний напій дає свої монети й
+     * предмет завжди, звичайний — 10..25 монет (≈21 у середньому за
+     * економікою) і предмет зрідка, щоб на екрані траплялись обидва
+     * варіанти попапу. */
+    if (d && d->bonus_coins > 0) {
+        row->coins = d->bonus_coins;
+        row->secret = true;
+    } else {
+        row->coins = 10 + rand() % 16;
+        row->secret = rand() % 4 == 0;
+    }
 
     /* Емуляція живе далі лише як запасний варіант без токена (main.c), тож
      * payload тут так і лишається вигаданим. */
     snprintf(row->qr_payload, sizeof(row->qr_payload), "https://extrovert.cafe/b/%08x", (unsigned)rand());
 
     b->count++;
-    snprintf(out_drink_name, 64, "%s", row->drink_name);
-    *out_coins = row->coins;
+    fill_popup(row, out);
     return true;
 }
 
-void bonus_update(bonus_state_t *b, double now, const char *assets_dir) {
+void bonus_demo_popup(bonus_popup_t *out) {
+    /* Рівно варіант із макета: +100 і секретний предмет. */
+    out->coins = 100;
+    out->secret = true;
+    snprintf(out->qr_payload, sizeof(out->qr_payload), "https://extrovert.cafe/b/demo");
+}
+
+void bonus_update(bonus_state_t *b, double now, const char *assets_dir, bool bake_ok) {
     int w = 0;
     for (int i = 0; i < b->count; i++) {
         double remain = BONUS_TTL_S - (now - b->rows[i].created_at);
@@ -295,7 +322,7 @@ void bonus_update(bonus_state_t *b, double now, const char *assets_dir) {
     b->count = w;
 
     bool has_rows = b->count > 0;
-    if (has_rows != b->panel_has_rows || !b->panel_tex.id) {
+    if (bake_ok && (has_rows != b->panel_has_rows || !b->panel_tex.id)) {
         if (b->panel_surf) cairo_surface_destroy(b->panel_surf);
         b->panel_surf = render_panel_frame(has_rows, assets_dir);
         gl_texture_destroy(&b->panel_tex);
@@ -313,13 +340,9 @@ void bonus_update(bonus_state_t *b, double now, const char *assets_dir) {
          * GPU-текстуру — на відміну від bar_surf (переюзається щокадру) й
          * timer_surf (живе до наступного перепікання), тут вона взагалі
          * більше не потрібна після gl_texture_from_cairo(). */
-        if (!row->chrome_tex.id) {
+        if (!row->chrome_tex.id && bake_ok) {
             cairo_surface_t *cs = render_row_chrome(row, assets_dir);
             if (cs) { row->chrome_tex = gl_texture_from_cairo(cs); cairo_surface_destroy(cs); }
-        }
-        if (!row->qr_tex.id) {
-            cairo_surface_t *qs = render_qr(row->qr_payload, (int)QR_ROW_SIZE);
-            if (qs) { row->qr_tex = gl_texture_from_cairo(qs); cairo_surface_destroy(qs); }
         }
 
         int sec = (int)ceil(remain);
@@ -340,6 +363,7 @@ void bonus_draw(bonus_state_t *b, gl_compositor_t *comp) {
 
     for (int i = 0; i < b->count; i++) {
         bonus_row_t *row = &b->rows[i];
+        if (!row->chrome_tex.id) continue;   /* ще не спечений (bonus_update, bake_ok) */
         double rx = PANEL_X + BONUS_ROW_X;
         double ry = BONUS_Y + BONUS_ROW_Y0 + i * (BONUS_ROW_H + BONUS_ROW_GAP);
 
@@ -351,11 +375,6 @@ void bonus_draw(bonus_state_t *b, gl_compositor_t *comp) {
                          ry + BONUS_COUNTDOWN_Y - row->timer_tex.h / 2.0,
                          (double)row->timer_tex.w, (double)row->timer_tex.h, 1.0);
         }
-        if (row->qr_tex.id) {
-            /* центр кільця з bonus_row.svg (356,70), розмір фіксований QR_ROW_SIZE */
-            double qs = QR_ROW_SIZE;
-            gl_draw_quad(comp, &row->qr_tex, rx + 356.0 - qs / 2.0, ry + 70.0 - qs / 2.0, qs, qs, 1.0);
-        }
     }
 }
 
@@ -364,33 +383,4 @@ void bonus_destroy(bonus_state_t *b) {
     b->count = 0;
     if (b->panel_surf) cairo_surface_destroy(b->panel_surf);
     gl_texture_destroy(&b->panel_tex);
-    if (g_coin_png) { cairo_surface_destroy(g_coin_png); g_coin_png = NULL; }
-}
-
-cairo_surface_t *render_bonus_popup(const char *drink_name, int coins, const char *assets_dir) {
-    ensure_coin_loaded(assets_dir);
-
-    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)POPUP_W, (int)POPUP_H);
-    cairo_t *cr = cairo_create(s);
-
-    rounded_rect(cr, 0, 0, POPUP_W, POPUP_H, POPUP_R);
-    cairo_set_source_rgba(cr, 0x12 / 255.0, 0x10 / 255.0, 0x0F / 255.0, POPUP_BG_A);
-    cairo_fill_preserve(cr);
-    cairo_set_source_rgba(cr, 1, 1, 1, 0.18);
-    cairo_set_line_width(cr, 1.0);
-    cairo_stroke(cr);
-
-    double icon_size = BONUS_POPUP_COIN_SIZE;
-    double icon_x = 48.0, icon_y = POPUP_H / 2.0 - icon_size / 2.0;
-    draw_png_scaled(cr, g_coin_png, icon_x, icon_y, icon_size, icon_size);
-
-    double text_x = icon_x + icon_size + 32.0;
-    char title[96];
-    snprintf(title, sizeof(title), "+%d монет — %s", coins, drink_name);
-    draw_text_vc(cr, text_x, POPUP_H / 2.0 - 24.0, FONT_600 " 32px", TEXT_FG_R, TEXT_FG_G, TEXT_FG_B, title);
-    draw_text_vc(cr, text_x, POPUP_H / 2.0 + 22.0, FONT_400 " 20px", TEXT_MUTED_R, TEXT_MUTED_G, TEXT_MUTED_B,
-                 "Забери QR у панелі бонусів праворуч");
-
-    cairo_destroy(cr);
-    return s;
 }

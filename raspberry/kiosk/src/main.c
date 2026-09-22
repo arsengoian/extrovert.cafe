@@ -1,7 +1,7 @@
-/* main.c — pos-native: композитор поверх SVG-шаблонів (меню, реклама,
+/* main.c — kiosk: композитор поверх SVG-шаблонів (меню, реклама,
  * панель бонусів) і прямого Cairo (смуга прогресу, попап).
  *
- *   URL=... POINT=kyiv-01 ASSETS=./assets DESKTOP_FRAMES=180 ./pos-native
+ *   URL=... POINT=kyiv-01 ASSETS=./assets DESKTOP_FRAMES=180 ./bin/kiosk-desktop
  *
  * DESKTOP_FRAMES>0 — вихід після N кадрів і дамп PNG (тестовий режим,
  * дивись build/run-desktop.sh). Без нього — цикл нескінченний, як і
@@ -14,6 +14,7 @@
 #include "platform.h"
 #include "telemetry.h"
 #include "bonus.h"
+#include "popup.h"
 #include "update.h"
 #include "selftest.h"
 
@@ -34,7 +35,7 @@ static volatile sig_atomic_t g_popup_toggle = 0;
 static volatile sig_atomic_t g_dump_requested = 0;
 
 static void on_sigterm(int sig) { (void)sig; g_running = 0; }
-static void on_sigusr1(int sig) { (void)sig; g_popup_toggle = 1; }  /* демо-тригер попапу */
+static void on_sigusr1(int sig) { (void)sig; g_popup_toggle = 1; }  /* показати/сховати демо-попап */
 static void on_sigusr2(int sig) { (void)sig; g_dump_requested = 1; }  /* знімок живого кадру на вимогу */
 
 static double now_s(void) {
@@ -75,6 +76,51 @@ static void load_fonts(const char *assets_dir) {
 
 /* popIn .34s ease-out / popOut .28s ease-in — квадратичні наближення
  * досить помітно відрізняють "влітає" від "лінійно їде". */
+/* Статична картинка меню для запасного варіанта (docs/raspberry-pi.md §6):
+ * fbi малює її у фреймбуфер ПІД dispmanx-шаром кіоска, тож її видно до
+ * першого кадру після завантаження і якщо кіоск не піднявся взагалі.
+ * Пишемо самі, коли змінюється меню (menu_poll віддає лише зміни, тож це
+ * рідко й карти не зношує), — інакше ціни в запасній картинці міняв би
+ * хтось руками через scp. Меню з рекламою, без панелі бонусів і попапів:
+ * вигадані QR у статичній картинці нікому не потрібні. Через .tmp і
+ * rename — щоб знеструмлення посеред запису не лишило битий PNG. */
+static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s) {
+    const char *path = getenv("FALLBACK_PNG");
+    if (!path || !path[0] || !menu_s) return;
+    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, STAGE_W, STAGE_H);
+    cairo_t *cr = cairo_create(s);
+    cairo_set_source_surface(cr, menu_s, 0, 0);
+    cairo_paint(cr);
+    if (ad_s) { cairo_set_source_surface(cr, ad_s, PANEL_X, AD_Y); cairo_paint(cr); }
+    cairo_destroy(cr);
+    /* pid у назві: при overlap-підміні дві копії кіоска стартують разом і
+     * обидві пишуть картинку — спільний .tmp вони б зіпсували одна одній. */
+    char tmp[1024];
+    snprintf(tmp, sizeof(tmp), "%s.%d.tmp", path, (int)getpid());
+    if (cairo_surface_write_to_png(s, tmp) == CAIRO_STATUS_SUCCESS && rename(tmp, path) == 0)
+        fprintf(stderr, "main: запасна картинка → %s\n", path);
+    else
+        fprintf(stderr, "main: запасна картинка не записалась (%s)\n", path);
+    cairo_surface_destroy(s);
+}
+
+/* Перерендер меню й реклами в текстури — і на старті, і після оновлення. */
+static void apply_menu(const menu_t *menu, const char *assets_dir,
+                       gl_texture_t *menu_tex, gl_texture_t *ad_tex) {
+    cairo_surface_t *m = render_menu(menu, assets_dir);
+    cairo_surface_t *a = render_ad(menu, assets_dir);
+    if (m) {
+        if (getenv("DEBUG_CAIRO_PNG")) cairo_surface_write_to_png(m, getenv("DEBUG_CAIRO_PNG"));
+        gl_texture_destroy(menu_tex);
+        *menu_tex = gl_texture_from_cairo(m);
+    }
+    gl_texture_destroy(ad_tex);
+    if (a) *ad_tex = gl_texture_from_cairo(a);
+    write_fallback_png(m, a);
+    if (m) cairo_surface_destroy(m);
+    if (a) cairo_surface_destroy(a);
+}
+
 static double ease_out(double x) { return 1.0 - (1.0 - x) * (1.0 - x); }
 static double ease_in(double x)  { return x * x; }
 
@@ -107,7 +153,12 @@ static void *menu_poll_thread(void *arg) {
 
         /* Чекаємо refreshSec, перевіряючи stop кожні 100мс, а не суцільним
          * sleep(refresh_s) — інакше зупинка (SIGTERM) чекала б до хвилини. */
-        int refresh_s = attempt.refresh_sec > 0 ? attempt.refresh_sec : 60;
+        /* Поки жодного меню ще не було — часто: після знеструмлення кіоск
+         * стартує раніше, ніж піднімається мережа (21.09.2026 перший запит
+         * падав щоразу), і чекати звичайну хвилину до другої спроби —
+         * хвилина порожнього кадру замість меню. */
+        int refresh_s = !attempt.valid ? MENU_RETRY_S
+                      : attempt.refresh_sec > 0 ? attempt.refresh_sec : 60;
         for (int waited = 0; waited < refresh_s * 10 && !mp->stop; waited++)
             usleep(100000);
         if (mp->stop) break;
@@ -129,11 +180,11 @@ int main(int argc, char **argv) {
     const char *assets_dir = getenv("ASSETS");
     if (!assets_dir) assets_dir = "./assets";
     const char *sock_path = getenv("TELEMETRY_SOCK");
-    if (!sock_path) sock_path = "/tmp/pos-native.sock";
+    if (!sock_path) sock_path = "/tmp/kiosk.sock";
     int desktop_frames = getenv("DESKTOP_FRAMES") ? atoi(getenv("DESKTOP_FRAMES")) : 0;
-    /* POPUP=1 — те саме, що ?popup=1 в app.js: попап сам зʼявляється й
-     * ховається по колу, щоб було на що дивитись без ручного тригера
-     * (SIGUSR1 лишається для разового ручного показу). */
+    /* POPUP=1 — попап бонусу з демо-даними раз на POPUP_DEMO_PERIOD_S, щоб
+     * було на що дивитись без справжнього чека (SIGUSR1 — разовий ручний
+     * показ). Рядок у панелі демо-показ не додає. */
     bool popup_demo = getenv("POPUP") && strcmp(getenv("POPUP"), "1") == 0;
 
     /* Тека стану, спільна з апдейтером (raspberry/pi/stack/). Порожня змінна —
@@ -213,6 +264,23 @@ int main(int argc, char **argv) {
     gl_texture_t ad_tex = {0};     /* реклама — templates/ad.svg, окремий квад */
 
     gl_texture_t popup_tex = {0};
+    /* Основа попапу рендериться зараз, а не на першому бонусі: на Pi 1 це
+     * сотні мілісекунд, і краще їх витратити на старті, ніж на очах у
+     * клієнта (popup.h). */
+    popup_art_t popup_art = {0};
+    popup_art_init(&popup_art, assets_dir);
+    /* Затемнення під попапом — текстура 1×1, розтягнута на всю сцену
+     * (config.h, POPUP_DIM_A). Непрозора: прозорість задає альфа квада. */
+    gl_texture_t dim_tex = {0};
+    {
+        cairo_surface_t *d = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
+        cairo_t *dc = cairo_create(d);
+        cairo_set_source_rgb(dc, 0x04 / 255.0, 0x06 / 255.0, 0x08 / 255.0);
+        cairo_paint(dc);
+        cairo_destroy(dc);
+        dim_tex = gl_texture_from_cairo(d);
+        cairo_surface_destroy(d);
+    }
     /* Плашка "оновлення": своя текстура, що перепікається лише коли
      * змінився стан (update.h), а не щокадру. */
     update_state_t upd;
@@ -228,14 +296,7 @@ int main(int argc, char **argv) {
      * малював би порожню сцену, і саме він потрапив би на fps-статистику. */
     if (menu_poll(url, &menu)) {
         fprintf(stderr, "main: меню завантажено, %d напоїв\n", menu.drink_count);
-        cairo_surface_t *m = render_menu(&menu, assets_dir);
-        if (m) {
-            if (getenv("DEBUG_CAIRO_PNG")) cairo_surface_write_to_png(m, getenv("DEBUG_CAIRO_PNG"));
-            menu_tex = gl_texture_from_cairo(m);
-            cairo_surface_destroy(m);
-        }
-        cairo_surface_t *a = render_ad(&menu, assets_dir);
-        if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
+        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
     } else {
         fprintf(stderr, "main: не вдалось завантажити меню з %s, стартую з порожнім екраном\n", url);
     }
@@ -263,12 +324,10 @@ int main(int argc, char **argv) {
     bonus_state_t bonus;
     bonus_init(&bonus, 0.0, assets_dir);
 
-    /* Той самий цикл, що в app.js: показати через 1.2с, тримати 3.2с,
-     * сховати, почекати 2.6с, повторити. Використовує той самий
-     * g_popup_toggle, що й SIGUSR1 — просто дзвонить сам собі за часом
-     * замість чекати сигнал ззовні. */
+    /* Демо-цикл (POPUP=1): показати через 1,2 с після старту, далі раз на
+     * POPUP_DEMO_PERIOD_S. Ховається попап сам (ANIM_POPUP_HOLD_S), тож
+     * цикл лише показує — через той самий g_popup_toggle, що й SIGUSR1. */
     double demo_next_t = 1.2;
-    int demo_phase = 0;   /* 0 = наступний тригер показує, 1 = ховає */
 
     while (g_running) {
         double t_now = now_s();
@@ -288,15 +347,7 @@ int main(int argc, char **argv) {
         pthread_mutex_unlock(&poller.mu);
         if (got_new_menu) {
             menu = new_menu;
-            cairo_surface_t *m = render_menu(&menu, assets_dir);
-            if (m) {
-                gl_texture_destroy(&menu_tex);
-                menu_tex = gl_texture_from_cairo(m);
-                cairo_surface_destroy(m);
-            }
-            cairo_surface_t *a = render_ad(&menu, assets_dir);
-            gl_texture_destroy(&ad_tex);
-            if (a) { ad_tex = gl_texture_from_cairo(a); cairo_surface_destroy(a); }
+            apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
             fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
         }
 
@@ -313,18 +364,15 @@ int main(int argc, char **argv) {
         }
 
         if (popup_demo && sim_t >= demo_next_t) {
-            g_popup_toggle = 1;
-            if (demo_phase == 0) { demo_next_t = sim_t + 3.2; demo_phase = 1; }
-            else                 { demo_next_t = sim_t + 2.6; demo_phase = 0; }
+            if (popup_state == POPUP_HIDDEN) g_popup_toggle = 1;   /* показ, а не «сховати чужий» */
+            demo_next_t = sim_t + POPUP_DEMO_PERIOD_S;
         }
 
-        /* Емуляція WS (bonus.h): раз на BONUS_EMULATE_PERIOD_S додає
-         * випадковий напій у панель бонусів і, якщо в цей момент екран не
-         * зайнятий іншим попапом, показує "бонус нараховано". Рядок у
-         * панелі з'являється незалежно від того, чи вдалось показати
-         * попап — це вже bonus_update() нижче, не залежить від popup_state. */
-        char bonus_drink[64] = {0};
-        int bonus_coins = 0;
+        /* Бонус (подія ws або емуляція без токена) додає рядок у панель і,
+         * якщо в цей момент екран не зайнятий іншим попапом, показує попап.
+         * Рядок у панелі з'являється незалежно від попапу — це вже
+         * bonus_update() нижче, не залежить від popup_state. */
+        bonus_popup_t bonus_pop = {0};
         bool bonus_arrived = false;
 
         if (ws) {
@@ -333,41 +381,44 @@ int main(int argc, char **argv) {
             ws_event_t events[8];
             int n = ws_drain(ws, events, 8);
             for (int i = 0; i < n; i++) {
-                char name[64] = {0};
-                int coins = 0;
+                bonus_popup_t p;
+                /* Попап показуємо для останньої події пачки: якщо їх
+                 * прийшло кілька підряд, миготіти трьома нема сенсу. */
                 if (bonus_add_event(&bonus, sim_t, &menu, events[i].code, events[i].drink,
-                                    events[i].coins, events[i].claim_token, name, &coins)) {
-                    /* Попап показуємо для останньої події пачки: якщо їх
-                     * прийшло кілька підряд, миготіти трьома нема сенсу. */
-                    snprintf(bonus_drink, sizeof(bonus_drink), "%s", name);
-                    bonus_coins = coins;
+                                    events[i].coins, events[i].claim_token, events[i].items, &p)) {
+                    bonus_pop = p;
                     bonus_arrived = true;
                 }
             }
         } else {
-            bonus_arrived = bonus_tick_emulate(&bonus, sim_t, &menu, bonus_drink, &bonus_coins);
+            bonus_arrived = bonus_tick_emulate(&bonus, sim_t, &menu, &bonus_pop);
         }
-        bonus_update(&bonus, sim_t, assets_dir);
 
-        if (bonus_arrived && popup_state == POPUP_HIDDEN) {
-            gl_texture_destroy(&popup_tex);
-            cairo_surface_t *ps = render_bonus_popup(bonus_drink, bonus_coins, assets_dir);
-            popup_tex = gl_texture_from_cairo(ps);
-            cairo_surface_destroy(ps);
-            popup_state = POPUP_IN; popup_t0 = sim_t;
-            g_popup_toggle = 0;   /* бонус має пріоритет над демо-циклом цього кадру */
-        } else if (g_popup_toggle) {
+        bool show_demo = false;
+        if (g_popup_toggle && !bonus_arrived) {
             g_popup_toggle = 0;
             if (popup_state == POPUP_HIDDEN) {
-                gl_texture_destroy(&popup_tex);
-                cairo_surface_t *ps = render_popup("Готуємо", "Постав стакан під кран");
-                popup_tex = gl_texture_from_cairo(ps);
-                cairo_surface_destroy(ps);
-                popup_state = POPUP_IN; popup_t0 = sim_t;
+                bonus_demo_popup(&bonus_pop);
+                show_demo = true;
             } else if (popup_state == POPUP_SHOWN) {
                 popup_state = POPUP_OUT; popup_t0 = sim_t;
             }
         }
+        if ((bonus_arrived || show_demo) && popup_state == POPUP_HIDDEN) {
+            gl_texture_destroy(&popup_tex);
+            cairo_surface_t *ps = popup_render(&popup_art, assets_dir, &bonus_pop);
+            if (ps) {
+                popup_tex = gl_texture_from_cairo(ps);
+                cairo_surface_destroy(ps);
+                popup_state = POPUP_IN; popup_t0 = sim_t;
+            }
+            g_popup_toggle = 0;   /* бонус має пріоритет над демо-циклом цього кадру */
+        }
+        /* Після попапу, не до: на кадрі появи бонусу попап уже в POPUP_IN, і
+         * рядок у панелі (SVG + QR, на Pi 1 ~0,3 с) печеться, коли попап
+         * проявився й стоїть, а не разом із ним і не посеред анімації. */
+        bonus_update(&bonus, sim_t, assets_dir,
+                     popup_state != POPUP_IN && popup_state != POPUP_OUT);
         if (popup_state == POPUP_IN && sim_t - popup_t0 >= ANIM_POPUP_IN_S) {
             popup_state = POPUP_SHOWN;
             popup_shown_at = sim_t;
@@ -382,17 +433,22 @@ int main(int argc, char **argv) {
         }
         if (popup_state == POPUP_OUT && sim_t - popup_t0 >= ANIM_POPUP_OUT_S) popup_state = POPUP_HIDDEN;
 
-        gl_clear();
-        if (menu_tex.id) gl_draw_quad(&comp, &menu_tex, 0, 0, STAGE_W, STAGE_H, 1.0);
-        if (ad_tex.id) gl_draw_quad(&comp, &ad_tex, PANEL_X, AD_Y, PANEL_W, AD_H, 1.0);
+        /* Поки першого меню немає (мережа ще не піднялась), кадр прозорий
+         * і порожній: під шаром кіоска видно запасну картинку fbi з
+         * останніми цінами (docs/raspberry-pi.md §6), а на overlap-підміні —
+         * стару копію кіоска. Непрозорий порожній кадр закрив би і те, і те. */
+        bool have_menu = menu_tex.id != 0;
+        gl_clear(!have_menu);
+        if (have_menu) gl_draw_quad(&comp, &menu_tex, 0, 0, STAGE_W, STAGE_H, 1.0);
+        if (have_menu && ad_tex.id) gl_draw_quad(&comp, &ad_tex, PANEL_X, AD_Y, PANEL_W, AD_H, 1.0);
 
-        bonus_draw(&bonus, &comp);
+        if (have_menu) bonus_draw(&bonus, &comp);
 
         if (upd.active && update_tex.id)
             gl_draw_quad(&comp, &update_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
                          update_tex_w, UPDATE_BANNER_H, 1.0);
 
-        if (popup_state != POPUP_HIDDEN && popup_tex.id) {
+        if (have_menu && popup_state != POPUP_HIDDEN && popup_tex.id) {
             double px = (STAGE_W - POPUP_W) / 2.0, py = (STAGE_H - POPUP_H) / 2.0;
             double alpha = 1.0, scale = 1.0, dy = 0.0;
             if (popup_state == POPUP_IN) {
@@ -404,6 +460,9 @@ int main(int argc, char **argv) {
                 double e = ease_in(x < 0 ? 0 : (x > 1 ? 1 : x));
                 alpha = 1.0 - e; scale = 1.0 - 0.04 * e; dy = 18.0 * e;
             }
+            /* Затемнення проявляється й гасне разом із попапом, але не
+             * масштабується: воно на всю сцену. */
+            if (dim_tex.id) gl_draw_quad(&comp, &dim_tex, 0, 0, STAGE_W, STAGE_H, POPUP_DIM_A * alpha);
             double w = POPUP_W * scale, h = POPUP_H * scale;
             gl_draw_quad(&comp, &popup_tex,
                          px + (POPUP_W - w) / 2.0, py + dy + (POPUP_H - h) / 2.0,
@@ -418,7 +477,7 @@ int main(int argc, char **argv) {
         if (g_dump_requested) {
             g_dump_requested = 0;
             const char *dump_path = getenv("DUMP_PNG");
-            if (!dump_path) dump_path = "/tmp/pos-native-frame.png";
+            if (!dump_path) dump_path = "/tmp/kiosk-frame.png";
             bool ok = platform_dump_png(plat, dump_path);
             fprintf(stderr, "main: SIGUSR2 -> знімок %s: %s\n", dump_path, ok ? "ok" : "провалився");
         }
@@ -431,8 +490,8 @@ int main(int argc, char **argv) {
     }
 
     if (desktop_frames > 0) {
-        platform_dump_png(plat, "/tmp/pos-native-frame.png");
-        fprintf(stderr, "main: кадр збережено в /tmp/pos-native-frame.png (%ld кадрів, %.1f fps сер.)\n",
+        platform_dump_png(plat, "/tmp/kiosk-frame.png");
+        fprintf(stderr, "main: кадр збережено в /tmp/kiosk-frame.png (%ld кадрів, %.1f fps сер.)\n",
                 frame_no, frame_no / (now_s() - t_start));
     }
 
@@ -448,6 +507,8 @@ int main(int argc, char **argv) {
     gl_texture_destroy(&menu_tex);
     gl_texture_destroy(&ad_tex);
     gl_texture_destroy(&popup_tex);
+    gl_texture_destroy(&dim_tex);
+    popup_art_destroy(&popup_art);
     gl_texture_destroy(&update_tex);
     bonus_destroy(&bonus);
     platform_destroy(plat);

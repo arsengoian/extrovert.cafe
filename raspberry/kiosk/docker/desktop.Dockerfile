@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         python3 \
     && rm -rf /var/lib/apt/lists/*
-# python3 — не залежність pos-native, лише щоб піднімати
+# python3 — не залежність кіоска, лише щоб піднімати
 # `python3 -m http.server` тут-таки для смок-тестів проти реального
 # HTTP (пряме menu_poll() з file:// не працює: file:// не несе HTTP-код,
 # а menu_poll вимагає 200..299).

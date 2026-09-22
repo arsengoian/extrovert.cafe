@@ -260,23 +260,3 @@ cairo_surface_t *render_update_banner(const char *label, double *out_w) {
     cairo_destroy(cr);
     return s;
 }
-
-cairo_surface_t *render_popup(const char *title, const char *text) {
-    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
-                                                      (int)POPUP_W, (int)POPUP_H);
-    cairo_t *cr = cairo_create(s);
-    rounded_rect(cr, 0, 0, POPUP_W, POPUP_H, POPUP_R);
-    cairo_set_source_rgba(cr, 0x12 / 255.0, 0x10 / 255.0, 0x0F / 255.0, POPUP_BG_A);
-    cairo_fill_preserve(cr);
-    cairo_set_source_rgba(cr, 1, 1, 1, 0.18);
-    cairo_set_line_width(cr, 1.0);
-    cairo_stroke(cr);
-
-    draw_text_centered(cr, POPUP_W / 2.0, POPUP_H / 2.0 - 26, FONT_600 " 34px",
-                        TEXT_FG_R, TEXT_FG_G, TEXT_FG_B, title);
-    draw_text_centered(cr, POPUP_W / 2.0, POPUP_H / 2.0 + 22, FONT_400 " 20px",
-                        TEXT_MUTED_R, TEXT_MUTED_G, TEXT_MUTED_B, text);
-
-    cairo_destroy(cr);
-    return s;
-}

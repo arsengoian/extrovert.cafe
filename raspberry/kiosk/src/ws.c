@@ -414,6 +414,10 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
     if (cJSON_IsString(claim)) snprintf(e.claim_token, sizeof(e.claim_token), "%s", claim->valuestring);
     const cJSON *ttl = cJSON_GetObjectItemCaseSensitive(root, "expires_in_s");
     e.expires_in_s = cJSON_IsNumber(ttl) ? ttl->valueint : (int)BONUS_TTL_S;
+    const cJSON *items = cJSON_GetObjectItemCaseSensitive(root, "items");
+    if (cJSON_IsNumber(items))     e.items = items->valueint;
+    else if (cJSON_IsArray(items)) e.items = cJSON_GetArraySize(items);
+    else                           e.items = -1;
 
     cJSON_Delete(root);
 

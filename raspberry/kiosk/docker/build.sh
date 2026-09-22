@@ -4,4 +4,4 @@
 # живим томом у make.sh, тут лише тулчейн і apt-залежності.
 set -e
 cd "$(dirname "$0")/.."
-docker build -t pos-native-builder -f docker/desktop.Dockerfile .
+docker build -t kiosk-desktop-builder -f docker/desktop.Dockerfile .

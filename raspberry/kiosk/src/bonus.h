@@ -29,6 +29,7 @@
 #include "config.h"
 #include "gl.h"
 #include "menu.h"
+#include "popup.h"
 
 typedef struct {
     char drink_name[64];
@@ -36,10 +37,10 @@ typedef struct {
     char qr_payload[128];
     char earned_at[8];     /* "09:41" — коли нарахували, для дрібного підпису */
     int coins;
+    bool secret;           /* разом із монетами випав предмет — бейдж-подарунок */
     double created_at;     /* sim_t на момент появи */
 
-    gl_texture_t chrome_tex;        /* SVG-шаблон рядка — пече раз */
-    gl_texture_t qr_tex;            /* пече раз (payload не змінюється) */
+    gl_texture_t chrome_tex;        /* SVG-шаблон рядка разом із QR — пече раз */
     cairo_surface_t *bar_surf;  gl_texture_t bar_tex;     /* оновлюється щокадру */
     cairo_surface_t *timer_surf; gl_texture_t timer_tex;  /* перепікається раз на секунду */
     int last_baked_sec;            /* remain-у-секундах, для якого timer_surf вже актуальний; -1 = ще ніколи */
@@ -57,33 +58,35 @@ void bonus_init(bonus_state_t *b, double now, const char *assets_dir);
 
 /* Емуляція WS. Раз на BONUS_EMULATE_PERIOD_S додає випадковий напій з
  * меню (fallback — фіксована назва, якщо меню ще не завантажилось).
- * true рівно тоді, коли рядок справді зʼявився — тоді ж заповнює
- * out_drink_name/out_coins для попапу; якщо панель уже повна
- * (BONUS_MAX_VISIBLE), подія цього разу просто не приходить, як і буде
- * з реальним WS, якщо клієнт не встигає забрати попередні. */
-bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu,
-                         char out_drink_name[64], int *out_coins);
+ * true рівно тоді, коли рядок справді зʼявився — тоді ж заповнює *out
+ * для попапу; якщо панель уже повна (BONUS_MAX_VISIBLE), подія цього разу
+ * просто не приходить, як і буде з реальним WS, якщо клієнт не встигає
+ * забрати попередні. */
+bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_popup_t *out);
 
 /* Подія bonus_ready із ws (ws.c): справжній бонус за справжній чек.
  * Назву й картинку бере з меню за system_code, а name використовує лише
- * як запасний варіант. true — рядок зʼявився (панель могла бути повна). */
+ * як запасний варіант. items — скільки предметів випало, -1 якщо подія
+ * цього не каже (ws.h). true — рядок зʼявився (панель могла бути повна). */
 bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
                      const char *code, const char *name, int coins,
-                     const char *claim_token,
-                     char out_drink_name[64], int *out_coins);
+                     const char *claim_token, int items, bonus_popup_t *out);
+
+/* Вміст для демо-показу попапу (POPUP=1, SIGUSR1, DESKTOP_FRAMES): той
+ * самий попап, що й на справжній бонус, але без рядка в панелі — щоб
+ * подивитись на дизайн, не засмічуючи панель вигаданими QR. */
+void bonus_demo_popup(bonus_popup_t *out);
 
 /* Прибирає прострочені рядки (remain<=0), допікає/оновлює текстури.
- * Викликати раз на кадр ДО bonus_draw(). */
-void bonus_update(bonus_state_t *b, double now, const char *assets_dir);
+ * Викликати раз на кадр ДО bonus_draw(). bake_ok=false відкладає рендер
+ * нового рядка (SVG + QR, на Pi 1 ~0,3 с стоячого кадру) на наступні кадри:
+ * main.c не дає пекти, поки попап проявляється чи ховається, — тоді ривок
+ * припадає на нерухомий попап, а не посеред анімації. Рядок без готової
+ * текстури тим часом просто не малюється. */
+void bonus_update(bonus_state_t *b, double now, const char *assets_dir, bool bake_ok);
 
 void bonus_draw(bonus_state_t *b, gl_compositor_t *comp);
 
 void bonus_destroy(bonus_state_t *b);
-
-/* Вміст попапу "бонус нараховано" — окремо від generic render_popup()
- * (render.h), бо контенту ще нема дизайну; поточний вигляд обраний тут
- * і призначений змінитись, коли дизайн зʼявиться. Лишається прямим
- * Cairo (не SVG-шаблон): нема чого адаптувати з макета. */
-cairo_surface_t *render_bonus_popup(const char *drink_name, int coins, const char *assets_dir);
 
 #endif

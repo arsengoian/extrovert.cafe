@@ -1,14 +1,8 @@
 #include "qr.h"
-#include "render.h"     /* rounded_rect() */
 #include "qrcodegen.h"
 #include <stdio.h>
 
-/* Тиха зона навмисно НЕ малюється тут: у макеті (monitor-menu.svg) код
- * сидить у 64px квадраті всередині темного кола 104px діаметром — саме
- * коло дає поля, а не сам QR. render_qr() віддає модулі край-в-край
- * (viewBox самого макетного QR — рівно кількість модулів, без полів);
- * той, хто розміщує текстуру на сцені, має лишити їй місце навколо. */
-cairo_surface_t *render_qr(const char *text, int px_size) {
+bool qr_paint(cairo_t *cr, const char *text, double x, double y, double size) {
     uint8_t tmp[qrcodegen_BUFFER_LEN_MAX];
     uint8_t qr[qrcodegen_BUFFER_LEN_MAX];
 
@@ -17,25 +11,34 @@ cairo_surface_t *render_qr(const char *text, int px_size) {
                                     qrcodegen_Mask_AUTO, true);
     if (!ok) {
         fprintf(stderr, "qr: не влізло в жодну версію: %s\n", text);
-        return NULL;
+        return false;
     }
 
     int modules = qrcodegen_getSize(qr);
-    double mod_px = (double)px_size / modules;
-    /* 30% заокруглення на модуль — з макета (кожен <rect> модуля має rx=0.3
-     * при розмірі 1×1, тобто радіус = 0.3 стороны). */
-    double r = 0.3 * mod_px;
+    double m = size / modules;
 
-    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, px_size, px_size);
-    cairo_t *cr = cairo_create(s);
-    cairo_set_source_rgb(cr, 1, 1, 1);   /* білий — фон лишається прозорим (сфейс і так порожній) */
-    for (int y = 0; y < modules; y++) {
-        for (int x = 0; x < modules; x++) {
-            if (!qrcodegen_getModule(qr, x, y)) continue;
-            rounded_rect(cr, x * mod_px, y * mod_px, mod_px, mod_px, r);
-            cairo_fill(cr);
+    /* Модулі — прямокутники, а не квадрати з rx=0.3, як у макеті. На наших
+     * розмірах заокруглення субпіксельне (модуль 2,2 px у рядку, 3,9 px у
+     * попапі — радіус 0,7 і 1,2 px), а дуги на Pi 1 коштували 164 мс на
+     * код. Сусідні модулі рядка зливаються в одну смугу: менше елементів
+     * контуру — дешевше растеризувати. */
+    cairo_save(cr);
+    cairo_new_path(cr);
+    for (int j = 0; j < modules; j++) {
+        int i = 0;
+        while (i < modules) {
+            if (!qrcodegen_getModule(qr, i, j)) { i++; continue; }
+            int run = 1;
+            while (i + run < modules && qrcodegen_getModule(qr, i + run, j)) run++;
+            cairo_rectangle(cr, x + i * m, y + j * m, run * m, m);
+            i += run;
         }
     }
-    cairo_destroy(cr);
-    return s;
+    /* Один контур і ОДНЕ заповнення на весь код. Смуги сусідніх рядків
+     * торкаються краями, але не перетинаються — правило заповнення ні на що
+     * не впливає. */
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_fill(cr);
+    cairo_restore(cr);
+    return true;
 }

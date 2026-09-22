@@ -14,5 +14,5 @@ cd "$(dirname "$0")/.."
 if [ $# -eq 0 ]; then set -- make desktop; fi
 MSYS_NO_PATHCONV=1 docker run --rm \
     -v "$(pwd):/work" -w /work \
-    pos-native-builder \
+    kiosk-desktop-builder \
     "$@"

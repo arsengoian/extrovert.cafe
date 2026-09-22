@@ -26,7 +26,11 @@ static const char *FS =
     "uniform float u_alpha;\n"
     "void main() {\n"
     "  vec4 c = texture2D(u_tex, v_uv);\n"
-    "  gl_FragColor = vec4(c.rgb, c.a * u_alpha);\n"
+    /* Текстури premultiplied (Cairo), блендинг GL_ONE/GL_ONE_MINUS_SRC_ALPHA —
+     * тож при згасанні множиться ВЕСЬ колір, а не лише альфа. Інакше колір
+     * лишався повним і додавався поверх сцени: попап і затемнення на
+     * півдорозі згасання спалахували світлішими, ніж мали бути. */
+    "  gl_FragColor = c * u_alpha;\n"
     "}\n";
 
 static GLuint compile(GLenum type, const char *src) {
@@ -194,7 +198,7 @@ void gl_draw_quad(gl_compositor_t *c, const gl_texture_t *tex,
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void gl_clear(void) {
-    glClearColor(0.f, 0.f, 0.f, 1.f);
+void gl_clear(bool transparent) {
+    glClearColor(0.f, 0.f, 0.f, transparent ? 0.f : 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 }

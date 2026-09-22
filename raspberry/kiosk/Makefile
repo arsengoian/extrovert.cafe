@@ -1,24 +1,22 @@
-# pos-native — дві цілі:
-#   make desktop  — x86_64, для локальних тестів (EGL surfaceless + Mesa
-#                   llvmpipe). Потребує `source build/env-desktop.sh` перед
-#                   запуском, щоб pkg-config бачив /tmp/local-sysroot.
-#   make pi       — НАТИВНА збірка НА самому Pi 1, не крос-компіляція.
-#                   Малина сама має gcc 6.3 і glibc 2.24 (те, під що довелось
-#                   би підганяти sysroot), тож простіше й надійніше поставити
-#                   -dev пакети через apt і зібрати на місці, ніж мати справу
-#                   з розбіжністю версій хедерів/символів крос-тулчейну.
-#                   Один раз: `sudo apt-get install libcairo2-dev
-#                   libpango1.0-dev librsvg2-dev libcurl4-openssl-dev
-#                   libpng-dev libfontconfig1-dev libgles2-mesa-dev
-#                   libegl1-mesa-dev libraspberrypi-dev` (libcjson-dev у
-#                   Stretch немає — cJSON тому вендориться в third_party/).
+# kiosk — дві цілі:
+#   make desktop  — bin/kiosk-desktop, x86_64, для локальних тестів (EGL
+#                   surfaceless + Mesa llvmpipe). Збирається в контейнері
+#                   docker/desktop.Dockerfile (docker/make.sh).
+#   make pi       — bin/kiosk, ARMv6 під Pi 1. Не крос-компіляція і не на
+#                   самій малині: docker/make-pi.sh запускає цей make у
+#                   контейнері з тим самим Raspbian Stretch під armv6
+#                   (pi.Dockerfile), тобто з тими самими gcc 6.3 і
+#                   glibc 2.24, що на пристрої. На точці компіляція з'їдала
+#                   ~80 с CPU — рівно стільки меню смикалось на очах у
+#                   клієнта (docs/raspberry-pi.md §3). libcjson-dev у Stretch
+#                   немає — cJSON тому вендориться в third_party/.
 #
 # Джерела спільні для обох цілей; відрізняється лише platform_*.c і те,
 # звідки беруться заголовки/бібліотеки.
 
 CC ?= gcc
 SRC_COMMON = src/main.c src/menu.c src/render.c src/gl.c src/telemetry.c \
-             src/svgtpl.c src/qr.c src/bonus.c src/update.c src/selftest.c \
+             src/svgtpl.c src/qr.c src/bonus.c src/popup.c src/update.c src/selftest.c \
              src/ws.c \
              third_party/cjson/cJSON.c third_party/qrcodegen/qrcodegen.c
 CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
@@ -30,7 +28,7 @@ CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
 # цій малині ставить генеричні libEGL.so/libGLESv2.so від Mesa в
 # /usr/lib/arm-linux-gnueabihf (через *-mesa-dev, потрібні лише як залежність
 # для заголовків) — pkg-config егл/glesv2 резолвиться саме туди. Якщо зібрати
-# pos-native-pi проти них, eglInitialize намагається піднятись як X11-клієнт
+# bin/kiosk проти них, eglInitialize намагається піднятись як X11-клієнт
 # (DRI2/DRI3) замість dispmanx і падає — на цьому залізі нема навіть vc4/KMS
 # (lsmod чистий), тож єдиний робочий шлях — лінкуватись напряму на
 # /opt/vc/lib/libbrcmEGL.so /opt/vc/lib/libbrcmGLESv2.so, в обхід pkg-config.
@@ -44,11 +42,11 @@ PKGS_DESKTOP = $(PKGS_BASE) glesv2 egl
 WS_URL_DESKTOP = ws://127.0.0.1:3002/
 WS_URL_PI = wss://ws.extrovert.cafe/
 
-.PHONY: desktop pi clean
+.PHONY: desktop pi tools clean
 
-desktop: bin/pos-native-desktop
+desktop: bin/kiosk-desktop
 
-bin/pos-native-desktop: $(SRC_COMMON) src/platform_desktop.c
+bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 	@mkdir -p bin
 	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_DESKTOP)"' $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
 		$(SRC_COMMON) src/platform_desktop.c \
@@ -56,12 +54,13 @@ bin/pos-native-desktop: $(SRC_COMMON) src/platform_desktop.c
 		$(shell pkg-config --libs $(PKGS_DESKTOP)) -lm
 	@echo "== зібрано $@ =="
 
-# Нативно на Pi: /opt/vc — стандартний шлях libraspberrypi-dev, без sysroot.
+# Ціль для малини (у Pi-контейнері, docker/make-pi.sh): /opt/vc — стандартний
+# шлях libraspberrypi-dev усередині того самого Raspbian, без sysroot.
 # GL/EGL лінкуються напряму на Broadcom-ові .so (не через pkg-config egl/
 # glesv2 — дивись коментар при PKGS_BASE вище).
-pi: bin/pos-native-pi
+pi: bin/kiosk
 
-bin/pos-native-pi: $(SRC_COMMON) src/platform_dispmanx.c
+bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 	@mkdir -p bin
 	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_PI)"' $(shell pkg-config --cflags $(PKGS_BASE)) \
 		-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads \
@@ -71,6 +70,17 @@ bin/pos-native-pi: $(SRC_COMMON) src/platform_dispmanx.c
 		$(shell pkg-config --libs $(PKGS_BASE)) \
 		-L/opt/vc/lib -l:libbrcmEGL.so -l:libbrcmGLESv2.so -lbcm_host -lvcos -lvchiq_arm -lm \
 		-Wl,-rpath,/opt/vc/lib
+	@echo "== зібрано $@ =="
+
+# Службові утиліти для малини — не частина релізу (make-release.sh бере лише
+# bin/kiosk). dispmanx-snap: знімок усього екрана з ПК (tools/dispmanx-snap.c).
+tools: bin/dispmanx-snap
+
+bin/dispmanx-snap: tools/dispmanx-snap.c
+	@mkdir -p bin
+	$(CC) -O2 -Wall -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads \
+		-I/opt/vc/include/interface/vmcs_host/linux $< -o $@ \
+		-L/opt/vc/lib -lbcm_host -lvcos -lvchiq_arm -Wl,-rpath,/opt/vc/lib
 	@echo "== зібрано $@ =="
 
 clean:

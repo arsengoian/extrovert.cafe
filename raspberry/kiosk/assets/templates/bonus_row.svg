@@ -11,15 +11,18 @@
     <text x="89" y="51.0" font-family="Extro700" font-size="18">{{NAME}}</text>
     <text x="89" y="77.5" font-family="Poppins" font-weight="400" font-size="13" fill="#F2EFE6" fill-opacity="0.5">{{EARNED_AT}}</text>
     <rect x="134.5" y="61.5" width="{{COIN_PILL_W}}" height="23" rx="11.5" ry="11.5" fill="#FE810B" fill-opacity="0.16" stroke="#FE810B" stroke-opacity="0.34"></rect>
-    <image x="143" y="65" width="16" height="16" href="{{ASSETS}}/coin.png" xlink:href="{{ASSETS}}/coin.png"></image>
+    <image x="143" y="64.5" width="16" height="17" preserveAspectRatio="xMidYMid meet" href="{{ASSETS}}/ui/coin_gold.png" xlink:href="{{ASSETS}}/ui/coin_gold.png"></image>
     <text x="164" y="78.0" font-family="Poppins" font-weight="700" font-size="14" fill="#FE810B">{{COINS}}</text>
+    <!-- Бейдж «секретний предмет» (bonus_secret.svg) або порожньо. -->
+    {{SECRET_BADGE}}
     <!-- Кільце — статична декорація (лише два повних кола, ніякої дуги
          прогресу нема в макеті); справжній індикатор часу — горизонтальна
-         смуга нижче. QR монтується в центр кільця окремим шаром (qr.c) —
-         тут лише темна підкладка з нього не потрібна: внутрішнє коло вже
-         дає темний фон. -->
+         смуга нижче. -->
     <circle cx="356" cy="70" r="56" fill="url(#ring)"></circle>
     <circle cx="356" cy="70" r="52" fill="#0B0C0E"></circle>
+    <!-- QR 64×64 у центрі кільця (324,38) домальовує bonus.c прямим Cairo
+         поверх цього шару — чому не SVG, пояснено в qr.h. -->
+
     <!-- Трек прогрес-бару — статичний. Заповнення (ширина = залишок/TTL)
          рухається щосекунди й малюється окремо прямим Cairo (bonus.c),
          поверх цього шару, у тому самому місці. -->

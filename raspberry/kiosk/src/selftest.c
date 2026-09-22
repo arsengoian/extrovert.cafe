@@ -2,6 +2,7 @@
 #include "config.h"
 #include "menu.h"
 #include "render.h"
+#include "popup.h"
 #include "qr.h"
 
 #include <stdio.h>
@@ -10,6 +11,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <time.h>
 
 /* Файли, без яких кіоск намалює порожнечу. Перевіряємо існування ОКРЕМО
  * від рендеру: librsvg на відсутню картинку не лається, просто не малює її —
@@ -21,15 +23,29 @@ static const char *REQUIRED[] = {
     "fonts/Poppins-Regular.ttf", "fonts/Poppins-SemiBold.ttf", "fonts/Poppins-Bold.ttf",
     "templates/menu.svg", "templates/card.svg", "templates/card_bonus.svg",
     "templates/ad.svg", "templates/bonus_header.svg", "templates/bonus_empty.svg",
-    "templates/bonus_row.svg",
-    "logo_dark.svg", "coin.png",
+    "templates/bonus_row.svg", "templates/bonus_secret.svg",
+    "templates/popup.svg", "templates/popup_bonus.svg", "templates/popup_secret.svg",
+    "logo_dark.svg", "ui/coin_gold.png", "ui/hero_bush.png",
 };
+
+/* Час рендера кожної поверхні — у тому самому рядку лога. Selftest ганяє
+ * рівно ті функції, що й кадровий цикл, тож на пристрої це найдешевший
+ * спосіб побачити, скільки коштує, наприклад, поява попапу: кіоск цей час
+ * стоїть (21.09.2026 так знайшли 1,4-секундне завмирання на бонусі). */
+static double g_mark_ms;
+static double now_ms(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1e3 + (double)ts.tv_nsec / 1e6;
+}
+static void mark(void) { g_mark_ms = now_ms(); }
 
 /* Скільки пікселів мають відрізнятись від лівого верхнього кута, щоб
  * вважати поверхню намальованою. Поріг свідомо низький (0,5 %): мета —
  * відрізнити "щось намальовано" від "суцільна заливка/прозорість", а не
  * оцінювати схожість на макет. */
 static bool surface_has_ink(cairo_surface_t *s, const char *what) {
+    double took_ms = now_ms() - g_mark_ms;
     if (!s) {
         fprintf(stderr, "selftest: %s — рендер повернув NULL\n", what);
         return false;
@@ -68,7 +84,8 @@ static bool surface_has_ink(cairo_surface_t *s, const char *what) {
                 what, frac * 100.0);
         return false;
     }
-    fprintf(stderr, "selftest: %s ok (%dx%d, %.1f%% відмінних)\n", what, w, h, frac * 100.0);
+    fprintf(stderr, "selftest: %s ok (%dx%d, %.1f%% відмінних, %.0f мс)\n",
+            what, w, h, frac * 100.0, took_ms);
     return true;
 }
 
@@ -129,19 +146,43 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     menu_t m;
     build_fixture(&m);
 
+    mark();
     cairo_surface_t *menu_s = render_menu(&m, assets_dir);
     if (!surface_has_ink(menu_s, "menu.svg")) failures++;
 
+    mark();
     cairo_surface_t *ad_s = render_ad(&m, assets_dir);
     if (!surface_has_ink(ad_s, "ad.svg")) failures++;
 
-    cairo_surface_t *popup_s = render_popup("Оновлення", "перевірка рендера");
-    if (!surface_has_ink(popup_s, "popup")) failures++;
+    /* Основа попапу окремо від накладання: основа рендериться раз на старті
+     * кіоска, а накладання — на кожен бонус, тобто на очах у клієнта. */
+    popup_art_t art = {0};
+    mark();
+    popup_art_init(&art, assets_dir);
+    if (!surface_has_ink(art.base, "popup: основа")) failures++;
 
-    cairo_surface_t *qr_s = render_qr("https://extrovert.cafe/b/selftest", (int)QR_ROW_SIZE);
+    /* Обидва варіанти попапу: з плиткою предмета й без — це різні шляхи
+     * підстановки (popup_secret.svg або порожньо), і зламатись може кожен. */
+    bonus_popup_t bp = { .coins = 100, .secret = true };
+    snprintf(bp.qr_payload, sizeof(bp.qr_payload), "https://extrovert.cafe/b/selftest");
+    mark();
+    cairo_surface_t *popup_s = popup_render(&art, assets_dir, &bp);
+    if (!surface_has_ink(popup_s, "popup + предмет")) failures++;
+    bp.secret = false;
+    mark();
+    cairo_surface_t *popup2_s = popup_render(&art, assets_dir, &bp);
+    if (!surface_has_ink(popup2_s, "popup")) failures++;
+    popup_art_destroy(&art);
+
+    mark();
+    cairo_surface_t *qr_s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)QR_ROW_SIZE, (int)QR_ROW_SIZE);
+    cairo_t *qr_cr = cairo_create(qr_s);
+    if (!qr_paint(qr_cr, "https://extrovert.cafe/b/selftest", 0, 0, QR_ROW_SIZE)) failures++;
+    cairo_destroy(qr_cr);
     if (!surface_has_ink(qr_s, "qr")) failures++;
 
     double banner_w = 0;
+    mark();
     cairo_surface_t *banner_s = render_update_banner("ОНОВЛЕННЯ…", &banner_w);
     if (!surface_has_ink(banner_s, "update banner")) failures++;
 
@@ -156,9 +197,17 @@ int selftest_run(const char *assets_dir, const char *out_png) {
             fprintf(stderr, "selftest: знімок у %s\n", out_png);
     }
 
+    /* Попап — окремим знімком і лише на вимогу: апдейтеру вистачає меню, а
+     * цей потрібен, щоб подивитись, як його малює саме Pi-шний librsvg 2.40
+     * (десктопний контейнер має новіший і може сховати різницю). */
+    const char *popup_png = getenv("SELFTEST_POPUP_PNG");
+    if (popup_png && popup_png[0] && popup_s && cairo_surface_status(popup_s) == CAIRO_STATUS_SUCCESS)
+        cairo_surface_write_to_png(popup_s, popup_png);
+
     if (menu_s) cairo_surface_destroy(menu_s);
     if (ad_s) cairo_surface_destroy(ad_s);
     if (popup_s) cairo_surface_destroy(popup_s);
+    if (popup2_s) cairo_surface_destroy(popup2_s);
     if (qr_s) cairo_surface_destroy(qr_s);
     if (banner_s) cairo_surface_destroy(banner_s);
 

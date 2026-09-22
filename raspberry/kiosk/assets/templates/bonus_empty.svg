@@ -9,7 +9,7 @@
     <text x="448" y="37.2" text-anchor="end" font-family="Extro400" font-size="14" fill="#F2EFE6" fill-opacity="0.5">2 хв на отримання</text>
     <circle cx="235" cy="260.8" r="47.5" fill="#FFFFFF" fill-opacity="0.04" stroke="#FE810B" stroke-opacity="0.28"></circle>
     <circle cx="235" cy="260.8" r="47.5" fill="url(#coinGlow)"></circle>
-    <image x="212" y="237.8" width="46" height="46" href="{{ASSETS}}/coin.png" xlink:href="{{ASSETS}}/coin.png"></image>
+    <image x="212" y="236.6" width="46" height="48" preserveAspectRatio="xMidYMid meet" href="{{ASSETS}}/ui/coin_gold.png" xlink:href="{{ASSETS}}/ui/coin_gold.png"></image>
     <!-- y — базова лінія, не центр: dominant-baseline="central" librsvg не
          рендерить, зсунуто на виміряний (ascent-descent)/2, як і скрізь
          (29.08.2026). -->
