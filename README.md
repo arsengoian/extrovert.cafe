@@ -37,7 +37,7 @@ Workers. R2 — меню, релізи й відео. GlitchTip — помилк
 ## Запуск локально
 
 ```bash
-cp .env.example .env      # заповнити; ключ підпису — make keys-jwt
+cp .env.example .env      # заповнити; ключ підпису — make keys-jwt, секрет бота підтримки — make keys-secret
 make up                   # postgres, redis, minio (локальний S3 замість R2)
 make migrate              # схема
 make seed                 # дев-гравець, кавенятко, чек, довідник НП

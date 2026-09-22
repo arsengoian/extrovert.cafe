@@ -20,6 +20,7 @@ const COUNTS = [
   ["receipts_today", "чеків сьогодні", "select count(*)::int as n from receipts where created_at >= current_date"],
   ["problems_open", "скарг відкритих", "select count(*)::int as n from problem_reports where status <> 'closed'"],
   ["listings_active", "лотів на маркеті", "select count(*)::int as n from market_listings where status = 'active'"],
+  ["support_waiting", "звернень без відповіді", "select count(*)::int as n from support_threads where status = 'open' and last_user_at > coalesce(last_admin_at, 'epoch')"],
 ];
 
 export default async function routes(app) {

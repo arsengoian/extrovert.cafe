@@ -23,12 +23,6 @@ export const TERMS_VERSION = docs.terms?.updated ?? null;
 export default async function routes(app) {
   app.get("/legal", async () => ({
     docs: Object.values(docs).map(({ id, title, updated }) => ({ id, title, updated })),
-    support: {
-      title: "Підтримка",
-      body: "Усе, що стосується точок і напоїв — через «Повідомити про проблему»: скарга приходить команді "
-        + "разом із часом і номером точки. Питання щодо акаунта й даних — тим самим шляхом, "
-        + "у тексті напиши «акаунт».",
-    },
   }));
 
   app.get("/legal/:id", async (req) => {

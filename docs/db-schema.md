@@ -718,6 +718,12 @@ erDiagram
         timestamptz published_at "null - ще не в Redis"
         smallint attempts
     }
+    WEBHOOK_KEYS {
+        text provider PK "checkbox"
+        text key "секрет підпису, виданий провайдером"
+        text url "куди провайдер шле вебхук"
+        timestamptz registered_at
+    }
     SYNC_CURSORS {
         text name PK "checkbox:receipts|np:directory|np:tracking"
         timestamptz cursor_at "до якого моменту все забрано"
@@ -797,6 +803,13 @@ Checkbox (пише `checkbox`), нічна синхронізація довід
 у нас Google/Apple, а в боті Telegram, і спільного ідентифікатора немає.
 Лічильник в адмінці — треди, де `last_user_at > last_admin_at`.
 
+`WEBHOOK_KEYS` — секрети підпису, які видає сам провайдер у відповідь на
+реєстрацію вебхука (зараз Checkbox, 22.09.2026). Значення похідне, а не
+налаштування, тож у `.env` його немає: інакше програмі довелося б писати
+у власний конфіг. Кладе ключ `checkbox webhook:register --set`, читає
+приймач `checkbox` — з кешем на хвилину й перечитуванням на першому
+неспівпадінні підпису, тож перереєстрація не вимагає рестарту.
+
 ---
 
 ## 5. Redis: що саме там лежить
@@ -816,6 +829,7 @@ Redis тут — **не база**. Втрата всього кейспейсу
 | `market:impressions` | hash `listing_id → n` | до перенесення | api (`HINCRBY`) | scheduler, раз на хвилину | покази лотів без запису в Postgres на кожен запит (`services.md` §4) |
 | `rl:<scope>:<id>` | string лічильник | 60 с | api | api | rate limit (чат — без ліміту, решта — є) |
 | `bonus:claim:<token>` | hash | 120 с | api | api | вікно сканування QR, дзеркало `bonus_grants` |
+| `support:start:<code>` | string → user_id | 1 год | api (кнопка «Підтримка») | api (вебхук бота) | одноразовий код у `t.me/<бот>?start=`: привʼязує тред до акаунта, після використання видаляється |
 | `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |
 | `lock:<job>` | string `SET NX PX` | за роботою | scheduler, checkbox, overseer, worker | вони ж | щоб дві копії фонової роботи не робили одне й те саме |
 | `health:last:<target>` | hash | 1 год | overseer | api (адмінка) | останній стан без запиту в Postgres |

@@ -6,7 +6,8 @@
   "description": "REST для client і pos",
   "scripts": {
     "dev": "bun --watch src/index.js",
-    "start": "bun src/index.js"
+    "start": "bun src/index.js",
+    "support:webhook": "bun --env-file=../../.env scripts/support-webhook.mjs"
   },
   "dependencies": {
     "@extrovert/lib": "workspace:*",

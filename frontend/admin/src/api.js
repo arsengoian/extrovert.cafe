@@ -12,13 +12,14 @@ export const setToken = (t) => (t ? localStorage.setItem(TOKEN_KEY, t) : localSt
 // не обіцяти того, чого немає.
 export const devLoginPossible = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 
-async function request(path, { method = "GET", body } = {}) {
+async function request(path, { method = "GET", body, raw = false } = {}) {
   const headers = {};
   const token = getToken();
   if (token) headers.authorization = `Bearer ${token}`;
   if (body) headers["content-type"] = "application/json";
 
   const res = await fetch(`${BASE}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  if (raw && res.ok) return res.blob();
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
@@ -37,4 +38,9 @@ export const api = {
     return r.admin;
   },
   logout: () => setToken(null),
+  supportThreads: (status) => request(`/admin/support/threads${status ? `?status=${status}` : ""}`),
+  supportThread: (id) => request(`/admin/support/threads/${id}`),
+  supportReply: (id, text) => request(`/admin/support/threads/${id}/reply`, { method: "POST", body: { text } }),
+  supportStatus: (id, status) => request(`/admin/support/threads/${id}/status`, { method: "POST", body: { status } }),
+  supportFile: (fileId) => request(`/admin/support/files/${encodeURIComponent(fileId)}`, { raw: true }),
 };

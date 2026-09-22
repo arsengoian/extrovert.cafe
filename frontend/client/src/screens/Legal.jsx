@@ -1,5 +1,6 @@
-// Умови, приватність і підтримка — кадри «Умови користування» і «Політика
+// Умови й приватність — кадри «Умови користування» і «Політика
 // приватності»: дві пігулки-вкладки, суцільний текст, редакція внизу.
+// Посилання «підтримка» в тексті й унизу ведуть одразу в Telegram-бот.
 // Тексти приходять з api (backend/api/data/legal), щоб нова редакція не
 // вимагала релізу застосунку.
 import { useEffect, useState } from "react";
@@ -35,39 +36,23 @@ function Rich({ text, onSupport }) {
 
 export function Legal({ doc = "terms", ctx }) {
   const [data, setData] = useState(null);
-  const [support, setSupport] = useState(null);
 
   useEffect(() => {
-    if (doc === "support") {
-      api.get("/legal").then((r) => setSupport(r.support)).catch(() => setSupport(null));
-      return;
-    }
     api.get(`/legal/${doc}`).then(setData).catch(() => setData(null));
   }, [doc]);
 
-  // Вкладки підміняють екран (назад — туди, звідки прийшли), а підтримка
-  // відкривається поверх: з неї повертаються до тексту, який читали.
+  // Вкладки підміняють екран: назад — туди, звідки прийшли.
   const open = (next) => () => ctx.replace(next);
-  const toSupport = () => ctx.push("support");
+  const toSupport = () => ctx.support?.();
 
   return (
     <div className="form18">
-      {doc !== "support" && (
-        <div className="pill-tabs">
-          <button aria-pressed={doc === "terms"} onClick={open("terms")}>Умови</button>
-          <button aria-pressed={doc === "privacy"} onClick={open("privacy")}>Приватність</button>
-        </div>
-      )}
+      <div className="pill-tabs">
+        <button aria-pressed={doc === "terms"} onClick={open("terms")}>Умови</button>
+        <button aria-pressed={doc === "privacy"} onClick={open("privacy")}>Приватність</button>
+      </div>
 
-      {doc === "support" ? (
-        <div className="doc">
-          <p>{support?.body}</p>
-          <button className="cta send" onClick={() => ctx.push("problem")}>Повідомити про проблему</button>
-          {/* Шлях до видалення акаунта, який обіцяє політика приватності:
-              профіль → «Підтримка». Гостю (до входу) видаляти нічого. */}
-          {ctx.me && <button className="doc-link delete-link" onClick={() => ctx.push("deleteAccount")}>Видалити акаунт</button>}
-        </div>
-      ) : !data ? (
+      {!data ? (
         <div className="skeleton" />
       ) : (
         <div className="doc">

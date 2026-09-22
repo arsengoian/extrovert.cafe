@@ -27,6 +27,8 @@ import deliveryRoutes from "./routes/delivery.js";
 import accountRoutes from "./routes/account.js";
 import adminRoutes from "./routes/admin.js";
 import paymentRoutes from "./routes/payments.js";
+import supportRoutes from "./routes/support.js";
+import { ensureWebhook } from "./support/telegram.js";
 
 const app = Fastify({ logger: true });
 registerErrorHandler(app);
@@ -77,6 +79,7 @@ await app.register(deliveryRoutes, { prefix: "/api/v1" });
 await app.register(accountRoutes, { prefix: "/api/v1" });
 await app.register(adminRoutes, { prefix: "/api/v1" });
 await app.register(paymentRoutes, { prefix: "/api/v1" });
+await app.register(supportRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {
@@ -86,6 +89,15 @@ try {
 } catch (e) {
   app.log.error(e);
   process.exit(1);
+}
+
+// Вебхук бота підтримки реєструється сам — лише в проді, бо локально
+// Telegram до нас не достукається. Ідемпотентно: якщо адреса та сама,
+// нічого не міняється. Не вийшло — api працює далі, бот просто мовчить.
+if (process.env.APP_ENV === "production") {
+  ensureWebhook({ log: app.log })
+    .then((r) => app.log.info(r, "вебхук бота підтримки"))
+    .catch((e) => app.log.warn({ err: e.message }, "вебхук бота підтримки не зареєструвався"));
 }
 
 // Під час деплою поруч уже стоїть новий контейнер, а цей має доробити те,

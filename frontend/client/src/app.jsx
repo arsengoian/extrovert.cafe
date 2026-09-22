@@ -6,6 +6,7 @@
 // одного pushState. Екрани бувають двох видів: повні (зі своїм топбаром) і
 // шторки (поверх поточної вкладки) — як у макетах.
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { openSupport } from "./ui/support.jsx";
 import { api, getToken, setToken } from "./api.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
@@ -102,9 +103,11 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
     if (stack.length) window.history.pushState({ depth: stack.length }, "");
   }, [stack.length]);
 
+  // «Підтримка» звідусіль веде в Telegram-бот, а не на екран застосунку.
+  const support = useCallback(() => openSupport(setNotice), []);
   const ctx = useMemo(
-    () => ({ me, refreshMe, push, pop, replace, openTab, tab, notify: setNotice }),
-    [me, refreshMe, push, pop, replace, openTab, tab]
+    () => ({ me, refreshMe, push, pop, replace, openTab, tab, notify: setNotice, support }),
+    [me, refreshMe, push, pop, replace, openTab, tab, support]
   );
 
   if (booting) return <div className="app" />;
@@ -115,7 +118,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
       const Guest = def.component;
       const guestTitle = typeof def.title === "function" ? def.title(guest.props ?? {}) : def.title;
       const guestCtx = {
-        me: null, refreshMe, tab: null, openTab: () => setGuest(null),
+        me: null, refreshMe, tab: null, openTab: () => setGuest(null), notify: setNotice, support,
         pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
         replace: (name, props = {}) => setGuest({ name, props }),
       };
@@ -125,6 +128,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
           <div className="stage" key={guest.name}>
             <Guest {...(def.props ?? {})} {...(guest.props ?? {})} ctx={guestCtx} />
           </div>
+          {notice}
         </div>
       );
     }
@@ -134,8 +138,9 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
           bonus={pendingBonus}
           onSignedIn={async () => { await refreshMe(); setBooting(false); }}
           onProblem={() => setGuest({ name: "problem" })}
-          onSupport={() => setGuest({ name: "support" })}
+          onSupport={support}
         />
+        {notice}
       </div>
     );
   }
@@ -167,7 +172,7 @@ export function App({ bonusToken = null, returningFromPayment = false }) {
 
   return (
     <div className="app">
-      {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} />}
+      {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} onSupport={support} />}
       <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
         {/* props із реєстру — значення за замовчуванням: ними один компонент
             обслуговує кілька екранів (умови, приватність, підтримка). */}

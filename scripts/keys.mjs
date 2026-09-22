@@ -1,6 +1,7 @@
 // Ключі, які потрібні розробнику й серверу.
 //
 //   bun scripts/keys.mjs jwt        — Ed25519 для підпису токенів, одним рядком у .env
+//   bun scripts/keys.mjs secret     — випадковий рядок для SUPPORT_BOT_SECRET (заголовок вебхука Telegram)
 //   bun scripts/keys.mjs ssh        — ключ доступу до малини й дроплетів (keys/, у git не їде)
 //   bun scripts/keys.mjs ssh --show — показати публічну частину наявного ключа
 //
@@ -9,7 +10,7 @@
 // немає.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync } from "node:fs";
-import { generateKeyPairSync } from "node:crypto";
+import { generateKeyPairSync, randomBytes } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -88,9 +89,15 @@ function ssh() {
   console.log("  • перевірити: ssh -i keys/extrovert_ed25519 root@<ip>");
 }
 
-const commands = { jwt, ssh };
+// secret_token вебхука Telegram: 1-256 символів з [A-Za-z0-9_-] — base64url
+// саме такий. Як і JWT, живе в .env, тож друкуємо.
+function secret() {
+  console.log(`SUPPORT_BOT_SECRET=${randomBytes(32).toString("base64url")}`);
+}
+
+const commands = { jwt, ssh, secret };
 if (!commands[command]) {
-  console.error("команди: jwt | ssh [--show]");
+  console.error("команди: jwt | secret | ssh [--show]");
   process.exit(1);
 }
 commands[command]();

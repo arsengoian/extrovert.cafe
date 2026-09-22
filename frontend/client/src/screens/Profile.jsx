@@ -50,7 +50,7 @@ export function Profile({ ctx }) {
       <div className="profile-links">
         <button onClick={() => ctx.push("terms")}><span>Умови користування</span><Chevron /></button>
         <button onClick={() => ctx.push("privacy")}><span>Політика приватності</span><Chevron /></button>
-        <button onClick={() => ctx.push("support")}><span>Підтримка</span><Chevron /></button>
+        <button onClick={() => ctx.support()}><span>Підтримка</span><Chevron /></button>
       </div>
 
       <button className="profile-out" onClick={() => api.logout().finally(() => location.reload())}>
@@ -59,6 +59,8 @@ export function Profile({ ctx }) {
         </svg>
         Вийти
       </button>
+      {/* Політика приватності обіцяє: «Видалити акаунт можна з профілю». */}
+      <button className="doc-link delete-link" onClick={() => ctx.push("deleteAccount")}>Видалити акаунт</button>
     </ConfirmSheet>
   );
 }

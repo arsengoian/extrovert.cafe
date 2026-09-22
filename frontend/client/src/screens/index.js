@@ -88,5 +88,4 @@ export const SCREENS = {
   deleteAccount: { component: DeleteAccount, title: "Видалити акаунт" },
   terms: { component: Legal, title: "Умови користування", hideNav: true },
   privacy: { component: Legal, title: "Приватність", props: { doc: "privacy" }, hideNav: true },
-  support: { component: Legal, title: "Підтримка", props: { doc: "support" }, hideNav: true },
 };

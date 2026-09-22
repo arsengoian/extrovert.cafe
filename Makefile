@@ -9,7 +9,7 @@
 .PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-ask planting-data \
-        deploy-client deploy-client-dry keys-jwt keys-ssh smoke \
+        deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
         tf-plan tf-apply tf-output ssh-public \n        act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \n        release-push
 
 ## ── оточення ────────────────────────────────────────────────────────────
@@ -49,6 +49,7 @@ help:
 	@echo   make release-push        залити реліз кіоска в публічний бакет R2
 	@echo ---------------------------------------------------------------
 	@echo   make keys-jwt      новий ключ підпису токенів для .env
+	@echo   make keys-secret   SUPPORT_BOT_SECRET для вебхука бота підтримки
 	@echo   make keys-ssh      ключ доступу до малини й дроплетів, тека keys
 	@echo ---------------------------------------------------------------
 	@echo   make tf-plan       що terraform збирається змінити на DigitalOcean
@@ -164,6 +165,9 @@ release-push:
 
 keys-jwt:
 	bun scripts/keys.mjs jwt
+
+keys-secret:
+	bun scripts/keys.mjs secret
 
 keys-ssh:
 	bun scripts/keys.mjs ssh

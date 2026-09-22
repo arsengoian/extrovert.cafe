@@ -113,8 +113,10 @@ api (`/admin/overview`). Домен — `admin.extrovert.cafe`, привʼязу
 | `OPENAI_API_KEY` | чат кавенятка відповідає уривками бази знань |
 | `NP_API_KEY` | scheduler не оновлює довідник і не трекає посилки |
 | `CHECKBOX_LOGIN`/`PASSWORD` | checkbox не опитує чеки |
-| `CHECKBOX_WEBHOOK_KEY` | вебхук відповідає 401 на все |
+| `CHECKBOX_LICENSE_KEY` | вебхук Checkbox не зареєструвати (сам ключ підпису лежить у базі, §3) |
 | `TELEGRAM_BOT_TOKEN`/`CHAT_ID` | overseer пише алерти лише в лог |
+| `SUPPORT_BOT_USERNAME` | кнопка «Підтримка» каже, що підтримка ще не підключена |
+| `SUPPORT_BOT_TOKEN`/`SECRET` | бот підтримки мовчить: вебхук не реєструється, відповісти з адмінки нема чим |
 
 `.env.example` тримає тестові ключі Checkbox поруч зі справжніми навмисно —
 щоб зменшити шанс випадково смикнути бойовий ПРРО.
@@ -327,9 +329,14 @@ make act-deploy    # справжнє викочування на живий с�
 
 ## 3. Після першого викочування
 
-- зареєструвати вебхук Checkbox (`POST /api/v1/webhook`) — потрібен
-  `X-License-Key` каси; після цього `overseer` почне бачити
-  `last_error_date` і скаржитись, коли вебхуки до нас не доходять;
+- зареєструвати вебхук Checkbox:
+  `docker compose exec checkbox bun run webhook:register --set --prod` —
+  потрібен `CHECKBOX_LICENSE_KEY`; ключ підпису скрипт кладе в базу
+  (`webhook_keys`), у `.env` його писати не треба. Після цього `overseer`
+  почне бачити `last_error_date` і скаржитись, коли вебхуки до нас не доходять;
+- вебхук бота підтримки `api` реєструє сам на старті, щойно в `.env` є
+  `SUPPORT_BOT_*`; перевірити — `docker compose exec api bun run support:webhook`
+  (адреса, черга, остання помилка);
 - залити базу знань чату в OpenAI (`bun run kb:push`) — якщо переходимо з
   локального пошуку на `file_search`;
 - перевірити, що `scheduler` справді публікує `outbox`: рядки з

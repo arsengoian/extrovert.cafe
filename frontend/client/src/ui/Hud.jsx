@@ -19,7 +19,7 @@ function useCoinFlight(value, iconRef, src) {
   }, [value]);
 }
 
-export function Hud({ me, onOpen }) {
+export function Hud({ me, onOpen, onSupport }) {
   const b = me?.balances ?? {};
   const silverRef = useRef(null);
   const goldRef = useRef(null);
@@ -36,7 +36,7 @@ export function Hud({ me, onOpen }) {
       <button className="icon-btn" aria-label="Повідомити про проблему" onClick={() => onOpen("problem")}>
         <img src="/assets/ui/nav_problem.png" alt="" style={{ width: 24, height: 23 }} />
       </button>
-      <button className="icon-btn" aria-label="Підтримка" onClick={() => onOpen("support")}>
+      <button className="icon-btn" aria-label="Підтримка" onClick={onSupport}>
         <img src="/assets/ui/nav_support.png" alt="" style={{ width: 22, height: 23 }} />
       </button>
       <button className="icon-btn" data-active="true" aria-label="Профіль" onClick={() => onOpen("profile")}>
