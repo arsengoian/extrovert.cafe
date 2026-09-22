@@ -3,15 +3,17 @@
 name = "extrovert-client"
 compatibility_date = "2026-09-01"
 
+# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо його тут
+# закоментованим, щоб випадковий deploy не перехопив прод. Рядок стоїть до
+# першої таблиці навмисно: розкоментований після [assets], він став би
+# assets.routes, і маршрут не застосувався б.
+# routes = [{ pattern = "extrovert.cafe", custom_domain = true }]
+
 [assets]
 directory = "./dist"
 # SPA: будь-який шлях віддає index.html, бо роутинг у застосунку свій
 # (вкладки й стек екранів), а не на сервері.
 not_found_handling = "single-page-application"
-
-# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо його тут
-# закоментованим, щоб випадковий deploy не перехопив прод:
-# routes = [{ pattern = "extrovert.cafe", custom_domain = true }]
 
 [observability]
 enabled = true

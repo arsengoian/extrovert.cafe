@@ -8,12 +8,14 @@ name = "extrovert-redirect"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 
+# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо
+# закоментованим, щоб випадковий deploy не перехопив живий r.extrovert.cafe.
+# Стоїть до [vars] навмисно — інакше розкоментований рядок став би змінною
+# оточення vars.routes, а не маршрутом.
+# routes = [{ pattern = "r.extrovert.cafe", custom_domain = true }]
+
 [vars]
 APP_ORIGIN = "https://extrovert.cafe"
-
-# Домен привʼязується один раз у дашборді Cloudflare. Тримаємо
-# закоментованим, щоб випадковий deploy не перехопив живий r.extrovert.cafe:
-# routes = [{ pattern = "r.extrovert.cafe", custom_domain = true }]
 
 [observability]
 enabled = true

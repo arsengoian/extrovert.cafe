@@ -4,13 +4,14 @@
 name = "extrovert-admin"
 compatibility_date = "2026-09-01"
 
+# Домен привʼязується один раз у дашборді Cloudflare. Закоментований, щоб
+# випадковий deploy не перехопив прод. Стоїть до [assets] навмисно — інакше
+# розкоментований рядок став би assets.routes.
+# routes = [{ pattern = "admin.extrovert.cafe", custom_domain = true }]
+
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
-
-# Домен привʼязується один раз у дашборді Cloudflare. Закоментований, щоб
-# випадковий deploy не перехопив прод:
-# routes = [{ pattern = "admin.extrovert.cafe", custom_domain = true }]
 
 [observability]
 enabled = true

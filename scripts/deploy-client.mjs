@@ -68,9 +68,14 @@ console.log(`\nзібрано: ${bundles.length} js, усього ${(bytes / 102
 
 // 4. Нагадування про домен: у wrangler.toml маршрут навмисно закоментований,
 // щоб випадковий deploy не перехопив прод (прив'язка робиться раз у
-// дашборді Cloudflare).
-const wrangler = readFileSync(path.join(CLIENT, "wrangler.toml"), "utf8");
-const bound = /^\s*routes\s*=/m.test(wrangler);
+// дашборді Cloudflare). Розбираємо TOML, а не шукаємо рядок: routes після
+// заголовка таблиці опиняється в ній (assets.routes), wrangler такого
+// маршруту не застосує, і «перехопить» тоді було б неправдою.
+const wrangler = Bun.TOML.parse(readFileSync(path.join(CLIENT, "wrangler.toml"), "utf8"));
+if (!wrangler.routes && Object.values(wrangler).some((v) => v && typeof v === "object" && "routes" in v)) {
+  fail("routes у wrangler.toml опинився всередині таблиці — перенеси рядок вище першого [заголовка]");
+}
+const bound = Boolean(wrangler.routes?.length);
 console.log(bound
   ? "домен: маршрут прописаний у wrangler.toml — деплой перехопить його"
   : "домен: маршрутів у wrangler.toml немає, поїде на *.workers.dev (прод привʼязується в дашборді)");
