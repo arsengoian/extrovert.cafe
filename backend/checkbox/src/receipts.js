@@ -74,6 +74,15 @@ export async function ingest(receipt, { source, log }) {
       const { rows: drink } = await client.query(
         "select coins, bonus_coins from drinks where system_code = $1", [code]
       );
+      // Код, якого немає в каталозі, — це не дрібниця: монет за такий напій
+      // не нарахується, і мовчки. Найімовірніша причина — друга машина:
+      // Зернова нумерує позиції з літери машини (a…, b…), тож той самий
+      // напій приходить із чужим префіксом (з'ясовано 23.09.2026).
+      if (!drink.length && Number(g.price ?? 0) > 0) {
+        log?.warn("напою немає в каталозі — монети не нараховані", {
+          код: code, точка: pointId, назва: g.name ?? null,
+        });
+      }
       // Бонус-напій монет не дає: він сам і є бонусом (economy §7.1).
       const isBonus = Number(g.price ?? 0) === 0 || (drink[0]?.coins ?? 0) === 0;
       if (drink.length && !isBonus) {
