@@ -6,6 +6,9 @@ import { api } from "../api.js";
 import { ConfirmSheet } from "../ui/Popup.jsx";
 
 const MAX = 20;
+// Той самий набір, що перевіряє api (backend/api/src/routes/me.js): букви
+// будь-якої абетки, цифри, підкреслення й дефіс.
+const VALID = /^[\p{L}\p{N}_-]{3,20}$/u;
 const ERRORS = {
   bad_nickname: "3–20 символів: букви, цифри, підкреслення й дефіс",
   nickname_taken: "Такий нікнейм уже зайнятий",
@@ -18,9 +21,17 @@ export function NicknameChange({ ctx }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const trimmed = value.trim();
+  // Нікнейм, який не міняли, зберегти теж можна: api на такий запит просто
+  // відповідає «ок» і навіть не чіпає лічильник 30 днів. Кнопка ж була
+  // прибита до `free`, яке для незміненого імені лишалось null, — і
+  // «Зберегти» не натискалось узагалі (скарга власника 23.09.2026).
+  const unchanged = trimmed === current;
+  const valid = VALID.test(trimmed);
+
   useEffect(() => {
     const name = value.trim();
-    if (!name || name === current) { setFree(null); return undefined; }
+    if (!name || name === current || !VALID.test(name)) { setFree(null); return undefined; }
     const timer = setTimeout(() => {
       api.get(`/me/nickname/check?nickname=${encodeURIComponent(name)}`).then((r) => setFree(r.valid && r.free)).catch(() => setFree(null));
     }, 300);
@@ -57,7 +68,7 @@ export function NicknameChange({ ctx }) {
 
       <div className="field">
         <div className="profile-label">Новий нікнейм</div>
-        <label className="nick-field compact" data-tone={free === false ? "bad" : "ok"}>
+        <label className="nick-field compact" data-tone={free === false || (trimmed && !valid) ? "bad" : "ok"}>
           <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off"
                  onChange={(e) => { setValue(e.target.value.replace(/\s/g, "")); setError(null); }} />
           {free && (
@@ -67,6 +78,10 @@ export function NicknameChange({ ctx }) {
             </span>
           )}
           {free === false && <span>зайнятий</span>}
+          {/* Закоротке ім'я — це не «зайнятий»: раніше обидва випадки
+              виглядали однаково, і людина шукала вільний варіант замість
+              того, щоб дописати літеру. */}
+          {trimmed && !valid && <span>3–20 символів</span>}
         </label>
         <div className="nick-tools">
           <button onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
@@ -82,7 +97,7 @@ export function NicknameChange({ ctx }) {
 
       <div className="confirm-btns r14">
         <button onClick={ctx.pop}>Скасувати</button>
-        <button disabled={busy || locked || !free} onClick={save}>{busy ? "…" : "Зберегти"}</button>
+        <button disabled={busy || !valid || (!unchanged && (locked || !free))} onClick={save}>{busy ? "…" : "Зберегти"}</button>
       </div>
     </ConfirmSheet>
   );

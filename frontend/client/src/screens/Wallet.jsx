@@ -118,7 +118,7 @@ export function Wallet({ ctx }) {
             badge="/assets/ui/coin_silver.png"
             reward={drink?.reward ?? 40}
             title="Опитування про напій"
-            note={drink?.credits ? `${drink.credits} кредит · про будь-який напій` : "Кредити витрачено"}
+            note={drink?.credits ? `доступно ${drink.credits} · про будь-який напій` : "Поки недоступне"}
             action={drink?.credits ? { label: "Обрати" } : { label: "Недоступно", kind: "off" }}
             // «Обрати» — про який напій: вибір у «Покупках», на картці напою.
             onClick={drink?.credits ? () => ctx.openTab("history") : undefined}

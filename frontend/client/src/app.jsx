@@ -118,12 +118,13 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     try { sessionStorage.setItem(TAB_KEY, next); } catch { /* приватний режим — просто не памʼятаємо */ }
   }, []);
 
-  // Бонус із QR: щойно гравець увійшов — попап над «Покупками», як у кадрі
-  // «Попап редіму бонусу». Токен прибираємо з адреси, щоб оновлення
-  // сторінки не намагалось забрати його ще раз.
+  // Бонус із QR: щойно гравець увійшов — попап із монетами, а під ним
+  // кавенятко (рішення власника 23.09.2026: перше, що бачить людина після
+  // входу, — її кущ, а не список покупок). Токен прибираємо з адреси, щоб
+  // оновлення сторінки не намагалось забрати його ще раз.
   useEffect(() => {
     if (!bonusToken || !me?.consent) return;
-    openTab("history");
+    openTab("plant");
     setNotice(<BonusPopup token={bonusToken} ctx={{ me, refreshMe }} onClose={() => setNotice(null)} />);
     window.history.replaceState({}, "", "/");
   }, [bonusToken, Boolean(me?.consent)]);

@@ -47,30 +47,17 @@ export function DeleteAccount({ ctx }) {
 
   return (
     <div className="stage-pad">
-      <div className="panel" style={{ borderColor: "var(--accent)" }}>
-        <div style={{ fontWeight: 800, marginBottom: 6 }}>Що зникне</div>
-        <ul className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: 0, paddingLeft: 18 }}>
-          <li>вхід: пошта стирається, способи входу відвʼязуються назавжди</li>
-          <li>нікнейм звільняється, акаунт стає «deleted_account_…»</li>
-          {state.listings > 0 && <li>лоти на ринку знімаються з продажу ({state.listings})</li>}
-          <li>
-            баланси лишаються на рахунку, але витратити їх буде нікому:
-            {" "}{state.coins} монет, {state.beans} зерен
-          </li>
-        </ul>
-      </div>
-
-      <div className="panel">
-        <div style={{ fontWeight: 800, marginBottom: 6 }}>Що лишиться</div>
-        <ul className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: 0, paddingLeft: 18 }}>
-          {state.keeps.map((k) => <li key={k}>{k}</li>)}
-        </ul>
-      </div>
-
-      <p className="muted" style={{ fontSize: 13 }}>
+      {/* Списки «що зникне / що лишиться» тут стояли до 23.09.2026: це
+          наша внутрішня бухгалтерія, а не те, з чим людина ухвалює рішення.
+          Лишилось головне — вхід зникає, і повернути його не можна. */}
+      <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
+        Вхід зникне назавжди: пошта стирається, нікнейм звільняється, лоти
+        знімаються з ринку{state.listings > 0 ? " (" + state.listings + ")" : ""}.
         Дію не можна скасувати. Напиши «{WORD}», щоб підтвердити.
       </p>
-      <input className="price-input" style={{ width: "100%", fontSize: 15 }} value={word}
+      {/* Власний клас, а не .price-input: у колонковому флексі його
+          flex: 1 0% стискав поле по висоті майже в нитку. */}
+      <input className="confirm-input" value={word}
              placeholder={WORD} onChange={(e) => setWord(e.target.value)} />
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}

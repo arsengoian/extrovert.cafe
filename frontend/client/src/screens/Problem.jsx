@@ -162,7 +162,7 @@ export function Problem({ ctx }) {
           title="Дякуємо, побачили"
           onClose={ctx.pop}
         >
-          <div className="result-note">Ми читаємо все, що сюди приходить. Якщо знадобляться деталі – напишемо в підтримку.</div>
+          <div className="result-note">Ми читаємо все, що сюди приходить. Опрацюємо ASAP!</div>
         </ResultPopup>
       )}
     </div>
