@@ -15,7 +15,9 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { put } from "@extrovert/lib/r2.js";
+// Відносний шлях, як у решти scripts/: робота kiosk-release у CI не робить
+// bun install, а r2.js не тягне нічого, крім node:crypto.
+import { put } from "../backend/lib/src/r2.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.resolve(ROOT, process.argv[2] || "dist");
