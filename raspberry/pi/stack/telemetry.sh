@@ -68,8 +68,11 @@ net_metrics() {
 # і версію: саме вони кажуть, чи малюється меню.
 kiosk_metrics() { # kiosk_metrics <сокет>
     _json=$(telemetry_read "$1" 2>/dev/null) || { echo "null null"; return; }
-    _fps=$(printf '%s' "$_json" | sed -n 's/.*"fps"[ :]*\([0-9.]*\).*/\1/p')
-    _frames=$(printf '%s' "$_json" | sed -n 's/.*"frames"[ :]*\([0-9]*\).*/\1/p')
+    # Ключі — рівно ті, що віддає telemetry.c: fps_avg і frames_total.
+    # Скрипт шукав "fps" і "frames", яких у відповіді немає, тож у базу
+    # їхало null навіть при кіоску, що малює свої 60 кадрів (23.09.2026).
+    _fps=$(printf '%s' "$_json" | sed -n 's/.*"fps_avg"[ :]*\([0-9.]*\).*/\1/p')
+    _frames=$(printf '%s' "$_json" | sed -n 's/.*"frames_total"[ :]*\([0-9]*\).*/\1/p')
     echo "${_fps:-null} ${_frames:-null}"
 }
 
