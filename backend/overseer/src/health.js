@@ -67,8 +67,16 @@ async function components(pool, redis) {
   out.push(["menu-deploy", deploy.failed === 0, deploy.failed ? `${deploy.failed} невдалих за добу` : null]);
 
   // Вебхук ПРРО: сам Checkbox розповідає про свої помилки доставки.
+  //
+  // «unknown» — це «не змогли спитати», і червоним воно світитись не має:
+  // те, що справді важить — чи доходять чеки, — нижче окремим рядком
+  // (receipts). Інакше дашборд стояв би червоним через те, що Checkbox не
+  // віддає налаштувань, поки чеки спокійно йдуть.
   const webhook = await checkWebhook();
-  if (webhook) out.push(["checkbox-webhook", webhook.state === "ok", webhook.state === "ok" ? null : webhook.message]);
+  if (webhook) {
+    out.push(["checkbox-webhook", webhook.state === "ok" || webhook.state === "unknown",
+      webhook.state === "ok" ? null : webhook.message]);
+  }
 
   // Бекап бази: файл за сьогодні або вчора має лежати в R2.
   out.push(await backupFresh());

@@ -55,7 +55,16 @@ export async function checkWebhook() {
     // окремо.
     if (res.status === 404) return { state: "unknown", message: "на цій касі вебхук не зареєстрований" };
     if (!res.ok) return { state: "unknown", message: `webhook HTTP ${res.status}` };
-    const hook = await res.json();
+
+    // 200 з тілом `null` — окремий випадок, і саме він 23.09.2026 о 14:37
+    // прилетів у Telegram як «null is not an object». Checkbox так
+    // відповідає, коли для цієї каси налаштувань вебхука в нього немає, —
+    // при тому що чеки до нас доходять саме вебхуком (receipts.source).
+    // Тобто це не поломка, а «не спитати»: мовчимо, а не лякаємо.
+    const hook = await res.json().catch(() => null);
+    if (!hook || typeof hook !== "object") {
+      return { state: "unknown", message: "Checkbox не показує налаштувань вебхука для цієї каси" };
+    }
     if (!hook.last_error_date) return { state: "ok", message: "без помилок" };
     return {
       state: "failing",
