@@ -5,7 +5,7 @@
 //
 // Чого кущ хоче — каже сервер (plant.growth): таблиця переходів живе в
 // economy.json, і другої її копії тут бути не має.
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
@@ -234,6 +234,25 @@ export function Plant({ ctx }) {
   const [note, setNote] = useState(null);
   const [popup, setPopup] = useState(null);           // menu | gift | scythe | supply:<препарат>
   const touch = useRef(null);
+  // Уся сцена на платформі (кущ, полиця, хмаринка, бульбашка, бочка)
+  // зібрана в координатах макета — 390 px завширшки. На вужчому екрані
+  // вона просто не влазила: платформа й репліка йшли за правий край, а кущ
+  // зміщувався з центру (скарга власника 23.09.2026). Тому міряємо ширину
+  // й масштабуємо композицію цілком: і спрайти, і підписи на них.
+  //
+  // Ref-функцією, а не useRef + useEffect: до завантаження кавенятка екран
+  // повертає заглушку, і на момент ефекту вузла ще немає — спостерігач
+  // чіплявся до null і множник назавжди лишався одиницею.
+  const [pf, setPf] = useState(1);
+  const watch = useRef(null);
+  const layer = useCallback((el) => {
+    watch.current?.disconnect();
+    if (!el) return;
+    // Спостерігача тримаємо в ref: без посилання на нього він переживав
+    // перший вимір і зникав, тож поворот екрана вже нічого не міняв.
+    watch.current = new ResizeObserver(([e]) => setPf(e.contentRect.width / 390));
+    watch.current.observe(el);
+  }, []);
   const [fx, setFx] = useState(null);                 // перехід стадії: попередня сцена й куди виросло
   const [pour, setPour] = useState(null);             // полив, що зараз грає
   const care = ctx.me?.care ?? {};
@@ -355,7 +374,7 @@ export function Plant({ ctx }) {
 
   return (
     <div className="plant-screen" {...swipe}>
-      <div className="plant-layer">
+      <div className="plant-layer" ref={layer} style={{ "--pf": pf }}>
         <div className="plant-area">
           <img className="plant-platform" src="/assets/ui/platform.png" alt="" />
           {want && (

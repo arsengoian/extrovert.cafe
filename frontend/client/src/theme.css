@@ -198,6 +198,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .chat-send { flex: none; height: 44px; padding: 0 14px 0 16px; border-radius: 999px; background: var(--grad); display: flex; align-items: center; gap: 7px; color: var(--accent-ink) }
 .chat-send > span { display: flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 800 }
 .chat-send img { width: 16px; height: 17px }
+/* Поле підтвердження (видалення акаунта): flex: none — інакше колонковий
+   флекс .stage-pad стискає його по висоті до нуля. */
+.confirm-input {
+  flex: none; width: 100%; height: 44px; padding: 0 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--panel2); color: var(--ink);
+  font: inherit; font-size: 15px;
+}
+
 .price-input {
   flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px;
   border: 1px solid var(--line); background: var(--panel2); color: var(--ink);
@@ -358,7 +366,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .cell i { position: absolute; right: 4px; bottom: 4px; font-size: 11px; font-weight: 800; font-style: normal; color: var(--muted) }
 
 /* ── покупки ───────────────────────────────────────────────────────────
-   Кадр «Покупки кави»: банер кредиту на опитування, заголовок із підсумком,
+   Кадр «Покупки кави»: банер доступних опитувань, заголовок із підсумком,
    картка на кожен напій. */
 .credit-banner {
   display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px;
@@ -583,6 +591,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: absolute; left: 14px; right: 14px; bottom: 14px; z-index: 160; border: 1px solid var(--line);
   border-radius: 24px; background: var(--panel); padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
   box-shadow: 0 30px 70px rgba(0, 0, 0, .55);
+  /* Попап зі способами заробити довший за низький екран: обмежуємо висоту
+     й даємо йому скрол, інакше заголовок і частина способів просто йдуть
+     за верхній край (скарга власника 23.09.2026). */
+  max-height: calc(100% - 28px); overflow-y: auto; overscroll-behavior: contain;
 }
 .confirm-row { display: flex; align-items: center; gap: 13px }
 .confirm-row b { display: block; font-size: 19px; font-weight: 900 }
@@ -778,13 +790,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .short-note { font-size: 13px; line-height: 1.5; color: var(--muted) }
 .short-note .coins2 { vertical-align: -4px }
 .earn-list { display: flex; flex-direction: column; gap: 8px }
+/* Рядок способу — це речення з іконками, а не флекс із дірками: до
+   23.09.2026 і назва, і підпис були flex, і монета розривала фразу на
+   шматки (скарга власника). */
 .earn-row { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px; background: var(--panel2) }
 .earn-row[data-accent] { border: 1px solid var(--accent) }
 .earn-row[data-off] { opacity: .6 }
 .earn-row > img { flex: none; object-fit: contain }
 .earn-main { flex: 1; min-width: 0 }
-.earn-main b { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 700 }
-.earn-main small { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted) }
+.earn-main b { display: block; font-size: 14px; font-weight: 700 }
+.earn-main small { display: block; font-size: 12px; line-height: 1.45; color: var(--muted) }
+.earn-main img { vertical-align: -3px }
 .earn-row .pill { padding: 7px 11px }
 .short-foot { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); padding-top: 2px }
 
@@ -1074,7 +1090,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    хмаринка з бажанням, репліка, поличка, імʼя зверху й три дії знизу. */
 .plant-screen { position: relative; height: 100%; overflow: hidden; isolation: isolate; background: radial-gradient(120% 80% at 50% 78%, var(--sky1) 0%, var(--sky2) 72%) }
 .plant-layer { position: absolute; inset: 0; z-index: 50 }
-.plant-area { position: absolute; left: 0; right: 0; bottom: 103px; height: 398px }
+/* Композиція платформи живе в координатах макета (390 px) і масштабується
+   цілком — множник --pf рахує екран за своєю шириною (Plant.jsx). Так кущ
+   завжди по центру, а підписи на полиці зменшуються разом зі спрайтами. */
+.plant-area {
+  position: absolute; left: 50%; bottom: 103px; width: 390px; margin-left: -195px; height: 398px;
+  transform: scale(var(--pf, 1)); transform-origin: 50% 100%;
+}
 .plant-platform { position: absolute; left: -28px; top: 268px; width: 444px; height: 219px; z-index: -1 }
 .plant-scene { position: absolute; left: 66px; top: 66px; width: 260px; height: 338px; z-index: 1; pointer-events: none }
 .wish { position: absolute; width: 82px; height: 82px; padding: 0; background: transparent; z-index: 80; animation: aCloudDrift 5.4s ease-in-out infinite }
@@ -1166,7 +1188,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .name-card { position: absolute; left: 8px; right: 8px; bottom: 12px; z-index: 160; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden; display: flex; flex-direction: column }
 .name-hero { position: relative; height: 176px; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
 .name-platform { position: absolute; left: 50%; bottom: -22px; width: 168px; height: 83px; margin-left: -112px }
-.name-scene { position: absolute; left: 50%; top: -34px; width: 0; height: 0; margin-left: -121px }
+/* -55px, а не -34: у макеті паросток стояв на землі попереду трави, а не в
+   ній (помилка макета, власник 23.09.2026). Зміряно на екрані: основа
+   спрайта була на 370.8 px, а смуга трави в цій колонці — 336.9…362.6,
+   тобто середина 349.8. Різниця 21 px і пішла в цей зсув. */
+.name-scene { position: absolute; left: 50%; top: -55px; width: 0; height: 0; margin-left: -121px }
 .name-bubble { position: absolute; left: 50%; top: 38px; margin-left: 6px; max-width: 168px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
   background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(4px) saturate(160%); color: var(--ink); font-size: 12.5px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .28); animation: aHop 2.6s ease-in-out infinite }
 .name-form { padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px }
