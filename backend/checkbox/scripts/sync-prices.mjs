@@ -3,6 +3,7 @@
 //   bun scripts/sync-prices.mjs                  # показати різницю
 //   bun scripts/sync-prices.mjs --apply          # записати ціни
 //   bun scripts/sync-prices.mjs --prod [--apply] # увійти справжнім касиром
+//   bun scripts/sync-prices.mjs --apply --create # ще й завести відсутні
 //
 // ⚠️ `--apply` міняє СПРАВЖНІ ціни, яким би касиром ми не входили. Каталог
 // належить організації, а не касиру: тестовий касир бачить ті самі товари
@@ -43,6 +44,9 @@ import { pool } from "@extrovert/lib/db.js";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROD = process.argv.includes("--prod");
 const APPLY = process.argv.includes("--apply");
+// Створення товару — окремий дозвіл: ціну можна виправити, а зайвий
+// товар у каталозі прибирають руками в кабінеті.
+const CREATE = process.argv.includes("--create");
 
 // ── конфіг: .env у корені монорепо, змінні оточення мають пріоритет ─────────
 function loadEnv() {
@@ -154,10 +158,14 @@ async function fetchCatalog() {
 async function main() {
   // active = false лишає напій у базі, але з каталогу каси він не зникає
   // сам — тому звіряємо лише те, що справді продається.
+  // Усі напої з кодом, а не лише активні: у каталозі каси має бути те, що
+  // вміє продати машина. «Вимкнений» — це «не показуємо на екрані кіоска»,
+  // а не «такого товару в касі немає»: якщо позиція лишилась у машині, чек
+  // на неї все одно прийде, і без товару в каталозі він не зійдеться.
   const { rows: drinks } = await pool.query(
-    "select system_code, name, price_uah from drinks where active order by sort_order, name"
+    "select system_code, name, price_uah, active from drinks order by sort_order, name"
   );
-  if (!drinks.length) throw new Error("у базі немає активних напоїв — звіряти нема з чим");
+  if (!drinks.length) throw new Error("у базі немає напоїв — звіряти нема з чим");
 
   // Хто ми насправді. Змінні в .env легко переплутати місцями, а Checkbox
   // сам знає, тестовий це касир чи ні, — довіряємо йому, а не назві змінної.
@@ -172,11 +180,17 @@ async function main() {
   console.log(`${API} · ${PROD ? "справжній" : "тестовий"} касир · «${org}» · ${APPLY ? "ЗАПИС у живий каталог" : "лише показати різницю"}`);
 
   const catalog = await fetchCatalog();
+  // Група й податки — з уже наявного товару: своїх довідників у нас немає,
+  // а новий товар без групи стане в касі окремо від решти.
+  const sample = [...catalog.values()].find(Boolean) ?? null;
   const changes = [], same = [], missing = [], noCode = [], suspicious = [], branchPriced = [];
   for (const d of drinks) {
     if (!d.system_code) { noCode.push(d.name); continue; }
     const good = catalog.get(d.system_code);
-    if (good === undefined) { missing.push(`${d.name} (${d.system_code})`); continue; }
+    if (good === undefined) {
+      missing.push({ name: d.name, code: d.system_code, price: uahToKop(Number(d.price_uah)), active: d.active });
+      continue;
+    }
     if (good === null) { suspicious.push(`${d.name} (${d.system_code}): код трапляється в каталозі кілька разів, не чіпаю`); continue; }
 
     const from = good.price, to = uahToKop(Number(d.price_uah));
@@ -205,13 +219,38 @@ async function main() {
   if (noCode.length) console.log(`Без system_code (пропущено): ${noCode.join(", ")}`);
   // Створювати товари скрипт не вміє й не повинен: новий товар — це ще
   // група й податки, які заводяться в кабінеті, а не з меню кіоску.
-  if (missing.length) console.log(`Нема в каталозі (завести в кабінеті Checkbox): ${missing.join(", ")}`);
+  if (missing.length) {
+    const list = missing.map((m) => `${m.name} (${m.code}, ${kopToUah(m.price)} ₴)`).join(", ");
+    console.log(CREATE ? `Заведемо в каталозі: ${list}` : `Нема в каталозі (--create заведе): ${list}`);
+  }
   if (branchPriced.length) console.log(`Своя ціна у філії (базова її не перекриє, правити в кабінеті):\n  ${branchPriced.join("\n  ")}`);
   if (suspicious.length) console.log(`ПІДОЗРІЛО:\n  ${suspicious.join("\n  ")}`);
 
-  if (!APPLY || !changes.length) {
-    if (!APPLY && changes.length) console.log(`\nЗаписати: додайте --apply. Це змінить ціни в справжніх чеках «${org}».`);
+  const willCreate = CREATE ? missing : [];
+  if (!APPLY || (!changes.length && !willCreate.length)) {
+    if (!APPLY && (changes.length || willCreate.length)) {
+      console.log(`\nЗаписати: додайте --apply. Це змінить каталог справжніх чеків «${org}».`);
+    }
     return suspicious.length ? 1 : 0;
+  }
+
+  // Спершу заводимо відсутні: тоді нижче вже нема кому «не знайтись».
+  for (const m of willCreate) {
+    if (!sample) { console.log("  ✗ каталог порожній — нема звідки взяти групу для нового товару"); return 1; }
+    const post = await call("POST", "/api/v1/goods", {
+      code: m.code,
+      name: m.name,
+      price: m.price,
+      type: sample.type ?? "good",
+      is_weight: false,
+      group_id: sample.group_id ?? null,
+      taxes: (sample.taxes ?? []).map((t) => t.code),
+    });
+    if (post.status >= 300) {
+      console.log(`  ✗ ${m.name} (${m.code}): POST HTTP ${post.status} ${explain(post.body)} — зупиняюсь`);
+      return 1;
+    }
+    console.log(`  + ${m.name} (${m.code}): ${kopToUah(m.price)} ₴${m.active ? "" : " · у меню вимкнений"}`);
   }
 
   console.log("");
@@ -237,7 +276,7 @@ async function main() {
     }
     console.log(`  ✓ ${c.name}: ${kopToUah(c.to)} ₴`);
   }
-  console.log(`\nГотово: ${changes.length} цін оновлено`);
+  console.log(`\nГотово: ${changes.length} цін оновлено${willCreate.length ? `, ${willCreate.length} товарів заведено` : ""}`);
   return suspicious.length ? 1 : 0;
 }
 
