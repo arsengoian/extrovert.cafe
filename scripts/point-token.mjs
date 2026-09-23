@@ -14,7 +14,7 @@
 // нічого ним не можна (ws.js перевіряє лише канал), тож витік із пристрою
 // означає, що хтось бачить QR-и тієї ж точки — ті самі, що світяться на
 // екрані в залі.
-import { createPrivateKey, sign } from "node:crypto";
+import { createHash, createPrivateKey, sign } from "node:crypto";
 
 const b64url = (buf) => Buffer.from(buf).toString("base64url");
 
@@ -58,3 +58,23 @@ console.log(`точка: point:${point}`);
 console.log(`дійсний до: ${until}`);
 console.log(`\n${token}\n`);
 console.log("На кіоску це змінна WS_TOKEN (raspberry/kiosk/docs — «Що задається оточенням»).");
+
+// Хеш виданого токена — у points.key_hash. Перевіряє токен усе одно підпис,
+// але адмінка показує саме цю колонку: без запису вона казала «кіоск працює
+// без токена» про точку, яка щохвилини шле телеметрію.
+const keyHash = createHash("sha256").update(token).digest("hex");
+try {
+  const { pool } = await import("@extrovert/lib/db.js");
+  const { rowCount } = await pool.query(
+    "update points set key_hash = $2, key_revoked_at = null where id = $1",
+    [point, keyHash]
+  );
+  await pool.end();
+  console.log("");
+  console.log(rowCount
+    ? "✓ хеш токена записаний у points.key_hash"
+    : `! точки ${point} у базі немає — хеш нікуди записати`);
+} catch (e) {
+  console.log("");
+  console.log(`! база недоступна (${e.message}) — токен робочий, але points.key_hash лишився старим`);
+}
