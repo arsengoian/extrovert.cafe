@@ -249,14 +249,13 @@ CREATE TABLE public.drinks (
     vol text,
     price_uah numeric(10,2) NOT NULL,
     coins integer DEFAULT 0 NOT NULL,
-    bonus_coins integer DEFAULT 0 NOT NULL,
     sprite text,
     cup text,
     active boolean DEFAULT true NOT NULL,
     sort_order integer DEFAULT 0 NOT NULL,
     color text,
     foam boolean DEFAULT false NOT NULL,
-    CONSTRAINT drinks_bonus_coins_check CHECK ((bonus_coins >= 0)),
+    is_bonus boolean DEFAULT false NOT NULL,
     CONSTRAINT drinks_coins_check CHECK ((coins >= 0)),
     CONSTRAINT drinks_price_uah_check CHECK ((price_uah >= (0)::numeric))
 );
@@ -3436,4 +3435,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923080000'),
     ('20260923100000'),
     ('20260923110000'),
-    ('20260923120000');
+    ('20260923120000'),
+    ('20260923140000');

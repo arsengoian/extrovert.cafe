@@ -285,7 +285,7 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
      * напої мають лише 15 % шанс, і його без поля в події не вгадати —
      * тоді плитки просто не буде. */
     if (items >= 0) row->secret = items > 0;
-    else            row->secret = found && found->bonus_coins > 0;
+    else            row->secret = found && found->is_bonus;
 
     bonus_link(row->qr_payload, sizeof(row->qr_payload),
                (claim_token && claim_token[0]) ? claim_token : "");
@@ -316,8 +316,8 @@ bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_
      * предмет завжди, звичайний — 10..25 монет (≈21 у середньому за
      * економікою) і предмет зрідка, щоб на екрані траплялись обидва
      * варіанти попапу. */
-    if (d && d->bonus_coins > 0) {
-        row->coins = d->bonus_coins;
+    if (d && d->is_bonus) {
+        row->coins = d->coins;
         row->secret = true;
     } else {
         row->coins = 10 + rand() % 16;

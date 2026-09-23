@@ -19,7 +19,7 @@
       "vol",
       "price_uah",
       "coins",
-      "bonus_coins",
+      "is_bonus",
       "sprite",
       "cup",
       "active",

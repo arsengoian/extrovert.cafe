@@ -72,7 +72,7 @@ export async function ingest(receipt, { source, log }) {
       const qty = Number(line.quantity ?? 1000) / 1000;      // Checkbox: тисячні
       const price = uah(g.price);
       const { rows: drink } = await client.query(
-        "select coins, bonus_coins from drinks where system_code = $1", [code]
+        "select coins, is_bonus from drinks where system_code = $1", [code]
       );
       // Код, якого немає в каталозі, — це не дрібниця: монет за такий напій
       // не нарахується, і мовчки. Найімовірніша причина — друга машина:
@@ -84,7 +84,9 @@ export async function ingest(receipt, { source, log }) {
         });
       }
       // Бонус-напій монет не дає: він сам і є бонусом (economy §7.1).
-      const isBonus = Number(g.price ?? 0) === 0 || (drink[0]?.coins ?? 0) === 0;
+      // Нульова ціна теж вважається бонусом — так каса пробиває позицію,
+      // видану за монети.
+      const isBonus = Boolean(drink[0]?.is_bonus) || Number(g.price ?? 0) === 0;
       if (drink.length && !isBonus) {
         coins += Math.round(drink[0].coins * qty);
         shown ??= { code, name: g.name ?? code };

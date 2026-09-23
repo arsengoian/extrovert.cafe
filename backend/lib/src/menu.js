@@ -35,7 +35,7 @@ export async function buildMenu(client) {
   // позиції повертаються, а чеки на них мають на що посилатись.
   const ad = await currentAd(client);
   const { rows } = await client.query(
-    `select system_code, name, vol, cup, price_uah, color, foam, sprite, bonus_coins
+    `select system_code, name, vol, cup, price_uah, color, foam, sprite, coins, is_bonus
        from drinks
       where active
       order by sort_order, name`
@@ -53,9 +53,10 @@ export async function buildMenu(client) {
       cup: d.cup ?? "M",
       sprite: d.sprite ?? "",
       system_code: d.system_code,
-      // Нуль у меню не потрібен: картка з бейджем бонусу й без нього — різні
-      // шаблони, і кіоск вибирає їх саме за наявністю поля.
-      ...(d.bonus_coins > 0 ? { bonus_coins: d.bonus_coins } : {}),
+      // Монети показуємо лише на бонусних позиціях — там це ціна. У
+      // звичайного напою coins — заробіток гравця, і екрану в залі він ні
+      // про що не каже.
+      ...(d.is_bonus ? { is_bonus: true, coins: d.coins } : {}),
     })),
     ...(ad ? { ad } : {}),
   };

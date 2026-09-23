@@ -114,7 +114,8 @@ static void build_fixture(menu_t *m) {
         snprintf(d->sprite, sizeof(d->sprite), "%s", fx[i].sprite);
         snprintf(d->cup, sizeof(d->cup), "%s", fx[i].cup);
         d->price = fx[i].price;
-        d->bonus_coins = fx[i].bonus;
+        d->is_bonus = fx[i].bonus > 0;
+        d->coins = fx[i].bonus;
         d->foam = true;
     }
 

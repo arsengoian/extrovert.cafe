@@ -273,7 +273,7 @@ export default async function routes(app) {
   app.get("/admin/prices", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const drinks = await many(
-      `select id, system_code, name, vol, price_uah, coins, bonus_coins, sprite, cup, color, foam, active, sort_order
+      `select id, system_code, name, vol, price_uah, coins, is_bonus, sprite, cup, color, foam, active, sort_order
          from drinks order by sort_order, name`
     );
     const points = await many("select id, name, short_address from points where status = 'live' order by name");
@@ -304,10 +304,10 @@ export default async function routes(app) {
         const price = Number(d.price_uah);
         if (!Number.isFinite(price) || price < 0 || price > 100000) fail(400, "bad_price");
         const { rows } = await client.query(
-          `update drinks set price_uah = $2, coins = coalesce($3, coins), bonus_coins = coalesce($4, bonus_coins),
+          `update drinks set price_uah = $2, coins = coalesce($3, coins), is_bonus = coalesce($4, is_bonus),
                   active = coalesce($5, active)
-             where id = $1 returning id, system_code, price_uah, coins, bonus_coins, active`,
-          [d.id, price, d.coins ?? null, d.bonus_coins ?? null, d.active ?? null]
+             where id = $1 returning id, system_code, price_uah, coins, is_bonus, active`,
+          [d.id, price, d.coins ?? null, d.is_bonus ?? null, d.active ?? null]
         );
         if (rows[0]) out.push(rows[0]);
       }

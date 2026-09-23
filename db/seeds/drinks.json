@@ -5,27 +5,27 @@
     "vol": "30 мл",
     "price_uah": 35,
     "coins": 26,
-    "bonus_coins": 0,
     "sprite": "espresso",
     "cup": "S",
     "active": true,
     "sort_order": 10,
     "color": "#402212",
-    "foam": false
+    "foam": false,
+    "is_bonus": false
   },
   {
     "system_code": "a901",
     "name": "Еспресо з бонусами",
     "vol": "30 мл",
     "price_uah": 70,
-    "coins": 0,
-    "bonus_coins": 70,
+    "coins": 70,
     "sprite": "espresso",
     "cup": "S",
     "active": false,
     "sort_order": 15,
     "color": "#402212",
-    "foam": false
+    "foam": false,
+    "is_bonus": true
   },
   {
     "system_code": "a027",
@@ -33,13 +33,13 @@
     "vol": "60 мл",
     "price_uah": 35,
     "coins": 26,
-    "bonus_coins": 0,
     "sprite": "lungo",
     "cup": "S",
     "active": true,
     "sort_order": 20,
     "color": "#4a2815",
-    "foam": false
+    "foam": false,
+    "is_bonus": false
   },
   {
     "system_code": "a026",
@@ -47,13 +47,13 @@
     "vol": "80 мл",
     "price_uah": 40,
     "coins": 23,
-    "bonus_coins": 0,
     "sprite": "double_espresso",
     "cup": "S",
     "active": true,
     "sort_order": 30,
     "color": "#2c1608",
-    "foam": false
+    "foam": false,
+    "is_bonus": false
   },
   {
     "system_code": "a034",
@@ -61,27 +61,27 @@
     "vol": "150 мл",
     "price_uah": 40,
     "coins": 29,
-    "bonus_coins": 0,
     "sprite": "americano",
     "cup": "M",
     "active": true,
     "sort_order": 40,
     "color": "#60361c",
-    "foam": false
+    "foam": false,
+    "is_bonus": false
   },
   {
     "system_code": "a902",
     "name": "Американо з бонусами",
     "vol": "150 мл",
     "price_uah": 80,
-    "coins": 0,
-    "bonus_coins": 80,
+    "coins": 80,
     "sprite": "americano",
     "cup": "M",
     "active": false,
     "sort_order": 45,
     "color": "#60361c",
-    "foam": false
+    "foam": false,
+    "is_bonus": true
   },
   {
     "system_code": "a0102",
@@ -89,13 +89,13 @@
     "vol": "100 мл",
     "price_uah": 40,
     "coins": 25,
-    "bonus_coins": 0,
     "sprite": "espresso_milk",
     "cup": "M",
     "active": true,
     "sort_order": 60,
     "color": "#784e2c",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a036",
@@ -103,13 +103,13 @@
     "vol": "150 мл",
     "price_uah": 45,
     "coins": 19,
-    "bonus_coins": 0,
     "sprite": "americano_milk",
     "cup": "L",
     "active": true,
     "sort_order": 70,
     "color": "#7e522e",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a038",
@@ -117,27 +117,27 @@
     "vol": "260 мл",
     "price_uah": 50,
     "coins": 20,
-    "bonus_coins": 0,
     "sprite": "cappuccino",
     "cup": "L",
     "active": true,
     "sort_order": 80,
     "color": "#9e7044",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a903",
     "name": "Капучино з бонусами",
     "vol": "260 мл",
     "price_uah": 100,
-    "coins": 0,
-    "bonus_coins": 100,
+    "coins": 100,
     "sprite": "cappuccino",
     "cup": "L",
     "active": false,
     "sort_order": 85,
     "color": "#9e7044",
-    "foam": true
+    "foam": true,
+    "is_bonus": true
   },
   {
     "system_code": "a015",
@@ -145,13 +145,13 @@
     "vol": "280 мл",
     "price_uah": 45,
     "coins": 13,
-    "bonus_coins": 0,
     "sprite": "mocha",
     "cup": "L",
     "active": true,
     "sort_order": 100,
     "color": "#70462c",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a039",
@@ -159,27 +159,27 @@
     "vol": "260 мл",
     "price_uah": 50,
     "coins": 20,
-    "bonus_coins": 0,
     "sprite": "latte",
     "cup": "L",
     "active": true,
     "sort_order": 110,
     "color": "#b08458",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a904",
     "name": "Лате з бонусами",
     "vol": "260 мл",
     "price_uah": 100,
-    "coins": 0,
-    "bonus_coins": 100,
+    "coins": 100,
     "sprite": "latte",
     "cup": "L",
     "active": false,
     "sort_order": 115,
     "color": "#b08458",
-    "foam": true
+    "foam": true,
+    "is_bonus": true
   },
   {
     "system_code": "a017",
@@ -187,13 +187,13 @@
     "vol": "220 мл",
     "price_uah": 55,
     "coins": 24,
-    "bonus_coins": 0,
     "sprite": "flatwhite",
     "cup": "L",
     "active": true,
     "sort_order": 120,
     "color": "#96683e",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a024",
@@ -201,13 +201,13 @@
     "vol": "260 мл",
     "price_uah": 50,
     "coins": 34,
-    "bonus_coins": 0,
     "sprite": "cocoa",
     "cup": "L",
     "active": true,
     "sort_order": 130,
     "color": "#5a3826",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a022",
@@ -215,13 +215,13 @@
     "vol": "260 мл",
     "price_uah": 50,
     "coins": 35,
-    "bonus_coins": 0,
     "sprite": "hotchoc",
     "cup": "L",
     "active": true,
     "sort_order": 140,
     "color": "#563422",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   },
   {
     "system_code": "a018",
@@ -229,12 +229,12 @@
     "vol": "280 мл",
     "price_uah": 50,
     "coins": 21,
-    "bonus_coins": 0,
     "sprite": "irish",
     "cup": "L",
     "active": true,
     "sort_order": 150,
     "color": "#8c6038",
-    "foam": true
+    "foam": true,
+    "is_bonus": false
   }
 ]

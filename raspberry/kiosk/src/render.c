@@ -136,15 +136,17 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
         snprintf(price, sizeof(price), "%d \xE2\x82\xB4", d->price);   /* "N ₴" */
 
         char *card;
-        if (d->bonus_coins > 0) {
+        if (d->is_bonus) {
             /* ширина бейджа — той самий принцип, що монетна пігулка рядка
              * бонусу: рахуємо від виміряного тексту (config.h: CARD_BADGE_*) */
             char coins[16];
-            snprintf(coins, sizeof(coins), "%d", d->bonus_coins);
+            snprintf(coins, sizeof(coins), "%d", d->coins);
             int ctw;
             text_extents(badge_font, coins, &ctw, NULL);
-            double badge_w = CARD_BADGE_ICON_PAD_L + CARD_BADGE_ICON_SIZE +
-                              CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
+            /* Дві іконки: подарунок і монета. Ширину рахуємо від
+             * виміряного тексту, як і раніше, але місця тепер на обидві. */
+            double badge_w = CARD_BADGE_ICON_PAD_L + CARD_BADGE_GIFT_SIZE + CARD_BADGE_GIFT_GAP +
+                              CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
             char badge_w_s[16];
             snprintf(badge_w_s, sizeof(badge_w_s), "%.1f", badge_w);
 

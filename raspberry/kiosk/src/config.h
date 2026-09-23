@@ -51,6 +51,11 @@
 #define CARD_BADGE_Y 12.5
 #define CARD_BADGE_H 33.0
 #define CARD_BADGE_ICON_PAD_L 9.5    /* 22 - 12.5 */
+/* Подарунок перед монетою: бейдж на бонусній картці читається як
+   «подарунок за стільки монет». Розмір трохи менший за монету — вона тут
+   головна. */
+#define CARD_BADGE_GIFT_SIZE 17.0
+#define CARD_BADGE_GIFT_GAP 5.0
 #define CARD_BADGE_ICON_SIZE 20.0
 #define CARD_BADGE_ICON_TEXT_GAP 6.0 /* 48 - (22+20) */
 #define CARD_BADGE_PAD_R 12.0
