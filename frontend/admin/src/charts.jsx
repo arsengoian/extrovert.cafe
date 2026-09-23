@@ -6,7 +6,7 @@
 // Бібліотеки тут немає й не треба: три примітиви в SVG важать менше, ніж
 // будь-який чарт-пакет, і не тягнуть у збірку свою модель даних.
 import { useEffect, useRef, useState } from "react";
-import { fmt } from "./ui.jsx";
+import { Dot, Empty, fmt } from "./ui.jsx";
 
 // Смужка пульсу: рядок «1/0/?» на півгодинне відро (api віддає саме так).
 export function Beat({ history, title }) {
