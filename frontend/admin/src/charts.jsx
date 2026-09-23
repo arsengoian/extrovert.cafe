@@ -57,7 +57,11 @@ export const BeatRow = ({ ok, name, note, value, history, ms = null }) => (
 
 // Лінійний графік: кілька рядів, спільна шкала. Пусті дані — чесний підпис,
 // а не порожня сітка.
-export function Line({ series, height = 150, format = fmt.int }) {
+//
+// area — заливка під лінією (0.2 прозорості, як у макеті). У дизайні нею
+// показують «скільки», а чистою лінією — «як змінюється»: дохід, покупки й
+// монети залиті, а зерна ні. Робимо так само.
+export function Line({ series, height = 150, format = fmt.int, area = false }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -90,6 +94,15 @@ export function Line({ series, height = 150, format = fmt.int }) {
                 <text className="axis" x={0} y={y(max * k) + 3}>{format(max * k)}</text>
               </g>
             ))}
+            {area && series.map((s) => (
+              <path
+                key={`${s.name}-area`}
+                fill={s.color}
+                fillOpacity="0.2"
+                stroke="none"
+                d={`M${s.points.map((p) => `${x(p.x)},${y(p.y)}`).join("L")}L${x(s.points.at(-1)?.x ?? 0)},${y(0)}L${x(s.points[0]?.x ?? 0)},${y(0)}Z`}
+              />
+            ))}
             {series.map((s) => (
               <polyline
                 key={s.name}
@@ -109,6 +122,85 @@ export function Line({ series, height = 150, format = fmt.int }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// Колонки: розподіл за часом (кадри «Дохід за годиною дня» / «за днями
+// тижня»). Від Bars відрізняється тим, що читається як доба: 24 значення
+// поруч, а не 24 рядки один під одним. Прозорість росте з висотою — у
+// макеті саме так видно «пік о восьмій» навіть боковим зором.
+export function Columns({ items, format = fmt.int, color = "#FE810B", every = 1 }) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  const H = 190, gap = 0.38;              // gap — частка кроку між колонками
+  const step = 560 / Math.max(1, items.length);
+  const w = step * (1 - gap);
+  if (!items.length) return <Empty>даних за цей період немає</Empty>;
+  return (
+    <div>
+      <svg className="chart" viewBox={`0 0 560 ${H}`} height={150} preserveAspectRatio="none">
+        {items.map((i, n) => {
+          const h = (H * i.value) / max;
+          return (
+            <rect
+              key={i.label}
+              x={n * step + (step - w) / 2}
+              y={H - h}
+              width={w}
+              height={h}
+              rx="2"
+              fill={color}
+              opacity={0.6 + 0.4 * (i.value / max)}
+            >
+              <title>{`${i.label}: ${format(i.value)}`}</title>
+            </rect>
+          );
+        })}
+      </svg>
+      <div className="col-labels">
+        {items.map((i, n) => <span key={i.label}>{n % every === 0 ? i.label : ""}</span>)}
+      </div>
+    </div>
+  );
+}
+
+// Бублик: частки одного цілого (кадр «Взаємодія з бонусами»). Легенда —
+// праворуч, із відсотком: без нього кільце показує пропорцію, але не
+// відповідає на питання «скільки це».
+export function Donut({ items, colors = ["#FE810B", "#FFB020", "#8B94A3"] }) {
+  const total = items.reduce((a, i) => a + i.value, 0);
+  if (!total) return <Empty>даних за цей період немає</Empty>;
+  const R = 55, C = 2 * Math.PI * R;
+  let done = 0;
+  return (
+    <div className="donut">
+      <svg viewBox="0 0 128 128" width="126" height="126">
+        {items.map((i, n) => {
+          const len = (C * i.value) / total;
+          const offset = -done;
+          done += len;
+          return (
+            <circle
+              key={i.label}
+              cx="64" cy="64" r={R} fill="none"
+              stroke={colors[n % colors.length]}
+              strokeWidth="18"
+              strokeDasharray={`${len.toFixed(1)} ${(C - len).toFixed(1)}`}
+              strokeDashoffset={offset.toFixed(1)}
+              transform="rotate(-90 64 64)"
+            />
+          );
+        })}
+      </svg>
+      <div className="stack" style={{ gap: 7, flex: 1, minWidth: 0 }}>
+        {items.map((i, n) => (
+          <div key={i.label} className="row" style={{ gap: 7, fontSize: 11.5 }}>
+            <i className="chip" style={{ background: colors[n % colors.length] }} />
+            <span style={{ flex: 1, minWidth: 0, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.label}</span>
+            <b>{Math.round((i.value / total) * 100)}%</b>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

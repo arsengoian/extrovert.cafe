@@ -126,6 +126,13 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 .chart .axis { fill: var(--muted); font-size: 9px }
 .legend { display: flex; gap: 14px; font-size: 10.5px; color: var(--muted); margin-top: 6px }
 .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px }
+/* Підписи під колонками: рівно стільки ж комірок, скільки колонок, тож
+   кожен підпис стоїть точно під своєю — навіть якщо він порожній. */
+.col-labels { display: flex; margin-top: 4px }
+.col-labels span { flex: 1; text-align: center; font-size: 10.5px; color: var(--muted) }
+.donut { display: flex; align-items: center; gap: 14px }
+.donut svg { flex: none }
+.donut .chip { flex: none; width: 9px; height: 9px; border-radius: 3px }
 
 /* ── вхід ───────────────────────────────────────────────────────────── */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px }

@@ -16,7 +16,10 @@ const redis = redisClient();
 // Рахувати їх на кожне відкриття екрана нема сенсу: дані добові, і в макеті
 // так і написано — «кеш оновлено о 04:00». Тому типовий проміжок лежить у
 // Redis до четвертої ранку, а свій проміжок із фільтра рахується наживо.
-const CACHE_KEY = "stats:default";
+// Версія в ключі — щоб зміна складу відповіді не чекала 04:00: старий
+// кеш просто перестає читатись (23.09.2026 так і сталось із розрізом
+// ринку по виду товару).
+const CACHE_KEY = "stats:v2:default";
 const nextFourAm = () => {
   const now = new Date();
   const four = new Date(now);
@@ -103,11 +106,15 @@ export default async function routes(app) {
       [from, to]
     );
 
+    // Оборот ринку — по добах і по тому, що саме продали: кавенятко чи
+    // одяг (кадр «P2P оборот»). Валюта поруч, бо жовті монети й боби в
+    // одну суму не складаються.
     const market = await many(
-      `select date_trunc('day', created_at) as day, currency,
-              count(*)::int as trades, sum(gross)::int as gross, sum(commission)::int as commission
-         from market_trades where created_at between $1 and $2
-        group by 1, 2 order by 1`,
+      `select date_trunc('day', t.created_at) as day, l.kind, t.currency,
+              count(*)::int as trades, sum(t.gross)::int as gross, sum(t.commission)::int as commission
+         from market_trades t join market_listings l on l.id = t.listing_id
+        where t.created_at between $1 and $2
+        group by 1, 2, 3 order by 1`,
       [from, to]
     );
 
