@@ -17,12 +17,17 @@ import { Sparks } from "../ui/fx.jsx";
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
 
 // Бажання в хмаринці: картинка, її місце всередині хмаринки й підпис.
+const WAITING_LINE = "Росту далі завтра – одна стадія на добу";
+
 const WANT = {
   water: { src: "want_water", at: [29, 17.5, 24, 33], title: "Хоче води" },
   compost: { src: "want_compost", at: [19, 16, 44, 36], title: "Хоче компост" },
   fertilizer: { src: "want_fertilizer", at: [26.5, 14, 29, 40], title: "Хоче добриво" },
   insecticide: { src: "want_insecticide", at: [26.5, 12, 29, 44], title: "Хоче оприскування" },
   outfit: { src: "want_outfit", at: [20, 12, 42, 44], title: "Хоче одяг" },
+  // Добовий гейт — теж бажання, тільки чекати: препарат тут не допоможе,
+  // і замість «хоче компост» у хмаринці має стояти пісочний годинник.
+  time: { src: "want_time", at: [26, 13, 30, 42], title: "Чекає доби між стадіями" },
 };
 
 // Поличка: місце кожного препарату, картинка повна/порожня й кільце з запасом.
@@ -278,12 +283,18 @@ export function Plant({ ctx }) {
   const lock = onSale ? "Недоступно, поки кавенятко на продажу"
     : plant.mood !== "healthy" ? "Недоступно, поки кавенятко сумне" : null;
   const shelfEmpty = SHELF.every((s) => (care[s.key] ?? 0) <= 0);
-  // Чого хоче: сумному — води; дорослому — одягу; інакше — препарат переходу.
-  const need = plant.mood !== "healthy" ? "water" : growth.done || plant.growth_stage >= 10 ? "outfit" : growth.need;
+  // Чого хоче: сумному — води; дорослому — одягу; тому, хто вже все зробив
+  // сьогодні, — часу; інакше — препарат переходу.
+  const waiting = Boolean(growth.ready_at) && new Date(growth.ready_at) > new Date();
+  const need = plant.mood !== "healthy" ? "water"
+    : growth.done || plant.growth_stage >= 10 ? "outfit"
+    : waiting ? "time"
+    : growth.need;
   // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
   const want = !onSale && !shelfEmpty && !popup ? WANT[need] : null;
   const line = note
-    ?? (plant.mood === "withered" ? WITHERED_LINE
+    ?? (waiting && plant.mood === "healthy" ? WAITING_LINE
+      : plant.mood === "withered" ? WITHERED_LINE
       : plant.mood === "sad" ? SAD_LINE
       : shelfEmpty ? EMPTY_LINE
       : plant.growth_stage >= 10 && dressed ? DRESSED_LINE
