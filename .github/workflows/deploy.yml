@@ -151,8 +151,16 @@ jobs:
           # із новішою glibc, на точці просто не запуститься.
           docker build --platform linux/arm/v6 -t kiosk-builder \
             -f raspberry/kiosk/docker/pi.Dockerfile raspberry/kiosk
-          docker run --rm --platform linux/arm/v6 \
-            -v "$PWD/raspberry/kiosk":/work -w /work kiosk-builder make pi
+          # Джерела віддаємо копією, а не bind-mount. Під act крок виконується
+          # у контейнері раннера, а докер-демон — на хості: шляху воркспейсу
+          # він не бачить, мовчки монтує порожню теку, і make каже «no rule to
+          # make target 'pi'». На GitHub bind-mount працював, але тримати два
+          # різні шляхи заради цього нема сенсу.
+          cid=$(docker create --platform linux/arm/v6 -w /work kiosk-builder make pi)
+          docker cp raspberry/kiosk/. "$cid:/work"
+          docker start -a "$cid"
+          docker cp "$cid:/work/bin/kiosk" raspberry/kiosk/bin/kiosk
+          docker rm "$cid"
           file raspberry/kiosk/bin/kiosk | grep -q ARM
 
       - name: Зібрати архів релізу
