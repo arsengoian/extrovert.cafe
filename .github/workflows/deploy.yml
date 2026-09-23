@@ -167,7 +167,7 @@ jobs:
           bun-version: 1.4.2
 
       - name: Залити реліз у R2
-        if: ${{ steps.published.outputs.source != steps.src.outputs.hash && env.ACT != 'true' }}
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
         env:
           # Бакет релізів — прод: APP_ENV нижче вимикає підстановку суфікса
           # -dev у lib/r2.js. Ключі лише тут, у CI: на точку вони не

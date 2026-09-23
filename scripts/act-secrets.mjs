@@ -72,6 +72,12 @@ const secrets = {
   GHCR_TOKEN: env.GHCR_TOKEN || "",
   OPENAI_API_KEY: prod.OPENAI_API_KEY || "",
   OPENAI_VECTOR_STORE: prod.OPENAI_VECTOR_STORE || "",
+  // Реліз кіоска: act заливає його в той самий бакет, що й CI (робота
+  // kiosk-release). Ключі на запис живуть лише тут і в секретах GitHub —
+  // на малину вони не потрапляють ніколи.
+  R2_ENDPOINT: prod.R2_ENDPOINT || env.R2_ENDPOINT || "",
+  R2_ACCESS_KEY_ID: prod.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID || "",
+  R2_SECRET_ACCESS_KEY: prod.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY || "",
 };
 
 // Багаторядкове значення в подвійних лапках: саме так його читає парсер act.
@@ -90,6 +96,9 @@ console.log("✓ .secrets готовий:", Object.keys(secrets).join(", "));
 if (!secrets.GHCR_TOKEN) {
   console.log("  GHCR_TOKEN порожній — act-build не зможе залити образи, а act-deploy не");
   console.log("  залогінить сервер у ghcr. Потрібен токен GitHub з write:packages у .env як GHCR_TOKEN.");
+}
+if (!secrets.R2_ACCESS_KEY_ID) {
+  console.log("  Ключів R2 немає — робота kiosk-release збере реліз, але не залиє його.");
 }
 if (!secrets.OPENAI_VECTOR_STORE) {
   console.log("  OPENAI_VECTOR_STORE порожній — робота knowledge лише перевірить базу, у сховище нічого не піде.");

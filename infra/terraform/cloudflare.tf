@@ -16,9 +16,11 @@
 # записи Mailgun. Terraform відмовиться видаляти їх навіть у разі помилки в
 # описі.
 #
-# Поза terraform навмисно: pos.extrovert.cafe — старий воркер extrovert-pos,
-# з якого кіоск на kyiv-01 досі бере меню (docs/services.md §5). Його
-# доля — окреме рішення разом зі зміною config/env на малині.
+# Воркер extrovert-pos видалений 23.09.2026 разом зі своїм доменом: він
+# лишався з часів браузерного кіоска й віддавав меню з бакета власним
+# ендпоїнтом /api/v1/points/<точка>/menu, а на все інше — статику, тобто
+# 404 навіть на releases/. Тепер домен тримає сам бакет, як і планувалося
+# (docs/urls.md, «Меню й релізи — публічний бакет R2»).
 
 # ── Сервер: api, ws, помилки ────────────────────────────────────────────
 #
@@ -205,6 +207,19 @@ resource "cloudflare_r2_bucket" "this" {
 import {
   to = cloudflare_r2_bucket.this["pos"]
   id = "${var.cloudflare_account_id}/extrovert-pos/default"
+}
+
+# Меню точок і релізи кіоска віддає сам бакет: між точкою й файлами немає
+# ні сервера, ні воркера, а ETag і Range (умовний GET меню, докачка
+# обірваного архіву) дає Cloudflare. Ключ у бакеті збігається зі шляхом в
+# URL — points/<точка>/menu.json, releases/pi/*.
+resource "cloudflare_r2_custom_domain" "pos" {
+  account_id  = var.cloudflare_account_id
+  bucket_name = cloudflare_r2_bucket.this["pos"].name
+  domain      = "pos.extrovert.cafe"
+  zone_id     = var.cloudflare_zone_id
+  enabled     = true
+  min_tls     = "1.2"
 }
 
 # Телефон заливає фото напряму за підписаним посиланням — без CORS браузер

@@ -12,12 +12,25 @@
 // таких кіл занесе реліз у bad-releases назавжди (docs/raspberry-pi.md §3).
 import { readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { put } from "@extrovert/lib/r2.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.resolve(ROOT, process.argv[2] || "dist");
+
+// Імʼя релізу й хеш джерел рахуються з HEAD, тож незакомічена правка
+// поїхала б на точки під чужим номером, і знайти потім, що там насправді
+// крутиться, було б нічим. Локально (act, ручний запуск) це реальний
+// сценарій; у CI дерево завжди чисте, тож перевірка нічого не коштує.
+const dirty = spawnSync("git", ["status", "--porcelain", "--", "raspberry/"], { cwd: ROOT, encoding: "utf8" });
+if (dirty.status === 0 && dirty.stdout.trim() && !process.env.ALLOW_DIRTY_RELEASE) {
+  console.error("✗ у raspberry/ є незакомічені зміни — реліз назветься чужим комітом:");
+  for (const line of dirty.stdout.trim().split("\n").slice(0, 10)) console.error("  " + line);
+  console.error("  закоміть їх або постав ALLOW_DIRTY_RELEASE=1, якщо точно знаєш, що робиш");
+  process.exit(1);
+}
 
 const manifest = JSON.parse(readFileSync(path.join(dist, "manifest.json"), "utf8"));
 const { release, sha256, size } = manifest;
