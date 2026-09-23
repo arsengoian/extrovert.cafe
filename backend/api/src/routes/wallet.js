@@ -86,14 +86,14 @@ export default async function routes(app) {
   // тому, хто його має, показати можна; хто забрав і коли — ні.
   app.get("/bonus/:token/preview", async (req) => {
     const grant = await one(
-      `select coins_yellow, items, status, expires_at from bonus_grants where claim_token = $1`,
+      `select coins_yellow, items, status from bonus_grants where claim_token = $1`,
       [String(req.params.token)]
     );
     if (!grant) fail(404, "no_such_bonus");
     return {
       coins: grant.coins_yellow,
       items: await itemsOf(grant.items),
-      available: grant.status === "pending" && new Date(grant.expires_at) > new Date(),
+      available: grant.status !== "redeemed",
     };
   });
 
@@ -116,7 +116,6 @@ export default async function routes(app) {
       fiscal_date: grant.fiscal_date,
       total_uah: grant.total_sum,
       status: grant.status,
-      expired: new Date(grant.expires_at) < new Date(),
       mine: grant.redeemed_by === user.id,
     };
   });
@@ -133,7 +132,6 @@ export default async function routes(app) {
       const grant = rows[0];
       if (!grant) fail(404, "no_such_bonus");
       if (grant.redeemed_by) fail(409, grant.redeemed_by === user.id ? "already_yours" : "already_taken");
-      if (new Date(grant.expires_at) < new Date()) fail(409, "expired");
 
       await client.query(
         "update bonus_grants set redeemed_by = $2, redeemed_at = now(), status = 'redeemed' where id = $1",

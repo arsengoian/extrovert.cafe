@@ -257,7 +257,7 @@ export default async function routes(app) {
               r.checkbox_receipt_id,
               (select json_agg(json_build_object('name', i.name, 'qty', i.qty, 'sum', i.sum_uah, 'bonus', i.is_bonus_drink) order by i.id)
                  from receipt_items i where i.receipt_id = r.id) as items,
-              b.status as bonus_status, b.coins_yellow as bonus_coins, b.expires_at, b.redeemed_at,
+              b.status as bonus_status, b.coins_yellow as bonus_coins, b.show_until, b.redeemed_at,
               u.id as redeemed_by, u.nickname as redeemed_nickname
          from receipts r
          left join points p on p.id = r.point_id

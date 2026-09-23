@@ -12,8 +12,7 @@ import { Sparks, markCoinSource } from "../ui/fx.jsx";
 
 const ERRORS = {
   already_taken: "Цей бонус уже забрали",
-  already_yours: "Ти вже забрав цей бонус",
-  expired: "Бонус згорів – QR діє дві хвилини",
+  already_yours: "Ти вже отримав цей бонус",
   no_such_bonus: "Такого бонусу немає",
 };
 
@@ -27,7 +26,6 @@ export function BonusPopup({ token, ctx, onClose }) {
       .then((s) => {
         setState(s);
         if (s.status === "redeemed") setError(s.mine ? ERRORS.already_yours : ERRORS.already_taken);
-        else if (s.expired) setError(ERRORS.expired);
       })
       .catch((e) => setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message));
   }, [token]);

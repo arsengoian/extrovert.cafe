@@ -61,13 +61,13 @@ CREATE TABLE public.bonus_grants (
     coins_yellow integer DEFAULT 0 NOT NULL,
     items jsonb,
     claim_token text NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
+    show_until timestamp with time zone NOT NULL,
     claimed_at timestamp with time zone,
     redeemed_by uuid,
     redeemed_at timestamp with time zone,
     status text DEFAULT 'pending'::text NOT NULL,
     CONSTRAINT bonus_grants_coins_yellow_check CHECK ((coins_yellow >= 0)),
-    CONSTRAINT bonus_grants_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'redeemed'::text, 'expired'::text])))
+    CONSTRAINT bonus_grants_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'redeemed'::text])))
 );
 
 
@@ -2446,10 +2446,10 @@ CREATE INDEX bonus_grants_redeemed_by_redeemed_at_idx ON public.bonus_grants USI
 
 
 --
--- Name: bonus_grants_status_expires_at_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: bonus_grants_status_show_until_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX bonus_grants_status_expires_at_idx ON public.bonus_grants USING btree (status, expires_at) WHERE (status = ANY (ARRAY['pending'::text, 'claimed'::text]));
+CREATE INDEX bonus_grants_status_show_until_idx ON public.bonus_grants USING btree (status, show_until) WHERE (status = ANY (ARRAY['pending'::text, 'claimed'::text]));
 
 
 --
@@ -3354,4 +3354,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260921150000'),
     ('20260922100000'),
     ('20260922110000'),
-    ('20260922120000');
+    ('20260922120000'),
+    ('20260923080000');

@@ -12,7 +12,7 @@ import { enqueue } from "@extrovert/lib/outbox.js";
 // (db-schema §0).
 const uah = (kopiyky) => Math.round(Number(kopiyky ?? 0)) / 100;
 
-const CLAIM_TTL_MINUTES = 2;               // скільки горить QR на екрані кіоска
+const SHOW_MINUTES = 2;                    // скільки QR висить на екрані кіоска
 const token = () => crypto.randomUUID().replaceAll("-", "").slice(0, 24);
 
 // Точку визначаємо за філією Checkbox: один касовий термінал — одна точка.
@@ -88,12 +88,15 @@ export async function ingest(receipt, { source, log }) {
       );
     }
 
-    // Бонус прив'язаний до чека: QR на екрані кіоска горить дві хвилини, і
-    // забрати його може лише той, хто його бачить.
+    // Бонус прив'язаний до чека, а не до часу: дві хвилини — це лише
+    // скільки QR висить на екрані кіоска (show_until, звідти ж
+    // expires_in_s для попапа). Сам токен не згоряє: сфотографував код —
+    // забереш і через півроку (рішення власника 23.09.2026). Секретом тут
+    // є сам токен, а світиться він лише на екрані тієї покупки.
     const claim = token();
     await client.query(
-      `insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, expires_at)
-       values ($1, $2, $3, $4, now() + interval '${CLAIM_TTL_MINUTES} minutes')`,
+      `insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, show_until)
+       values ($1, $2, $3, $4, now() + interval '${SHOW_MINUTES} minutes')`,
       [receiptId, pointId, coins, claim]
     );
 
@@ -107,7 +110,7 @@ export async function ingest(receipt, { source, log }) {
       drink: shown?.name ?? "",
       coins,
       claim_token: claim,
-      expires_in_s: CLAIM_TTL_MINUTES * 60,
+      expires_in_s: SHOW_MINUTES * 60,
     });
 
     await client.query("commit");
