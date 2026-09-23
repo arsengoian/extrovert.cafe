@@ -76,7 +76,15 @@ function BeanRow({ item, onOpen }) {
 export function Shop({ ctx }) {
   const [shop, setShop] = useState(null);
   const [clothes, setClothes] = useState([]);
-  const [mode, setMode] = useState("coins");
+  // Вкладка переживає перехід на інший екран і перезавантаження: людина
+  // купує за зерна й повертається саме за зерна (скарга власника
+  // 23.09.2026). Той самий прийом, що з вкладкою внизу (app.jsx).
+  const [mode, setMode] = useState(() => {
+    try { return sessionStorage.getItem("extrovert.shop") || "coins"; } catch { return "coins"; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem("extrovert.shop", mode); } catch { /* приватний режим */ }
+  }, [mode]);
 
   useEffect(() => {
     api.get("/shop").then(setShop).catch(() => setShop({ coins: [], beans: [] }));

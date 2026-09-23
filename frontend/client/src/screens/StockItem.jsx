@@ -29,16 +29,39 @@ const slotName = (slot) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
+// Людською мовою — чому річ не лягла в примірочну.
+export const WEAR_ERROR = {
+  item_locked: "Річ замкнена в подарованому комплекті",
+  item_on_market: "Річ виставлена на продаж — спершу зніми лот",
+  item_in_set: "Річ уже в іншому комплекті",
+  on_sale: "Кавенятко на ринку",
+  no_such_plant: "Кавенятка більше немає",
+};
+
 export function StockItemSheet({ item, ctx, onClose }) {
+  const [done, setDone] = useState(null);      // кавенятко, якому вдягнули
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  // Раніше тут ковталась будь-яка помилка (.catch(() => {})), а потім
+  // відкривався гардероб — з тим самим порожнім слотом. Тап по порожньому
+  // слоту веде на Склад, звідти знову сюди: власник назвав це вічним циклом
+  // екранів (23.09.2026). Тепер нікуди не ведемо: кажемо, що сталось, і
+  // лишаємось на місці.
   const wardrobe = async () => {
-    const r = await api.get("/me/plants").catch(() => ({ plants: [] }));
-    const plants = (r.plants ?? []).filter((p) => !p.on_sale);
-    if (plants.length === 1) {
-      await api.put(`/me/plants/${plants[0].id}/wardrobe/${item.slot}`, { user_item_id: item.user_item_id }).catch(() => {});
-      onClose();
-      ctx.push("wardrobe", { plant: plants[0] });
-    } else {
-      ctx.notify(<WearSheet item={item} plants={plants} ctx={ctx} onClose={onClose} />);
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.get("/me/plants").catch(() => ({ plants: [] }));
+      const plants = (r.plants ?? []).filter((p) => !p.on_sale);
+      if (!plants.length) { setError("Немає кавенятка, якому вдягнути"); return; }
+      if (plants.length > 1) { ctx.notify(<WearSheet item={item} plants={plants} ctx={ctx} onClose={onClose} />); return; }
+      await api.put(`/me/plants/${plants[0].id}/wardrobe/${item.slot}`, { user_item_id: item.user_item_id });
+      setDone(plants[0]);
+    } catch (e) {
+      setError(WEAR_ERROR[e.body?.error] ?? e.body?.error ?? e.message);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -58,12 +81,29 @@ export function StockItemSheet({ item, ctx, onClose }) {
           </div>
         </div>
       </div>
-      <div className="stock-item-actions">
-        <button className="cta wide" disabled={!item.free} onClick={wardrobe}>Додати до гардеробу</button>
-        <button className="cta wide ghost" disabled={!item.free} onClick={() => { onClose(); ctx.push("sellItem", { item }); }}>
-          Продати іншому користувачу
-        </button>
-      </div>
+      {error && <div className="short-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
+      {done
+        ? (
+          <>
+            <div className="short-note">У примірочній «{done.name || "Кавенятко"}». Подарувати можна лише повний комплект.</div>
+            <div className="stock-item-actions">
+              <button className="cta wide" onClick={onClose}>Готово</button>
+              <button className="cta wide ghost" onClick={() => { onClose(); ctx.push("wardrobe", { plant: done }); }}>
+                Відкрити гардероб
+              </button>
+            </div>
+          </>
+        )
+        : (
+          <div className="stock-item-actions">
+            <button className="cta wide" disabled={!item.free || busy} onClick={wardrobe}>
+              {busy ? "…" : "Додати до гардеробу"}
+            </button>
+            <button className="cta wide ghost" disabled={!item.free} onClick={() => { onClose(); ctx.push("sellItem", { item }); }}>
+              Продати іншому користувачу
+            </button>
+          </div>
+        )}
     </ConfirmSheet>
   );
 }
@@ -72,6 +112,7 @@ export function WearSheet({ item, plants, ctx, onClose }) {
   const [chosen, setChosen] = useState(plants[0] ?? null);
   const [slots, setSlots] = useState({});
   const [error, setError] = useState(null);
+  const [done, setDone] = useState(null);
 
   // Що зараз лежить у цьому слоті кожного кавенятка — воно повернеться на склад.
   useEffect(() => {
@@ -85,11 +126,10 @@ export function WearSheet({ item, plants, ctx, onClose }) {
     setError(null);
     try {
       await api.put(`/me/plants/${chosen.id}/wardrobe/${item.slot}`, { user_item_id: item.user_item_id });
-      onClose();
-      ctx.push("wardrobe", { plant: chosen });
+      setDone(chosen);
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті" : code === "on_sale" ? "Кавенятко на ринку" : code ?? e.message);
+      setError(WEAR_ERROR[code] ?? code ?? e.message);
     }
   };
 
@@ -118,7 +158,19 @@ export function WearSheet({ item, plants, ctx, onClose }) {
         })}
       </div>
       {error && <div className="short-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
-      <button className="cta wide" disabled={!chosen} onClick={wear}>Вдягнути {chosen?.name ?? ""}</button>
+      {done
+        ? (
+          <>
+            <div className="short-note">У примірочній «{done.name || "Кавенятко"}».</div>
+            <div className="stock-item-actions">
+              <button className="cta wide" onClick={onClose}>Готово</button>
+              <button className="cta wide ghost" onClick={() => { onClose(); ctx.push("wardrobe", { plant: done }); }}>
+                Відкрити гардероб
+              </button>
+            </div>
+          </>
+        )
+        : <button className="cta wide" disabled={!chosen} onClick={wear}>Вдягнути {chosen?.name ?? ""}</button>}
     </ConfirmSheet>
   );
 }

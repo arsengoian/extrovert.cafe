@@ -78,10 +78,26 @@ export function Stock({ ctx }) {
               {SLOTS.map((slot) => {
                 const it = bySlot[slot];
                 if (!it) return <div key={slot} className="cell empty" />;
+                // Усі копії на ринку — предмет заморожений: ні вдягнути, ні
+                // продати вдруге. Показуємо замок у куточку й ведемо одразу
+                // в «На продаж», де лот можна зняти (скарга власника
+                // 23.09.2026: на клітинці цього не було видно взагалі).
+                const frozen = (it.listed ?? 0) > 0 && (it.free ?? 0) === 0;
                 return (
-                  <button key={slot} className="cell" onClick={() => ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} />)}>
+                  <button key={slot} className="cell" data-frozen={frozen || undefined}
+                          title={frozen ? "На продажу — заморожено" : it.name}
+                          onClick={() => (frozen
+                            ? ctx.push("listings")
+                            : ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} />))}>
                     <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: 36 }} />
                     {it.owned > 1 && <i>×{it.owned}</i>}
+                    {frozen && (
+                      <b className="cell-lock" aria-label="на продажу">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                          <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+                        </svg>
+                      </b>
+                    )}
                   </button>
                 );
               })}
