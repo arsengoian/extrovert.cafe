@@ -9,14 +9,21 @@ const cfg = () => ({
   key: process.env.MAILGUN_API_KEY,
   domain: process.env.MAILGUN_DOMAIN,
   api: (process.env.MAILGUN_API || "https://api.mailgun.net").replace(/\/+$/, ""),
+  // Відправник — з кореневого домену, а не з технічного
+  // mail.extrovert.cafe: у списку листів людині видно саме адресу.
+  // Відправляє все одно домен Mailgun, і DMARC це влаштовує —
+  // relaxed-вирівнювання дивиться на організаційний домен, спільний в обох.
+  from: process.env.MAIL_FROM || "hello@extrovert.cafe",
 });
 
 export const mailConfigured = () => Boolean(cfg().key && cfg().domain);
 
 export async function sendMail({ to, subject, text, html, tag }) {
-  const { key, domain, api } = cfg();
+  const { key, domain, api, from } = cfg();
   const body = new FormData();
-  body.append("from", `extrovert.cafe <hello@${domain}>`);
+  // Ім'я в лапках: рядок із крапками RFC 5322 інакше вважає невалідним,
+  // і поштові клієнти показують лапки самі.
+  body.append("from", `"extrovert.cafe" <${from}>`);
   body.append("to", to);
   body.append("subject", subject);
   body.append("text", text);

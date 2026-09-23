@@ -61,7 +61,7 @@ export function StockItemSheet({ item, ctx, onClose }) {
       <div className="stock-item-actions">
         <button className="cta wide" disabled={!item.free} onClick={wardrobe}>Додати до гардеробу</button>
         <button className="cta wide ghost" disabled={!item.free} onClick={() => { onClose(); ctx.push("sellItem", { item }); }}>
-          Продати іншому гравцю
+          Продати іншому користувачу
         </button>
       </div>
     </ConfirmSheet>
@@ -89,7 +89,7 @@ export function WearSheet({ item, plants, ctx, onClose }) {
       ctx.push("wardrobe", { plant: chosen });
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті" : code === "on_sale" ? "Кавенятко на маркеті" : code ?? e.message);
+      setError(code === "item_locked" ? "Річ замкнена в подарованому комплекті" : code === "on_sale" ? "Кавенятко на ринку" : code ?? e.message);
     }
   };
 

@@ -42,8 +42,8 @@ export function Stats() {
       <div className="grid k4" style={{ marginBottom: 12 }}>
         <Kpi label="Виручка" value={fmt.uah(totals.revenue)} note={`${fmt.int(totals.receipts)} чеків`} />
         <Kpi label="Бонуси зараховано" value={fmt.int(totals.redeemed)} note="чеків, за якими забрали бонус" />
-        <Kpi label="Нових гравців" value={fmt.int(totals.new_users)} note={`активних за період: ${fmt.int(totals.active_users)}`} />
-        <Kpi label="Обіг маркету" value={fmt.int(totals.market_gross)} note="монет у зведених угодах" />
+        <Kpi label="Нових користувачів" value={fmt.int(totals.new_users)} note={`активних за період: ${fmt.int(totals.active_users)}`} />
+        <Kpi label="Обіг ринку" value={fmt.int(totals.market_gross)} note="монет у зведених угодах" />
       </div>
 
       <div className="wrap-cols">
@@ -67,7 +67,7 @@ export function Stats() {
             line(data.coins, "beans_out", "боби −", "#3FBF6F"),
           ]} />
         </Card>
-        <Card title="Маркет" note="угоди за добу">
+        <Card title="Ринок" note="угоди за добу">
           <Line series={[
             line(data.market.filter((m) => m.currency === "yellow"), "gross", "жовті монети", COLORS[0]),
             line(data.market.filter((m) => m.currency === "silver"), "gross", "срібні монети", COLORS[3]),

@@ -51,8 +51,8 @@ export function NicknameChange({ ctx }) {
       <div className="short-title" style={{ gap: 0 }}>Змінити нікнейм</div>
       <div className="short-note" style={{ lineHeight: 1.45, textWrap: "pretty" }}>
         {locked
-          ? `Нікнейм бачать інші гравці на маркеті. Наступна зміна – ${next.toLocaleDateString("uk-UA")}.`
-          : "Нікнейм бачать інші гравці на маркеті. Змінювати можна раз на 30 днів."}
+          ? `Нікнейм бачать інші користувачі на ринку. Наступна зміна – ${next.toLocaleDateString("uk-UA")}.`
+          : "Нікнейм бачать інші користувачі на ринку. Змінювати можна раз на 30 днів."}
       </div>
 
       <div className="field">

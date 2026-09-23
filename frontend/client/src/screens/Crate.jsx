@@ -46,7 +46,7 @@ export function CrateOpened({ result, nickname, onClose, onStock, onSell }) {
       </div>
       <div className="loot-note">
         {dup
-          ? <>У тебе такий уже є – <button className="doc-link" onClick={onSell}>продати дубль на P2P</button></>
+          ? <>У тебе такий уже є – <button className="doc-link" onClick={onSell}>продати дубль на ринку</button></>
           : <>Речі зараховано до акаунту <b>{nickname}</b></>}
       </div>
     </ResultPopup>

@@ -83,7 +83,7 @@ function Thread({ id, onChanged }) {
           </div>
         ))}
       </div>
-      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Відповідь гравцю в Telegram" rows={3}
+      <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Відповідь користувачу в Telegram" rows={3}
                 onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) send(); }} />
       <div className="row">
         <button className="btn" disabled={busy || !text.trim()} onClick={send}>{busy ? "надсилаємо…" : "Надіслати"}</button>
@@ -111,7 +111,7 @@ export function Support() {
           <p>
             {list && !list.connected
               ? "Бот не підключений: без SUPPORT_BOT_TOKEN повідомлення не приходять і відповіді не йдуть"
-              : "розмови з бота · відповідь іде гравцю в Telegram від імені бота"}
+              : "розмови з бота · відповідь іде користувачу в Telegram від імені бота"}
           </p>
         </div>
         <div className="right">

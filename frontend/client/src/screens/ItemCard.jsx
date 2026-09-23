@@ -101,7 +101,7 @@ export function ItemCard({ item, ctx }) {
       {offers?.offers?.length > 0 && (
         <div className="offers">
           <div className="section-head" style={{ alignItems: "baseline" }}>
-            <div className="sectionTitle">Від інших гравців</div>
+            <div className="sectionTitle">Від інших користувачів</div>
             {offers.total > offers.offers.length && (
               <button className="link-more" onClick={() => setAll(true)}>усі {offers.total} лотів</button>
             )}

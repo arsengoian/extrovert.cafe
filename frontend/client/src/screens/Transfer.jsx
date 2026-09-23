@@ -102,7 +102,7 @@ export function Transfer({ ctx }) {
       </div>
 
       <div className="muted" style={{ fontSize: 13, lineHeight: 1.5, textWrap: "pretty" }}>
-        Після підтвердження переказ скасувати неможливо. Переказуй лише гравцям, яких знаєш особисто.
+        Після підтвердження переказ скасувати неможливо. Переказуй лише користувачам, яких знаєш особисто.
       </div>
 
       <div className="warn">

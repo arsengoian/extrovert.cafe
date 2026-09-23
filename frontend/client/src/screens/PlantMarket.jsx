@@ -74,14 +74,14 @@ export function PlantMarket({ ctx }) {
       </div>
 
       <div className="wr-section-head">
-        <div className="sectionTitle">P2P маркет</div>
+        <div className="sectionTitle">Ринок</div>
         <span>{offers === null ? "…" : `${offers.length} ${plural(offers.length, "пропозиція", "пропозиції", "пропозицій")}`}</span>
       </div>
 
       {error && <div className="sell-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
       {offers === null && <div className="skeleton" />}
       {offers?.length === 0 && (
-        <div className="sell-note">Зараз ніхто не продає кавенят. Загляни пізніше – лоти зʼявляються й зникають.</div>
+        <div className="sell-note">Зараз ніхто не продає кавенят. Заглянь пізніше – лоти зʼявляються й зникають.</div>
       )}
       <div className="pm-lots">
         {offers?.map((lot, i) => (

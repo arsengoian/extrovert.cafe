@@ -77,7 +77,7 @@ export function Onboarding({ me, onDone, onCancel }) {
       <div className="stage">
         <div className="form18" style={{ gap: 16 }}>
           <div className="lead14">
-            Ми згенерували унікальний нікнейм. Можеш лишити або змінити – його бачать інші гравці на P2P маркеті.
+            Ми згенерували унікальний нікнейм. Можеш лишити або змінити – його бачать інші користувачі.
           </div>
 
           <div className="field">

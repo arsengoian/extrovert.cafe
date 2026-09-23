@@ -11,14 +11,14 @@ import { Badge, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 const REASON = {
   purchase: "бонус за чек", care: "догляд", sapling: "саджанець", exchange: "обмін зерен",
   pos_discount: "знижка на POS", crate: "скринька", crate_opening: "відкриття скриньки",
-  market: "маркет", transfer: "переказ", repost: "репост", chat: "чат", quiz: "опитування",
+  market: "ринок", transfer: "переказ", repost: "репост", chat: "чат", quiz: "опитування",
   delivery: "доставка", wardrobe_set: "комплект одягу",
 };
 const delta = (n, sign = "") => (n ? <b style={{ color: n > 0 ? "var(--ok)" : "var(--bad)" }}>{n > 0 ? "+" : ""}{fmt.int(n)}{sign}</b> : null);
 
 export function User({ id }) {
   const { data, error } = useData(() => api.user(id), [id]);
-  if (error) return <Empty>{error.status === 404 ? "немає такого гравця" : error.message}</Empty>;
+  if (error) return <Empty>{error.status === 404 ? "немає такого користувача" : error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
   const { user, identities, plants, ledger, items, chat, crates, receipts, orders } = data;
 

@@ -52,7 +52,7 @@ export function DeleteAccount({ ctx }) {
         <ul className="muted" style={{ fontSize: 13, lineHeight: 1.5, margin: 0, paddingLeft: 18 }}>
           <li>вхід: пошта стирається, способи входу відвʼязуються назавжди</li>
           <li>нікнейм звільняється, акаунт стає «deleted_account_…»</li>
-          {state.listings > 0 && <li>лоти на маркеті знімаються з продажу ({state.listings})</li>}
+          {state.listings > 0 && <li>лоти на ринку знімаються з продажу ({state.listings})</li>}
           <li>
             баланси лишаються на рахунку, але витратити їх буде нікому:
             {" "}{state.coins} монет, {state.beans} зерен

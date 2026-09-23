@@ -57,19 +57,18 @@ export function EmailLogin({ next = "/" }) {
           <img src="/assets/ui/hero_bush.png" alt="" />
           <b>Лист уже летить</b>
           <div className="lead14">
-            Надіслали посилання на <b>{sent.email}</b>. Відкрий його на пристрої, де хочеш грати, – вхід станеться
-            там. Посилання діє {sent.minutes} хвилин.
+            Ми надіслали лінк для входу на <b>{sent.email}</b>. Посилання діє {sent.minutes} хвилин.
           </div>
         </div>
         <div className="consent">
-          <div>Листа немає за хвилину? Зазирни в «Спам» чи «Промоакції» і перевір, чи без помилки адреса.</div>
+          <div>Пройшло 5 хвилин, а листа немає? Зазирни в «Спам» чи «Реклама». А адреса взагалі правильно введена?</div>
         </div>
         {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
-        <button className="nick-regen" onClick={() => { setSent(null); setError(null); setEmail(sent.email); }}>
-          Змінити пошту
-        </button>
         <button className="cta send start-cta" disabled={wait > 0 || busy} onClick={() => send(sent.email)}>
           {busy ? "Надсилаємо…" : wait > 0 ? `Надіслати ще раз · ${mmss(wait)}` : "Надіслати ще раз"}
+        </button>
+        <button className="btn" onClick={() => { setSent(null); setError(null); setEmail(sent.email); }}>
+          Змінити пошту
         </button>
       </div>
     );
@@ -78,7 +77,7 @@ export function EmailLogin({ next = "/" }) {
   return (
     <form className="form18" style={{ gap: 16 }} onSubmit={(e) => { e.preventDefault(); if (valid && !busy) send(typed); }}>
       <div className="lead14">
-        Пароля немає: надішлемо лист із посиланням – натиснеш, і ти в грі. Так щоразу, коли входиш через пошту.
+        Ми надішлемо лист із посиланням для входу в 1 клік.
       </div>
 
       <div className="field">
@@ -93,7 +92,7 @@ export function EmailLogin({ next = "/" }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <button type="submit" className="cta send start-cta" disabled={!valid || busy}>
-        {busy ? "Надсилаємо…" : "Надіслати посилання"}
+        {busy ? "Надсилаємо…" : "Отримати посилання"}
       </button>
     </form>
   );

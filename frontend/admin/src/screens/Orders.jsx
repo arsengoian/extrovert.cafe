@@ -41,7 +41,7 @@ export function Orders() {
       <div className="grid k4" style={{ marginBottom: 12 }}>
         <Kpi label="У роботі" value={fmt.int(data.counts.open)} tone={data.counts.open ? "bad" : "ok"} note="друкуємо, пакуємо, нові" />
         <Kpi label="У дорозі" value={fmt.int(data.counts.shipped)} note="передані Новій Пошті" />
-        <Kpi label="Отримані" value={fmt.int(data.counts.received)} note="дійшли до гравця" />
+        <Kpi label="Отримані" value={fmt.int(data.counts.received)} note="дійшли до користувача" />
         <Kpi label="Усього" value={fmt.int(data.counts.total)} note="за весь час" />
       </div>
 

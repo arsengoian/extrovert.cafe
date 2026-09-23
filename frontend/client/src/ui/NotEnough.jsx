@@ -89,7 +89,7 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                sub={beans ? <>{beans} <Bean /> → {fmt(beans * rate)} <Gold /></> : "зерен поки немає"}
                pill="Обмін" onClick={go(() => ctx.push("shopProduct", { item: ways.exchange }))} />
           <Way off={!ways.free} icon={<img src="/assets/ui/cowboy_body.png" alt="" style={{ width: 27, height: 28 }} />}
-               title="Продати одяг на P2P"
+               title="Продати одяг на ринку"
                sub={ways.free ? `вільних предметів: ${ways.free}` : "вільних предметів немає"}
                pill="Склад" onClick={go(() => ctx.openTab("stock"))} />
         </div>

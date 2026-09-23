@@ -120,9 +120,9 @@ function ActionMenu({ onGift, onSell, onScythe }) {
   return (
     <div className="plant-menu">
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8.5V21" /><path d="M4.5 12.5h15V21h-15z" /><path d="M4.5 8.5h15v4h-15z" /><path d="M12 8.5S9.2 8.5 8 7.3a2.4 2.4 0 1 1 4-2.6" /><path d="M12 8.5s2.8 0 4-1.2a2.4 2.4 0 1 0-4-2.6" /></svg>,
-        "Подарувати другу", "Переходить іншому гравцю з усім подарованим одягом", onGift)}
+        "Подарувати другу", "Переходить іншому користувачу з усім подарованим одягом", onGift)}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.4v9.2" /><path d="M14.6 9.6c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.9.8-2.9 2 0 2.8 5.9 1.6 5.9 4.2 0 1.2-1.3 2-3 2-1.3 0-2.4-.5-3-1.3" /></svg>,
-        "Продати на P2P маркеті", "Ціна в монетах або бобах, мінімум 10", onSell)}
+        "Продати на ринку", "Ціна в монетах або бобах, мінімум 10", onSell)}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19h14" /><path d="M7 19c0-4.4 2.6-7.6 6-9" /><path d="M13 10c-3.6 1.6-4.4 5-4.4 9" /><path d="M17.5 5.5 20 3" /></svg>,
         "Зняти з продажу", "Кавенятко не виставлене", undefined, { off: true })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M7 7v12.2A1.8 1.8 0 0 0 8.8 21h6.4a1.8 1.8 0 0 0 1.8-1.8V7" /></svg>,
@@ -140,7 +140,7 @@ function SaleCard({ plant, onDone }) {
   };
   return (
     <div className="sale-card">
-      <p>{error ?? "Поки кавенятко на маркеті, догляд і чат заблоковані, а настрій не показується. Якщо ти знімеш його з продажу і пройшло досить часу, може бути необхідно його полити."}</p>
+      <p>{error ?? "Поки кавенятко на ринку, догляд і чат заблоковані, а настрій не показується. Якщо ти знімеш його з продажу і пройшло досить часу, може бути необхідно його полити."}</p>
       <button onClick={unlist}>Зняти з продажу</button>
     </div>
   );
@@ -177,7 +177,7 @@ function GiftSheet({ plant, onClose, onDone }) {
   return (
     <div className="plant-sheet">
       <b className="plant-sheet-title">Подарувати {plant.name || "кавенятко"}</b>
-      <p>Кавенятко переходить до іншого гравця разом з усіма подарованими комплектами. Скасувати подарунок неможливо.</p>
+      <p>Кавенятко переходить до іншого користувача разом з усіма подарованими комплектами. Скасувати подарунок неможливо.</p>
       <div className="field" style={{ gap: 7 }}>
         <div className="profile-label">Нікнейм друга</div>
         <label className="nick-field gift" data-tone={found && !ok ? "bad" : "ok"}>
@@ -300,7 +300,7 @@ export function Plant({ ctx }) {
   // стадію, чи кущ просто попив, чи час відкривати екран посадки.
   // bought — препарат щойно куплено в попапі, а care у цьому рендері ще старий.
   const apply = async (kind, bought = false) => {
-    if (onSale) { setNote("Поки я на маркеті, доглядати за мною не можна"); return; }
+    if (onSale) { setNote("Поки я на ринку, доглядати за мною не можна"); return; }
     const item = SHELF.find((s) => s.kind === kind);
     if (!bought && (care[item?.key] ?? 0) <= 0) { setPopup(`supply:${kind}`); return; }
     if (growth.planting && kind === growth.need) { openPlanting(); return; }
