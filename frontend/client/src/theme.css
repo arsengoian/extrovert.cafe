@@ -608,7 +608,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 :root[data-theme="light"] .start-logo img[data-logo="dark"] { display: none }
 :root[data-theme="light"] .start-logo img[data-logo="light"] { display: block }
 .start-mid { display: flex; flex-direction: column; gap: 20px; align-items: center }
-.hero { position: relative; flex: none; align-self: stretch; height: 196px }
+/* Кущ і хмарка — одна група, а не двоє прив'язаних до країв екрана. Ширина
+   350 px — це кадр макета (390 мінус поля): при stretch на ширшому екрані
+   хмарка відповзала від кавенятка (на 430 px між ними лишалось 24 px замість
+   64), а на вужчому налазила. */
+.hero { position: relative; flex: none; width: 350px; max-width: 100%; margin-inline: auto; height: 196px }
 .hero > img { position: absolute; left: 24px; top: 0; width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0 12px 22px rgba(0, 0, 0, .45)) }
 .hero-bubble {
   position: absolute; right: 24px; bottom: 4px; width: 196px; padding: 10px 12px; border: 1px solid var(--line);

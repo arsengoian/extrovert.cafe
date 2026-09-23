@@ -25,6 +25,18 @@ const returningFromPayment = new URLSearchParams(window.location.search).has("pa
 const loginToken = window.location.pathname === "/login" ? window.location.hash.slice(1) : null;
 if (window.location.pathname === "/login") window.history.replaceState({}, "", "/");
 const login = loginToken ? api.emailVerify(loginToken) : null;
+
+// Google повертає сюди з ?login=<причина>, якщо вхід не склався. Адресу
+// одразу чистимо, щоб перезавантаження не показувало те саме вдруге.
+const GOOGLE_NOTE = {
+  google_off: "Вхід через Google поки не налаштований – заходь через пошту",
+  google_cancelled: "Вхід через Google скасовано",
+  google_expired: "Сторінка входу застаріла – спробуй ще раз",
+  google_unverified: "Google не підтвердив цю пошту – заходь через пошту",
+  google_failed: "Google не пустив – спробуй ще раз або заходь через пошту",
+};
+const loginNote = GOOGLE_NOTE[new URLSearchParams(window.location.search).get("login")] ?? null;
+if (loginNote) window.history.replaceState({}, "", window.location.pathname);
 // Постійні адреси документів — на них посилаються ззовні (екран згоди
 // Google OAuth, Mailgun, сторінки магазинів застосунків), тож вони мають
 // відкриватись самі по собі, і з акаунтом, і без.
@@ -32,6 +44,6 @@ const legalDoc = { "/privacy-policy": "privacy", "/terms": "terms" }[window.loca
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} legalDoc={legalDoc} />}
+    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} legalDoc={legalDoc} loginNote={loginNote} />}
   </StrictMode>
 );

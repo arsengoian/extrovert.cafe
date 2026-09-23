@@ -20,10 +20,13 @@ export const SPARKS = {
   stage: { n: 12, r: 84, size: 7, color: "#FFB84D" },
   crate: { n: 10, r: 62, size: 6, color: "#FFD37A" },
   barrel: { n: 8, r: 46, size: 5, color: "#FFD37A" },
-  common: { n: 4, r: 34, size: 4, color: "rgba(242, 239, 230, .75)" },
-  uncommon: { n: 6, r: 42, size: 5, color: "#6FD897" },
-  rare: { n: 9, r: 52, size: 6, color: "#8EC5FF" },
-  epic: { n: 12, r: 62, size: 7, color: "#C79BFF" },
+  // Кольори рідкості — ті самі змінні, що й у рамках, плашках і тексті
+  // (theme.css): інакше іскорки навколо речі жили своїм життям і
+  // «рідкісне» світилось не тим синім, що підпис під ним.
+  common: { n: 4, r: 34, size: 4, color: "rgb(var(--tier-common))" },
+  uncommon: { n: 6, r: 42, size: 5, color: "rgb(var(--tier-uncommon))" },
+  rare: { n: 9, r: 52, size: 6, color: "rgb(var(--tier-rare))" },
+  epic: { n: 12, r: 62, size: 7, color: "rgb(var(--tier-epic))" },
 };
 
 const points = (n, r) => Array.from({ length: n }, (_, k) => {

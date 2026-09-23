@@ -33,24 +33,17 @@ const WarnIcon = () => (
 
 // bonus — бонуси, які чекають на вхід (QR на кіоску до реєстрації). Без
 // них — варіант «без бонусів»: блок із плитками просто не показуємо.
-export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null, note = null }) {
+export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null, note = null, next = "/" }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  const google = async () => {
-    if (!api.devLogin) {
-      setError("Вхід через Google з'явиться незабаром – поки що заходь через пошту");
-      return;
-    }
+  // Перехід, а не запит: далі екран Google, а повертається людина вже з
+  // кукою сесії (backend/api/src/routes/auth.js). Працює однаково на
+  // локалці й на проді — різниця лише в адресі повернення, і та береться
+  // з API_ORIGIN сервера.
+  const google = () => {
     setBusy(true);
-    setError(null);
-    try {
-      await api.devLogin("dev");
-      await onSignedIn();
-    } catch (e) {
-      setError(e.message);
-      setBusy(false);
-    }
+    window.location.assign(api.googleLoginUrl(next));
   };
 
   return (

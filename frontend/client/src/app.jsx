@@ -20,7 +20,7 @@ import "./theme.js";
 
 const TAB_KEY = "extrovert.tab";
 
-export function App({ bonusToken = null, returningFromPayment = false, login = null, legalDoc = null }) {
+export function App({ bonusToken = null, returningFromPayment = false, login = null, legalDoc = null, loginNote = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   // Вкладка переживає перезавантаження: людина оновлює сторінку на «Складі»
@@ -45,7 +45,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   const [notice, setNotice] = useState(null);
   // Що сказати на стартовому екрані: посилання з листа не спрацювало чи
   // api не відповідає.
-  const [bootNote, setBootNote] = useState(null);
+  const [bootNote, setBootNote] = useState(loginNote);
 
   useEffect(() => {
     if (me || !bonusToken) return;
@@ -205,6 +205,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
         <Start
           bonus={pendingBonus}
           note={bootNote}
+          next={bonusToken ? `/b/${bonusToken}` : "/"}
           onSignedIn={async () => { await refreshMe(); setBooting(false); }}
           onEmail={() => { setBootNote(null); setGuest({ name: "emailLogin", props: { next: bonusToken ? `/b/${bonusToken}` : "/" } }); }}
           onProblem={() => setGuest({ name: "problem" })}

@@ -118,6 +118,9 @@ export const api = {
         })
     : null,
 
+  // Вхід через Google — не fetch, а перехід: Google має показати свій
+  // екран і повернути людину назад на api, який поставить куку.
+  googleLoginUrl: (next = "/") => `${BASE}/auth/google?next=${encodeURIComponent(next)}`,
   logout: () => request("/auth/logout", { method: "POST", auth: false }).finally(() => setToken(null)),
 
   // Спроба підняти сесію без екрана входу: якщо кука жива, застосунок

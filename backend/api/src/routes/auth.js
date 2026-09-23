@@ -13,8 +13,10 @@ import { generateNickname } from "../nickname.js";
 import { loginEmail } from "../mail/login.js";
 import { mailConfigured, sendMail } from "../mail/mailgun.js";
 import { clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie, touchSession } from "../session.js";
+import { redisClient } from "@extrovert/lib/redis.js";
 
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
+const API_ORIGIN = process.env.API_ORIGIN || "https://api.extrovert.cafe";
 const LINK_TTL_MIN = 15;
 // Не частіше раза на хвилину й не більше п'яти листів на годину на адресу,
 // двадцяти — з однієї IP. Без меж форма входу стає кнопкою «засипати чужу
@@ -45,6 +47,28 @@ async function issue(reply, user) {
     user: { id: user.id, nickname: user.nickname },
   };
 }
+
+const redis = redisClient();
+
+// ── вхід через Google ───────────────────────────────────────────────────
+//
+// Звичайний authorization code flow, без бібліотек: два запити до Google і
+// один рядок у Redis. id_token не розбираємо — беремо профіль із userinfo
+// по access-токену: менше коду й жодної перевірки підписів вручну.
+//
+// Адреса повернення будується з API_ORIGIN, тому локальний і продовий
+// входи різняться лише тим, що прописано в консолі Google:
+//   http://localhost:3001/api/v1/auth/google/callback
+//   https://api.extrovert.cafe/api/v1/auth/google/callback
+const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
+const GOOGLE_USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
+const googleReady = () => Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+// API_ORIGIN — публічна адреса api (туди ж ідуть вебхуки mono й telegram),
+// і локально вона лишається продовою. Тому адресу повернення можна
+// перекрити окремо: OAUTH_ORIGIN=http://localhost:3001 у .env розробника.
+const googleRedirect = () => `${process.env.OAUTH_ORIGIN || API_ORIGIN}/api/v1/auth/google/callback`;
+const stateKey = (state) => `oauth:google:${state}`;
 
 // Гравець за підтвердженою поштою. Лист дійшов і посилання відкрили —
 // отже, скринька належить цій людині, і акаунт із тією самою поштою (скажімо,
@@ -134,6 +158,66 @@ export default async function routes(app) {
 
   // Сторінка /login бере токен із фрагмента й надсилає сюди. Одноразовий:
   // перше ж відкриття гасить посилання.
+  app.get("/auth/google", async (req, reply) => {
+    if (!googleReady()) fail(503, "google_not_configured");
+    const next = NEXT.test(String(req.query?.next ?? "/")) ? String(req.query?.next ?? "/") : "/";
+    const state = randomBytes(16).toString("hex");
+    await redis.set(stateKey(state), next, "EX", 600);
+    const url = new URL(GOOGLE_AUTH);
+    url.search = new URLSearchParams({
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      redirect_uri: googleRedirect(),
+      response_type: "code",
+      scope: "openid email profile",
+      state,
+      prompt: "select_account",
+    }).toString();
+    return reply.redirect(url.toString(), 302);
+  });
+
+  app.get("/auth/google/callback", async (req, reply) => {
+    // Помилку не показуємо сторінкою api: людина має повернутись у
+    // застосунок, а він уже скаже, що вхід не вдався.
+    const back = (error) => reply.redirect(`${APP_ORIGIN}/${error ? `?login=${error}` : ""}`, 302);
+    if (!googleReady()) return back("google_off");
+    const state = String(req.query?.state ?? "");
+    const code = String(req.query?.code ?? "");
+    if (!state || !code) return back("google_cancelled");
+
+    const next = await redis.get(stateKey(state));
+    if (next === null) return back("google_expired");
+    await redis.del(stateKey(state));
+
+    try {
+      const token = await fetch(GOOGLE_TOKEN, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code,
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
+          redirect_uri: googleRedirect(),
+          grant_type: "authorization_code",
+        }),
+      }).then((r) => r.json());
+      if (!token.access_token) throw new Error(token.error_description || token.error || "немає access_token");
+
+      const profile = await fetch(GOOGLE_USERINFO, {
+        headers: { authorization: `Bearer ${token.access_token}` },
+      }).then((r) => r.json());
+      // Непідтверджена пошта — це не доказ володіння скринькою, а наш
+      // акаунт прив'язаний саме до неї.
+      if (!profile.email || profile.email_verified === false) return back("google_unverified");
+
+      const user = await userByEmail(String(profile.email).trim().toLowerCase());
+      await issue(reply, user);
+      return reply.redirect(`${APP_ORIGIN}${next}`, 302);
+    } catch (e) {
+      req.log?.warn?.({ err: e.message }, "вхід через Google не вдався");
+      return back("google_failed");
+    }
+  });
+
   app.post("/auth/email/verify", async (req, reply) => {
     const token = String(req.body?.token ?? "");
     if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) fail(400, "bad_token");
