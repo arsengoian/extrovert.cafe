@@ -129,7 +129,7 @@ export function History({ ctx }) {
       </div>
 
       {orders.length > 0 && (
-        <div className="orders-note">Кредити на опитування нараховуються на 1-му, 4-му й далі кожному 10-му напої</div>
+        <div className="orders-note">Опитування відкриваються на 1-му, 4-му й далі кожному 10-му напої</div>
       )}
     </div>
   );

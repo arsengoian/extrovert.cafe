@@ -28,6 +28,17 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // поверх вкладки навмисно не відновлюємо — у нього кладуть props із
   // живими об'єктами (лот, предмет, кавенятко), і «відновлений» екран
   // показував би застарілі дані замість свіжих.
+  // Ширина застосунку числом у CSS: із неї рахуються масштаби макетних
+  // блоків, які не можна перелити у флекс (примірочна 328 px). Число, а не
+  // довжина: scale() бере лише число, а поділити px на px CSS не вміє.
+  useEffect(() => {
+    const set = () => document.documentElement.style.setProperty(
+      "--appw", String(Math.min(480, window.innerWidth)));
+    set();
+    window.addEventListener("resize", set);
+    return () => window.removeEventListener("resize", set);
+  }, []);
+
   const [tab, setTab] = useState(() => {
     try { return sessionStorage.getItem(TAB_KEY) || "plant"; } catch { return "plant"; }
   });

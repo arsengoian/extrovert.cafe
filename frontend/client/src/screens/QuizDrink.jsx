@@ -31,7 +31,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
         <div className="panel">
           <div className="h2">Поки немає доступного опитування</div>
           <p className="muted" style={{ marginBottom: 0 }}>
-            Кредити на опитування нараховуються на 1-му, 4-му й далі кожному 10-му напої.
+            Опитування відкриваються на 1-му, 4-му й далі кожному 10-му напої.
           </p>
         </div>
       </div>
@@ -46,7 +46,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
       await ctx.refreshMe();
       setDone(true);
     } catch (e) {
-      setError(e.body?.error === "no_credits" ? "Кредит уже витрачено"
+      setError(e.body?.error === "no_credits" ? "Це опитування вже пройдене"
         : e.body?.error === "already_answered" ? "Про цей напій уже відповідали"
         : e.message);
     } finally {
