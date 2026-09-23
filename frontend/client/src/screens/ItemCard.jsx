@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { renderMarkdown } from "../ui/markdown.jsx";
-import { NotEnoughCoins } from "../ui/NotEnough.jsx";
+import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 
 export const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
 export const SLOT_OF = { head: "слот голови", body: "слот тіла", pants: "слот штанів", feet: "слот взуття", acc_1: "слот аксесуара" };
@@ -66,7 +66,10 @@ export function ItemCard({ item, ctx }) {
     } catch (e) {
       const c = e.body?.error;
       if (c === "not_enough" && lot.currency === "yellow") short(lot.price);
-      else setError(c === "already_gone" ? "Лот уже купили" : c === "not_enough" ? "Не вистачає зерен" : c ?? e.message);
+      else if (c === "not_enough") {
+        ctx.notify(<NotEnoughBeans what={item.name} price={lot.price} have={ctx.me?.balances?.beans ?? 0}
+                                   ctx={ctx} onClose={() => ctx.notify(null)} />);
+      } else setError(c === "already_gone" ? "Лот уже купили" : c ?? e.message);
       await load();
     } finally {
       setBusy(false);

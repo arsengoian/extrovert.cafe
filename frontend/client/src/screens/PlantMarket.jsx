@@ -7,6 +7,7 @@
 // частіше (services.md §4), тож перший лот — головна пропозиція.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { PlantView } from "../plant/PlantView.jsx";
 import { plural } from "../ui/plural.js";
 
@@ -41,7 +42,17 @@ export function PlantMarket({ ctx }) {
   const saplings = shop ? [...shop.coins, ...shop.beans].filter((i) => i.kind === "sapling") : [];
 
   // Купили — одразу на вкладку кавенятка: там нове кавенятко й попросить ім'я.
-  const buy = async (request, notEnough) => {
+  // Нестача — не текст під кнопкою, а попап зі способами дібрати
+  // (кадр «Не вистачає монет»): він однаково потрібен і для монет, і для
+  // зерен, різниця лише в тому, звідки їх беруть.
+  const short = (currency, what, price) => {
+    const b = ctx.me?.balances ?? {};
+    const have = currency === "beans" ? b.beans ?? 0 : (b.silver ?? 0) + (b.yellow ?? 0);
+    const Popup = currency === "beans" ? NotEnoughBeans : NotEnoughCoins;
+    ctx.notify(<Popup what={what} price={price} have={have} ctx={ctx} onClose={() => ctx.notify(null)} />);
+  };
+
+  const buy = async (request, lack) => {
     setBusy(true);
     setError(null);
     try {
@@ -50,7 +61,8 @@ export function PlantMarket({ ctx }) {
       ctx.openTab("plant");
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "not_enough" ? notEnough : code === "already_gone" ? "Цей лот уже купили" : code ?? e.message);
+      if (code === "not_enough") short(lack.currency, lack.what, lack.price);
+      else setError(code === "already_gone" ? "Цей лот уже купили" : code ?? e.message);
       if (code === "already_gone") load();
     } finally {
       setBusy(false);
@@ -62,7 +74,7 @@ export function PlantMarket({ ctx }) {
       <div className="pm-saplings">
         {saplings.map((item) => (
           <button key={item.code} className="pm-sapling" disabled={busy}
-                  onClick={() => buy(() => api.post("/shop/buy", { code: item.code }), item.currency === "beans" ? "Не вистачає зерен" : "Не вистачає монет")}>
+                  onClick={() => buy(() => api.post("/shop/buy", { code: item.code }), { currency: item.currency, what: "Саджанець", price: item.price })}>
             <img src="/assets/ui/sprout.png" alt="" />
             <b>Саджанець</b>
             <span>
@@ -103,7 +115,7 @@ export function PlantMarket({ ctx }) {
                 {fmt(lot.price)}
               </span>
               <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy}
-                      onClick={() => buy(() => api.post(`/market/listings/${lot.id}/buy`), lot.currency === "beans" ? "Не вистачає зерен" : "Не вистачає монет")}>
+                      onClick={() => buy(() => api.post(`/market/listings/${lot.id}/buy`), { currency: lot.currency, what: "Кавенятко", price: lot.price })}>
                 Купити
               </button>
             </div>

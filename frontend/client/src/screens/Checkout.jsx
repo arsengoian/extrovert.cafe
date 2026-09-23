@@ -8,6 +8,7 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api.js";
+import { NotEnoughBeans } from "../ui/NotEnough.jsx";
 
 const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -84,8 +85,14 @@ export function Checkout({ item, ctx }) {
       ctx.replace("orders");
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "not_enough" ? `Не вистачає зерен: треба ${e.body.need}`
-        : code === "bad_phone" ? "Телефон у форматі +380 XX XXX XX XX"
+      if (code === "not_enough") {
+        ctx.notify(<NotEnoughBeans what={product?.title ?? "Замовлення"} price={e.body.need}
+                                   have={ctx.me?.balances?.beans ?? 0} ctx={ctx}
+                                   onClose={() => ctx.notify(null)} />);
+        setBusy(false);
+        return;
+      }
+      setError(code === "bad_phone" ? "Телефон у форматі +380 XX XXX XX XX"
         : code === "bad_name" ? "Вкажи імʼя й прізвище"
         : code ?? e.message);
     } finally {

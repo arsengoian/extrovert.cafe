@@ -48,9 +48,15 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
       .catch(() => {});
   }, [me, bonusToken]);
 
+  // rev зростає на кожному оновленні «мене». Екрани, що тримають власні
+  // дані (покупки, склад, лоти), інакше лишаються зі знімком на момент
+  // відкриття: забрав бонус — баланс у шапці змінився, а «Покупки» ще
+  // порожні, бо їх ніхто не перепитував.
+  const [rev, setRev] = useState(0);
   const refreshMe = useCallback(async () => {
     const data = await api.get("/me");
     setMe(data);
+    setRev((n) => n + 1);
     return data;
   }, []);
 
@@ -155,8 +161,8 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // «Підтримка» звідусіль веде в Telegram-бот, а не на екран застосунку.
   const support = useCallback(() => openSupport(setNotice), []);
   const ctx = useMemo(
-    () => ({ me, refreshMe, push, pop, replace, openTab, tab, notify: setNotice, support }),
-    [me, refreshMe, push, pop, replace, openTab, tab, support]
+    () => ({ me, rev, refreshMe, push, pop, replace, openTab, tab, notify: setNotice, support }),
+    [me, rev, refreshMe, push, pop, replace, openTab, tab, support]
   );
 
   if (booting) return <div className="app" />;

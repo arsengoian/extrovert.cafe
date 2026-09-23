@@ -25,7 +25,9 @@ export function History({ ctx }) {
   useEffect(() => {
     api.get("/me/history").then(setData).catch(() => setData({ receipts: [], totals: { drinks: 0, coins: 0 } }));
     api.get("/quiz/drink").then((r) => setQuiz({ credits: r.credits ?? 0, reward: r.reward ?? 40 })).catch(() => {});
-  }, []);
+    // ctx.rev — щоб щойно забраний бонус з'явився тут одразу, без
+    // перемикання вкладок.
+  }, [ctx.rev]);
 
   if (!data) return <div className="stage-pad"><div className="skeleton" /></div>;
 

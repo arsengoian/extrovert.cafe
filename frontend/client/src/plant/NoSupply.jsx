@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api.js";
+import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { useStageBottom } from "../ui/Popup.jsx";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
@@ -39,7 +40,15 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
       await ctx.refreshMe();
       onBought();
     } catch (e) {
-      setError(e.body?.error === "not_enough" ? "Не вистачає монет на пачку" : e.body?.error ?? e.message);
+      if (e.body?.error === "not_enough") {
+        // Замість рядка «не вистачає» — той самий попап зі способами
+        // дібрати монети, що й у крамниці.
+        onClose();
+        ctx.notify(<NotEnoughCoins what={`Пачка ${k.of}`} price={pack.price} have={balance} ctx={ctx}
+                                   onClose={() => ctx.notify(null)} />);
+        return;
+      }
+      setError(e.body?.error ?? e.message);
     } finally {
       setBusy(false);
     }

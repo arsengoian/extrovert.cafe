@@ -1,4 +1,5 @@
-// «Попап · не вистачає монет»: скільки бракує й чим закрити нестачу —
+// «Попап · не вистачає монет» і його близнюк для зерен: скільки бракує й
+// чим закрити нестачу —
 // набір монет, кава на точці, опитування, обмін зерен, продаж на P2P.
 // Недоступний спосіб не ховаємо, а приглушуємо з поясненням: гравець
 // бачить, що такий шлях існує.
@@ -94,6 +95,33 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                pill="Склад" onClick={go(() => ctx.openTab("stock"))} />
         </div>
       )}
+
+      <div className="short-foot"><Gold /> в <Bean /> не обмінюються.</div>
+    </ConfirmSheet>
+  );
+}
+
+// Те саме для зерен. Способів тут менше, бо зерна не продаються за гривні
+// й не обмінюються з монет: єдине джерело — подарований кавенятку повний
+// комплект одягу (economy §3.4), а одяг до нього беруть зі скриньок, ринку
+// й крамниці.
+export function NotEnoughBeans({ what, price, have, ctx, onClose }) {
+  const go = (fn) => () => { onClose(); fn(); };
+  return (
+    <ConfirmSheet onCancel={onClose} closable gap={12}>
+      <div className="short-title">Бракує {fmt(price - have)} <Bean w={19} h={21} /></div>
+      <div className="short-note">{what} коштує {fmt(price)} <Bean />, у тебе {fmt(have)}.</div>
+
+      <div className="earn-list">
+        <Way accent primary icon={<img src="/assets/ui/bean.png" alt="" style={{ width: 26, height: 29 }} />}
+             title="Подарувати комплект кавенятку"
+             sub="повний комплект одягу дає зерна — тим більше, чим вища рідкість"
+             pill="Гардероб" onClick={go(() => ctx.openTab("plant"))} />
+        <Way icon={<img src="/assets/ui/cowboy_body.png" alt="" style={{ width: 27, height: 28 }} />}
+             title="Добрати одяг у комплект"
+             sub="скриньки, ринок і крамниця — речі для комплектів"
+             pill="Магазин" onClick={go(() => ctx.openTab("shop"))} />
+      </div>
 
       <div className="short-foot"><Gold /> в <Bean /> не обмінюються.</div>
     </ConfirmSheet>
