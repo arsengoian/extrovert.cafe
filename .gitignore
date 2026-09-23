@@ -24,3 +24,7 @@ raspberry/kiosk/.deploy/
 # Секрети для act: приватний ключ від сервера й токен реєстру.
 # Робиться з локального .env командою `make act-secrets`.
 .secrets
+
+# Наші внутрішні файли
+fixes.md
+questions.md
