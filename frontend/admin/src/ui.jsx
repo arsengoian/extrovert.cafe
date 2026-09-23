@@ -21,6 +21,27 @@ export const fmt = {
   },
 };
 
+// Метрики телеметрії приходять у jsonb і відрізняються між джерелами:
+// малина шле одне, автомат шле щось своє, чого ми ще не бачили. Показуємо
+// те, що прийшло, а знайомі ключі підписуємо людською мовою. Словник тут,
+// а не на екрані точки, бо читають його двоє: сторінка POS і рядок на
+// дашборді здоровʼя — і підпис для нового ключа має зʼявитись одразу в обох.
+export const METRIC_LABELS = {
+  cpu: "CPU, %", temp_c: "температура, °C", uptime_s: "аптайм", mem_used_mb: "памʼять, МБ",
+  ping_ms: "ping, мс", jitter_ms: "jitter, мс", loss_pct: "втрати, %",
+  down_mbit: "вниз, Мбіт", up_mbit: "вгору, Мбіт", disk_free_mb: "диск вільно, МБ",
+  hdmi: "HDMI", camera: "камера", fps: "fps", release: "реліз", kiosk_fps: "fps кіоска",
+  monitor_on: "монітор", video_ok: "відеопотік",
+};
+
+export const metricValue = (key, value) => {
+  if (key === "uptime_s") {
+    const h = Number(value) / 3600;
+    return h < 48 ? `${h.toFixed(1)} год` : `${(h / 24).toFixed(1)} діб`;
+  }
+  return typeof value === "boolean" ? (value ? "так" : "ні") : String(value);
+};
+
 export const Card = ({ title, note, children, className = "", ...rest }) => (
   <section className={`card ${className}`} {...rest}>
     {(title || note) && (

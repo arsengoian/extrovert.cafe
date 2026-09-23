@@ -6,23 +6,7 @@
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Beat, Line } from "../charts.jsx";
-import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
-
-// Метрики приходять у jsonb і можуть відрізнятися між джерелами; показуємо
-// те, що прийшло, а знайомі ключі підписуємо людською мовою.
-const LABELS = {
-  cpu: "CPU, %", temp_c: "температура, °C", uptime_s: "аптайм", mem_used_mb: "памʼять, МБ",
-  ping_ms: "ping, мс", jitter_ms: "jitter, мс", loss_pct: "втрати, %",
-  down_mbit: "вниз, Мбіт", up_mbit: "вгору, Мбіт", disk_free_mb: "диск вільно, МБ",
-  hdmi: "HDMI", camera: "камера", fps: "fps", release: "реліз", kiosk_fps: "fps кіоска",
-};
-const human = (key, value) => {
-  if (key === "uptime_s") {
-    const h = Number(value) / 3600;
-    return h < 48 ? `${h.toFixed(1)} год` : `${(h / 24).toFixed(1)} діб`;
-  }
-  return typeof value === "boolean" ? (value ? "так" : "ні") : String(value);
-};
+import { Card, Empty, Kpi, METRIC_LABELS as LABELS, Table, fmt, metricValue as human, useData } from "../ui.jsx";
 
 export function Pos({ id }) {
   const { data, error, loading } = useData(() => api.point(id), [id]);

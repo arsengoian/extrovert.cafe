@@ -91,6 +91,27 @@ export default async function routes(app) {
          from points where status = 'live' order by name`
     );
 
+    // Рядок POS має показувати не лише «озивається / мовчить», а самі
+    // числа: інтернет, залізо, кіоск і автомат окремо (docs/admin_panel.md,
+    // «телеметрія кожної POS»). Смужки overseer кажуть, коли ставало
+    // погано; ці значення кажуть, як саме зараз — без переходу на сторінку
+    // точки. Беремо останню пробу кожного джерела, історія лишається там.
+    const telemetry = points.length
+      ? await many(
+          `select distinct on (point_id, source) point_id, source, measured_at, metrics
+             from device_telemetry
+            where point_id = any($1::text[])
+              and measured_at > now() - interval '2 days'
+            order by point_id, source, measured_at desc`,
+          [points.map((p) => p.id)]
+        )
+      : [];
+    const bySource = new Map();
+    for (const t of telemetry) {
+      if (!bySource.has(t.point_id)) bySource.set(t.point_id, {});
+      bySource.get(t.point_id)[t.source] = { measured_at: t.measured_at, metrics: t.metrics ?? {} };
+    }
+
     const items = TARGETS.map(item);
     const score = (group) => {
       const list = items.filter((i) => i.group === group);
@@ -121,6 +142,7 @@ export default async function routes(app) {
           history: series(list),
           monitor: extra("monitor"),
           video: extra("video"),
+          telemetry: bySource.get(p.id) ?? {},
         };
       }),
     };
