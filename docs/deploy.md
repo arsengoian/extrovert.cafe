@@ -6,8 +6,7 @@
 
 | Що | Куди | Чим |
 |---|---|---|
-| застосунок гравця (`client`) | Cloudflare Workers, статика + SPA-фолбек | `bun run deploy:client` |
-| переадресація з QR-наклейки (`qr`) | Cloudflare Workers, лише 302 | `make deploy-qr` (§1) |
+| фронтенди (`client`, `admin`, `qr`, `redirect`) | Cloudflare Workers | GitHub Actions, робота `frontends` (§1) |
 | DNS, бакети R2, домени воркерів | Cloudflare | terraform, той самий стан, що й дроплет (§2.1–2.2) |
 | бекенд (`api`, `ws`, `checkbox`, `scheduler`, `overseer`) | дроплет, docker compose | розділ 2 |
 | меню точок | публічний бакет R2 | котить `scheduler` за деплойментом з адмінки (`services.md` §4) |
@@ -15,15 +14,45 @@
 
 ---
 
-## 1. Застосунок гравця → Cloudflare Workers
+## 1. Фронтенди → Cloudflare Workers
+
+Чотири воркери: застосунок гравця (`client`), адмінка (`admin`),
+переадресація з QR-наклейки (`qr`) і короткі посилання (`redirect`).
+
+**Звичайний шлях — CI** (23.09.2026, робота `frontends` у
+`.github/workflows/deploy.yml`). До того їх котили руками, і того ж дня
+це вкотре закінчилось тим, що бекенд у проді новий, а адмінка стара.
+Робота йде **після** `deploy` бекенда: фронтенд часто їде по нові роути
+api, і якщо бекенд не викотився, старий фронтенд кращий за новий зі
+скаргами.
+
+**Котиться лише те, що змінилось.** Кожен `wrangler deploy` створює нову
+версію воркера, тож без перевірки кожен коміт у бекенд плодив би їх у всіх
+чотирьох. Скрипт рахує хеш джерел застосунку (плюс кореневі
+`package.json` і `bun.lock`: версія vite чи react міняє бандл так само,
+як наш код) і викочує з тегом версії `src-<хеш>`. Наступний прогін питає
+`wrangler deployments status`, який тег зараз живий, і мовчки виходить,
+якщо той самий. Джерело правди — сам Cloudflare, а не пам'ять CI: так само
+образи в реєстрі несуть `src-<хеш>`.
+
+Для роботи потрібні два секрети GitHub: `CLOUDFLARE_API_TOKEN` і
+`CLOUDFLARE_ACCOUNT_ID` (без них крок чесно каже, що не котить, і не
+падає). `make act-secrets` кладе їх у `.secrets` з локального `.env` —
+тоді той самий шлях проганяється локально через `make act-frontends`.
+
+Руками — коли треба повз CI:
 
 ```bash
-bun run deploy:client:dry     # зібрати й перевірити, нічого не викочуючи
-bun run deploy:client         # зібрати, перевірити, викотити
+make deploy-client-dry   # зібрати й перевірити, нічого не викочуючи
+make deploy-client       # зібрати, перевірити, викотити
+make deploy-admin        # те саме для адмінки, deploy-admin-dry — суха
+make deploy-qr           # воркер QR-наклейки (deploy-qr-dry — суха)
+make deploy-redirect     # короткі посилання (deploy-redirect-dry — суха)
 ```
 
-Скрипт (`scripts/deploy-client.mjs`) робить те, чого не робить сам
-`wrangler`:
+Усі п'ять цілей — один скрипт, `scripts/deploy-front.mjs <застосунок>`.
+Раніше перевірки нижче робив лише клієнт, а адмінка з тим самим `VITE_API`
+каталась повз них. Скрипт робить те, чого не робить сам `wrangler`:
 
 1. читає `frontend/client/.env.production` і вимагає `VITE_API` на `https`, а `VITE_WS` — на `wss`;
 2. збирає Vite;
@@ -34,6 +63,9 @@ bun run deploy:client         # зібрати, перевірити, викот
 4. каже, чи є маршрут у `wrangler.toml` — тобто чи перехопить цей деплой
    продовий домен.
 
+Пункти 1–3 стосуються `client` і `admin`: `qr` і `redirect` — це один
+файл воркера без збірки, і зашивати в них нема чого.
+
 **Домени воркерів привʼязує terraform** (22.09.2026,
 `cloudflare_workers_custom_domain` в `infra/terraform/cloudflare.tf`):
 `extrovert.cafe`, `admin.`, `qr.`, `r.`. wrangler лише заливає код, тож
@@ -41,12 +73,13 @@ bun run deploy:client         # зібрати, перевірити, викот
 ефект випадкового деплою. У `wrangler.toml` `routes` навмисно закоментовані.
 Рядок стоїть до першої таблиці (`[assets]`, `[vars]`): після заголовка
 таблиці TOML поклав би його в неї (`assets.routes`), і маршрут мовчки не
-застосувався б. `deploy-client` розбирає `wrangler.toml` і зупиняється,
-якщо бачить таке.
+застосувався б. Скрипт розбирає `wrangler.toml` і зупиняється, якщо бачить
+таке.
 
-Цілі `make deploy-admin`, `deploy-qr`, `deploy-redirect` запускають bun із
-`--env-file=.env`: з `--filter` скрипт стартує в теці пакета, де `.env`
-немає, і wrangler без `CLOUDFLARE_API_TOKEN` просить логін у браузері.
+Локально скрипт запускають із кореня (`bun scripts/deploy-front.mjs …`) —
+звідти bun сам підхоплює `.env`, звідки wrangler бере
+`CLOUDFLARE_API_TOKEN`. Із `--filter` він стартував би в теці пакета, де
+`.env` немає, і wrangler просив би логін у браузері.
 
 Що ще лишається:
 
@@ -54,18 +87,13 @@ bun run deploy:client         # зібрати, перевірити, викот
   стукає в api й веде гостя далі). Якщо захочемо справжній 302 без JS —
   окремий Worker на цей маршрут;
 
-### Адмінка → ті самі Workers
-
-```bash
-make deploy-admin-dry
-make deploy-admin
-```
+### Адмінка
 
 Адмінка (`frontend/admin/`) — така сама статика, як застосунок гравця: свого сервіса
 в бекенді вона не має й не потребує, бо все, що робить, — показує дані з
 api (`/admin/overview`). Домен — `admin.extrovert.cafe`, його привʼязує
-terraform; у `api` цей origin уже дозволений CORS-ом. `deploy` адмінки
-спершу збирає Vite — раніше він заливав той `dist`, що лежав.
+terraform; у `api` цей origin уже дозволений CORS-ом. Деплой спершу збирає
+Vite — раніше він заливав той `dist`, що лежав.
 
 Справжнього входу ще немає: поки що працює девелоперський (`POST
 /admin/dev-login`, вимкнений поза local), а в проді сторінка чесно каже, що
@@ -73,11 +101,6 @@ terraform; у `api` цей origin уже дозволений CORS-ом. `deploy
 напівзробленим входом.
 
 ### QR-наклейка → воркер `qr`
-
-```bash
-make deploy-qr-dry   # зібрати й перевірити, нічого не викочуючи
-make deploy-qr       # викотити на qr.extrovert.cafe
-```
 
 `frontend/qr` — воркер без статики: будь-який запит на `qr.extrovert.cafe`
 отримує 302 на `extrovert.cafe/` із тим самим query (`?p=1` з наклейки).

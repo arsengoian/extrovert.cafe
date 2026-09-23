@@ -78,6 +78,10 @@ const secrets = {
   R2_ENDPOINT: prod.R2_ENDPOINT || env.R2_ENDPOINT || "",
   R2_ACCESS_KEY_ID: prod.R2_ACCESS_KEY_ID || env.R2_ACCESS_KEY_ID || "",
   R2_SECRET_ACCESS_KEY: prod.R2_SECRET_ACCESS_KEY || env.R2_SECRET_ACCESS_KEY || "",
+  // Фронтенди (робота frontends): wrangler без токена просить логін у
+  // браузері, а в CI браузера немає.
+  CLOUDFLARE_API_TOKEN: env.CLOUDFLARE_API_TOKEN || "",
+  CLOUDFLARE_ACCOUNT_ID: env.CLOUDFLARE_ACCOUNT_ID || "",
 };
 
 // Багаторядкове значення в подвійних лапках: саме так його читає парсер act.
@@ -99,6 +103,9 @@ if (!secrets.GHCR_TOKEN) {
 }
 if (!secrets.R2_ACCESS_KEY_ID) {
   console.log("  Ключів R2 немає — робота kiosk-release збере реліз, але не залиє його.");
+}
+if (!secrets.CLOUDFLARE_API_TOKEN) {
+  console.log("  CLOUDFLARE_API_TOKEN порожній — робота frontends нічого не викотить.");
 }
 if (!secrets.OPENAI_VECTOR_STORE) {
   console.log("  OPENAI_VECTOR_STORE порожній — робота knowledge лише перевірить базу, у сховище нічого не піде.");

@@ -294,6 +294,48 @@ jobs:
           ssh -i ~/.ssh/id_deploy -p "$PORT" -o StrictHostKeyChecking=accept-new \
             "$USER_@$HOST" 'bash -s' -- "${{ github.sha }}" < docker/rollout.sh
 
+  # Фронтенди — чотири воркери на Cloudflare: застосунок гравця, адмінка,
+  # переадресація з QR-наклейки й короткі посилання. Раніше їх котили руками
+  # (make deploy-client / deploy-admin / …), і 23.09.2026 це вкотре
+  # закінчилось тим, що бекенд у проді новий, а адмінка — стара.
+  #
+  # Котимо лише змінені: wrangler на кожен deploy створює нову версію
+  # воркера, тож без перевірки кожен коміт у бекенд плодив би їх у всіх
+  # чотирьох. Що саме викочено, питаємо в самого Cloudflare — версія несе
+  # тег src-<хеш джерел>, так само як образ у реєстрі.
+  #
+  # Після deploy навмисно: фронтенд часто їде по нові роути api, і якщо
+  # бекенд не викотився, старий фронтенд кращий за новий зі скаргами.
+  frontends:
+    needs: [lint, deploy]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [client, admin, qr, redirect]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - run: bun install --frozen-lockfile
+
+      - name: Викотити ${{ matrix.app }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # У списку версій воркера буде видно, з якого коміту зібрано.
+          DEPLOY_MESSAGE: ${{ github.sha }}
+        run: |
+          # Як і з GHCR_TOKEN: контекст secrets в умові кроку недоступний.
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "CLOUDFLARE_API_TOKEN не заданий — фронтенди не котимо"
+            exit 0
+          fi
+          bun scripts/deploy-front.mjs ${{ matrix.app }} --if-changed
+
   # Реєстр не безрозмірний: у безкоштовному тарифі приватні пакети мають
   # 500 МБ на все (docs/deploy.md §2.3). Шари базового образу між версіями
   # спільні, але старі версії однаково варто прибирати — інакше одного дня

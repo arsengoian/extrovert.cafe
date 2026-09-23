@@ -31,8 +31,9 @@
     "kb:store": "bun scripts/kb.mjs store",
     "kb:push": "bun scripts/kb.mjs push",
     "kb:ask": "bun scripts/kb.mjs ask",
-    "deploy:client": "bun scripts/deploy-client.mjs",
-    "deploy:client:dry": "bun scripts/deploy-client.mjs --dry",
+    "deploy:front": "bun scripts/deploy-front.mjs",
+    "deploy:client": "bun scripts/deploy-front.mjs client",
+    "deploy:client:dry": "bun scripts/deploy-front.mjs client --dry",
     "smoke": "bun scripts/smoke.mjs",
     "keys:jwt": "bun scripts/keys.mjs jwt",
     "keys:ssh": "bun scripts/keys.mjs ssh"
