@@ -34,11 +34,15 @@ const FRONTENDS = [
 ];
 
 async function probe(url) {
+  const started = performance.now();
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS), redirect: "manual" });
+    // Затримка — лише для відповідей, що дійшли: час до помилки чи таймауту
+    // нічого не каже про швидкість сервіса, зате псує середнє.
+    const ms = Math.round(performance.now() - started);
     // 3xx для фронтендів — нормальна відповідь (воркер qr тільки так і
     // відповідає), тому «живий» — це будь-яка відповідь, крім 5xx.
-    return res.status < 500 ? { ok: true } : { ok: false, detail: `HTTP ${res.status}` };
+    return res.status < 500 ? { ok: true, ms } : { ok: false, ms, detail: `HTTP ${res.status}` };
   } catch (e) {
     return { ok: false, detail: e.name === "TimeoutError" ? `не відповів за ${TIMEOUT_MS / 1000} с` : e.message.slice(0, 120) };
   }
@@ -99,7 +103,7 @@ export async function sampleHealth({ pool, redis, log }) {
 
   for (const [name, url] of [...SERVICES, ...FRONTENDS]) {
     const r = await probe(url);
-    targets.push([name, r.ok, r.detail ?? null]);
+    targets.push([name, r.ok, r.detail ?? null, r.ms ?? null]);
   }
 
   // Scheduler і overseer портів не мають: живий той, хто нещодавно лишив
@@ -136,16 +140,19 @@ export async function sampleHealth({ pool, redis, log }) {
   }
 
   // Відро — півгодини: 00:00–00:29 і 00:30–00:59.
-  const values = targets.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`).join(", ");
-  const params = targets.flatMap(([target, ok, detail]) => [target, ok, detail]);
+  const values = targets.map((_, i) => `(${i * 4 + 1}, ${i * 4 + 2}, ${i * 4 + 3}, ${i * 4 + 4})`).join(", ");
+  const params = targets.flatMap(([target, ok, detail, ms = null]) => [target, ok, detail, ms]);
   await pool.query(
-    `insert into health_samples (target, bucket_start, ok, detail)
+    `insert into health_samples (target, bucket_start, ok, detail, ms_total, ms_count)
      select v.target, date_trunc('hour', now()) + make_interval(mins => (extract(minute from now())::int / 30) * 30),
-            v.ok::boolean, v.detail
-       from (values ${values}) as v(target, ok, detail)
+            v.ok::boolean, v.detail,
+            coalesce(v.ms::bigint, 0), case when v.ms is null then 0 else 1 end
+       from (values ${values}) as v(target, ok, detail, ms)
      on conflict (target, bucket_start) do update
         set ok = health_samples.ok and excluded.ok,
             detail = coalesce(case when excluded.ok then null else excluded.detail end, health_samples.detail),
+            ms_total = health_samples.ms_total + excluded.ms_total,
+            ms_count = health_samples.ms_count + excluded.ms_count,
             samples = health_samples.samples + 1`,
     params
   );

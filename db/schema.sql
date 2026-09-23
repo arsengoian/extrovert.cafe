@@ -305,7 +305,9 @@ CREATE TABLE public.health_samples (
     bucket_start timestamp with time zone NOT NULL,
     ok boolean NOT NULL,
     detail text,
-    samples integer DEFAULT 1 NOT NULL
+    samples integer DEFAULT 1 NOT NULL,
+    ms_total bigint DEFAULT 0 NOT NULL,
+    ms_count integer DEFAULT 0 NOT NULL
 );
 
 
@@ -3355,4 +3357,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260922100000'),
     ('20260922110000'),
     ('20260922120000'),
-    ('20260923080000');
+    ('20260923080000'),
+    ('20260923100000');

@@ -59,7 +59,7 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
 
     const rows = await many(
-      `select target, bucket_start, ok, detail from health_samples
+      `select target, bucket_start, ok, detail, ms_total, ms_count from health_samples
         where bucket_start > now() - interval '7 days' order by bucket_start`
     );
     const byTarget = new Map();
@@ -71,11 +71,15 @@ export default async function routes(app) {
     const item = ([target, group, title, note]) => {
       const list = byTarget.get(target) ?? [];
       const last = list.at(-1);
+      // Затримка — середнє за останнє відро, де вона взагалі є: у проб
+      // без HTTP (heartbeat, черга outbox) її не буває.
+      const timed = [...list].reverse().find((r) => r.ms_count > 0);
       return {
         target, group, title, note,
         ok: last ? last.ok : null,
         detail: last?.detail ?? null,
         at: last?.bucket_start ?? null,
+        ms: timed ? Math.round(Number(timed.ms_total) / timed.ms_count) : null,
         history: series(list),
       };
     };

@@ -51,19 +51,19 @@ export function Health() {
       <div className="wrap-cols">
         <Card title="Мікросервіси" note="останні 7 днів">
           {data.services.map((s) => (
-            <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} value={s.detail ?? s.note} />
+            <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
           ))}
         </Card>
 
         <div className="stack">
           <Card title="Фронтенди" note="7 днів · відповідь">
             {data.frontends.map((s) => (
-              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} value={s.detail ?? s.note} />
+              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
             ))}
           </Card>
           <Card title="Компоненти" note="7 днів">
             {data.components.map((s) => (
-              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} value={s.detail ?? s.note} />
+              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
             ))}
           </Card>
         </div>

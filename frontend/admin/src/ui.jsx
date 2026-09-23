@@ -63,10 +63,13 @@ export function Beat({ history, title }) {
   );
 }
 
-export const BeatRow = ({ ok, name, note, value, history }) => (
+// ms — середня затримка проби за останнє відро; у компонентів без HTTP
+// (черга outbox, heartbeat) її немає, і тоді колонка просто порожня.
+export const BeatRow = ({ ok, name, note, value, history, ms = null }) => (
   <div className="beat-row">
     <span className="name"><Dot ok={ok} />{name}</span>
     <Beat history={history} title={note} />
+    {ms !== null && <span className="ms">{fmt.int(ms)} мс</span>}
     <span className="value">{value}</span>
   </div>
 );
