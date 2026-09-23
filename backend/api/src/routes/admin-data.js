@@ -9,6 +9,21 @@
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
+import { redisClient } from "@extrovert/lib/redis.js";
+
+const redis = redisClient();
+// Дашборд за замовчуванням — це десяток групувань по всіх чеках за місяць.
+// Рахувати їх на кожне відкриття екрана нема сенсу: дані добові, і в макеті
+// так і написано — «кеш оновлено о 04:00». Тому типовий проміжок лежить у
+// Redis до четвертої ранку, а свій проміжок із фільтра рахується наживо.
+const CACHE_KEY = "stats:default";
+const nextFourAm = () => {
+  const now = new Date();
+  const four = new Date(now);
+  four.setHours(4, 0, 0, 0);
+  if (four <= now) four.setDate(four.getDate() + 1);
+  return Math.ceil((four - now) / 1000);
+};
 
 // Проміжок: from/to з екрана або останні 30 діб.
 function range(query) {
@@ -46,6 +61,12 @@ export default async function routes(app) {
   app.get("/admin/stats", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const { from, to } = range(req.query);
+    const isDefault = !req.query.from && !req.query.to;
+
+    if (isDefault) {
+      const cached = await redis.get(CACHE_KEY).catch(() => null);
+      if (cached) return JSON.parse(cached);
+    }
 
     const revenue = await many(
       `select date_trunc('day', r.fiscal_date) as day, r.point_id, p.name as point_name,
@@ -97,6 +118,35 @@ export default async function routes(app) {
       [from, to]
     );
 
+    // Дохід за годиною дня й за днем тижня — два зрізи того самого чека
+    // (кадри «Дохід за годиною дня» / «Дохід за днями тижня»). Рахуємо в
+    // київському часі: «о восьмій ранку» має означати восьму в залі, а не
+    // в UTC.
+    const byHour = await many(
+      `select extract(hour from r.fiscal_date at time zone 'Europe/Kyiv')::int as hour,
+              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
+         from receipts r where r.fiscal_date between $1 and $2
+        group by 1 order by 1`,
+      [from, to]
+    );
+    const byWeekday = await many(
+      `select extract(isodow from r.fiscal_date at time zone 'Europe/Kyiv')::int as weekday,
+              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
+         from receipts r where r.fiscal_date between $1 and $2
+        group by 1 order by 1`,
+      [from, to]
+    );
+
+    // Взаємодія з бонусами: забрали чи лежить. Третього стану немає —
+    // токен не згоряє (23.09.2026), тож «протухлих» більше не буває.
+    const bonusSplit = await one(
+      `select count(*) filter (where b.status = 'redeemed')::int as redeemed,
+              count(*) filter (where b.status <> 'redeemed')::int as waiting
+         from bonus_grants b join receipts r on r.id = b.receipt_id
+        where r.fiscal_date between $1 and $2`,
+      [from, to]
+    );
+
     const totals = await one(
       `select (select coalesce(sum(total_sum), 0)::float from receipts where fiscal_date between $1 and $2) as revenue,
               (select count(*)::int from receipts where fiscal_date between $1 and $2) as receipts,
@@ -107,7 +157,13 @@ export default async function routes(app) {
       [from, to]
     );
 
-    return { from, to, totals, revenue, bonuses, coins, market, events };
+    const payload = {
+      from, to, totals, revenue, bonuses, coins, market, events,
+      by_hour: byHour, by_weekday: byWeekday, bonus_split: bonusSplit,
+      cached_at: new Date().toISOString(),
+    };
+    if (isDefault) await redis.set(CACHE_KEY, JSON.stringify(payload), "EX", nextFourAm()).catch(() => {});
+    return payload;
   });
 
   // ── Дашборд опитувань ───────────────────────────────────────────────
