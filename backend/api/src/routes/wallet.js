@@ -7,6 +7,7 @@ import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { notifyPlant } from "../notify.js";
+import { enqueue } from "@extrovert/lib/outbox.js";
 
 // У бонусі лежать коди предметів; плитці потрібні назва, комплект,
 // рідкість і спрайт — «Капелюх / «Ковбой»» у рамці кольору тіру.
@@ -86,15 +87,51 @@ export default async function routes(app) {
   // тому, хто його має, показати можна; хто забрав і коли — ні.
   app.get("/bonus/:token/preview", async (req) => {
     const grant = await one(
-      `select coins_yellow, items, status from bonus_grants where claim_token = $1`,
+      `select coins_yellow, items, status, claimed_at from bonus_grants where claim_token = $1`,
       [String(req.params.token)]
     );
     if (!grant) fail(404, "no_such_bonus");
     return {
       coins: grant.coins_yellow,
       items: await itemsOf(grant.items),
-      available: grant.status !== "redeemed",
+      // Забраний телефоном бонус більше не показуємо нікому — навіть тому,
+      // хто відкриє те саме посилання в іншій вкладці: на екрані точки його
+      // вже немає, і другий «+26 монет» був би обіцянкою нізвідки
+      // (рішення власника 23.09.2026).
+      available: grant.status !== "redeemed" && !grant.claimed_at,
     };
+  });
+
+  // Телефон підтверджує, що бонус у нього: саме по цьому кіоск прибирає QR
+  // з екрана й показує плашку «Бонус отримано». Окремий запит, а не сам
+  // перегляд: так ми знаємо, що застосунок його справді отримав, а не що
+  // хтось смикнув прев'ю.
+  //
+  // Токена досить і без входу — він і є секретом, і саме з ним людина
+  // стоїть біля автомата.
+  app.post("/bonus/:token/seen", async (req) => {
+    return tx(async (client) => {
+      const { rows } = await client.query(
+        "select id, point_id, coins_yellow, claimed_at from bonus_grants where claim_token = $1 for update",
+        [String(req.params.token)]
+      );
+      const grant = rows[0];
+      if (!grant) fail(404, "no_such_bonus");
+      if (grant.claimed_at) return { ok: true, first: false };
+
+      await client.query(
+        `update bonus_grants
+            set claimed_at = now(),
+                status = case when status = 'pending' then 'claimed' else status end
+          where id = $1`,
+        [grant.id]
+      );
+      await enqueue(client, `point:${grant.point_id}`, "bonus_taken", {
+        claim_token: String(req.params.token),
+        coins: grant.coins_yellow,
+      });
+      return { ok: true, first: true };
+    });
   });
 
   app.get("/me/bonus/:token", async (req, reply) => {

@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 9b07276</p>
+  <p class="eyebrow">extrovert.cafe · джерело 84cf88c</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -709,19 +709,24 @@ Checkbox ─ опитування раз на хв ───┤
 <td>перечитує контент акції й спрайти, які він використовує</td>
 </tr>
 <tr>
-<td><code>sale</code></td>
-<td>показує QR бонусу до <code>expires_at</code></td>
+<td><code>bonus_ready</code></td>
+<td>показує попап із QR і лишає рядок у панелі до <code>show_until</code></td>
 </tr>
 <tr>
-<td><code>bonus.claimed</code></td>
-<td>прибирає QR: бонус уже забрали на телефон</td>
-</tr>
-<tr>
-<td><code>bonus.expired</code></td>
-<td>прибирає QR; за <code>expires_at</code> кіоск прибирає його й сам, якщо подія загубилась</td>
+<td><code>bonus_taken</code></td>
+<td>прибирає рядок і показує плашку «Бонус отримано» на пару секунд</td>
 </tr>
 </tbody></table>
 </div>
+<p>Прострочений бонус кіоск прибирає сам: рядок живе <code>BONUS_TTL_S</code> від появи,
+окремої події на це не треба.</p>
+<p><strong><code>bonus_taken</code> шле застосунок, а не каса</strong> (23.09.2026): телефон, який
+отримав бонус, стукає <code>POST /api/v1/bonus/&lt;токен&gt;/seen</code>, і api кладе подію
+в канал точки. Окремий запит, а не сам перегляд прев&#39;ю: так подія означає
+«застосунок справді має бонус», а не «хтось відкрив посилання». Той самий
+запит ставить <code>bonus_grants.claimed_at</code>, після чого прев&#39;ю відповідає
+<code>available: false</code> — друга вкладка з тим самим посиланням уже нічого не
+покаже, бо й на екрані точки бонуса вже немає.</p>
 <p>Кожна подія несе свій <code>outbox.id</code>, і кіоск відкидає повтор. Pub/sub нічого
 не зберігає, тож <strong>після кожного (пере)підключення кіоск питає знімок</strong>
 (<code>GET /api/v1/points/&lt;point&gt;/state</code>: версія меню й активні QR) і лише потім
@@ -2635,6 +2640,10 @@ Cloudflare: куди веде надрукована адреса, з репоз
 </ul>
 <p>⚠️ Сайт <code>p</code> поки не забирає, і <code>POST /api/v1/me/qr</code> немає: зараз параметр
 просто ігнорується, екран бонусу відкривається як і без нього.</p>
+<p><strong>Адресу застосунок чистить одразу</strong> (23.09.2026): токен переїжджає в памʼять
+сторінки, а в рядку лишається <code>extrovert.cafe/</code>. Перезавантаження після
+сканування відкриває звичайний застосунок, а не спробу забрати бонус удруге;
+куди повернутись після входу поштою, клієнт памʼятає сам (<code>next=/b/&lt;токен&gt;</code>).</p>
 <h2 id="urls-посилання-для-входу-login-токен"><a class="anchor" href="#urls-посилання-для-входу-login-токен" aria-hidden="true">#</a>Посилання для входу — <code>/login#&lt;токен&gt;</code></h2>
 <pre><code>https://extrovert.cafe/login#Xy7kQ2mP9vR4tL8wN3bF…
 </code></pre>
@@ -10941,7 +10950,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 9b07276 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 84cf88c — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -53,6 +53,9 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
       .then((b) => {
         if (!b.available) return;
         setPendingBonus({ coins: b.coins, item: b.items?.[0] ?? null });
+        // Бонус у телефоні — кіоску час прибрати QR з екрана. Кажемо про це
+        // окремим запитом і саме тут: вміст ми вже маємо на руках.
+        api.post(`/bonus/${encodeURIComponent(bonusToken)}/seen`, {}).catch(() => {});
       })
       .catch(() => {});
   }, [me, bonusToken]);

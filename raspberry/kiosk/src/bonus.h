@@ -35,6 +35,7 @@ typedef struct {
     char drink_name[64];
     char sprite[32];       /* ключ у assets/drinks/, може бути порожнім */
     char qr_payload[128];
+    char claim_token[64];  /* по ньому впізнаємо бонус, який забрав телефон */
     char earned_at[8];     /* "09:41" — коли нарахували, для дрібного підпису */
     int coins;
     bool secret;           /* разом із монетами випав предмет — бейдж-подарунок */
@@ -71,6 +72,12 @@ bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_
 bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
                      const char *code, const char *name, int coins,
                      const char *claim_token, int items, bonus_popup_t *out);
+
+/* Подія bonus_taken: телефон підтвердив, що бонус у нього (api:
+ * POST /bonus/<токен>/seen). Рядок із панелі прибираємо — QR на екрані
+ * точки більше нікому не потрібен. true, якщо такий рядок справді був:
+ * тоді main.c показує плашку «Бонус отримано». */
+bool bonus_mark_taken(bonus_state_t *b, const char *claim_token);
 
 /* Вміст для демо-показу попапу (POPUP=1, SIGUSR1, DESKTOP_FRAMES): той
  * самий попап, що й на справжній бонус, але без рядка в панелі — щоб

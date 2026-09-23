@@ -289,6 +289,7 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
 
     bonus_link(row->qr_payload, sizeof(row->qr_payload),
                (claim_token && claim_token[0]) ? claim_token : "");
+    snprintf(row->claim_token, sizeof(row->claim_token), "%s", claim_token ? claim_token : "");
 
     b->count++;
     fill_popup(row, out);
@@ -341,6 +342,20 @@ void bonus_demo_popup(bonus_popup_t *out) {
     out->coins = 100;
     out->secret = true;
     bonus_link(out->qr_payload, sizeof(out->qr_payload), "demo");
+}
+
+/* Забраний бонус не прибираємо тут своїми руками: відсуваємо час появи за
+ * межу життя рядка, і його прибере та сама компактація в bonus_update, що
+ * й прострочені. Один шлях звільнення текстур — один шанс помилитись. */
+bool bonus_mark_taken(bonus_state_t *b, const char *claim_token) {
+    if (!claim_token || !claim_token[0]) return false;
+    for (int i = 0; i < b->count; i++) {
+        if (strcmp(b->rows[i].claim_token, claim_token) != 0) continue;
+        b->rows[i].created_at -= BONUS_TTL_S + 1.0;
+        fprintf(stderr, "bonus: забрали з телефона — прибираємо рядок\n");
+        return true;
+    }
+    return false;
 }
 
 void bonus_update(bonus_state_t *b, double now, const char *assets_dir, bool bake_ok) {

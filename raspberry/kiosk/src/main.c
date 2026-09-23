@@ -291,6 +291,9 @@ int main(int argc, char **argv) {
     popup_state_t popup_state = POPUP_HIDDEN;
     double popup_t0 = 0;
     double popup_shown_at = 0;   /* коли увійшли в POPUP_SHOWN — для авто-приховування */
+    /* Скільки попап стоїть до авто-приховування: звичайний бонус — довго,
+     * плашка «Бонус отримано» — пару секунд (config.h). */
+    double popup_hold = ANIM_POPUP_HOLD_S;
 
     /* Перший рендер — синхронно, до входу в цикл: інакше перший кадр
      * малював би порожню сцену, і саме він потрапив би на fps-статистику. */
@@ -374,6 +377,10 @@ int main(int argc, char **argv) {
          * bonus_update() нижче, не залежить від popup_state. */
         bonus_popup_t bonus_pop = {0};
         bool bonus_arrived = false;
+        /* Плашка «Бонус отримано» має право перебити показаний QR-попап:
+         * саме його вона й замінює. Звичайний бонус — ні, він чекає, поки
+         * екран звільниться. */
+        bool bonus_taken = false;
 
         if (ws) {
             /* Події зі свого потоку забираємо без блокувань і без мережі —
@@ -381,6 +388,16 @@ int main(int argc, char **argv) {
             ws_event_t events[8];
             int n = ws_drain(ws, events, 8);
             for (int i = 0; i < n; i++) {
+                /* Телефон забрав бонус: рядок із панелі геть, а на екрані —
+                 * коротка плашка замість QR (config.h, ANIM_POPUP_TAKEN_HOLD_S). */
+                if (strcmp(events[i].event, "bonus_taken") == 0) {
+                    if (bonus_mark_taken(&bonus, events[i].claim_token)) {
+                        bonus_pop = (bonus_popup_t){ .taken = true };
+                        bonus_arrived = true;
+                        bonus_taken = true;
+                    }
+                    continue;
+                }
                 bonus_popup_t p;
                 /* Попап показуємо для останньої події пачки: якщо їх
                  * прийшло кілька підряд, миготіти трьома нема сенсу. */
@@ -404,13 +421,14 @@ int main(int argc, char **argv) {
                 popup_state = POPUP_OUT; popup_t0 = sim_t;
             }
         }
-        if ((bonus_arrived || show_demo) && popup_state == POPUP_HIDDEN) {
+        if ((bonus_arrived || show_demo) && (popup_state == POPUP_HIDDEN || bonus_taken)) {
             gl_texture_destroy(&popup_tex);
             cairo_surface_t *ps = popup_render(&popup_art, assets_dir, &bonus_pop);
             if (ps) {
                 popup_tex = gl_texture_from_cairo(ps);
                 cairo_surface_destroy(ps);
                 popup_state = POPUP_IN; popup_t0 = sim_t;
+                popup_hold = bonus_taken ? ANIM_POPUP_TAKEN_HOLD_S : ANIM_POPUP_HOLD_S;
             }
             g_popup_toggle = 0;   /* бонус має пріоритет над демо-циклом цього кадру */
         }
@@ -428,7 +446,7 @@ int main(int argc, char **argv) {
          * б SHOWN, і POPUP_HIDDEN-гвардія вище блокувала б усі наступні
          * бонуси. Демо-цикл/SIGUSR1 і далі можуть сховати ЩЕ раніше через
          * g_popup_toggle — обидва шляхи просто ведуть у POPUP_OUT. */
-        if (popup_state == POPUP_SHOWN && sim_t - popup_shown_at >= ANIM_POPUP_HOLD_S) {
+        if (popup_state == POPUP_SHOWN && sim_t - popup_shown_at >= popup_hold) {
             popup_state = POPUP_OUT; popup_t0 = sim_t;
         }
         if (popup_state == POPUP_OUT && sim_t - popup_t0 >= ANIM_POPUP_OUT_S) popup_state = POPUP_HIDDEN;

@@ -1,0 +1,25 @@
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="560" height="168" viewBox="0 0 560 168" fill="#F2EFE6">
+  <!-- Плашка «Бонус отримано»: показується замість QR-попапа, щойно телефон
+       підтвердив, що бонус у нього (api: POST /bonus/<токен>/seen → подія
+       bonus_taken). Тримається пару секунд і зникає — рішення власника
+       23.09.2026: QR, який уже нікому не потрібен, не має світитись на
+       екрані далі.
+
+       Панель і кольори — ті самі, що в popup.svg. y тексту — базова лінія,
+       зсунута на 0,329 кегля, як у решті шаблонів (librsvg 2.40 не вміє
+       dominant-baseline). -->
+  <defs>
+    <linearGradient id="takenRing" x1="0" y1="0.5" x2="1" y2="0.42">
+      <stop offset="0.08" stop-color="#FE810B"></stop>
+      <stop offset="0.88" stop-color="#FF2D6F"></stop>
+    </linearGradient>
+  </defs>
+
+  <rect x="2" y="2" width="556" height="164" rx="34" ry="34" fill="#0B0D10" stroke="#F2EFE6" stroke-opacity="0.12" stroke-width="1.5"></rect>
+
+  <!-- Кільце з галочкою: та сама пара кольорів, що в кільці під QR. -->
+  <circle cx="108" cy="84" r="34" fill="none" stroke="url(#takenRing)" stroke-width="4"></circle>
+  <path d="M92 85 L104 97 L126 71" fill="none" stroke="#F2EFE6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"></path>
+
+  <text x="168" y="95" font-family="Extro1000" font-size="40" fill="#F2EFE6">Бонус отримано</text>
+</svg>

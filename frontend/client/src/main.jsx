@@ -16,6 +16,12 @@ installTapFx();
 //                просто з екраном бонусу поверх.
 const repost = window.location.pathname.match(/^\/r\/([^/?#]+)/);
 const bonus = window.location.pathname.match(/^\/b\/([^/?#]+)/);
+// Токен бонусу забираємо з адреси одразу, як і токен входу нижче: далі він
+// живе в памʼяті сторінки, а перезавантаження має відкривати звичайний
+// extrovert.cafe, а не намагатись забрати бонус ще раз (рішення власника
+// 23.09.2026). Куди вертатись після входу, застосунок знає й без адреси —
+// він передає /b/<токен> у next.
+if (bonus) window.history.replaceState({}, "", "/");
 // ?pay=1 — повернення з платіжної сторінки mono. Ідентифікатор платежу
 // лежить у localStorage: в адресі його немає навмисно.
 const returningFromPayment = new URLSearchParams(window.location.search).has("pay");

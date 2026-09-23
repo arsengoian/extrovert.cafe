@@ -209,6 +209,12 @@
 #define ANIM_POPUP_HOLD_S 10.0
 #define POPUP_W 1200.0
 #define POPUP_H 888.0
+/* Плашка «Бонус отримано» (templates/popup_taken.svg): показується замість
+ * QR-попапа, щойно телефон підтвердив, що бонус у нього, і зникає за пару
+ * секунд — довше їй нема чого стояти, бонуса на екрані вже немає. */
+#define POPUP_TAKEN_W 560.0
+#define POPUP_TAKEN_H 168.0
+#define ANIM_POPUP_TAKEN_HOLD_S 2.2
 /* Змінний шар (popup_bonus.svg): viewBox "500 220 200 130" у координатах
  * попапа — плитки монет і предмета, малюються поверх основи в цій точці. */
 #define POPUP_BONUS_X 500.0

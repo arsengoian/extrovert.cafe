@@ -29,6 +29,10 @@ typedef struct {
     int coins;
     bool secret;               /* плитка «+ Секретний предмет» */
     char qr_payload[128];
+    /* Телефон уже забрав цей бонус: замість попапа з QR малюємо коротку
+     * плашку «Бонус отримано» (config.h, POPUP_TAKEN_*). Решта полів тоді
+     * не потрібна. */
+    bool taken;
 } bonus_popup_t;
 
 typedef struct {

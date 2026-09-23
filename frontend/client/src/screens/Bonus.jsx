@@ -26,6 +26,9 @@ export function BonusPopup({ token, ctx, onClose }) {
       .then((s) => {
         setState(s);
         if (s.status === "redeemed") setError(s.mine ? ERRORS.already_yours : ERRORS.already_taken);
+        // Той самий сигнал кіоску, що й на стартовому екрані: бонус у
+        // телефоні, QR на точці більше не потрібен.
+        else api.post(`/bonus/${encodeURIComponent(token)}/seen`, {}).catch(() => {});
       })
       .catch((e) => setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message));
   }, [token]);

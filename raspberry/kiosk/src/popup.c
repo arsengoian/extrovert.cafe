@@ -58,7 +58,35 @@ static cairo_surface_t *render_bonus_layer(const char *assets_dir, const bonus_p
     return s;
 }
 
+/* Плашка «Бонус отримано». Малюється на тому самому полотні POPUP_W×POPUP_H,
+ * що й звичайний попап, тільки прозорому: main.c не мусить знати про другий
+ * розмір — центрування, поява й зникання лишаються спільними. */
+static cairo_surface_t *render_taken(const char *assets_dir) {
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/templates/popup_taken.svg", assets_dir);
+    char *tpl = svgtpl_load(path);
+    if (!tpl) return NULL;
+    const char *keys[] = { "ASSETS" };
+    const char *vals[] = { assets_dir };
+    char *full = svgtpl_sub(tpl, keys, vals, 1);
+    free(tpl);
+    if (!full) return NULL;
+
+    cairo_surface_t *plate = svgtpl_render(full, (int)POPUP_TAKEN_W, (int)POPUP_TAKEN_H, assets_dir);
+    free(full);
+    if (!plate) { fprintf(stderr, "popup: плашка «отримано» не відрендерилась (%s)\n", path); return NULL; }
+
+    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)POPUP_W, (int)POPUP_H);
+    cairo_t *cr = cairo_create(s);
+    cairo_set_source_surface(cr, plate, (POPUP_W - POPUP_TAKEN_W) / 2.0, (POPUP_H - POPUP_TAKEN_H) / 2.0);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+    cairo_surface_destroy(plate);
+    return s;
+}
+
 cairo_surface_t *popup_render(popup_art_t *p, const char *assets_dir, const bonus_popup_t *b) {
+    if (b->taken) return render_taken(assets_dir);
     if (!p->base && !popup_art_init(p, assets_dir)) return NULL;
 
     cairo_surface_t *layer = render_bonus_layer(assets_dir, b);

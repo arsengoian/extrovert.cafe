@@ -421,7 +421,9 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
 
     cJSON_Delete(root);
 
-    if (strcmp(e.event, "bonus_ready") != 0) return;      /* інші події кіоску ні до чого */
+    /* Дві події з каналу точки: чек пробито (bonus_ready) і телефон забрав
+     * бонус (bonus_taken). Решта — не наша справа. */
+    if (strcmp(e.event, "bonus_ready") != 0 && strcmp(e.event, "bonus_taken") != 0) return;
     /* Доставка «принаймні раз» (backend/lib/src/outbox.js): повтор — норма, і саме
      * тому в події їде id. */
     if (e.id && already_seen(w, e.id)) {

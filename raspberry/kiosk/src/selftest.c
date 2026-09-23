@@ -173,6 +173,12 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     mark();
     cairo_surface_t *popup2_s = popup_render(&art, assets_dir, &bp);
     if (!surface_has_ink(popup2_s, "popup")) failures++;
+    /* Плашка «Бонус отримано» — третій шлях: інший шаблон і власне полотно,
+     * тож ламається окремо від двох попередніх. */
+    bonus_popup_t taken = { .taken = true };
+    mark();
+    cairo_surface_t *taken_s = popup_render(&art, assets_dir, &taken);
+    if (!surface_has_ink(taken_s, "popup: отримано")) failures++;
     popup_art_destroy(&art);
 
     mark();
@@ -204,11 +210,15 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     const char *popup_png = getenv("SELFTEST_POPUP_PNG");
     if (popup_png && popup_png[0] && popup_s && cairo_surface_status(popup_s) == CAIRO_STATUS_SUCCESS)
         cairo_surface_write_to_png(popup_s, popup_png);
+    const char *taken_png = getenv("SELFTEST_TAKEN_PNG");
+    if (taken_png && taken_png[0] && taken_s && cairo_surface_status(taken_s) == CAIRO_STATUS_SUCCESS)
+        cairo_surface_write_to_png(taken_s, taken_png);
 
     if (menu_s) cairo_surface_destroy(menu_s);
     if (ad_s) cairo_surface_destroy(ad_s);
     if (popup_s) cairo_surface_destroy(popup_s);
     if (popup2_s) cairo_surface_destroy(popup2_s);
+    if (taken_s) cairo_surface_destroy(taken_s);
     if (qr_s) cairo_surface_destroy(qr_s);
     if (banner_s) cairo_surface_destroy(banner_s);
 
