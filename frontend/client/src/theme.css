@@ -137,7 +137,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .skeleton { background: var(--panel2); border-radius: var(--radius); height: 88px; animation: pulse 1.2s ease-in-out infinite }
 @keyframes pulse { 0%, 100% { opacity: .5 } 50% { opacity: .85 } }
 
-@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important } }
+/* «Зменшити рух» гасить різке, а не все підряд (рішення власника
+   23.09.2026). Спокійні цикли — хмаринка, дрейф підказки, пульс
+   скелета — лишаються: без них екран виглядає зламаним, а закачування
+   вони не викликають. Гасимо спалахи, появу з підскоком і гойдання
+   листя: листків на кущі десятки, і разом вони дають саме ту миготливу
+   картинку, від якої це налаштування й вмикають. */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important }
+  .fx-sparks > i, .fx-pop, [data-idle] [data-sway] { animation: none !important }
+}
 
 /* Кроки-«таймлайн» і посилання-репост (екран «Репост у соцмережі») */
 .badge-coin {
