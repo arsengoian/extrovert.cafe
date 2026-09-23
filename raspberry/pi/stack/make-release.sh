@@ -54,8 +54,15 @@ mkdir -p "$STAGE/bin" "$STAGE/assets" "$STAGE/stack"
 cp -a "$BIN" "$STAGE/bin/"
 chmod +x "$STAGE/bin/kiosk"
 cp -a "$NATIVE/assets/." "$STAGE/assets/"
-cp -a "$SRC/stack/common.sh" "$SRC/stack/supervisor.sh" "$SRC/stack/updater.sh" \
-      "$SRC/stack/components.conf" "$STAGE/stack/"
+# Увесь stack/, а не перелік файлів. 23.09.2026 перелік уже відстав:
+# telemetry.sh додали в components.conf, а в архів він не потрапив — на
+# точці лишився рядок конфіга, що вказує в нікуди (супервізор чесно сказав
+# «нема виконуваного», але в journald, куди ніхто не дивився). Тепер новий
+# компонент їде сам, а лишаються поза архівом лише пакувальник і README:
+# install.sh і юніт systemd у релізі потрібні — саме з current/stack/ їх
+# радить запускати README, і саме там їх шукали 23.09.2026.
+cp -a "$SRC/stack/." "$STAGE/stack/"
+rm -f "$STAGE/stack/make-release.sh" "$STAGE/stack/README.md"
 chmod +x "$STAGE/stack/"*.sh
 
 cat > "$STAGE/release.json" <<EOF

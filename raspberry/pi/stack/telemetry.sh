@@ -36,8 +36,10 @@ cpu_percent() {
     sleep 1
     set -- $(awk '/^cpu /{print $2+$3+$4+$5+$6+$7+$8, $5}' /proc/stat)
     _t2=$1; _i2=$2
+    # Дужки навколо тернарного — обовʼязкові: інакше awk читає «> 0» як
+    # перенаправлення виводу у файл «0» і падає з Permission denied.
     awk -v t1="$_t1" -v i1="$_i1" -v t2="$_t2" -v i2="$_i2" \
-        'BEGIN { dt = t2 - t1; di = i2 - i1; printf "%.0f", dt > 0 ? (1 - di / dt) * 100 : 0 }'
+        'BEGIN { dt = t2 - t1; di = i2 - i1; printf "%.0f", (dt > 0 ? (1 - di / dt) * 100 : 0) }'
 }
 
 temp_c() {
