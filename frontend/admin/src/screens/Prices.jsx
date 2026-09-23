@@ -20,6 +20,11 @@ export function Prices() {
   const [targets, setTargets] = useState(null);       // null = усі точки
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);
+  // Напій, який збираються сховати чи повернути. Питаємо підтвердження:
+  // вимкнений напій зникає з екрана точки одразу після наступного
+  // викочування, а ввімкнений — з'являється, і обидва боки помітні людям
+  // у залі.
+  const [toggle, setToggle] = useState(null);
 
   const changed = useMemo(
     () => (data?.drinks ?? []).filter((d) => draft[d.id] !== undefined && Number(draft[d.id]) !== Number(d.price_uah)),
@@ -28,6 +33,22 @@ export function Prices() {
 
   if (error) return <Empty>не вдалось прочитати ціни: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
+
+  const flip = async () => {
+    const d = toggle;
+    setToggle(null);
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.savePrices([{ id: d.id, price_uah: Number(d.price_uah), active: !d.active }]);
+      setNote(`${d.name}: ${d.active ? "сховано з меню" : "повернено в меню"} — поїде з наступним викочуванням`);
+      reload();
+    } catch (e) {
+      setNote(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const deploy = async () => {
     setBusy(true);
@@ -71,6 +92,24 @@ export function Prices() {
 
       {note && <Card className="" style={{ marginBottom: 12 }}><span className="muted">{note}</span></Card>}
 
+      {toggle && (
+        <div className="confirm-back" onClick={() => setToggle(null)}>
+          <div className="confirm" onClick={(e) => e.stopPropagation()}>
+            <b>{toggle.active ? "Сховати з меню?" : "Повернути в меню?"}</b>
+            <p>
+              {toggle.name} ({toggle.system_code}).{" "}
+              {toggle.active
+                ? "Картка зникне з екрана точки після наступного викочування меню. У касі товар лишиться."
+                : "Картка з'явиться на екрані точки після наступного викочування меню."}
+            </p>
+            <div className="row" style={{ justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setToggle(null)}>Скасувати</button>
+              <button className="btn primary" onClick={flip}>{toggle.active ? "Сховати" : "Повернути"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="wrap-cols">
         <Table
           columns={[
@@ -86,9 +125,17 @@ export function Prices() {
                 />
               ),
             },
+            // Одне число на обидва випадки: у звичайного напою це заробіток
+            // гравця, у бонусного — ціна. Що саме — каже колонка поруч.
             { key: "coins", title: "монет", num: true },
-            { key: "bonus_coins", title: "бонус", num: true },
-            { key: "active", title: "стан", render: (d) => (d.active ? <Badge tone="ok">у меню</Badge> : <Badge>сховано</Badge>) },
+            { key: "is_bonus", title: "за монети", render: (d) => (d.is_bonus ? <Badge tone="warn">бонусний</Badge> : <span className="muted">—</span>) },
+            {
+              key: "active", title: "стан", render: (d) => (
+                <button className="btn" style={{ height: 26 }} onClick={() => setToggle(d)}>
+                  {d.active ? <Badge tone="ok">у меню</Badge> : <Badge>сховано</Badge>}
+                </button>
+              ),
+            },
           ]}
           rows={data.drinks}
           empty="у базі немає напоїв — залий сіди (bun run seed:apply)"
