@@ -38,6 +38,7 @@ const clientIp = (req) => {
 
 async function issue(reply, user) {
   const { id, ttl } = await createSession(user.id);
+  await query("update users set last_seen_at = now() where id = $1", [user.id]);
   reply.header("set-cookie", sessionCookie(id, ttl));
   return {
     token: signToken(`user:${user.id}`, "player"),
@@ -199,6 +200,11 @@ export default async function routes(app) {
       reply.header("set-cookie", clearCookie());
       return reply.code(401).send({ error: "no_session" });
     }
+    // «Остання поява» в адмінці: колонка була, писати її не було кому, тож
+    // усі гравці там значились як «не заходив» (знайдено 23.09.2026).
+    // Рефреш — найдешевше місце: клієнт ходить сюди що чверть години
+    // роботи й жодного разу, поки застосунок закритий.
+    await query("update users set last_seen_at = now() where id = $1", [user.id]);
     reply.header("set-cookie", sessionCookie(sid, ttl));
     return {
       token: signToken(`user:${user.id}`, "player"),
