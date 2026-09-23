@@ -217,6 +217,17 @@ erDiagram
         boolean active
         int sort_order
     }
+    PROMOS {
+        bigserial id PK
+        text kind "promo|notice|news|none — що на плашці"
+        text head1 "перший рядок заголовка"
+        text head2 "другий рядок"
+        text sub "акцентний рядок"
+        text fine "дрібним"
+        text drink_code FK "звідки спрайт"
+        timestamptz used_at "коли востаннє поїхала на точку"
+        timestamptz archived_at
+    }
     MENU_DEPLOYMENTS {
         bigserial id PK
         jsonb payload "знімок цін і акції"
@@ -243,11 +254,11 @@ erDiagram
         int coins_yellow
         jsonb items "лутдроп, якщо випав"
         text claim_token UK "у QR на екрані"
-        timestamptz expires_at "2 хв, gamification_ui.md"
+        timestamptz show_until "2 хв на екрані кіоска"
         timestamptz claimed_at "забрали на пристрій"
         uuid redeemed_by FK
         timestamptz redeemed_at "зарахували в акаунт"
-        text status "pending|claimed|redeemed|expired"
+        text status "pending|claimed|redeemed"
     }
     DEVICE_TELEMETRY {
         bigserial id PK
@@ -262,9 +273,13 @@ erDiagram
 
 `BONUS_GRANTS` описує рівно той потік, що в `gamification_ui.md`: на екрані
 QR → скан забирає бонус на пристрій (`claimed_at`, з екрана зникає) →
-авторизація зараховує в акаунт (`redeemed_at`). Три стани, а не два, бо між
-ними користувач може закрити вкладку — і тоді бонус має протухнути за
-`expires_at`, а не висіти вічно.
+авторизація зараховує в акаунт (`redeemed_at`).
+
+**Токен не протухає** (рішення власника 23.09.2026). Дві хвилини — це лише
+скільки QR висить на екрані кіоска, тому колонка й називається
+`show_until`: сфотографував код — забереш бонус хоч через півроку. Доти
+колонка звалась `expires_at`, і редім вважав її строком життя токена, тобто
+новий гравець, який пішов заводити акаунт, повертався до згорілого бонусу.
 
 **Змін Checkbox окремою таблицею немає** (прибрано 17.09.2026). Ні адмінка,
 ні економіка, ні аналітика не питають нічого «по змінах»: оборот рахується
@@ -713,6 +728,8 @@ erDiagram
         timestamptz bucket_start "півгодини, тиждень історії"
         boolean ok
         text detail "тултіп в адмінці"
+        bigint ms_total "сума затримок HTTP-проб у відрі"
+        int ms_count "скільки з них були з відповіддю"
         int samples
     }
     PROBLEM_REPORTS {

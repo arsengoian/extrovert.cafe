@@ -87,6 +87,12 @@ DELETE /api/v1/webhook
 відповідь на реєстрацію, тому в `.env` його немає (22.09.2026) — інакше
 програмі довелося б писати у власний конфіг. Реєструє й зберігає скрипт:
 
+**Підпис приходить у заголовку `x-request-signature`** —
+`base64(HMAC-SHA256(ключ, тіло))`, тіло байт-у-байт
+(wiki.checkbox.ua/uk/api/webhook). Ім'я заголовка коштувало нам добу:
+читали `X-Signature`, якого Checkbox не шле, і кожен вебхук відлітав із
+401 — чеки рятувало лише опитування раз на хвилину (23.09.2026).
+
 ```
 bun run --filter @extrovert/checkbox webhook:register               # стан: куди шле, чи падав
 bun run --filter @extrovert/checkbox webhook:register --set         # тестовий касир
