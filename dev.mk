@@ -4,6 +4,11 @@
 # Окремий файл, а не рядки в Makefile, навмисно: тут усе, що чіпає
 # прод-дані руками, і його має бути видно одним поглядом.
 #
+# Рецепти тут однорядкові, як і в головному Makefile, і це не стиль:
+# перенос «» у кінці рядка make віддає cmd.exe як є, той про продовження не
+# знає — і виконує обидві половини як дві окремі команди. d-give через це
+# нарахував монети двічі (23.09.2026).
+#
 # make у стилі `--drink a033` не вміє: слова з дефісом він забирає собі як
 # власні опції. Тому параметри — змінними:
 #
@@ -22,7 +27,7 @@
 # і без CHECKBOX_TEST_* просто не працює), але чек летить у справжній
 # Checkbox, вебхук — у прод, і бонус з'являється на справжньому кіоску.
 
-.PHONY: d-help d-sale d-list d-plant d-skip d-supply d-user d-db d-sql
+.PHONY: d-help d-sale d-list d-plant d-skip d-supply d-give d-user d-db d-sql
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
@@ -34,6 +39,9 @@ MAIL   ?=
 STAGE  ?=
 RESET  ?=
 SUPPLY ?= 9
+COINS  ?=
+SILVER ?=
+BEANS  ?=
 
 d-help:
 	@echo   make d-list                    які напої є в сідах
@@ -41,6 +49,7 @@ d-help:
 	@echo   make d-plant MAIL=пошта STAGE=1 RESET=1   стадія кавенятка, з очищенням посадженого
 	@echo   make d-skip MAIL=пошта         перемотати час: добовий гейт минув
 	@echo   make d-supply MAIL=пошта SUPPLY=9   насипати препаратів
+	@echo   make d-give MAIL=пошта COINS=500   монети/зерна: COINS, SILVER, BEANS
 	@echo   make d-user MAIL=пошта         баланси, кавенята, останні чеки
 	@echo   make d-db                      psql до прод-бази
 
@@ -55,8 +64,7 @@ d-sale:
 
 d-plant:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-plant MAIL=пошта STAGE=1))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) \
-		$(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,)
 
 d-skip:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-skip MAIL=пошта))
@@ -65,6 +73,14 @@ d-skip:
 d-supply:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-supply MAIL=пошта))
 	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --supply $(SUPPLY)
+
+# Монети й зерна — щоб не чекати добу заради перевірки екрана, якому
+# потрібен баланс. Рядок у журналі пишеться теж (reason='admin'), інакше
+# статистика адмінки розійшлася б із балансами.
+d-give:
+	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-give MAIL=пошта COINS=500))
+	@$(if $(strip $(COINS)$(SILVER)$(BEANS)),,$(error нема що нараховувати: COINS=, SILVER= або BEANS=))
+	$(PRODDB) $(BUN) scripts/dev-give.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(COINS),--coins $(COINS),) $(if $(SILVER),--silver $(SILVER),) $(if $(BEANS),--beans $(BEANS),)
 
 d-user:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-user MAIL=пошта))
