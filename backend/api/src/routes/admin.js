@@ -21,6 +21,10 @@ const redis = redisClient();
 const LOGIN_TRIES = 10;
 const LOGIN_WINDOW_S = 15 * 60;
 
+// Що написано на плашці панелі. 'none' лишає її без плашки — кіоск малює
+// порожній рядок і не показує саму плашку.
+const PROMO_LABEL = { promo: "АКЦІЯ", notice: "ОГОЛОШЕННЯ", news: "НОВИНА", none: "" };
+
 async function issueAdmin(reply, admin) {
   const { id, ttl } = await createSession(admin.id, { admin: true });
   reply.header("set-cookie", sessionCookie(id, ttl, { name: ADMIN_COOKIE }));
@@ -87,6 +91,26 @@ export default async function routes(app) {
     // попереднього викочування: зміна цін не має вимагати переписувати
     // текст акції щоразу.
     let ad = req.body?.ad ?? null;
+    // Звичний шлях — обрати акцію з бібліотеки: тоді панель збирається з
+    // полів, які кіоск справді читає (menu.h), а не з довільного тексту.
+    if (!ad && req.body?.promo_id) {
+      const promo = await one(
+        `select p.*, d.sprite from promos p
+           left join drinks d on d.system_code = p.drink_code
+          where p.id = $1 and p.archived_at is null`,
+        [req.body.promo_id]
+      );
+      if (!promo) fail(404, "no_such_promo");
+      ad = {
+        promo_label: PROMO_LABEL[promo.kind] ?? "",
+        head1: promo.head1,
+        head2: promo.head2,
+        sub: promo.sub,
+        fine: promo.fine,
+        sprite: promo.sprite ?? "",
+      };
+      await pool.query("update promos set used_at = now() where id = $1", [promo.id]);
+    }
     if (!ad) {
       const last = await one(
         `select payload from menu_deployments

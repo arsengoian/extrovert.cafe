@@ -956,6 +956,44 @@ ALTER SEQUENCE public.problem_reports_id_seq OWNED BY public.problem_reports.id;
 
 
 --
+-- Name: promos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promos (
+    id bigint NOT NULL,
+    kind text DEFAULT 'promo'::text NOT NULL,
+    head1 text NOT NULL,
+    head2 text DEFAULT ''::text NOT NULL,
+    sub text DEFAULT ''::text NOT NULL,
+    fine text DEFAULT ''::text NOT NULL,
+    drink_code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    used_at timestamp with time zone,
+    archived_at timestamp with time zone,
+    CONSTRAINT promos_kind_check CHECK ((kind = ANY (ARRAY['promo'::text, 'notice'::text, 'news'::text, 'none'::text])))
+);
+
+
+--
+-- Name: promos_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.promos_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: promos_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.promos_id_seq OWNED BY public.promos.id;
+
+
+--
 -- Name: quiz_drink_responses; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1752,6 +1790,13 @@ ALTER TABLE ONLY public.problem_reports ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: promos id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promos ALTER COLUMN id SET DEFAULT nextval('public.promos_id_seq'::regclass);
+
+
+--
 -- Name: quiz_drink_responses id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2166,6 +2211,14 @@ ALTER TABLE ONLY public.pos_discount_codes
 
 ALTER TABLE ONLY public.problem_reports
     ADD CONSTRAINT problem_reports_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: promos promos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promos
+    ADD CONSTRAINT promos_pkey PRIMARY KEY (id);
 
 
 --
@@ -2665,6 +2718,13 @@ CREATE INDEX problem_reports_status_created_at_idx ON public.problem_reports USI
 
 
 --
+-- Name: promos_archived_at_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX promos_archived_at_created_at_idx ON public.promos USING btree (archived_at NULLS FIRST, created_at DESC);
+
+
+--
 -- Name: quiz_drink_responses_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3090,6 +3150,14 @@ ALTER TABLE ONLY public.problem_reports
 
 
 --
+-- Name: promos promos_drink_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promos
+    ADD CONSTRAINT promos_drink_code_fkey FOREIGN KEY (drink_code) REFERENCES public.drinks(system_code);
+
+
+--
 -- Name: quiz_drink_responses quiz_drink_responses_receipt_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3358,4 +3426,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260922110000'),
     ('20260922120000'),
     ('20260923080000'),
-    ('20260923100000');
+    ('20260923100000'),
+    ('20260923110000');

@@ -5,7 +5,7 @@
 // overseer у health_samples півгодинними відрами; api їх лише складає в
 // ряди для графіка й не рахує нічого сам: дашборд, який опитує живі
 // сервіси на кожне відкриття сторінки, лягає разом із ними.
-import { many, one, tx } from "../db.js";
+import { many, one, query, tx } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 
@@ -165,6 +165,65 @@ export default async function routes(app) {
   // ── Ціни ────────────────────────────────────────────────────────────
   // Поточний прайс — це просто `drinks`: саме з них збирається меню точки
   // (services.md §4). Поруч — стан останнього деплойменту по кожній точці.
+  // ── акції ───────────────────────────────────────────────────────────
+  //
+  // Бібліотека готових панелей: у деплойменті акцію не пишуть щоразу
+  // заново, а беруть звідси. Поля — рівно ті, що вміє намалювати кіоск
+  // (raspberry/kiosk/src/menu.h): плашка, два рядки заголовка, акцентний
+  // рядок, дрібний рядок і напій, зі спрайта якого береться картинка.
+  const KINDS = ["promo", "notice", "news", "none"];
+  const promoFrom = (body) => {
+    const kind = String(body?.kind ?? "promo");
+    if (!KINDS.includes(kind)) fail(400, "bad_kind");
+    const head1 = String(body?.head1 ?? "").trim().slice(0, 64);
+    if (!head1) fail(400, "head1_required");
+    return [
+      kind, head1,
+      String(body?.head2 ?? "").trim().slice(0, 64),
+      String(body?.sub ?? "").trim().slice(0, 64),
+      String(body?.fine ?? "").trim().slice(0, 64),
+      body?.drink_code ? String(body.drink_code).slice(0, 32) : null,
+    ];
+  };
+
+  app.get("/admin/promos", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const promos = await many(
+      `select p.*, d.name as drink_name, d.sprite as drink_sprite
+         from promos p left join drinks d on d.system_code = p.drink_code
+        where p.archived_at is null
+        order by p.created_at desc`
+    );
+    return { promos };
+  });
+
+  app.post("/admin/promos", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const values = promoFrom(req.body);
+    const promo = await one(
+      `insert into promos (kind, head1, head2, sub, fine, drink_code)
+       values ($1, $2, $3, $4, $5, $6) returning *`, values);
+    return { promo };
+  });
+
+  app.patch("/admin/promos/:id", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const values = promoFrom(req.body);
+    const promo = await one(
+      `update promos set kind = $2, head1 = $3, head2 = $4, sub = $5, fine = $6, drink_code = $7
+        where id = $1 and archived_at is null returning *`, [req.params.id, ...values]);
+    if (!promo) fail(404, "no_such_promo");
+    return { promo };
+  });
+
+  // Не видаляємо: акція могла поїхати на точку, і в історії деплойментів на
+  // неї є посилання.
+  app.delete("/admin/promos/:id", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    await query("update promos set archived_at = now() where id = $1", [req.params.id]);
+    return { ok: true };
+  });
+
   app.get("/admin/prices", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const drinks = await many(

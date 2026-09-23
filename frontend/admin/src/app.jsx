@@ -13,6 +13,7 @@ import { Pos } from "./screens/Pos.jsx";
 import { Stats } from "./screens/Stats.jsx";
 import { Quizzes } from "./screens/Quizzes.jsx";
 import { Prices } from "./screens/Prices.jsx";
+import { Promos } from "./screens/Promos.jsx";
 import { Deployments } from "./screens/Deployments.jsx";
 import { Problems } from "./screens/Problems.jsx";
 import { Support } from "./Support.jsx";
@@ -30,6 +31,7 @@ const I = {
   quiz: "M8 9h8M8 13h5M4 5h16v11H9l-5 4V5z",
   price: "M4 7h16M4 12h16M4 17h10",
   deploy: "M12 3v12m0 0 4-4m-4 4-4-4M4 19h16",
+  promo: "M4 10v4h3l5 4V6l-5 4H4zm12 .5a3.5 3.5 0 0 1 0 3",
   problem: "m12 4 9 16H3L12 4zm0 6v4m0 3h.01",
   support: "M4 5h16v10H9l-5 4V5z",
   answers: "M5 6h14M5 12h14M5 18h9",
@@ -50,6 +52,7 @@ const MENU = [
   ]],
   ["операційка", [
     ["prices", "Ціни", I.price],
+    ["promos", "Акції", I.promo],
     ["deployments", "Деплойменти", I.deploy],
     ["problems", "Проблеми", I.problem, "problems_open"],
     ["support", "Підтримка", I.support, "support_waiting"],
@@ -94,6 +97,7 @@ function Screen({ name, arg, counts }) {
     case "stats": return <Stats />;
     case "quizzes": return <Quizzes />;
     case "prices": return <Prices />;
+    case "promos": return <Promos />;
     case "deployments": return <Deployments />;
     case "problems": return <Problems />;
     case "support": return <Support />;
