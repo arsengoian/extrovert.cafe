@@ -5,7 +5,8 @@
 // падіння — у підказці на комірці.
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, BeatRow, Card, Empty, Kpi, fmt, useData } from "../ui.jsx";
+import { Beat, BeatRow } from "../charts.jsx";
+import { Card, Empty, Kpi, fmt, useData } from "../ui.jsx";
 
 const score = (s) => (s ? `${s.ok} / ${s.total}` : "—");
 const tone = (s) => (!s ? "" : s.ok === s.total ? "ok" : s.total - s.ok > 1 ? "bad" : "");

@@ -2,7 +2,8 @@
 // Фільтр по датах, типово — 30 діб, розріз у добу.
 import { useState } from "react";
 import { api } from "../api.js";
-import { Card, DateRange, Empty, Kpi, Line, Table, fmt, useData } from "../ui.jsx";
+import { Line } from "../charts.jsx";
+import { Card, DateRange, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const COLORS = ["#FE810B", "#FF2D6F", "#3FBF6F", "#4FA8FF", "#FFB020", "#9B7BFF"];
 

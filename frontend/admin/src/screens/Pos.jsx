@@ -5,7 +5,8 @@
 // виглядати як пізні точки на тій самій лінії, а не як діра.
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, Card, Empty, Kpi, Line, Table, fmt, useData } from "../ui.jsx";
+import { Beat, Line } from "../charts.jsx";
+import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 // Метрики приходять у jsonb і можуть відрізнятися між джерелами; показуємо
 // те, що прийшло, а знайомі ключі підписуємо людською мовою.

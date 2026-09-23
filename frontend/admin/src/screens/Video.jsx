@@ -6,7 +6,8 @@
 // замість вигаданих цифр: таблиці вже є, і щойно зʼявиться перший сегмент,
 // ці самі запити почнуть його показувати.
 import { api } from "../api.js";
-import { Bars, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Bars } from "../charts.jsx";
+import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const KIND = { approach: "підійшов", queue: "черга", idle: "простій" };
 const mb = (n) => `${(Number(n ?? 0) / 1024 / 1024).toFixed(1)} МБ`;

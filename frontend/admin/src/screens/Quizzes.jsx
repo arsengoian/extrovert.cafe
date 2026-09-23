@@ -3,7 +3,8 @@
 // у них той самий system_code.
 import { useState } from "react";
 import { api } from "../api.js";
-import { Bars, Card, DateRange, Empty, Kpi, fmt, useData } from "../ui.jsx";
+import { Bars } from "../charts.jsx";
+import { Card, DateRange, Empty, Kpi, fmt, useData } from "../ui.jsx";
 
 const Questions = ({ block, color }) => (
   block.questions.length === 0
