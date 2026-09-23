@@ -23,8 +23,6 @@ const LOGIN_WINDOW_S = 15 * 60;
 
 // Що написано на плашці панелі. 'none' лишає її без плашки — кіоск малює
 // порожній рядок і не показує саму плашку.
-const PROMO_LABEL = { promo: "АКЦІЯ", notice: "ОГОЛОШЕННЯ", news: "НОВИНА", none: "" };
-
 async function issueAdmin(reply, admin) {
   const { id, ttl } = await createSession(admin.id, { admin: true });
   reply.header("set-cookie", sessionCookie(id, ttl, { name: ADMIN_COOKIE }));
@@ -86,40 +84,9 @@ export default async function routes(app) {
     const admin = requireAdmin(req, reply);
     if (!admin) return;
 
-    // Акція їде разом із деплойментом: у payload видно, що саме викотили й
-    // коли, а не лише «десь змінили файл». Якщо її не передали — беремо з
-    // попереднього викочування: зміна цін не має вимагати переписувати
-    // текст акції щоразу.
-    let ad = req.body?.ad ?? null;
-    // Звичний шлях — обрати акцію з бібліотеки: тоді панель збирається з
-    // полів, які кіоск справді читає (menu.h), а не з довільного тексту.
-    if (!ad && req.body?.promo_id) {
-      const promo = await one(
-        `select p.*, d.sprite from promos p
-           left join drinks d on d.system_code = p.drink_code
-          where p.id = $1 and p.archived_at is null`,
-        [req.body.promo_id]
-      );
-      if (!promo) fail(404, "no_such_promo");
-      ad = {
-        promo_label: PROMO_LABEL[promo.kind] ?? "",
-        head1: promo.head1,
-        head2: promo.head2,
-        sub: promo.sub,
-        fine: promo.fine,
-        sprite: promo.sprite ?? "",
-      };
-      await pool.query("update promos set used_at = now() where id = $1", [promo.id]);
-    }
-    if (!ad) {
-      const last = await one(
-        `select payload from menu_deployments
-          where payload ? 'ad' and status in ('done', 'partial')
-          order by id desc limit 1`
-      );
-      ad = last?.payload?.ad ?? null;
-    }
-
+    // Акції тут немає навмисно: деплоймент — це про ціни, які треба
+    // довезти до машини й Checkbox. Поточну акцію меню бере саме собою
+    // (lib/menu.js), і міняється вона окремою дією в адмінці.
     const points = Array.isArray(req.body?.points) && req.body.points.length
       ? req.body.points
       : (await pool.query("select id from points order by id")).rows.map((r) => r.id);
@@ -128,7 +95,9 @@ export default async function routes(app) {
     const deployment = await one(
       `insert into menu_deployments (payload, status, created_by)
        values ($1, 'queued', $2) returning id, status, created_at`,
-      [JSON.stringify(ad ? { ad } : {}), admin.id]
+      // У payload лишається слід того, що саме котили: ціни на момент
+      // викочування вже в drinks, а тут — привід.
+      [JSON.stringify({ reason: "prices" }), admin.id]
     );
     for (const point of points) {
       await pool.query(
@@ -136,7 +105,7 @@ export default async function routes(app) {
         [deployment.id, point]
       );
     }
-    return { ...deployment, points, ad };
+    return { ...deployment, points };
   });
 
   // Вхід адміна: пошта й пароль із admin_users. Форми «зареєструватися»

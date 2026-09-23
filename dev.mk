@@ -18,7 +18,7 @@
 # і без CHECKBOX_TEST_* просто не працює), але чек летить у справжній
 # Checkbox, вебхук — у прод, і бонус з'являється на справжньому кіоску.
 
-.PHONY: d-help d-sale d-list d-plant d-skip d-supply d-user d-db
+.PHONY: d-help d-sale d-list d-plant d-skip d-supply d-user d-db d-sql
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
@@ -66,5 +66,13 @@ d-user:
 	@test -n "$(MAIL)$(NICK)" || (echo "вкажи гравця: make d-user MAIL=пошта"; exit 1)
 	$(PRODDB) $(BUN) scripts/dev-user.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK))
 
+# DATABASE_URL з'являється всередині prod-db.sh, тому розкриває його той
+# шел, що вже має змінну: інакше psql отримав би порожній рядок і завис
+# на порожньому вводі.
 d-db:
-	$(PRODDB) psql "$$DATABASE_URL"
+	$(PRODDB) sh -c 'psql "$$DATABASE_URL"'
+
+# Довільний запит: make d-sql Q="select count(*) from users"
+d-sql:
+	@test -n "$(Q)" || (echo 'вкажи запит: make d-sql Q=...'; exit 1)
+	$(PRODDB) sh -c 'psql "$$DATABASE_URL" -Atc "$(Q)"'

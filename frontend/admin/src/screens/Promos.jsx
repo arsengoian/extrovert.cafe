@@ -5,8 +5,10 @@
 // спрайта якого береться картинка. Нічого «на майбутнє» — усе зайве на
 // екрані в залі просто не з'явиться.
 //
-// Готову акцію обирають на «Цінах» під час деплою: писати текст щоразу
-// заново не треба, а в історії деплойментів видно, що саме поїхало.
+// Поточна акція — одна, і вона завжди є: саме її бачить екран точки.
+// Обрати іншу можна тут, одним натисканням — меню в бакеті перекладається
+// саме собою, без деплойменту. Деплоймент лишився там, де він потрібен:
+// на «Цінах», бо ціни їдуть ще й у машину та Checkbox.
 import { useState } from "react";
 import { api } from "../api.js";
 import { Badge, Card, Empty, useData } from "../ui.jsx";
@@ -55,16 +57,35 @@ export function Promos() {
   };
 
   const archive = async (p) => {
-    await api.promoArchive(p.id);
-    if (editing === p.id) reset();
-    reload();
+    try {
+      await api.promoArchive(p.id);
+      if (editing === p.id) reset();
+      reload();
+    } catch (e) {
+      setNote(e.body?.error === "promo_is_current"
+        ? "це поточна акція — спершу зроби поточною іншу"
+        : e.message);
+    }
+  };
+
+  const makeCurrent = async (p) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      await api.promoSetCurrent(p.id);
+      reload();
+    } catch (e) {
+      setNote(e.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <>
       <div className="head">
         <h1>Акції</h1>
-        <p>панелі для екрана точки · обираються на «Цінах» під час деплою</p>
+        <p>панель на екрані точки · поточна міняється тут і одразу</p>
       </div>
 
       <div className="wrap-cols">
@@ -126,8 +147,11 @@ export function Promos() {
                   {p.used_at && <small className="muted">викотили {new Date(p.used_at).toLocaleDateString("uk-UA")}</small>}
                 </div>
                 <div className="promo-acts">
+                  {p.is_current
+                    ? <Badge tone="ok">на екрані</Badge>
+                    : <button className="btn primary" disabled={busy} onClick={() => makeCurrent(p)}>Показати</button>}
                   <button className="btn" onClick={() => edit(p)}>Правити</button>
-                  <button className="btn" onClick={() => archive(p)}>В архів</button>
+                  {!p.is_current && <button className="btn" onClick={() => archive(p)}>В архів</button>}
                 </div>
               </div>
             ))

@@ -50,7 +50,7 @@ async function deployNext(client, log) {
     throw e;
   }
 
-  const menu = await buildMenu(client, deployment.payload?.ad ?? null).catch(async (e) => {
+  const menu = await buildMenu(client).catch(async (e) => {
     await client.query(
       "update menu_deployments set status = 'failed', finished_at = now() where id = $1",
       [deployment.id]

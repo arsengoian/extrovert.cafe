@@ -5,9 +5,35 @@
 // Усе інше — бренд, розміри стаканів, період опитування — зашите в кіоск
 // (raspberry/kiosk/src/config.h): воно не змінювалось жодного разу, а кожне
 // зайве поле в меню — ще одне місце, де бакет і екран розходяться.
-export async function buildMenu(client, ad) {
+// Що написано на плашці панелі. 'none' — панель без плашки.
+const PROMO_LABEL = { promo: "АКЦІЯ", notice: "ОГОЛОШЕННЯ", news: "НОВИНА", none: "" };
+
+// Поточна акція — стан у таблиці promos, а не вміст деплойменту: ціни
+// котять свідомо (машина, Checkbox), а напис на екрані міняють одним
+// вибором в адмінці (рішення власника 23.09.2026).
+async function currentAd(client) {
+  const { rows } = await client.query(
+    `select p.kind, p.head1, p.head2, p.sub, p.fine, d.sprite
+       from promos p
+       left join drinks d on d.system_code = p.drink_code
+      where p.is_current and p.archived_at is null`
+  );
+  const promo = rows[0];
+  if (!promo) return null;
+  return {
+    promo_label: PROMO_LABEL[promo.kind] ?? "",
+    head1: promo.head1,
+    head2: promo.head2 ?? "",
+    sub: promo.sub ?? "",
+    fine: promo.fine ?? "",
+    sprite: promo.sprite ?? "",
+  };
+}
+
+export async function buildMenu(client) {
   // active = false прибирає напій з екрана, але лишає в базі: сезонні
   // позиції повертаються, а чеки на них мають на що посилатись.
+  const ad = await currentAd(client);
   const { rows } = await client.query(
     `select system_code, name, vol, cup, price_uah, color, foam, sprite, bonus_coins
        from drinks

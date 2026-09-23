@@ -16,13 +16,9 @@ const badge = (s) => { const [tone, text] = STATUS[s] ?? ["", s]; return <Badge 
 
 export function Prices() {
   const { data, error, reload } = useData(() => api.prices());
-  const promos = useData(() => api.promos());
   const [draft, setDraft] = useState({});
   const [targets, setTargets] = useState(null);       // null = усі точки
   const [busy, setBusy] = useState(false);
-  // Акція береться з бібліотеки («Акції»): вільний текст кіоск не малює —
-  // йому потрібні плашка, два рядки заголовка, акцентний рядок і спрайт.
-  const [promoId, setPromoId] = useState("");
   const [note, setNote] = useState(null);
 
   const changed = useMemo(
@@ -40,7 +36,7 @@ export function Prices() {
       if (changed.length) {
         await api.savePrices(changed.map((d) => ({ id: d.id, price_uah: Number(draft[d.id]) })));
       }
-      const r = await api.deployMenu({ points: targets, promo_id: promoId || undefined });
+      const r = await api.deployMenu({ points: targets });
       setNote(`деплоймент №${r.id} у черзі: ${r.points.length} точк(и). Ціни збережені — scheduler бере їх із бази.`);
       setDraft({});
       reload();
@@ -65,14 +61,6 @@ export function Prices() {
             <select value={targets === null ? "" : targets[0]} onChange={(e) => setTargets(e.target.value ? [e.target.value] : null)}>
               <option value="">усі точки ({data.points.length})</option>
               {data.points.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </label>
-          <label className="field" style={{ width: 240 }}>
-            <select value={promoId} onChange={(e) => setPromoId(e.target.value)}>
-              <option value="">акція: лишити попередню</option>
-              {(promos.data?.promos ?? []).map((x) => (
-                <option key={x.id} value={x.id}>{x.head2 ? x.head1 + " " + x.head2 : x.head1}</option>
-              ))}
             </select>
           </label>
           <button className="btn primary" disabled={busy} onClick={deploy}>

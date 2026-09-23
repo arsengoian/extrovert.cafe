@@ -180,33 +180,5 @@
     "sort_order": 110,
     "color": "#b08458",
     "foam": true
-  },
-  {
-    "system_code": "x034",
-    "name": "Американо з бонусами",
-    "vol": "150 мл",
-    "price_uah": 80,
-    "coins": 0,
-    "bonus_coins": 80,
-    "sprite": "americano",
-    "cup": "M",
-    "active": false,
-    "sort_order": 50,
-    "color": "#c0392b",
-    "foam": false
-  },
-  {
-    "system_code": "x038",
-    "name": "Капучино з бонусами",
-    "vol": "260 мл",
-    "price_uah": 100,
-    "coins": 0,
-    "bonus_coins": 100,
-    "sprite": "cappuccino",
-    "cup": "L",
-    "active": false,
-    "sort_order": 90,
-    "color": "#9e7044",
-    "foam": true
   }
 ]

@@ -91,6 +91,7 @@ export const api = {
   promoAdd: (body) => request("/admin/promos", { method: "POST", body }),
   promoSave: (id, body) => request(`/admin/promos/${id}`, { method: "PATCH", body }),
   promoArchive: (id) => request(`/admin/promos/${id}`, { method: "DELETE" }),
+  promoSetCurrent: (id) => request(`/admin/promos/${id}/current`, { method: "POST" }),
   savePrices: (drinks) => request("/admin/prices", { method: "PATCH", body: { drinks } }),
   deployments: () => request("/admin/deployments"),
   deployMenu: (body) => request("/admin/menu/deployments", { method: "POST", body }),

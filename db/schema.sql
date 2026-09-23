@@ -970,6 +970,7 @@ CREATE TABLE public.promos (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     used_at timestamp with time zone,
     archived_at timestamp with time zone,
+    is_current boolean DEFAULT false NOT NULL,
     CONSTRAINT promos_kind_check CHECK ((kind = ANY (ARRAY['promo'::text, 'notice'::text, 'news'::text, 'none'::text])))
 );
 
@@ -2725,6 +2726,13 @@ CREATE INDEX promos_archived_at_created_at_idx ON public.promos USING btree (arc
 
 
 --
+-- Name: promos_one_current; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX promos_one_current ON public.promos USING btree (is_current) WHERE is_current;
+
+
+--
 -- Name: quiz_drink_responses_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3427,4 +3435,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260922120000'),
     ('20260923080000'),
     ('20260923100000'),
-    ('20260923110000');
+    ('20260923110000'),
+    ('20260923120000');

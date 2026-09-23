@@ -165,6 +165,25 @@ export default async function routes(app) {
   // ── Ціни ────────────────────────────────────────────────────────────
   // Поточний прайс — це просто `drinks`: саме з них збирається меню точки
   // (services.md §4). Поруч — стан останнього деплойменту по кожній точці.
+  // Перекласти меню в бакет, не питаючи нікого: тією ж чергою, що й
+  // деплоймент цін, але лише ціль r2. У машині й Checkbox від зміни напису
+  // на екрані нічого не міняється, тож і цілей для них тут немає.
+  async function queueMenuRefresh(client, adminId) {
+    const { rows: points } = await client.query("select id from points where status <> 'retired' order by id");
+    if (!points.length) return;
+    const { rows } = await client.query(
+      `insert into menu_deployments (payload, status, created_by)
+       values ('{"reason":"promo"}'::jsonb, 'queued', $1) returning id`,
+      [adminId]
+    );
+    for (const point of points) {
+      await client.query(
+        "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2)",
+        [rows[0].id, point.id]
+      );
+    }
+  }
+
   // ── акції ───────────────────────────────────────────────────────────
   //
   // Бібліотека готових панелей: у деплойменті акцію не пишуть щоразу
@@ -192,18 +211,41 @@ export default async function routes(app) {
       `select p.*, d.name as drink_name, d.sprite as drink_sprite
          from promos p left join drinks d on d.system_code = p.drink_code
         where p.archived_at is null
-        order by p.created_at desc`
+        order by p.is_current desc, p.created_at desc`
     );
     return { promos };
+  });
+
+  // Поточну акцію показує екран точки. Ставимо її й одразу перекладаємо
+  // меню в бакет: деплоймент тут не потрібен (він про ціни, які їдуть ще
+  // й у машину та Checkbox), але файл меню оновити треба — кіоск читає
+  // саме його.
+  app.post("/admin/promos/:id/current", async (req, reply) => {
+    const admin = requireAdmin(req, reply);
+    if (!admin) return;
+    return tx(async (client) => {
+      const { rows } = await client.query(
+        "select id from promos where id = $1 and archived_at is null", [req.params.id]);
+      if (!rows.length) fail(404, "no_such_promo");
+      await client.query("update promos set is_current = false where is_current");
+      await client.query("update promos set is_current = true, used_at = now() where id = $1", [rows[0].id]);
+      await queueMenuRefresh(client, admin.id);
+      return { ok: true, promo_id: Number(rows[0].id) };
+    });
   });
 
   app.post("/admin/promos", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const values = promoFrom(req.body);
-    const promo = await one(
-      `insert into promos (kind, head1, head2, sub, fine, drink_code)
-       values ($1, $2, $3, $4, $5, $6) returning *`, values);
-    return { promo };
+    return tx(async (client) => {
+      const { rows: existing } = await client.query(
+        "select 1 from promos where is_current and archived_at is null");
+      const { rows } = await client.query(
+        `insert into promos (kind, head1, head2, sub, fine, drink_code, is_current)
+         values ($1, $2, $3, $4, $5, $6, $7) returning *`, [...values, !existing.length]);
+      if (!existing.length) await queueMenuRefresh(client, null);
+      return { promo: rows[0] };
+    });
   });
 
   app.patch("/admin/promos/:id", async (req, reply) => {
@@ -220,6 +262,10 @@ export default async function routes(app) {
   // неї є посилання.
   app.delete("/admin/promos/:id", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const promo = await one("select is_current from promos where id = $1", [req.params.id]);
+    if (!promo) fail(404, "no_such_promo");
+    // Поточна завжди одна: спершу зроби поточною іншу, потім архівуй цю.
+    if (promo.is_current) fail(409, "promo_is_current");
     await query("update promos set archived_at = now() where id = $1", [req.params.id]);
     return { ok: true };
   });
