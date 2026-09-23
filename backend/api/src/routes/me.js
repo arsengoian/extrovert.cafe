@@ -107,7 +107,7 @@ export default async function routes(app) {
          join points p on p.id = r.point_id
          join bonus_grants bg on bg.receipt_id = r.id and bg.redeemed_by = $1
          left join receipt_items ri on ri.receipt_id = r.id
-         left join drinks d on d.system_code = ri.system_code
+         left join drinks d on d.slot = ri.slot
          left join quiz_drink_responses q on q.receipt_item_id = ri.id
         group by r.id, p.name, bg.coins_yellow, bg.status, bg.items
         order by r.fiscal_date desc

@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 8c1010d</p>
+  <p class="eyebrow">extrovert.cafe · джерело ed2f0e9</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1222,7 +1222,7 @@ erDiagram
     USERS ||--o{ USER_IDENTITIES : &quot;пошта / google&quot;
     RECEIPTS ||--o{ RECEIPT_ITEMS : &quot;позиції чека&quot;
     RECEIPTS ||--o| BONUS_GRANTS : &quot;нарахування за чек&quot;
-    DRINKS ||--o{ RECEIPT_ITEMS : &quot;system_code&quot;
+    DRINKS ||--o{ RECEIPT_ITEMS : &quot;slot&quot;
     USERS ||--o{ BONUS_GRANTS : &quot;хто заредімив&quot;
 
     POINTS {
@@ -1233,6 +1233,7 @@ erDiagram
         text timezone
         text status &quot;planned|live|paused&quot;
         text checkbox_branch_id &quot;філія в Checkbox: через неї ціна на точку&quot;
+        text machine_letter &quot;літера машини: код позиції = літера + drinks.slot&quot;
         text key_hash &quot;sha256 ключа з config/point.key на малині&quot;
         text next_key_hash &quot;ротація: видано, малина ще не підхопила&quot;
         timestamptz key_rotated_at
@@ -1300,7 +1301,8 @@ erDiagram
     RECEIPT_ITEMS {
         bigserial id PK
         bigint receipt_id FK
-        text system_code &quot;a034 / x034&quot;
+        text system_code &quot;як написала каса: a034&quot;
+        text slot &quot;номер без літери: 034 — по ньому шукається напій&quot;
         text name
         numeric qty
         numeric price_uah
@@ -1309,12 +1311,12 @@ erDiagram
     }
     DRINKS {
         bigserial id PK
-        text system_code UK &quot;код у Checkbox&quot;
+        text slot UK &quot;номер позиції в машині: 034, без літери&quot;
         text name
         text vol
         numeric price_uah
-        int coins &quot;round(маржа x k)&quot;
-        int bonus_coins &quot;лише бонус-напої&quot;
+        int coins &quot;заробіток гравця; у бонусних — ціна в монетах&quot;
+        boolean is_bonus &quot;бонусний напій: купується за монети&quot;
         text sprite
         text cup
         boolean active
@@ -1374,8 +1376,8 @@ erDiagram
     }</pre></div>
 </figure>
 <div class="dict"><article class="entity" id="t-points">
-  <header><h4>points</h4><span class="entity-count">13 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">kyiv-01</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">short_address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">у виборі точки: «Мишуги 8»</td></tr><tr><td class="c-name">timezone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">planned|live|paused</td></tr><tr><td class="c-name">checkbox_branch_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">філія в Checkbox: через неї ціна на точку</td></tr><tr><td class="c-name">key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">sha256 ключа з config/point.key на малині</td></tr><tr><td class="c-name">next_key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">ротація: видано, малина ще не підхопила</td></tr><tr><td class="c-name">key_rotated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">key_revoked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">остання телеметрія</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>points</h4><span class="entity-count">14 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note">kyiv-01</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">short_address</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">у виборі точки: «Мишуги 8»</td></tr><tr><td class="c-name">timezone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">planned|live|paused</td></tr><tr><td class="c-name">checkbox_branch_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">філія в Checkbox: через неї ціна на точку</td></tr><tr><td class="c-name">machine_letter</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">літера машини: код позиції = літера + drinks.slot</td></tr><tr><td class="c-name">key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">sha256 ключа з config/point.key на малині</td></tr><tr><td class="c-name">next_key_hash</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">ротація: видано, малина ще не підхопила</td></tr><tr><td class="c-name">key_rotated_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">key_revoked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">остання телеметрія</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployment_targets">menu_deployment_targets</a><span class="rel-label">яке меню стоїть</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-device_telemetry">device_telemetry</a><span class="rel-label">що шле залізо</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_segments">video_segments</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-problem_reports">problem_reports</a><span class="rel-label">скарги з форми</span></li></ul>
 </article>
 <article class="entity" id="t-users">
@@ -1404,14 +1406,14 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">нарахування за чек</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-video_events">video_events</a><span class="rel-label">ймовірний чек події</span></li></ul>
 </article>
 <article class="entity" id="t-receipt_items">
-  <header><h4>receipt_items</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">system_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">a034 / x034</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">qty</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sum_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">is_bonus_drink</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">← 1</span><a href="#t-drinks">drinks</a><span class="rel-label">system_code</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">про яке замовлення</span></li></ul>
+  <header><h4>receipt_items</h4><span class="entity-count">9 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">system_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">як написала каса: a034</td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">номер без літери: 034 — по ньому шукається напій</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">qty</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sum_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">is_bonus_drink</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">позиції чека</span></li><li><span class="rel-card">← 1</span><a href="#t-drinks">drinks</a><span class="rel-label">slot</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">про яке замовлення</span></li></ul>
 </article>
 <article class="entity" id="t-drinks">
   <header><h4>drinks</h4><span class="entity-count">11 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">system_code</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">код у Checkbox</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">vol</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">round(маржа x k)</td></tr><tr><td class="c-name">bonus_coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">лише бонус-напої</td></tr><tr><td class="c-name">sprite</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cup</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sort_order</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">system_code</span></li></ul>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">slot</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">номер позиції в машині: 034, без літери</td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">vol</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">price_uah</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">заробіток гравця; у бонусних — ціна в монетах</td></tr><tr><td class="c-name">is_bonus</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">бонусний напій: купується за монети</td></tr><tr><td class="c-name">sprite</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">cup</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">active</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">sort_order</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipt_items">receipt_items</a><span class="rel-label">slot</span></li></ul>
 </article>
 <article class="entity" id="t-promos">
   <header><h4>promos</h4><span class="entity-count">9 кол.</span></header>
@@ -2405,7 +2407,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 </tr>
 <tr>
 <td><code>drinks</code></td>
-<td><code>system_code</code></td>
+<td><code>slot</code></td>
 <td><code>id</code></td>
 </tr>
 <tr>
@@ -2438,7 +2440,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 </code></pre>
 <pre><code class="language-json">{
   &quot;points&quot;:         { &quot;key&quot;: &quot;id&quot;,          &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;id&quot;, &quot;name&quot;, &quot;address&quot;, &quot;short_address&quot;, &quot;timezone&quot;] },
-  &quot;drinks&quot;:         { &quot;key&quot;: &quot;system_code&quot;, &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;system_code&quot;, &quot;name&quot;, &quot;vol&quot;, &quot;price_uah&quot;, &quot;coins&quot;, &quot;bonus_coins&quot;, &quot;sprite&quot;, &quot;cup&quot;, &quot;active&quot;, &quot;sort_order&quot;] },
+  &quot;drinks&quot;:         { &quot;key&quot;: &quot;slot&quot;,        &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;slot&quot;, &quot;name&quot;, &quot;vol&quot;, &quot;price_uah&quot;, &quot;coins&quot;, &quot;is_bonus&quot;, &quot;sprite&quot;, &quot;cup&quot;, &quot;active&quot;, &quot;sort_order&quot;, &quot;color&quot;, &quot;foam&quot;] },
   &quot;item_defs&quot;:      { &quot;key&quot;: &quot;code&quot;,        &quot;owner&quot;: &quot;git&quot;, &quot;columns&quot;: [&quot;code&quot;, &quot;name&quot;, &quot;collection&quot;, &quot;description_md&quot;, &quot;slot&quot;, &quot;tier&quot;, &quot;sprite_id&quot;, &quot;price_coins&quot;, &quot;active&quot;] }
 }
 </code></pre>
@@ -2525,6 +2527,19 @@ manifest: зайва чи відсутня — помилка, а не тихе 
 <code>pos/data/menu-chrome.json</code> (тема, бренд, стакани, акція — те, що напоями не
 є) і кладе готовий <code>points/&lt;point&gt;/menu.json</code> у R2. Звідти ж беруться ціни
 для звірки каталогу каси (<a class="doclink" href="#checkbox"><code>checkbox.md</code></a>).</p>
+<p><strong>Код напою збирається з двох частин</strong> (23.09.2026). У <code>drinks</code> лежить
+лише номер позиції — <code>slot</code>, «033». Нумерацію задає оператор машини, і на
+всіх машинах вона однакова: 024 — завжди какао. Літеру дає точка
+(<code>points.machine_letter</code>): перша машина — «a», друга — «b», а точка — це
+завжди одна машина. Код, який бачить каса й Jetinno, — <code>machine_letter || slot</code>, і збирається він лише там, звідки щось виходить назовні: меню
+(<code>backend/lib/src/menu.js</code>), звірка каталогу Checkbox (<code>sync-prices.mjs</code>),
+емуляція продажу.</p>
+<p>Назад дорога інша. <code>receipt_items.system_code</code> зберігає те, що написала
+каса («a033»), — це запис факту, і міняти його не можна; поруч лежить
+<code>slot</code>, і саме по ньому чек зʼєднується з каталогом. Якби зʼєднання йшло по
+повному коду, друга машина («b033») перестала б знаходити напій — мовчки:
+монети не нарахувались би, а в лозі не було б нічого. Так у нас уже
+зʼявились вигадані коди з «x» — вигадувати їх не можна, номер дає машина.</p>
 <p>До цього поруч жив <code>pos/data/prices.json</code> із тими самими напоями, і два
 списки розходились: база знала монети, файл — ціну, каса могла не знати ні
 того, ні того. Колір картки й наявність піни переїхали в таблицю саме тому —
@@ -3350,6 +3365,12 @@ GET    /api/v1/goods/by-code/{code}       ⚠️ 404 «Облік товарів
 задає оператор машини — номер із літерою машини попереду (перша — «a»).
 Наші власні позиції отримали великі номери в тому ж форматі, доки
 оператор не дасть справжні.</li>
+<li><strong>Код збирає скрипт, а не база</strong> (23.09.2026). У <code>drinks</code> лежить самий
+номер позиції (<code>slot</code>), однаковий на всіх машинах; літеру дає точка
+(<code>points.machine_letter</code>). Каса на кожній машині своя, тож той самий
+напій стоїть у каталозі стільки разів, скільки машин: «a033», «b033».
+Скрипт бере літери з живих точок — додасться друга машина, додасться й
+другий набір кодів, без правок у коді.</li>
 <li><strong>Податків у товарів немає</strong> (<code>taxes: []</code>), філія одна, окремих цін для
 філії (<code>branches_info</code>) немає — але саме вони й дають різні ціни на
 точках, нижче.</li>
@@ -10852,7 +10873,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 8c1010d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ed2f0e9 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -12,6 +12,12 @@ import { enqueue } from "@extrovert/lib/outbox.js";
 // (db-schema §0).
 const uah = (kopiyky) => Math.round(Number(kopiyky ?? 0)) / 100;
 
+// Каса присилає код разом із літерою машини («a024»), а в каталозі лежить
+// самий номер позиції: він на всіх машинах однаковий (docs/checkbox.md §3).
+// Літеру відрізаємо тут — з'єднання з drinks іде тільки по номеру, інакше
+// друга машина («b024») перестане знаходити напій, і то мовчки.
+const slotOf = (code) => (/^[a-z][0-9]+$/.test(code) ? code.slice(1) : code);
+
 const SHOW_MINUTES = 2;                    // скільки QR висить на екрані кіоска
 const token = () => crypto.randomUUID().replaceAll("-", "").slice(0, 24);
 
@@ -69,18 +75,18 @@ export async function ingest(receipt, { source, log }) {
     for (const line of goods) {
       const g = line.good ?? line;
       const code = g.code ?? g.system_code ?? "";
+      const slot = slotOf(code);
       const qty = Number(line.quantity ?? 1000) / 1000;      // Checkbox: тисячні
       const price = uah(g.price);
       const { rows: drink } = await client.query(
-        "select coins, is_bonus from drinks where system_code = $1", [code]
+        "select coins, is_bonus from drinks where slot = $1", [slot]
       );
       // Код, якого немає в каталозі, — це не дрібниця: монет за такий напій
-      // не нарахується, і мовчки. Найімовірніша причина — друга машина:
-      // Зернова нумерує позиції з літери машини (a…, b…), тож той самий
-      // напій приходить із чужим префіксом (з'ясовано 23.09.2026).
+      // не нарахується, і мовчки. Найімовірніша причина — позицію завели в
+      // машині, але не в адмінці: першоджерело каталогу — вона.
       if (!drink.length && Number(g.price ?? 0) > 0) {
         log?.warn("напою немає в каталозі — монети не нараховані", {
-          код: code, точка: pointId, назва: g.name ?? null,
+          код: code, позиція: slot, точка: pointId, назва: g.name ?? null,
         });
       }
       // Бонус-напій монет не дає: він сам і є бонусом (economy §7.1).
@@ -93,9 +99,9 @@ export async function ingest(receipt, { source, log }) {
       }
 
       await client.query(
-        `insert into receipt_items (receipt_id, system_code, name, qty, price_uah, sum_uah, is_bonus_drink)
-         values ($1, $2, $3, $4, $5, $6, $7)`,
-        [receiptId, code, g.name ?? code, qty, price, uah(line.sum ?? g.price), isBonus]
+        `insert into receipt_items (receipt_id, system_code, slot, name, qty, price_uah, sum_uah, is_bonus_drink)
+         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [receiptId, code, slot, g.name ?? code, qty, price, uah(line.sum ?? g.price), isBonus]
       );
     }
 

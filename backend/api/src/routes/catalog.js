@@ -21,7 +21,7 @@ const ORDER_BY = `array_position($3::text[], tier),
 export default async function routes(app) {
   app.get("/catalog/drinks", async () => {
     const rows = await many(
-      `select system_code, name, vol, price_uah, coins, is_bonus, sprite, cup
+      `select slot, name, vol, price_uah, coins, is_bonus, sprite, cup
          from drinks where active order by sort_order`
     );
     return { drinks: rows };

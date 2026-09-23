@@ -15,7 +15,7 @@ async function currentAd(client) {
   const { rows } = await client.query(
     `select p.kind, p.head1, p.head2, p.sub, p.fine, d.sprite
        from promos p
-       left join drinks d on d.system_code = p.drink_code
+       left join drinks d on d.slot = p.drink_code
       where p.is_current and p.archived_at is null`
   );
   const promo = rows[0];
@@ -30,12 +30,15 @@ async function currentAd(client) {
   };
 }
 
-export async function buildMenu(client) {
+// letter — літера машини цієї точки (points.machine_letter). Код позиції в
+// меню має бути тим самим, що надрукує каса: кіоск звіряє з ним подію
+// bonus_ready, а вона приходить із чека.
+export async function buildMenu(client, letter = "a") {
   // active = false прибирає напій з екрана, але лишає в базі: сезонні
   // позиції повертаються, а чеки на них мають на що посилатись.
   const ad = await currentAd(client);
   const { rows } = await client.query(
-    `select system_code, name, vol, cup, price_uah, color, foam, sprite, coins, is_bonus
+    `select slot, name, vol, cup, price_uah, color, foam, sprite, coins, is_bonus
        from drinks
       where active
       order by sort_order, name`
@@ -52,7 +55,7 @@ export async function buildMenu(client) {
       foam: d.foam,
       cup: d.cup ?? "M",
       sprite: d.sprite ?? "",
-      system_code: d.system_code,
+      system_code: `${letter}${d.slot}`,
       // Монети показуємо лише на бонусних позиціях — там це ціна. У
       // звичайного напою coins — заробіток гравця, і екрану в залі він ні
       // про що не каже.

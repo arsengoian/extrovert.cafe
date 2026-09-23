@@ -4,6 +4,10 @@
 //   bun scripts/dev-sale.mjs --drink a033 --pay cash
 //   bun scripts/dev-sale.mjs --list                # які напої є в сідах
 //
+// Код напою — такий, як його бачить каса: літера машини плюс номер позиції
+// («a033»). У сідах лежить лише номер, бо він на всіх машинах однаковий;
+// літеру беремо з --drink, а без неї — «a» (перша машина).
+//
 // **Чек створює лише тестовий касир** (рішення власника 22.09.2026):
 // фіскальний чек бойової каси — це подія в ДПС і рядок у звітності точки.
 // Тому токен береться через cashierToken({ write: true }), який без
@@ -20,17 +24,20 @@ const args = process.argv.slice(2);
 const flag = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : null; };
 
 const drinks = JSON.parse(readFileSync(path.join(ROOT, "db", "seeds", "drinks.json"), "utf8"));
+const asked = flag("drink");
+const letter = /^[a-z]/.test(asked ?? "") ? asked[0] : "a";
+const slot = asked ? asked.replace(/^[a-z]/, "") : null;
 if (args.includes("--list")) {
-  for (const d of drinks.filter((x) => x.active)) console.log(`${d.system_code}\t${d.name}\t${d.price_uah} ₴\tбонус ${d.bonus_coins}`);
+  for (const d of drinks.filter((x) => x.active)) console.log(`${letter}${d.slot}\t${d.name}\t${d.price_uah} ₴\tбонус ${d.coins}`);
   process.exit(0);
 }
 
-const code = flag("drink");
-const drink = code ? drinks.find((d) => d.system_code === code) : drinks.find((d) => d.active);
+const drink = slot ? drinks.find((d) => d.slot === slot) : drinks.find((d) => d.active);
 if (!drink) {
-  console.error(code ? `✗ немає напою з кодом ${code} (--list покаже наявні)` : "✗ у сідах немає активних напоїв");
+  console.error(asked ? `✗ немає напою з кодом ${asked} (--list покаже наявні)` : "✗ у сідах немає активних напоїв");
   process.exit(1);
 }
+const code = letter + drink.slot;
 const kopecks = Math.round(Number(drink.price_uah) * 100);
 const payment = (flag("pay") ?? "card") === "cash" ? "CASH" : "CASHLESS";
 
@@ -77,7 +84,7 @@ console.log(`зміна: ${shift.serial ?? shift.id} (${shift.status})`);
 
 // Продаж. Кількість у тисячних, суми в копійках — так вимагає Checkbox.
 let receipt = await call("POST", "/api/v1/receipts/sell", {
-  goods: [{ good: { code: drink.system_code, name: drink.name, price: kopecks }, quantity: 1000 }],
+  goods: [{ good: { code, name: drink.name, price: kopecks }, quantity: 1000 }],
   payments: [{ type: payment, value: kopecks, label: payment === "CASH" ? "Готівка" : "Картка" }],
 });
 console.log(`чек створений: ${receipt.id} (${receipt.status})`);

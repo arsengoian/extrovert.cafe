@@ -51,7 +51,7 @@ export default async function routes(app) {
 
     // Список напоїв у питанні «яку каву п'єш» береться з каталога, а не
     // дублюється в JSON: інакше нові напої довелося б вписувати двічі.
-    const drinks = await many("select system_code, name, sprite from drinks where active order by sort_order");
+    const drinks = await many("select name, sprite from drinks where active order by sort_order");
     // Для сітки напоїв (кадр «Розкажи про себе · крок 3») потрібна ще й
     // картинка — тож окрім назв віддаємо спрайти поруч.
     const steps = quiz.profile.steps.map((step) => ({
@@ -114,7 +114,7 @@ export default async function routes(app) {
          from receipt_items ri
          join receipts r on r.id = ri.receipt_id
          join points p on p.id = r.point_id
-         left join drinks d on d.system_code = ri.system_code
+         left join drinks d on d.slot = ri.slot
          join bonus_grants bg on bg.receipt_id = r.id and bg.redeemed_by = $1
          left join quiz_drink_responses q on q.receipt_item_id = ri.id
         where ri.is_bonus_drink = false

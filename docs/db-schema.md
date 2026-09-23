@@ -119,7 +119,7 @@ erDiagram
     USERS ||--o{ USER_IDENTITIES : "пошта / google"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
-    DRINKS ||--o{ RECEIPT_ITEMS : "system_code"
+    DRINKS ||--o{ RECEIPT_ITEMS : "slot"
     USERS ||--o{ BONUS_GRANTS : "хто заредімив"
 
     POINTS {
@@ -130,6 +130,7 @@ erDiagram
         text timezone
         text status "planned|live|paused"
         text checkbox_branch_id "філія в Checkbox: через неї ціна на точку"
+        text machine_letter "літера машини: код позиції = літера + drinks.slot"
         text key_hash "sha256 ключа з config/point.key на малині"
         text next_key_hash "ротація: видано, малина ще не підхопила"
         timestamptz key_rotated_at
@@ -197,7 +198,8 @@ erDiagram
     RECEIPT_ITEMS {
         bigserial id PK
         bigint receipt_id FK
-        text system_code "a034 / x034"
+        text system_code "як написала каса: a034"
+        text slot "номер без літери: 034 — по ньому шукається напій"
         text name
         numeric qty
         numeric price_uah
@@ -206,12 +208,12 @@ erDiagram
     }
     DRINKS {
         bigserial id PK
-        text system_code UK "код у Checkbox"
+        text slot UK "номер позиції в машині: 034, без літери"
         text name
         text vol
         numeric price_uah
-        int coins "round(маржа x k)"
-        int bonus_coins "лише бонус-напої"
+        int coins "заробіток гравця; у бонусних — ціна в монетах"
+        boolean is_bonus "бонусний напій: купується за монети"
         text sprite
         text cup
         boolean active
@@ -1002,7 +1004,7 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 | Таблиця | Натуральний ключ | Не потрапляє в JSON |
 |---|---|---|
 | `points` | `id` | `status`, ключі, `last_seen_at`: це стан точки, а не її опис |
-| `drinks` | `system_code` | `id` |
+| `drinks` | `slot` | `id` |
 | `item_defs` | `code` | `id` |
 
 Точний перелік колонок — у `manifest.json`. Не контент і в сіди не
@@ -1035,7 +1037,7 @@ db/seeds/
 ```json
 {
   "points":         { "key": "id",          "owner": "git", "columns": ["id", "name", "address", "short_address", "timezone"] },
-  "drinks":         { "key": "system_code", "owner": "git", "columns": ["system_code", "name", "vol", "price_uah", "coins", "bonus_coins", "sprite", "cup", "active", "sort_order"] },
+  "drinks":         { "key": "slot",        "owner": "git", "columns": ["slot", "name", "vol", "price_uah", "coins", "is_bonus", "sprite", "cup", "active", "sort_order", "color", "foam"] },
   "item_defs":      { "key": "code",        "owner": "git", "columns": ["code", "name", "collection", "description_md", "slot", "tier", "sprite_id", "price_coins", "active"] }
 }
 ```
@@ -1140,6 +1142,22 @@ bun run seed:apply --env prod --apply --table item_defs
 `pos/data/menu-chrome.json` (тема, бренд, стакани, акція — те, що напоями не
 є) і кладе готовий `points/<point>/menu.json` у R2. Звідти ж беруться ціни
 для звірки каталогу каси (`checkbox.md`).
+
+**Код напою збирається з двох частин** (23.09.2026). У `drinks` лежить
+лише номер позиції — `slot`, «033». Нумерацію задає оператор машини, і на
+всіх машинах вона однакова: 024 — завжди какао. Літеру дає точка
+(`points.machine_letter`): перша машина — «a», друга — «b», а точка — це
+завжди одна машина. Код, який бачить каса й Jetinno, — `machine_letter ||
+slot`, і збирається він лише там, звідки щось виходить назовні: меню
+(`backend/lib/src/menu.js`), звірка каталогу Checkbox (`sync-prices.mjs`),
+емуляція продажу.
+
+Назад дорога інша. `receipt_items.system_code` зберігає те, що написала
+каса («a033»), — це запис факту, і міняти його не можна; поруч лежить
+`slot`, і саме по ньому чек зʼєднується з каталогом. Якби зʼєднання йшло по
+повному коду, друга машина («b033») перестала б знаходити напій — мовчки:
+монети не нарахувались би, а в лозі не було б нічого. Так у нас уже
+зʼявились вигадані коди з «x» — вигадувати їх не можна, номер дає машина.
 
 До цього поруч жив `pos/data/prices.json` із тими самими напоями, і два
 списки розходились: база знала монети, файл — ціну, каса могла не знати ні

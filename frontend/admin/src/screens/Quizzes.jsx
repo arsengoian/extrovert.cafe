@@ -1,6 +1,6 @@
 // Дашборд опитувань: анкета профілю й відгуки про напої
 // (docs/admin_panel.md). Бонусні копії напою рахуються разом з основними —
-// у них той самий system_code.
+// у них той самий номер позиції.
 import { useState } from "react";
 import { api } from "../api.js";
 import { Bars } from "../charts.jsx";
@@ -52,7 +52,7 @@ export function Quizzes() {
         <div className="stack">
           <Card title="Напої" note="скільки відгуків зібрав кожен">
             <Bars
-              items={data.drinks.per_drink.map((d) => ({ label: d.name ?? d.system_code, value: d.n }))}
+              items={data.drinks.per_drink.map((d) => ({ label: d.name ?? d.slot, value: d.n }))}
               color="#4FA8FF"
             />
             <div className="row" style={{ marginTop: 10 }}>
@@ -60,7 +60,7 @@ export function Quizzes() {
                 <select value={drink} onChange={(e) => setDrink(e.target.value)}>
                   <option value="">усі напої</option>
                   {data.drinks.per_drink.map((d) => (
-                    <option key={d.system_code} value={d.system_code}>{d.name ?? d.system_code}</option>
+                    <option key={d.slot} value={d.slot}>{d.name ?? d.slot}</option>
                   ))}
                 </select>
               </label>

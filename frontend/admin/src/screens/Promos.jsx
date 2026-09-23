@@ -118,7 +118,7 @@ export function Promos() {
               <select value={form.drink_code} onChange={set("drink_code")}>
                 <option value="">без картинки</option>
                 {(drinks.data?.drinks ?? []).map((d) => (
-                  <option key={d.system_code} value={d.system_code}>{d.name}</option>
+                  <option key={d.slot} value={d.slot}>{d.name}</option>
                 ))}
               </select>
             </label>

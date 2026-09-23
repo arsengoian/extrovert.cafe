@@ -28,11 +28,12 @@ function pointFromRequest(req) {
 export default async function routes(app) {
   // Меню точки. Кеш короткий: кіоск ходить сюди періодично й порівнює ETag.
   app.get("/points/:id/menu", async (req, reply) => {
-    const point = await pool.query("select id from points where id = $1 and status <> 'retired'", [req.params.id]);
+    const point = await pool.query(
+      "select id, machine_letter from points where id = $1 and status <> 'retired'", [req.params.id]);
     if (!point.rows[0]) fail(404, "no_such_point");
     const client = await pool.connect();
     try {
-      const menu = await buildMenu(client);
+      const menu = await buildMenu(client, point.rows[0].machine_letter);
       reply.header("cache-control", "public, max-age=30");
       return menu;
     } finally {

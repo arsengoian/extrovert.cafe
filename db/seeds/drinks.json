@@ -1,6 +1,6 @@
 [
   {
-    "system_code": "a033",
+    "slot": "033",
     "name": "Еспресо",
     "vol": "30 мл",
     "price_uah": 35,
@@ -14,7 +14,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a901",
+    "slot": "901",
     "name": "Еспресо з бонусами",
     "vol": "30 мл",
     "price_uah": 70,
@@ -28,7 +28,7 @@
     "is_bonus": true
   },
   {
-    "system_code": "a027",
+    "slot": "027",
     "name": "Лунго",
     "vol": "60 мл",
     "price_uah": 35,
@@ -42,7 +42,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a026",
+    "slot": "026",
     "name": "Подвійний еспресо",
     "vol": "80 мл",
     "price_uah": 40,
@@ -56,7 +56,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a034",
+    "slot": "034",
     "name": "Американо",
     "vol": "150 мл",
     "price_uah": 40,
@@ -70,7 +70,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a902",
+    "slot": "902",
     "name": "Американо з бонусами",
     "vol": "150 мл",
     "price_uah": 80,
@@ -84,7 +84,7 @@
     "is_bonus": true
   },
   {
-    "system_code": "a0102",
+    "slot": "0102",
     "name": "Еспресо з молоком",
     "vol": "100 мл",
     "price_uah": 40,
@@ -98,7 +98,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a036",
+    "slot": "036",
     "name": "Американо з молоком",
     "vol": "150 мл",
     "price_uah": 45,
@@ -112,7 +112,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a038",
+    "slot": "038",
     "name": "Капучино",
     "vol": "260 мл",
     "price_uah": 50,
@@ -126,7 +126,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a903",
+    "slot": "903",
     "name": "Капучино з бонусами",
     "vol": "260 мл",
     "price_uah": 100,
@@ -140,7 +140,7 @@
     "is_bonus": true
   },
   {
-    "system_code": "a015",
+    "slot": "015",
     "name": "Мокачино",
     "vol": "280 мл",
     "price_uah": 45,
@@ -154,7 +154,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a039",
+    "slot": "039",
     "name": "Лате",
     "vol": "260 мл",
     "price_uah": 50,
@@ -168,7 +168,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a904",
+    "slot": "904",
     "name": "Лате з бонусами",
     "vol": "260 мл",
     "price_uah": 100,
@@ -182,7 +182,7 @@
     "is_bonus": true
   },
   {
-    "system_code": "a017",
+    "slot": "017",
     "name": "Флет-вайт",
     "vol": "220 мл",
     "price_uah": 55,
@@ -196,7 +196,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a024",
+    "slot": "024",
     "name": "Какао",
     "vol": "260 мл",
     "price_uah": 50,
@@ -210,7 +210,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a022",
+    "slot": "022",
     "name": "Гарячий шоколад",
     "vol": "260 мл",
     "price_uah": 50,
@@ -224,7 +224,7 @@
     "is_bonus": false
   },
   {
-    "system_code": "a018",
+    "slot": "018",
     "name": "Ірландський віскі",
     "vol": "280 мл",
     "price_uah": 50,

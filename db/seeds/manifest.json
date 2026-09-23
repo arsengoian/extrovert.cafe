@@ -11,10 +11,10 @@
     ]
   },
   "drinks": {
-    "key": "system_code",
+    "key": "slot",
     "owner": "git",
     "columns": [
-      "system_code",
+      "slot",
       "name",
       "vol",
       "price_uah",

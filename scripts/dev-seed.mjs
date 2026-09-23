@@ -112,7 +112,8 @@ if (owned === 0) {
 // Той самий шлях, що й у проді: чек → bonus_grant → гравець його забрав.
 const [receipts] = await sql`select count(*)::int as n from receipts`;
 if (receipts.n === 0) {
-  const drinks = await sql`select system_code, name, price_uah from drinks where active order by sort_order limit 2`;
+  const drinks = await sql`select slot, name, price_uah from drinks where active order by sort_order limit 2`;
+  const [{ machine_letter: letter }] = await sql`select machine_letter from points where id = 'kyiv-01'`;
   const [receipt] = await sql`
     insert into receipts (point_id, checkbox_receipt_id, fiscal_date, total_sum, source, tax_url)
     values ('kyiv-01', gen_random_uuid(), now() - interval '2 hours',
@@ -120,8 +121,10 @@ if (receipts.n === 0) {
             'https://cabinet.tax.gov.ua/cashregs/check')
     returning id`;
   for (const d of drinks) {
-    await sql`insert into receipt_items (receipt_id, system_code, name, qty, price_uah, sum_uah)
-              values (${receipt.id}, ${d.system_code}, ${d.name}, 1, ${d.price_uah}, ${d.price_uah})`;
+    // system_code — те, що написала б каса (літера машини + номер позиції),
+    // slot — по чому шукається напій у каталозі.
+    await sql`insert into receipt_items (receipt_id, system_code, slot, name, qty, price_uah, sum_uah)
+              values (${receipt.id}, ${letter + d.slot}, ${d.slot}, ${d.name}, 1, ${d.price_uah}, ${d.price_uah})`;
   }
   await sql`insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, expires_at,
                                       claimed_at, redeemed_by, redeemed_at, status)

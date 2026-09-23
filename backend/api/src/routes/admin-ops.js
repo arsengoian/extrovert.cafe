@@ -209,7 +209,7 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
     const promos = await many(
       `select p.*, d.name as drink_name, d.sprite as drink_sprite
-         from promos p left join drinks d on d.system_code = p.drink_code
+         from promos p left join drinks d on d.slot = p.drink_code
         where p.archived_at is null
         order by p.is_current desc, p.created_at desc`
     );
@@ -273,7 +273,7 @@ export default async function routes(app) {
   app.get("/admin/prices", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const drinks = await many(
-      `select id, system_code, name, vol, price_uah, coins, is_bonus, sprite, cup, color, foam, active, sort_order
+      `select id, slot, name, vol, price_uah, coins, is_bonus, sprite, cup, color, foam, active, sort_order
          from drinks order by sort_order, name`
     );
     const points = await many("select id, name, short_address from points where status = 'live' order by name");
@@ -306,7 +306,7 @@ export default async function routes(app) {
         const { rows } = await client.query(
           `update drinks set price_uah = $2, coins = coalesce($3, coins), is_bonus = coalesce($4, is_bonus),
                   active = coalesce($5, active)
-             where id = $1 returning id, system_code, price_uah, coins, is_bonus, active`,
+             where id = $1 returning id, slot, price_uah, coins, is_bonus, active`,
           [d.id, price, d.coins ?? null, d.is_bonus ?? null, d.active ?? null]
         );
         if (rows[0]) out.push(rows[0]);

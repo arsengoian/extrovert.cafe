@@ -244,7 +244,7 @@ ALTER SEQUENCE public.device_telemetry_id_seq OWNED BY public.device_telemetry.i
 
 CREATE TABLE public.drinks (
     id bigint NOT NULL,
-    system_code text NOT NULL,
+    slot text NOT NULL,
     name text NOT NULL,
     vol text,
     price_uah numeric(10,2) NOT NULL,
@@ -259,6 +259,13 @@ CREATE TABLE public.drinks (
     CONSTRAINT drinks_coins_check CHECK ((coins >= 0)),
     CONSTRAINT drinks_price_uah_check CHECK ((price_uah >= (0)::numeric))
 );
+
+
+--
+-- Name: COLUMN drinks.slot; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.drinks.slot IS 'Номер позиції в машині без літери: код = points.machine_letter || slot';
 
 
 --
@@ -870,7 +877,9 @@ CREATE TABLE public.points (
     last_seen_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     short_address text,
+    machine_letter text DEFAULT 'a'::text NOT NULL,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
+    CONSTRAINT points_machine_letter_check CHECK ((machine_letter ~ '^[a-z]$'::text)),
     CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text])))
 );
 
@@ -880,6 +889,13 @@ CREATE TABLE public.points (
 --
 
 COMMENT ON COLUMN public.points.short_address IS 'Адреса для рядка вибору точки в застосунку: вулиця й будинок без міста';
+
+
+--
+-- Name: COLUMN points.machine_letter; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.points.machine_letter IS 'Літера машини для кодів Checkbox/Jetinno: код позиції = літера + номер';
 
 
 --
@@ -1074,8 +1090,16 @@ CREATE TABLE public.receipt_items (
     qty numeric(10,3) NOT NULL,
     price_uah numeric(10,2) NOT NULL,
     sum_uah numeric(12,2) NOT NULL,
-    is_bonus_drink boolean DEFAULT false NOT NULL
+    is_bonus_drink boolean DEFAULT false NOT NULL,
+    slot text
 );
+
+
+--
+-- Name: COLUMN receipt_items.slot; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.receipt_items.slot IS 'Номер позиції без літери машини: саме по ньому шукається drinks.slot';
 
 
 --
@@ -1994,7 +2018,7 @@ ALTER TABLE ONLY public.drinks
 --
 
 ALTER TABLE ONLY public.drinks
-    ADD CONSTRAINT drinks_system_code_key UNIQUE (system_code);
+    ADD CONSTRAINT drinks_system_code_key UNIQUE (slot);
 
 
 --
@@ -2746,6 +2770,13 @@ CREATE INDEX receipt_items_receipt_id_idx ON public.receipt_items USING btree (r
 
 
 --
+-- Name: receipt_items_slot_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX receipt_items_slot_idx ON public.receipt_items USING btree (slot);
+
+
+--
 -- Name: receipt_items_system_code_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3161,7 +3192,7 @@ ALTER TABLE ONLY public.problem_reports
 --
 
 ALTER TABLE ONLY public.promos
-    ADD CONSTRAINT promos_drink_code_fkey FOREIGN KEY (drink_code) REFERENCES public.drinks(system_code);
+    ADD CONSTRAINT promos_drink_code_fkey FOREIGN KEY (drink_code) REFERENCES public.drinks(slot);
 
 
 --
@@ -3436,4 +3467,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923100000'),
     ('20260923110000'),
     ('20260923120000'),
-    ('20260923140000');
+    ('20260923140000'),
+    ('20260923160000'),
+    ('20260923170000'),
+    ('20260923171000');

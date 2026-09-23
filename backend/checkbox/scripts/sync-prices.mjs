@@ -35,6 +35,13 @@
 // Джерело цін — таблиця `drinks` (21.09.2026). Раніше читався
 // pos/data/prices.json, і той самий каталог жив у двох місцях: база знала
 // монети, файл — ціну, а каса могла не знати ні того, ні того.
+//
+// Код товару збирається тут, а не лежить у базі (23.09.2026): у `drinks`
+// лише номер позиції, однаковий на всіх машинах, а літеру дає машина
+// (points.machine_letter). Каса на кожній машині своя, тож той самий напій
+// стоїть у каталозі стільки разів, скільки машин: «a033», «b033». Поки
+// машина одна, це один код — але зашивати «a» в код не можна, саме так у
+// нас і з'явились вигадані коди з «x».
 
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -162,9 +169,17 @@ async function main() {
   // позиція, якої в машині ще немає: заводити її в касі зарано, а зайвий
   // товар у каталозі потім прибирати руками.
   const { rows: drinks } = await pool.query(
-    "select system_code, name, price_uah, active from drinks where active order by sort_order, name"
+    "select slot, name, price_uah, active from drinks where active order by sort_order, name"
   );
   if (!drinks.length) throw new Error("у базі немає активних напоїв — звіряти нема з чим");
+
+  // Літери беремо з живих точок, а не з константи: додасться друга машина —
+  // додасться й другий набір кодів, без правок у скрипті.
+  const { rows: machines } = await pool.query(
+    "select distinct machine_letter as letter from points where status = 'live' order by 1"
+  );
+  const letters = machines.map((m) => m.letter);
+  if (!letters.length) throw new Error("немає жодної живої точки — невідомо, на якій машині коди");
 
   // Хто ми насправді. Змінні в .env легко переплутати місцями, а Checkbox
   // сам знає, тестовий це касир чи ні, — довіряємо йому, а не назві змінної.
@@ -176,36 +191,37 @@ async function main() {
       : "CHECKBOX_TEST_LOGIN належить СПРАВЖНЬОМУ касиру (is_test=false) — перевірте .env");
   }
   const org = me.body.organization?.title ?? "?";
-  console.log(`${API} · ${PROD ? "справжній" : "тестовий"} касир · «${org}» · ${APPLY ? "ЗАПИС у живий каталог" : "лише показати різницю"}`);
+  console.log(`${API} · ${PROD ? "справжній" : "тестовий"} касир · «${org}» · машини: ${letters.join(", ")} · ${APPLY ? "ЗАПИС у живий каталог" : "лише показати різницю"}`);
 
   const catalog = await fetchCatalog();
   // Група й податки — з уже наявного товару: своїх довідників у нас немає,
   // а новий товар без групи стане в касі окремо від решти.
   const sample = [...catalog.values()].find(Boolean) ?? null;
   const changes = [], same = [], missing = [], noCode = [], suspicious = [], branchPriced = [];
-  for (const d of drinks) {
-    if (!d.system_code) { noCode.push(d.name); continue; }
-    const good = catalog.get(d.system_code);
+  for (const letter of letters) for (const d of drinks) {
+    if (!d.slot) { noCode.push(d.name); continue; }
+    const code = letter + d.slot;
+    const good = catalog.get(code);
     if (good === undefined) {
-      missing.push({ name: d.name, code: d.system_code, price: uahToKop(Number(d.price_uah)), active: d.active });
+      missing.push({ name: d.name, code, price: uahToKop(Number(d.price_uah)), active: d.active });
       continue;
     }
-    if (good === null) { suspicious.push(`${d.name} (${d.system_code}): код трапляється в каталозі кілька разів, не чіпаю`); continue; }
+    if (good === null) { suspicious.push(`${d.name} (${code}): код трапляється в каталозі кілька разів, не чіпаю`); continue; }
 
     const from = good.price, to = uahToKop(Number(d.price_uah));
     // PUT міняє базову ціну товару. Якщо у філії своя ціна, каса продаватиме
     // за нею — «оновлено» було б неправдою, тому таке лише показуємо.
     const branch = (good.branches_info ?? []).filter((b) => Number.isInteger(b.price) && b.price !== to);
-    if (branch.length) branchPriced.push(`${d.name} (${d.system_code}): ${branch.map((b) => kopToUah(b.price)).join(", ")} ₴`);
+    if (branch.length) branchPriced.push(`${d.name} (${code}): ${branch.map((b) => kopToUah(b.price)).join(", ")} ₴`);
     if (from === to) { same.push(d.name); continue; }
     // Реальні зміни цін — десятки відсотків. Різниця в рази майже напевно
     // означає, що хтось сплутав гривні з копійками (тут або в API).
     const ratio = from > 0 ? to / from : Infinity;
     if (!(ratio <= 5 && ratio >= 0.2)) {
-      suspicious.push(`${d.name} (${d.system_code}): ${from} → ${to} коп. — різниця ×${ratio.toFixed(1)}, не чіпаю`);
+      suspicious.push(`${d.name} (${code}): ${from} → ${to} коп. — різниця ×${ratio.toFixed(1)}, не чіпаю`);
       continue;
     }
-    changes.push({ name: d.name, code: d.system_code, id: good.id, from, to });
+    changes.push({ name: d.name, code, id: good.id, from, to });
   }
 
   if (changes.length) {
@@ -215,7 +231,7 @@ async function main() {
     console.log(`\nРізниці немає: ${same.length} цін уже збігаються з каталогом напоїв`);
   }
   if (changes.length && same.length) console.log(`Без змін: ${same.length}`);
-  if (noCode.length) console.log(`Без system_code (пропущено): ${noCode.join(", ")}`);
+  if (noCode.length) console.log(`Без номера позиції (пропущено): ${noCode.join(", ")}`);
   // Створювати товари скрипт не вміє й не повинен: новий товар — це ще
   // група й податки, які заводяться в кабінеті, а не з меню кіоску.
   if (missing.length) {

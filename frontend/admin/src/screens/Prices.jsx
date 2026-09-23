@@ -97,7 +97,7 @@ export function Prices() {
           <div className="confirm" onClick={(e) => e.stopPropagation()}>
             <b>{toggle.active ? "Сховати з меню?" : "Повернути в меню?"}</b>
             <p>
-              {toggle.name} ({toggle.system_code}).{" "}
+              {toggle.name} ({toggle.slot}).{" "}
               {toggle.active
                 ? "Картка зникне з екрана точки після наступного викочування меню. У касі товар лишиться."
                 : "Картка з'явиться на екрані точки після наступного викочування меню."}
@@ -113,7 +113,7 @@ export function Prices() {
       <div className="wrap-cols">
         <Table
           columns={[
-            { key: "name", title: "напій", render: (d) => <span><b>{d.name}</b><small>{d.system_code} · {d.vol ?? "—"}</small></span> },
+            { key: "name", title: "напій", render: (d) => <span><b>{d.name}</b><small>{d.slot} · {d.vol ?? "—"}</small></span> },
             {
               key: "price_uah", title: "ціна, ₴", num: true, render: (d) => (
                 <input

@@ -50,17 +50,26 @@ async function deployNext(client, log) {
     throw e;
   }
 
-  const menu = await buildMenu(client).catch(async (e) => {
-    await client.query(
-      "update menu_deployments set status = 'failed', finished_at = now() where id = $1",
-      [deployment.id]
-    );
-    throw e;
-  });
-  const body = Buffer.from(JSON.stringify(menu, null, 2) + "\n");
+  // Меню тепер різне на різних машинах: коди позицій збираються з літери
+  // точки (points.machine_letter), а решта вмісту спільна. Тому будуємо
+  // його всередині циклу по цілях, а не один раз на деплоймент.
+  const menuFor = async (letter) => {
+    const menu = await buildMenu(client, letter).catch(async (e) => {
+      await client.query(
+        "update menu_deployments set status = 'failed', finished_at = now() where id = $1",
+        [deployment.id]
+      );
+      throw e;
+    });
+    const body = Buffer.from(JSON.stringify(menu, null, 2) + "\n");
+    return { menu, body };
+  };
 
   const { rows: targets } = await client.query(
-    "select id, point_id, kind from menu_deployment_targets where deployment_id = $1 and status = 'queued'",
+    `select t.id, t.point_id, t.kind, p.machine_letter
+       from menu_deployment_targets t
+       join points p on p.id = t.point_id
+      where t.deployment_id = $1 and t.status = 'queued'`,
     [deployment.id]
   );
 
@@ -68,6 +77,7 @@ async function deployNext(client, log) {
   for (const t of targets) {
     if (t.kind !== "r2") continue;          // checkbox і jetinno — окремі роботи
     try {
+      const { menu, body } = await menuFor(t.machine_letter);
       // 30 секунд кешу — щоб зміна доїхала на екран навіть тоді, коли подія
       // menu.deployed до кіоска не дійшла (docs/services.md §4).
       await put({

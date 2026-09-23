@@ -177,19 +177,19 @@ export default async function routes(app) {
       [from, to]
     );
     const drinks = await many(
-      `select q.answers, i.system_code, d.name
+      `select q.answers, i.slot, d.name
          from quiz_drink_responses q
          join receipt_items i on i.id = q.receipt_item_id
-         left join drinks d on d.system_code = i.system_code
-        where q.created_at between $1 and $2 and ($3 = '' or i.system_code = $3)`,
+         left join drinks d on d.slot = i.slot
+        where q.created_at between $1 and $2 and ($3 = '' or i.slot = $3)`,
       [from, to, drink]
     );
     // Бонусні копії напою рахуються разом з основними — так і просив док:
-    // system_code у них той самий.
+    // номер позиції в них той самий.
     const perDrink = await many(
-      `select i.system_code, coalesce(d.name, i.name) as name, count(*)::int as n
+      `select i.slot, coalesce(d.name, i.name) as name, count(*)::int as n
          from quiz_drink_responses q join receipt_items i on i.id = q.receipt_item_id
-         left join drinks d on d.system_code = i.system_code
+         left join drinks d on d.slot = i.slot
         where q.created_at between $1 and $2
         group by 1, 2 order by n desc`,
       [from, to]
@@ -215,7 +215,7 @@ export default async function routes(app) {
           from quiz_drink_responses q
           join users u on u.id = q.user_id
           join receipt_items i on i.id = q.receipt_item_id
-          left join drinks d on d.system_code = i.system_code)
+          left join drinks d on d.slot = i.slot)
        order by created_at desc limit 200`
     );
     return { responses: rows };
