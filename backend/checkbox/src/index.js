@@ -51,43 +51,37 @@ const timingSafeEq = (a, b) => {
 // base64, підпис у base64 чи hex. Безпеки це не послаблює — усі варіанти
 // однаково вимагають знати секрет, — а в лозі лишається той, що збігся, щоб
 // звузити перевірку, коли стане ясно.
-const KEY_FORMS = (key) => [
-  ["text", Buffer.from(key, "utf8")],
-  ["hex", /^[0-9a-f]+$/i.test(key) && key.length % 2 === 0 ? Buffer.from(key, "hex") : null],
-  ["base64", /^[A-Za-z0-9+/=_-]+$/.test(key) ? Buffer.from(key, "base64") : null],
-].filter(([, buf]) => buf && buf.length);
+// Підпис вебхука: base64(HMAC-SHA256(ключ, тіло)) у заголовку
+// x-request-signature (wiki.checkbox.ua/uk/api/webhook). Саме ім'я
+// заголовка й було причиною того, що 22–23.09.2026 усі вебхуки відлітали з
+// 401: читали x-signature, якого Checkbox не шле, і бачили порожній рядок.
+const signatureOf = (req) => String(req.headers["x-request-signature"] ?? "");
 
-function matchSignature(key, raw, signature) {
-  if (!key || !signature) return null;
-  for (const [form, secret] of KEY_FORMS(key)) {
-    for (const digest of ["base64", "hex"]) {
-      const mine = crypto.createHmac("sha256", secret).update(raw, "utf8").digest(digest);
-      if (timingSafeEq(signature, mine)) return `${form}/${digest}`;
-    }
-  }
-  return null;
+function signatureOk(key, raw, signature) {
+  if (!key || !signature) return false;
+  const mine = crypto.createHmac("sha256", key).update(raw, "utf8").digest("base64");
+  return timingSafeEq(signature, mine);
 }
-let knownForm = null;
 
 app.get("/healthz", async () => ({ ok: true, service: "checkbox" }));
 
 app.post("/webhook/checkbox", async (req, reply) => {
   const raw = req.rawBody ?? "";
-  const signature = String(req.headers["x-signature"] ?? "");
+  const signature = signatureOf(req);
   let key = await webhookKey();
-  let form = matchSignature(key, raw, signature);
+  let ok = signatureOk(key, raw, signature);
   // Не збіглося — можливо, вебхук перереєстрували: перечитуємо ключ один раз.
-  if (!form) {
+  if (!ok) {
     key = await webhookKey({ fresh: true });
-    form = matchSignature(key, raw, signature);
+    ok = signatureOk(key, raw, signature);
   }
-  if (!form) {
-    log.warn("підпис не збігся", { ip: req.ip, ключ: key ? "є" : "немає", підпис: signature ? signature.length : 0 });
+  if (!ok) {
+    // У лог — які підписоподібні заголовки взагалі прийшли: якщо Checkbox
+    // колись перейменує заголовок, це видно буде одразу, а не через добу
+    // мовчазних 401.
+    const seen = Object.keys(req.headers).filter((h) => h.includes("sign"));
+    log.warn("підпис не збігся", { ip: req.ip, ключ: key ? "є" : "немає", підпис: signature.length, заголовки: seen });
     return reply.code(401).send({ error: "bad_signature" });
-  }
-  if (form !== knownForm) {
-    knownForm = form;
-    log.info("підпис вебхука сходиться", { формат: form });
   }
 
   const body = req.body ?? {};
