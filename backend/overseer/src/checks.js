@@ -42,11 +42,18 @@ export async function checkWebhook() {
     if (!auth.ok) return { state: "unreachable", message: `signin HTTP ${auth.status}` };
     const { access_token: token } = await auth.json();
 
-    const res = await fetch(`${api}/api/v1/webhook`, { headers: { authorization: `Bearer ${token}` } });
-    // 404 і 422 — «вебхука немає» або «не можемо спитати цим токеном»
-    // (для GET потрібен ще й X-License-Key каси). Це не поломка, тому й не
-    // алерт: стан «невідомо» просто мовчить.
-    if (res.status === 404 || res.status === 422) return { state: "unknown", message: "вебхук не зареєстрований" };
+    // X-License-Key обов'язковий: налаштування вебхука зберігаються на касу,
+    // а не на організацію. Без нього Checkbox відповідає 422, і дашборд
+    // півдоби писав «не зареєстрований» про робочий вебхук (23.09.2026).
+    const license = process.env.CHECKBOX_LICENSE_KEY;
+    const res = await fetch(`${api}/api/v1/webhook`, {
+      headers: { authorization: `Bearer ${token}`, ...(license ? { "X-License-Key": license } : {}) },
+    });
+    if (res.status === 422) return { state: "unknown", message: "не спитати: немає CHECKBOX_LICENSE_KEY" };
+    // 404 — на цій касі вебхука справді немає. Це не поломка (чеки підбирає
+    // опитування), але знати про це треба: вебхук реєструють на кожну касу
+    // окремо.
+    if (res.status === 404) return { state: "unknown", message: "на цій касі вебхук не зареєстрований" };
     if (!res.ok) return { state: "unknown", message: `webhook HTTP ${res.status}` };
     const hook = await res.json();
     if (!hook.last_error_date) return { state: "ok", message: "без помилок" };
