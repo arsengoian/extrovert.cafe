@@ -5,8 +5,10 @@
 //   bun scripts/dev-plant.mjs --stage 1 --reset     # починаємо з листя
 //   bun scripts/dev-plant.mjs --stage 2             # лишити листя, садити гілки
 //   bun scripts/dev-plant.mjs --supply 9            # по 9 одиниць кожного
+//   bun scripts/dev-plant.mjs --skip                # лише перемотати час
 //
-// Тільки local: у проді такого шляху немає й бути не має.
+// Проти прод-бази запускається через scripts/prod-db.sh (make d-plant),
+// бо роута для цього немає й не буде: це пряма правка бази.
 import { SQL } from "bun";
 
 const args = process.argv.slice(2);
@@ -19,9 +21,14 @@ const url = process.env.DATABASE_URL_LOCAL || process.env.DATABASE_URL;
 if (!url) throw new Error("немає DATABASE_URL_LOCAL у .env");
 const sql = new SQL(url);
 
-const nickname = String(flag("nickname", "dev"));
-const [user] = await sql`select id, nickname from users where nickname = ${nickname}`;
-if (!user) throw new Error(`немає гравця ${nickname} — спершу bun scripts/dev-seed.mjs`);
+// Гравця шукаємо за поштою або нікнеймом: нікнейм кирилицею через make на
+// Windows приїжджає знаками питання, тож для прод-команд надійніша пошта.
+const email = flag("email", null);
+const nickname = email ? null : String(flag("nickname", "dev"));
+const [user] = email
+  ? await sql`select * from users where email = ${String(email)} and deleted_at is null`
+  : await sql`select * from users where nickname = ${nickname} and deleted_at is null`;
+if (!user) throw new Error(`немає гравця ${email ?? nickname}`);
 
 const [plant] = await sql`select * from plants where owner_id = ${user.id} order by created_at limit 1`;
 if (!plant) throw new Error("у гравця немає кавенятка");
@@ -29,6 +36,18 @@ if (!plant) throw new Error("у гравця немає кавенятка");
 const stage = flag("stage");
 const reset = flag("reset", false);
 const supply = flag("supply");
+// --skip нічого не міняє, крім часу: кущ лишається як є, але добовий гейт
+// уже минув, і полив не «щойно був». Саме це потрібно, щоб пройти цикл
+// росту за один вечір, не підміняючи стадію руками.
+const skip = flag("skip", false);
+
+if (skip) {
+  await sql`
+    update plants
+       set last_stage_transition_at = now() - interval '2 days',
+           last_watered_at = now() - interval '2 days'
+     where id = ${plant.id}`;
+}
 
 if (supply !== null) {
   const n = Number(supply) || 9;

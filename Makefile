@@ -15,6 +15,9 @@ else
 BUN ?= bun
 endif
 
+# Команди для ручних перевірок на проді — окремим файлом (make d-help).
+include dev.mk
+
 .DEFAULT_GOAL := help
 .PHONY: help up down logs ps migrate migrate-status seed seed-pull seed-apply \
         plant api ws scheduler checkbox overseer client build \
@@ -81,6 +84,8 @@ help:
 	@echo   make act-knowledge залити базу знань у прод-сховище через act
 	@echo   make env-prod-check чи збігаються ключі .env.prod з .env.example
 	@echo   make env-push      залити .env.prod на сервер, .env - симлінк на нього
+	@echo
+	@echo   make d-help        ручні перевірки на проді: покупка, час, гравець
 	@echo ---------------------------------------------------------------
 
 # Лише інфраструктура: сервіси локально крутяться через bun (make api, ws…),
