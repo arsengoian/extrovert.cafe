@@ -26,6 +26,24 @@ export function Beat({ history, title }) {
   );
 }
 
+// Підписи під смужкою: коли починається історія, середина й «зараз».
+// Без них пульс — просто набір квадратиків: незрозуміло, це падало вчора
+// чи п'ять хвилин тому.
+export function BeatScale({ history }) {
+  const step = history?.step ?? 1800_000;
+  const from = history?.from ?? 0;
+  const len = (history?.line ?? "").length;
+  if (!len) return null;
+  const at = (i) => new Date(from + i * step).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
+  return (
+    <div className="beat-scale">
+      <span>{at(0)}</span>
+      <span>{at(Math.floor(len / 2))}</span>
+      <span>зараз</span>
+    </div>
+  );
+}
+
 // ms — середня затримка проби за останнє відро; у компонентів без HTTP
 // (черга outbox, heartbeat) її немає, і тоді колонка просто порожня.
 export const BeatRow = ({ ok, name, note, value, history, ms = null }) => (

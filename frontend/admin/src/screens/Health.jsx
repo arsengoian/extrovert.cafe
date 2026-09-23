@@ -5,7 +5,7 @@
 // падіння — у підказці на комірці.
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, BeatRow } from "../charts.jsx";
+import { Beat, BeatRow, BeatScale } from "../charts.jsx";
 import { Card, Empty, Kpi, fmt, useData } from "../ui.jsx";
 
 const score = (s) => (s ? `${s.ok} / ${s.total}` : "—");
@@ -49,25 +49,27 @@ export function Health() {
         />
       </div>
 
-      <div className="wrap-cols">
+      {/* Одна колонка: у дві смужка пульсу стискалась до нечитабельного,
+          а поруч із нею ще й назва та затримка. */}
+      <div className="stack">
         <Card title="Мікросервіси" note="останні 7 днів">
           {data.services.map((s) => (
             <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
           ))}
+          <BeatScale history={data.services[0]?.history} />
         </Card>
-
-        <div className="stack">
-          <Card title="Фронтенди" note="7 днів · відповідь">
-            {data.frontends.map((s) => (
-              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
-            ))}
-          </Card>
-          <Card title="Компоненти" note="7 днів">
-            {data.components.map((s) => (
-              <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
-            ))}
-          </Card>
-        </div>
+        <Card title="Фронтенди" note="7 днів · відповідь">
+          {data.frontends.map((s) => (
+            <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
+          ))}
+          <BeatScale history={data.frontends[0]?.history} />
+        </Card>
+        <Card title="Компоненти" note="7 днів">
+          {data.components.map((s) => (
+            <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
+          ))}
+          <BeatScale history={data.components[0]?.history} />
+        </Card>
       </div>
 
       <Card title="Телеметрія POS" note="7 днів · крок 30 хв" className="" style={{ marginTop: 12 }}>

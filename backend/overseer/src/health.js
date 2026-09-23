@@ -140,7 +140,8 @@ export async function sampleHealth({ pool, redis, log }) {
   }
 
   // Відро — півгодини: 00:00–00:29 і 00:30–00:59.
-  const values = targets.map((_, i) => `(${i * 4 + 1}, ${i * 4 + 2}, ${i * 4 + 3}, ${i * 4 + 4})`).join(", ");
+  const D = "$";
+  const values = targets.map((_, i) => `(${D}${i * 4 + 1}, ${D}${i * 4 + 2}, ${D}${i * 4 + 3}, ${D}${i * 4 + 4})`).join(", ");
   const params = targets.flatMap(([target, ok, detail, ms = null]) => [target, ok, detail, ms]);
   await pool.query(
     `insert into health_samples (target, bucket_start, ok, detail, ms_total, ms_count)
