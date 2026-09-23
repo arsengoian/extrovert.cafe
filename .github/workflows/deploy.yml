@@ -168,7 +168,9 @@ jobs:
         if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
         env:
           SOURCE_HASH: ${{ steps.src.outputs.hash }}
-        run: ./raspberry/pi/stack/make-release.sh
+        # Через sh, а не ./: у git біт виконання є, але act монтує робочу
+        # теку з Windows, де його не буває, і крок падав із exit 126.
+        run: sh raspberry/pi/stack/make-release.sh
 
       - uses: oven-sh/setup-bun@v2
         if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
