@@ -2,7 +2,7 @@
 // через Telegram»). Зліва — хто пише, згори ті, де останнє слово за
 // гравцем; справа — розмова й поле відповіді. Відповідь іде гравцю в
 // Telegram від імені бота.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { go } from "./app.jsx";
 import { connectEvents } from "./ws.js";
@@ -36,6 +36,17 @@ function Thread({ id, onChanged }) {
 
   const load = useCallback(() => api.supportThread(id).then(setData).catch((e) => setError(e.message)), [id]);
   useEffect(() => { setData(null); setError(null); load(); }, [load]);
+
+  // Стрічку тримаємо внизу: нове повідомлення інакше лягало під згин, і
+  // виглядало так, ніби нічого не прийшло (скарга власника 23.09.2026).
+  // Прокручуємо на кожну зміну кількості повідомлень — і при відкритті
+  // треда теж, бо цікавить завжди останнє.
+  const feed = useRef(null);
+  const count = data?.messages?.length ?? 0;
+  useEffect(() => {
+    const el = feed.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [count, id]);
 
   const send = async () => {
     const body = text.trim();
@@ -76,7 +87,7 @@ function Thread({ id, onChanged }) {
           {t.status === "open" ? "Закрити" : "Відкрити знову"}
         </button>
       </div>
-      <div className="messages">
+      <div className="messages" ref={feed}>
         {data.messages.map((m) => (
           <div key={m.id} className={`msg ${m.direction}`}>
             {m.body && <div>{m.body}</div>}

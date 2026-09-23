@@ -106,11 +106,21 @@ export default async function routes(app) {
       points: points.map((p) => {
         const list = byTarget.get(`point:${p.id}`) ?? [];
         const last = list.at(-1);
+        // Поруч зі зв'язком — монітор і відеопотік: те, чого «точка
+        // озивається» не показує (overseer/health.js, 23.09.2026).
+        const extra = (suffix) => {
+          const rows = byTarget.get(`point:${p.id}:${suffix}`) ?? [];
+          if (!rows.length) return null;
+          const tail = rows.at(-1);
+          return { ok: tail.ok, detail: tail.detail ?? null, history: series(rows) };
+        };
         return {
           ...p,
           ok: last ? last.ok : null,
           detail: last?.detail ?? null,
           history: series(list),
+          monitor: extra("monitor"),
+          video: extra("video"),
         };
       }),
     };

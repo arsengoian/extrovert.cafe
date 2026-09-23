@@ -75,6 +75,9 @@ table { border-collapse: collapse; width: 100% }
 
 /* ── рядок зі смужкою пульсу ────────────────────────────────────────── */
 .beat-row { display: flex; align-items: center; gap: 9px; padding: 5px 0 }
+/* Підрядок точки: монітор і відеопотік під самою точкою, з відступом. */
+.beat-row.sub { padding-top: 0 }
+.beat-row.sub > .name { padding-left: 18px }
 .beat-row > .name { display: flex; align-items: center; gap: 7px; width: 150px; flex: none; font-size: 11.5px; font-weight: 700 }
 .beat-row > .value { margin-left: 10px; width: 210px; flex: none; text-align: right; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .beat-scale { display: flex; justify-content: space-between; padding: 2px 0 0 159px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums }

@@ -145,6 +145,26 @@ export async function sampleHealth({ pool, redis, log }) {
   for (const p of points) {
     const ok = p.silent !== null && p.silent < SILENT_MINUTES;
     targets.push([`point:${p.id}`, ok, ok ? null : p.silent === null ? "не озивалась жодного разу" : `мовчить ${Math.round(p.silent)} хв`]);
+
+    // «Точка на зв'язку» — це лише про малину: кіоск може бездоганно
+    // малювати у вимкнений монітор, а камери може не бути взагалі. Тому
+    // поруч ще два ряди з тієї ж телеметрії (прохання власника 23.09.2026).
+    // Мовчить точка — рядів не буде зовсім: додавати сюди false означало б
+    // «монітор вимкнено», хоча ми просто не знаємо.
+    if (!ok) continue;
+    const { rows: [last] } = await pool.query(
+      `select metrics from device_telemetry
+        where point_id = $1 and source = 'pi'
+        order by measured_at desc limit 1`,
+      [p.id]
+    );
+    const m = last?.metrics ?? {};
+    if (m.monitor_on !== undefined && m.monitor_on !== null) {
+      targets.push([`point:${p.id}:monitor`, Boolean(m.monitor_on), m.monitor_on ? null : "монітор вимкнено або від'єднано"]);
+    }
+    if (m.video_ok !== undefined && m.video_ok !== null) {
+      targets.push([`point:${p.id}:video`, Boolean(m.video_ok), m.video_ok ? null : "відеопотоку немає"]);
+    }
   }
 
   // Відро — півгодини: 00:00–00:29 і 00:30–00:59.

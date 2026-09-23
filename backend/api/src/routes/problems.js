@@ -6,6 +6,15 @@ import { userFromRequest } from "../auth.js";
 import { fail } from "../errors.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { presign } from "@extrovert/lib/r2.js";
+import { redisClient } from "@extrovert/lib/redis.js";
+
+const redis = redisClient();
+
+// Скільки підписів на завантаження дозволяємо з однієї адреси за годину.
+// Підпис анонімний, тож це єдине, що стоїть між нами й чужим бакетом;
+// людині з реальною поламкою вистачає одного-двох (23.09.2026).
+const GUEST_UPLOADS_PER_HOUR = 5;
+const USER_UPLOADS_PER_HOUR = 20;
 
 export const CATEGORIES = ["coffee_machine", "monitor", "site", "supplies", "idea"];
 
@@ -30,9 +39,19 @@ export default async function routes(app) {
   // Телефон заливає фото САМ, за підписаним посиланням: кілька мегабайтів
   // через api не мають сенсу, а підпис живе хвилини — переслати «на потім»
   // його не вийде.
+  // Фото прикладає й той, хто ще не входив: «машина не видала каву» пишуть
+  // саме тоді, коли акаунта ще немає, а знімок екрана автомата — найкорисніше
+  // в такій скарзі (рішення власника 23.09.2026). Захист від чужих
+  // завантажень — не авторизація, а ліміт на адресу плюс випадковий ключ:
+  // сам підпис живе 10 хвилин і вміє рівно один PUT рівно за цим ключем.
   app.post("/problems/photo-url", async (req, reply) => {
     const user = userFromRequest(req);
-    if (!user) fail(401, "unauthorized");        // анонімну скаргу лишаємо без фото
+    const limit = user ? USER_UPLOADS_PER_HOUR : GUEST_UPLOADS_PER_HOUR;
+    const bucketKey = `rl:photo:${user?.id ?? req.ip}`;
+    const used = await redis.incr(bucketKey).catch(() => 0);
+    if (used === 1) await redis.expire(bucketKey, 3600).catch(() => {});
+    if (used > limit) fail(429, "too_many_uploads");
+
     const type = String(req.body?.content_type ?? "");
     const size = Number(req.body?.size ?? 0);
     const ext = PHOTO_TYPES[type];
@@ -40,9 +59,10 @@ export default async function routes(app) {
     if (!(size > 0) || size > PHOTO_MAX_BYTES) fail(400, "too_big", { max: PHOTO_MAX_BYTES });
 
     // Ключ із id гравця й датою: за префіксом видно, чиє фото й коли, а
-    // випадкова частина не дає вгадати чужий ключ.
+    // випадкова частина не дає вгадати чужий ключ. У гостя замість id —
+    // «guest»: прив'язати фото нема до чого, і саме тому ключ випадковий.
     const day = new Date().toISOString().slice(0, 10);
-    const key = `problems/${day}/${user.id}/${crypto.randomUUID()}.${ext}`;
+    const key = `problems/${day}/${user?.id ?? "guest"}/${crypto.randomUUID()}.${ext}`;
     const link = presign({ method: "PUT", purpose: "uploads", key, contentType: type, expiresIn: 600 });
     return { upload_url: link.url, key: link.key, bucket: link.bucket, expires_in: link.expires_in };
   });
@@ -55,10 +75,12 @@ export default async function routes(app) {
     const body = String(req.body?.body ?? "").trim().slice(0, 4000);
     const pointId = req.body?.point_id ?? null;
     // Ключ приймаємо лише свій: інакше чужим ключем можна було б підчепити
-    // до скарги чуже фото.
-    const photoKey = user && typeof req.body?.image_key === "string"
-      && req.body.image_key.startsWith(`problems/`)
-      && req.body.image_key.includes(`/${user.id}/`)
+    // до скарги чуже фото. У гостя «свій» — це гостьовий префікс: id немає,
+    // а вгадати випадковий uuid чужого знімка не вийде.
+    const owns = (key) => (user ? key.includes(`/${user.id}/`) : key.includes("/guest/"));
+    const photoKey = typeof req.body?.image_key === "string"
+      && req.body.image_key.startsWith("problems/")
+      && owns(req.body.image_key)
       ? req.body.image_key
       : null;
 

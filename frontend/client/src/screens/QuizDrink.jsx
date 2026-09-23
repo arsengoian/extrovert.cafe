@@ -25,7 +25,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
   // Без обраної покупки (старе посилання) — перша, про яку ще не питали.
   const item = picked ?? data.items.find((i) => !i.answered) ?? null;
 
-  if (!data.credits || !item) {
+  if (!item) {
     return (
       <div className="stage-pad">
         <div className="panel">
@@ -38,6 +38,10 @@ export function QuizDrink({ item: picked = null, ctx }) {
     );
   }
 
+  // Кредити скінчились — відгук приймається, але без монет: обіцяти
+  // нагороду, якої не буде, не можна (рішення власника 23.09.2026).
+  const paid = data.credits > 0;
+
   const send = async () => {
     setBusy(true);
     setError(null);
@@ -46,9 +50,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
       await ctx.refreshMe();
       setDone(true);
     } catch (e) {
-      setError(e.body?.error === "no_credits" ? "Це опитування вже пройдене"
-        : e.body?.error === "already_answered" ? "Про цей напій уже відповідали"
-        : e.message);
+      setError(e.body?.error === "already_answered" ? "Про цей напій уже відповідали" : e.message);
     } finally {
       setBusy(false);
     }
@@ -67,7 +69,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
             {item.point_name} · {when.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })} · {price} ₴
           </small>
         </div>
-        <span><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>
+        {paid && <span><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>}
       </div>
 
       <div className="section" style={{ gap: 12 }}>
@@ -92,7 +94,9 @@ export function QuizDrink({ item: picked = null, ctx }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <button className="cta wide" disabled={busy} onClick={send}>
-        {busy ? "Надсилаємо…" : <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>}
+        {busy ? "Надсилаємо…"
+          : paid ? <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>
+          : "Надіслати відгук"}
       </button>
 
       {done && (
@@ -101,9 +105,9 @@ export function QuizDrink({ item: picked = null, ctx }) {
           title="Дякуємо за відгук"
           onClose={ctx.pop}
         >
-          <div className="result-sum">
-            <img src="/assets/ui/coin_silver.png" alt="срібних монет" />{data.reward}
-          </div>
+          {paid
+            ? <div className="result-sum"><img src="/assets/ui/coin_silver.png" alt="срібних монет" />{data.reward}</div>
+            : <div className="short-note" style={{ textAlign: "center" }}>Монет за нього вже не буде, але ми його прочитаємо.</div>}
         </ResultPopup>
       )}
     </div>

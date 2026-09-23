@@ -118,9 +118,14 @@ export function History({ ctx }) {
                   {/* Перед нагородою — широкий пробіл U+2003, як у макеті. */}
                   <Check />Опитування пройдено{" "}+{quiz.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
                 </div>
-              ) : quiz.credits > 0 && (
+              ) : (
+                // Кредити скінчились — кнопка лишається: відгук про напій,
+                // який не сподобався, потрібен нам і без нагороди (рішення
+                // власника 23.09.2026). Просто не обіцяємо монет.
                 <button className="order-cta" onClick={() => ctx.push("quizDrink", { item: { ...o.item, fiscal_date: o.at.toISOString(), point_name: o.point } })}>
-                  Пройти опитування +{quiz.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
+                  {quiz.credits > 0
+                    ? <>Пройти опитування +{quiz.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>
+                    : "Лишити відгук"}
                 </button>
               ))}
             </div>

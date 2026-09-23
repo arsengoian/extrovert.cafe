@@ -58,7 +58,7 @@ export function Problem({ ctx }) {
       const code = e.body?.error;
       setError(code === "bad_type" ? "Підійде JPEG, PNG або WebP"
         : code === "too_big" ? "Фото завелике – до 8 МБ"
-        : code === "unauthorized" ? "Щоб додати фото, спершу увійди"
+        : code === "too_many_uploads" ? "Забагато фото поспіль – спробуй за годину"
         : e.message);
     } finally {
       setUploading(false);

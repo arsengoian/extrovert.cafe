@@ -50,6 +50,43 @@ temp_c() {
     fi
 }
 
+# Монітор. Кіоск може малювати бездоганно в порожнечу: екран вимкнули,
+# від'єднали чи він сам пішов у сон — знати про це треба здалеку (прохання
+# власника 23.09.2026). tvservice показує стан HDMI, vcgencmd — чи взагалі
+# подається живлення на вихід; беремо перше, що є в системі.
+monitor_on() {
+    if command -v tvservice >/dev/null 2>&1; then
+        _s=$(tvservice -s 2>/dev/null) || { echo null; return; }
+        case "$_s" in
+            "")            echo null ;;
+            *"TV is off"*) echo false ;;
+            *)             echo true ;;
+        esac
+        return
+    fi
+    if command -v vcgencmd >/dev/null 2>&1; then
+        case "$(vcgencmd display_power 2>/dev/null)" in
+            *=1) echo true ;;
+            *=0) echo false ;;
+            *)   echo null ;;
+        esac
+        return
+    fi
+    echo null
+}
+
+# Відеопотік. Камери на точці ще немає: поки в config/env немає CAMERA_URL,
+# це чесне false — потоку нема, і саме так це має лежати в історії, а не
+# «невідомо» (прохання власника 23.09.2026).
+video_ok() {
+    [ -n "${CAMERA_URL:-}" ] || { echo false; return; }
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsS --max-time 4 -o /dev/null "$CAMERA_URL" >/dev/null 2>&1 && echo true || echo false
+        return
+    fi
+    echo null
+}
+
 mem_used_mb() { awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{ printf "%.0f", (t-a)/1024 }' /proc/meminfo; }
 uptime_s()    { awk '{ printf "%.0f", $1 }' /proc/uptime; }
 disk_free_mb() { df -Pm "$EXTROVERT_ROOT" 2>/dev/null | awk 'NR==2 { print $4 }'; }
@@ -81,11 +118,14 @@ sample_json() {
     set -- $(net_metrics); _ping=$1; _jitter=$2; _loss=$3
     set -- $(kiosk_metrics "/tmp/kiosk-$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0).sock")
     _fps=$1; _frames=$2
+    _monitor=$(monitor_on)
+    _video=$(video_ok)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"video_ok":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_up:-null}" "${_disk:-null}" \
-        "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" "${_release:-unknown}"
+        "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
+        "${_monitor:-null}" "${_video:-null}" "${_release:-unknown}"
 }
 
 # ── відправка ────────────────────────────────────────────────────────────

@@ -144,9 +144,13 @@ export default async function routes(app) {
     );
     if (!owns) return reply.code(404).send({ error: "no_such_item" });
 
+    // Кредити вирішують лише те, чи буде нагорода. Сам відгук приймаємо
+    // завжди: якщо напій не сподобався, людина має де це сказати, а нам
+    // такий відгук цінніший за зекономлені 40 срібних (рішення власника
+    // 23.09.2026).
     const drinks = await drinkCount(user.id);
     const used = await one("select count(*)::int as n from quiz_drink_responses where user_id = $1", [user.id]);
-    if (earnedCredits(drinks) - used.n <= 0) return reply.code(409).send({ error: "no_credits" });
+    const reward = earnedCredits(drinks) - used.n > 0 ? economy.quiz.drink_coins : 0;
 
     try {
       const saved = await tx(async (client) => {
@@ -155,15 +159,15 @@ export default async function routes(app) {
            values ($1, $2, $3, $4, $5)
            on conflict (receipt_item_id) do nothing
            returning id`,
-          [user.id, itemId, answers, freeText, economy.quiz.drink_coins]
+          [user.id, itemId, answers, freeText, reward]
         );
         if (!rows.length) return null;                   // про це замовлення вже відповідали
-        await award(client, user.id, economy.quiz.drink_coins, "quiz", { quiz: "drink", receipt_item_id: itemId });
+        if (reward) await award(client, user.id, reward, "quiz", { quiz: "drink", receipt_item_id: itemId });
         return rows[0].id;
       });
 
       if (!saved) return reply.code(409).send({ error: "already_answered" });
-      return { ok: true, awarded_silver: economy.quiz.drink_coins };
+      return { ok: true, awarded_silver: reward };
     } catch (e) {
       app.log.error(e);
       return reply.code(500).send({ error: "save_failed" });

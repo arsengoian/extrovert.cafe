@@ -3,6 +3,7 @@
 // Проби збирає overseer півгодинними відрами в health_samples; тут ми їх
 // лише малюємо. Смужка — тиждень: 336 відер, зелене/червоне/сіре, а деталі
 // падіння — у підказці на комірці.
+import { Fragment } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Beat, BeatRow, BeatScale } from "../charts.jsx";
@@ -77,7 +78,8 @@ export function Health() {
           <Empty>жодної живої точки в базі</Empty>
         ) : (
           data.points.map((p) => (
-            <div key={p.id} className="beat-row" data-click="1" onClick={() => go(`pos/${p.id}`)} style={{ cursor: "pointer" }}>
+            <Fragment key={p.id}>
+            <div className="beat-row" data-click="1" onClick={() => go(`pos/${p.id}`)} style={{ cursor: "pointer" }}>
               <span className="name" style={{ width: 220 }}>
                 <i className={`dot ${p.ok === null ? "" : p.ok ? "ok" : "bad"}`} />
                 <span>
@@ -90,6 +92,20 @@ export function Health() {
               </span>
               <Beat history={p.history} />
             </div>
+            {/* Зв'язок — це лише про малину. Монітор і відеопотік ідуть
+                окремими смужками: вимкнений екран чи мертвий потік із
+                «точка озивається» не видно (23.09.2026). */}
+            {[["монітор", p.monitor], ["відеопотік", p.video]].map(([label, s]) => s && (
+              <div key={label} className="beat-row sub">
+                <span className="name" style={{ width: 220 }}>
+                  <i className={`dot ${s.ok ? "ok" : "bad"}`} />
+                  <span className="muted">{label}</span>
+                </span>
+                <span className="value" style={{ marginLeft: 0, width: 150 }}>{s.detail ?? "працює"}</span>
+                <Beat history={s.history} />
+              </div>
+            ))}
+            </Fragment>
           ))
         )}
       </Card>

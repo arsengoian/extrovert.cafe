@@ -49,14 +49,17 @@ static void redraw_bar(bonus_row_t *row, double frac) {
 }
 
 /* -------- текст таймера: перепікається раз на секунду --------
- * Рядок несе ЖИВЕ число ("1:42 до завершення") — на відміну від решти
+ * Рядок несе ЖИВЕ число ("1:42 на екрані") — на відміну від решти
  * рядка, тут нема "готового" шматка в SVG-шаблоні, який можна перепекти
  * один раз: контент сам змінюється щосекунди. Лишається прямим Cairo. */
 
 static cairo_surface_t *render_row_timer(int sec) {
     if (sec < 0) sec = 0;
     char txt[40];
-    snprintf(txt, sizeof(txt), "%d:%02d до завершення", sec / 60, sec % 60);
+    /* «на екрані», а не «до завершення» (рішення власника 23.09.2026): біля
+     * автомата це читали як час приготування кави, хоча відлік про те,
+     * скільки ще висить QR. */
+    snprintf(txt, sizeof(txt), "%d:%02d на екрані", sec / 60, sec % 60);
     char font[32];
     snprintf(font, sizeof(font), FONT_POPPINS " SemiBold %dpx", BONUS_COUNTDOWN_FONT_SIZE);
     int w, h;
