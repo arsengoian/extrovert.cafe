@@ -1,0 +1,39 @@
+# Дроплет analysis. Тут один сервіс і жодного відкритого порту — це і є
+# весь сенс окремої машини (docs/video.md, «Чому два дроплети»): обробка
+# відео може зʼїсти памʼять, повиснути на битому сегменті чи забити диск,
+# і жодна з цих подій не має права зачепити кіоск на точці.
+#
+# Ставиться так само, як прод: на сервері лише цей файл симлінком у
+# docker-compose.yml, .env і томи. Образ збирає CI, машина нічого не
+# компілює.
+
+name: extrovert-analysis
+
+services:
+  worker:
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-worker:${TAG:-latest}
+    restart: unless-stopped
+    init: true
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 256
+    # Сигнал приходить у цикл: воркер дороблює поточний сегмент і виходить.
+    # Шістдесятисекундний сегмент інколи обробляється довше за типові 10 с
+    # grace, тому час дано з запасом — інакше кожне викочування лишало б
+    # «processing», який чекає 15 хвилин на протухання блокування.
+    stop_grace_period: 90s
+    env_file: [.env]
+    environment:
+      APP_ENV: production
+      # 1 vCPU / 2 ГБ: онлайн-обмеження тут не формальність, а спосіб не
+      # вбити власний дроплет на битому сегменті.
+      OMP_NUM_THREADS: 1
+      MODEL_PATH: /app/models/model.onnx
+    mem_limit: 1400m
+    cpus: 0.8
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    tmpfs:
+      # Сегмент живе рівно стільки, скільки обробляється (≈6 МБ). У tmpfs,
+      # а не на диску: писати по 8 ГБ на добу в SSD дроплета немає причини.
+      - /tmp:size=256m

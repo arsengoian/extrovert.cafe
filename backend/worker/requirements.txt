@@ -1,0 +1,8 @@
+# Рантайм воркера. Тут навмисно немає ні torch, ні ultralytics: на дроплеті
+# analysis 1 vCPU / 2 ГБ вони не поміщаються ні в памʼять, ні в сенс —
+# модель приїжджає готовим .onnx зі стадії збірки (docker/Dockerfile).
+onnxruntime==1.19.2
+numpy==1.26.4
+opencv-python-headless==4.10.0.84
+psycopg[binary]==3.2.3
+boto3==1.35.36
