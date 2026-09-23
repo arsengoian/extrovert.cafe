@@ -3,6 +3,9 @@ node_modules/
 .env.local
 # Оточення продового сервера: усі секрети проду (scripts/env-prod.mjs).
 .env.prod
+# …і будь-яка його копія: 23.09.2026 поруч лежав .env.prod.bak-test із
+# бойовими ключами каси, і під шаблон .env.prod він не підпадав.
+.env.prod.*
 *.log
 .DS_Store
 .wrangler/
