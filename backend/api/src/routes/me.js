@@ -1,9 +1,10 @@
 // Профіль гравця: усе, що показує HUD і вкладки «Гаманець», «Склад»,
 // «Покупки». Баланси й інвентар догляду — колонки users (db-schema §1).
-import { many, one, query } from "../db.js";
+import { many, one, query, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { generateNickname } from "../nickname.js";
 import { TERMS_VERSION } from "./legal.js";
+import { economy } from "../economy.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -178,11 +179,35 @@ export async function nicknameRoutes(app) {
     const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
     if (taken) return reply.code(409).send({ error: "nickname_taken" });
 
-    await query(
-      "update users set nickname = $2, consent_at = coalesce(consent_at, now()), terms_version = $3 where id = $1",
-      [user.id, nickname, TERMS_VERSION]
-    );
-    return { ok: true, nickname };
+    // Стартовий набір видається рівно раз — на першій згоді. Без нього
+    // новачок лишався без головної механіки: саджанець коштує 1000 монет
+    // (≈30 покупок), а зерна ростуть лише на вже вирощеному кущі.
+    return tx(async (client) => {
+      const { rows: before } = await client.query(
+        "select consent_at from users where id = $1 for update", [user.id]);
+      const first = !before[0]?.consent_at;
+      await client.query(
+        "update users set nickname = $2, consent_at = coalesce(consent_at, now()), terms_version = $3 where id = $1",
+        [user.id, nickname, TERMS_VERSION]
+      );
+      if (first) {
+        const s = economy.starter;
+        await client.query(
+          `update users set water_liters = water_liters + $2, compost_kg = compost_kg + $3,
+                  fertilizer_kg = fertilizer_kg + $4, insecticide_bottles = insecticide_bottles + $5
+             where id = $1`,
+          [user.id, s.water_liters, s.compost_kg, s.fertilizer_kg, s.insecticide_bottles]
+        );
+        const { rows: have } = await client.query("select 1 from plants where owner_id = $1", [user.id]);
+        for (let i = have.length; i < s.plants; i++) {
+          await client.query(
+            "insert into plants (owner_id, face_set_id) values ($1, $2)",
+            [user.id, 1 + Math.floor(Math.random() * 3)]
+          );
+        }
+      }
+      return { ok: true, nickname };
+    });
   });
 
   app.patch("/me/nickname", async (req, reply) => {
