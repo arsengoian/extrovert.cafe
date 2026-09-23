@@ -9,10 +9,10 @@ import { go } from "../app.jsx";
 import { Badge, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const REASON = {
-  receipt_bonus: "бонус за чек", quiz_profile: "анкета", quiz_drink: "відгук про напій",
-  repost: "репост", crate: "скринька", market_sale: "продаж на маркеті", market_buy: "покупка на маркеті",
-  transfer_in: "переказ +", transfer_out: "переказ −", shop: "крамниця", redemption: "замовлення",
-  care: "догляд", chat: "чат", payment: "оплата гривнями",
+  purchase: "бонус за чек", care: "догляд", sapling: "саджанець", exchange: "обмін зерен",
+  pos_discount: "знижка на POS", crate: "скринька", crate_opening: "відкриття скриньки",
+  market: "маркет", transfer: "переказ", repost: "репост", chat: "чат", quiz: "опитування",
+  delivery: "доставка", wardrobe_set: "комплект одягу",
 };
 const delta = (n, sign = "") => (n ? <b style={{ color: n > 0 ? "var(--ok)" : "var(--bad)" }}>{n > 0 ? "+" : ""}{fmt.int(n)}{sign}</b> : null);
 
