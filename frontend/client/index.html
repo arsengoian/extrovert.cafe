@@ -4,7 +4,11 @@
     <meta charset="utf-8" />
     <!-- Застосунок — mobile only: viewport-fit під вирізи, без зуму, бо
          це гра з тапами, а не сторінка з текстом. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+    <!-- interactive-widget=resizes-visual: клавіатура зменшує лише видиму
+         частину, а не сам макет. Інакше .app стає низьким, попап із
+         max-height згортається просто під пальцями, і кнопка «Зберегти»
+         їде за край (скарга власника 23.09.2026). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, interactive-widget=resizes-visual" />
     <meta name="theme-color" content="#0C0E11" />
     <title>extrovert.cafe</title>
     <!-- Фавікон — лише «О» з променями (design/assets/icon.svg): цілий

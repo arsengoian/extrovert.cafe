@@ -76,7 +76,11 @@ const Lock = ({ size, title }) => (
 
 // Полив (дошка «Анімації»): лійка нахиляється, з носика падають краплі, а
 // число на кільці змінюється з легким підскоком — як і в решти препаратів.
-function Shelf({ care, onApply, pour }) {
+// need — чого кавенятко хоче просто зараз. Решта банок приглушена й не
+// натискається: витратити воду, коли її не просять, було можна, і сервер
+// чесно відповідав «мені зараз потрібне інше» — але препарат при цьому вже
+// списувався б, якби відповідь загубилась (зауваження власника 23.09.2026).
+function Shelf({ care, onApply, pour, need }) {
   const shown = useRef(care);
   useEffect(() => { shown.current = care; });
   return (
@@ -91,8 +95,13 @@ function Shelf({ care, onApply, pour }) {
         );
         const pouring = s.kind === "water" && pour;
         const changed = (shown.current[s.key] ?? 0) !== n;
+        // Вимкнено все, крім потрібного зараз. Порожню банку потрібного
+        // препарату лишаємо активною: тап по ній відкриває «не вистачає» —
+        // це єдиний шлях докупити.
+        const off = Boolean(need) && need !== s.kind;
         return (
-          <button key={s.key} className="shelf-item" title={s.title} onClick={() => onApply(s.kind)}
+          <button key={s.key} className="shelf-item" data-off={off || undefined} disabled={off}
+                  title={off ? `Кавенятко зараз просить інше` : s.title} onClick={() => onApply(s.kind)}
                   style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
             {s.crop ? <span className="shelf-crop">{img}</span>
               : s.kind === "water" ? <span className="shelf-tilt" key={pour?.id ?? "still"} data-pour={pouring ? "" : undefined}>{img}</span>
@@ -367,7 +376,16 @@ export function Plant({ ctx }) {
     }
   };
 
-  const wish = () => (need === "outfit" ? ctx.push("wardrobe", { plant }) : apply(need));
+  // Хмаринка з пісочним годинником — не прохання препарату, а «приходь
+  // завтра»: препарату з таким ключем немає, apply() йшов у попап
+  // supply:time, а той падав на невідомому виді — і замість попапа був
+  // чорний екран (скарга власника 23.09.2026). Тепер кавенятко просто
+  // каже це словами.
+  const wish = () => {
+    if (need === "outfit") return ctx.push("wardrobe", { plant });
+    if (need === "time") return setNote(WAITING_LINE);
+    return apply(need);
+  };
   const [cx, cy] = CLOUD_AT[Math.min(10, plant.growth_stage)] ?? CLOUD_AT[10];
   const instances = assets
     ? buildScene({ layout: assets.layout, appearance: plant.appearance, stage: plant.growth_stage, mood: plant.mood, worn: plant.worn })
@@ -414,7 +432,7 @@ export function Plant({ ctx }) {
               </>
             ) : <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
-          <Shelf care={care} onApply={apply} pour={pour} />
+          <Shelf care={care} onApply={apply} pour={pour} need={need} />
           {plant.growth_stage >= 10 && (
             <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
               <img src="/assets/ui/barrel.png" alt="" />

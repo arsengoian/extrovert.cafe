@@ -160,13 +160,15 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     });
   }, [me?.id, refreshMe]);
 
-  // Документ за адресою, а людина з акаунтом: показуємо його поверх вкладки.
+  // Документ за адресою, а людина з акаунтом і згодою: показуємо його поверх
+  // вкладки. Без згоди лишаємо гостьовим екраном — нижче він малюється
+  // раніше за онбординг.
   useEffect(() => {
-    if (me && legalDoc && guest?.name === legalDoc) {
+    if (me?.consent && legalDoc && guest?.name === legalDoc) {
       setStack([{ name: legalDoc, props: {} }]);
       setGuest(null);
     }
-  }, [Boolean(me)]);
+  }, [Boolean(me?.consent)]);
 
   // Документ закрили — адреса стає звичайною: інакше оновлення сторінки
   // відкривало б його знову.
@@ -195,26 +197,37 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
 
   if (booting) return <div className="app" />;
 
-  if (!me) {
-    if (guest) {
-      const def = SCREENS[guest.name];
-      const Guest = def.component;
-      const guestTitle = typeof def.title === "function" ? def.title(guest.props ?? {}) : def.title;
-      const guestCtx = {
-        me: null, refreshMe, tab: null, openTab: () => setGuest(null), notify: setNotice, support,
-        pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
-        replace: (name, props = {}) => setGuest({ name, props }),
-      };
-      return (
-        <div className="app">
-          <TopbarBack title={guestTitle} onBack={() => setGuest(null)} />
-          <div className="stage" key={guest.name}>
-            <Guest {...(def.props ?? {})} {...(guest.props ?? {})} ctx={guestCtx} />
-          </div>
-          {notice}
+  // Гостьовий екран — поза авторизацією: скарга, підтримка, умови,
+  // політика. Окремою функцією, бо показувати його доводиться з двох
+  // місць: до входу й на екрані згоди.
+  const guestView = () => {
+    const def = SCREENS[guest.name];
+    const Guest = def.component;
+    const guestTitle = typeof def.title === "function" ? def.title(guest.props ?? {}) : def.title;
+    const guestCtx = {
+      me: null, refreshMe, tab: null, openTab: () => setGuest(null), notify: setNotice, support,
+      pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
+      replace: (name, props = {}) => setGuest({ name, props }),
+    };
+    return (
+      <div className="app">
+        <TopbarBack title={guestTitle} onBack={() => setGuest(null)} />
+        <div className="stage" key={guest.name}>
+          <Guest {...(def.props ?? {})} {...(guest.props ?? {})} ctx={guestCtx} />
         </div>
-      );
-    }
+        {notice}
+      </div>
+    );
+  };
+
+  // Умови й політику відкривають саме з екрана згоди — тобто тоді, коли
+  // consent ще немає. Тому документ малюємо ДО перевірки згоди: інакше нова
+  // вкладка з /terms показувала б знову екран входу (скарга власника
+  // 23.09.2026).
+  if (guest && (guest.name === "terms" || guest.name === "privacy")) return guestView();
+
+  if (!me) {
+    if (guest) return guestView();
     return (
       <div className="app">
         <Start

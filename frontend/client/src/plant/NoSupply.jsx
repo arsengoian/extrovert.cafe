@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "../api.js";
+import { Coins2 } from "../ui/Coins.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { useStageBottom } from "../ui/Popup.jsx";
 
@@ -30,7 +31,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
   }, [kind]);
 
   const balance = (ctx.me?.balances?.silver ?? 0) + (ctx.me?.balances?.yellow ?? 0);
-  const have = ctx.me?.care?.[k.key] ?? 0;
+  const have = ctx.me?.care?.[k?.key] ?? 0;
 
   const buy = async () => {
     setBusy(true);
@@ -44,7 +45,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
         // Замість рядка «не вистачає» — той самий попап зі способами
         // дібрати монети, що й у крамниці.
         onClose();
-        ctx.notify(<NotEnoughCoins what={`Пачка ${k.of}`} price={pack.price} have={balance} ctx={ctx}
+        ctx.notify(<NotEnoughCoins what={`${pack.title} · ${pack.unit}`} price={pack.price} have={balance} ctx={ctx}
                                    onClose={() => ctx.notify(null)} />);
         return;
       }
@@ -66,8 +67,10 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
         {pack && (
           <>
             <div className="care-card-row care-pack">
-              <b>Пачка {pack.unit}</b>
-              <span><img src="/assets/ui/coin_gold.png" alt="" />{fmt(pack.price)}</span>
+              {/* Назва з самого товару: «Вода · 5 л», а не вигадана «Пачка
+                  5 л» (зауваження власника 23.09.2026). */}
+              <b>{pack.title} · {pack.unit}</b>
+              <span><Coins2 />{fmt(pack.price)}</span>
             </div>
             <div className="care-card-balance">
               <span>Баланс <span className="coins2">

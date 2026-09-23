@@ -601,6 +601,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      за верхній край (скарга власника 23.09.2026). */
   max-height: calc(100% - 28px); overflow-y: auto; overscroll-behavior: contain;
 }
+/* Діти шторки не стискаються: у колонковому флексі з обмеженою висотою
+   поле вводу інакше «худне» по висоті замість того, щоб шторка прокрутилась
+   (скарга власника 23.09.2026). */
+.confirm-sheet > * { flex: none }
 .confirm-row { display: flex; align-items: center; gap: 13px }
 .confirm-row b { display: block; font-size: 19px; font-weight: 900 }
 .confirm-row > strong { flex: none; font-size: 20px; font-weight: 900 }
@@ -1122,6 +1126,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .shelf { position: absolute; left: 7px; top: 18px; width: 127px; height: 330px; z-index: 0 }
 .shelf-board { position: absolute; left: 17px; top: 38px; width: 98px; height: 286px }
 .shelf-item { position: absolute; padding: 0 }
+/* Банка, якої кавенятко зараз не просить: видно, що вона є, але витратити
+   препарат намарно не можна (рішення власника 23.09.2026). Порожня банка
+   лишається активною — через неї купують. */
+.shelf-item[data-off] { opacity: .45; filter: saturate(.5) }
 .shelf-item > img, .shelf-crop > img { position: absolute; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .42)) }
 .shelf-crop { position: absolute; right: 0; bottom: 0; width: 39px; height: 36px; overflow: hidden }
 .shelf-ring { position: absolute; margin-top: -17px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center }

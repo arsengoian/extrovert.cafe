@@ -19,11 +19,10 @@ export function DeleteAccount({ ctx }) {
   if (done) {
     return (
       <div className="stage-pad">
+        {/* Без пояснень про deleted_account_N: людині вже нема куди
+            повертатись, а внутрішня кухня її не стосується. */}
         <div className="panel" style={{ textAlign: "center" }}>
           <div className="h2">Акаунт видалено</div>
-          <p className="muted">
-            Тепер це {done.nickname}. Увійти в нього більше не можна – ні через пошту, ні через Google.
-          </p>
           <button className="btn btn-primary" onClick={() => location.reload()}>Закрити</button>
         </div>
       </div>
@@ -51,8 +50,8 @@ export function DeleteAccount({ ctx }) {
           наша внутрішня бухгалтерія, а не те, з чим людина ухвалює рішення.
           Лишилось головне — вхід зникає, і повернути його не можна. */}
       <p className="muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
-        Вхід зникне назавжди: пошта стирається, нікнейм звільняється, лоти
-        знімаються з ринку{state.listings > 0 ? " (" + state.listings + ")" : ""}.
+        Акаунт буде видалено назавжди: пошта стирається, нікнейм
+        звільняється, лоти знімаються з ринку{state.listings > 0 ? " (" + state.listings + ")" : ""}.
         Дію не можна скасувати. Напиши «{WORD}», щоб підтвердити.
       </p>
       {/* Власний клас, а не .price-input: у колонковому флексі його

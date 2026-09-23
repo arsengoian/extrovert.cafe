@@ -97,7 +97,12 @@ export function NicknameChange({ ctx }) {
 
       <div className="confirm-btns r14">
         <button onClick={ctx.pop}>Скасувати</button>
-        <button disabled={busy || !valid || (!unchanged && (locked || !free))} onClick={save}>{busy ? "…" : "Зберегти"}</button>
+        {/* Тільки коли ТОЧНО знаємо, що зайнято. Раніше кнопка чекала на
+            відповідь /me/nickname/check, і якщо та не дійшла (мережа, 401,
+            повільний зв'язок), «Зберегти» лишалось мертвим назавжди —
+            запит на збереження не йшов узагалі. Останнє слово однаково за
+            api: він відповість nickname_taken. */}
+        <button disabled={busy || !valid || (!unchanged && (locked || free === false))} onClick={save}>{busy ? "…" : "Зберегти"}</button>
       </div>
     </ConfirmSheet>
   );

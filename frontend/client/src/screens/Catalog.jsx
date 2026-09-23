@@ -3,6 +3,7 @@
 // кольору тіру й ціна всього комплекту. Ціна рахується з тіру (economy §5.1).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 
 const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
@@ -42,7 +43,7 @@ export function Catalog({ ctx }) {
                 <span className={`tag-${set.tier}`}>{TIER_LABEL[set.tier]}</span>
               </div>
               <span className="set-price">
-                <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{fmt(each)}<small>/шт</small>
+                <Coins2 size={15} overlap={6} />{fmt(each)}<small>/шт</small>
               </span>
             </div>
             <div className="set-tiles">
@@ -54,7 +55,7 @@ export function Catalog({ ctx }) {
             </div>
             <div className="set-total">
               {/* Сума комплекту в макеті без розділювача тисяч: «2125». */}
-              весь комплект <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{each * set.items.length}
+              весь комплект <Coins2 size={15} overlap={6} />{each * set.items.length}
             </div>
           </div>
         );

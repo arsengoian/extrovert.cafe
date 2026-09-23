@@ -3,17 +3,8 @@
 // однорядкові списки: структура з макета, вміст — із /shop.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
-
-// Дві монети внахлест: у макеті так показано «за будь-які монети».
-// Розмір і нахлест у кожному місці свої: перемикач 16/7, скринька 18/6,
-// рядки догляду 17/6.
-const Coins2 = ({ size = 16, overlap = 7 }) => (
-  <span className="coins2">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: size, height: size + 1 }} />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: size, height: size + 1, marginLeft: -overlap }} />
-  </span>
-);
 
 const Bean = ({ size = 18 }) => (
   <img src="/assets/ui/bean.png" alt="боби" style={{ width: size, height: size + 2 }} />
@@ -156,7 +147,7 @@ export function Shop({ ctx }) {
                   <span className="art"><ItemIcon sprite={it.sprite_id} size={58} name={it.name} style={{ width: 58 }} /></span>
                   <span className="name">{it.name}</span>
                   <span className="cost">
-                    <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+                    <Coins2 size={15} overlap={6} />
                     {it.price_coins}
                   </span>
                 </button>
