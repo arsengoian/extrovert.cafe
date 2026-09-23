@@ -8,6 +8,7 @@
 import { many, one, query, tx } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
+import { presign } from "@extrovert/lib/r2.js";
 
 // Як показувати ціль здоровʼя: група, назва, підпис. Порядок тут — порядок
 // на екрані.
@@ -353,6 +354,24 @@ export default async function routes(app) {
          from problem_reports`
     );
     return { problems: rows, counts };
+  });
+
+  // Фото зі скарги лежить у приватному бакеті, тож адмінці потрібне
+  // підписане посилання. ?download=1 віддає його з Content-Disposition —
+  // інакше картинка просто відкривається вкладкою, а зберегти її окремим
+  // рухом не вийде (прохання власника 23.09.2026).
+  app.get("/admin/problems/:id/photo", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const row = await one("select image_r2_key from problem_reports where id = $1", [req.params.id]);
+    if (!row?.image_r2_key) fail(404, "no_photo");
+    const link = presign({
+      method: "GET",
+      purpose: "uploads",
+      key: row.image_r2_key,
+      expiresIn: 300,
+      filename: req.query.download ? `скарга-${req.params.id}.${row.image_r2_key.split(".").pop()}` : null,
+    });
+    return { url: link.url, expires_in: link.expires_in };
   });
 
   app.patch("/admin/problems/:id", async (req, reply) => {

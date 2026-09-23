@@ -126,7 +126,11 @@ export async function put({ purpose, bucket = null, key, body, contentType, cach
 // Фото зі скарги телефон заливає САМ, за підписаним URL: інакше кілька
 // мегабайтів ішли б через api, який для цього не потрібен. Підпис живе
 // хвилини, тому посилання не можна переслати «на потім».
-export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn = 600, contentType = null, env = process.env }) {
+// filename — коли посилання відкривають, щоб зберегти файл, а не подивитись:
+// R2 віддасть його з Content-Disposition: attachment. Робимо це підписом, а
+// не заголовком у застосунку: браузер іде в R2 навпростець, і жодного
+// заголовка від нас там уже немає.
+export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn = 600, contentType = null, filename = null, env = process.env }) {
   const target = bucket ?? bucketFor(purpose, env);
   if (method !== "GET" && method !== "HEAD") guard(target, env);
   const { endpoint, key: access, secret, region } = r2Config(env);
@@ -144,6 +148,11 @@ export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn
     "X-Amz-Expires": String(expiresIn),
     "X-Amz-SignedHeaders": signedHeaders,
   });
+  // Порядок важливий: у канонічному запиті параметри мають іти відсортовані,
+  // а "response-…" стоїть після всіх "X-Amz-…" (велика X — раніше за малу r).
+  if (filename) {
+    params.set("response-content-disposition", `attachment; filename="${filename.replaceAll('"', "")}"`);
+  }
 
   const canonicalHeaders = contentType
     ? `content-type:${contentType}\nhost:${host}\n`

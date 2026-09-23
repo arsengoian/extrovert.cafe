@@ -1,9 +1,10 @@
 // «Що не працює?» — скарги й ідеї з застосунку (gamification_ui.md).
 // Категорії — фіксований набір із дизайну; текст і фото необовʼязкові,
 // але щось одне має бути, інакше це порожній рядок у черзі адмінки.
-import { many, one } from "../db.js";
+import { many, one, tx } from "../db.js";
 import { userFromRequest } from "../auth.js";
 import { fail } from "../errors.js";
+import { enqueue } from "@extrovert/lib/outbox.js";
 import { presign } from "@extrovert/lib/r2.js";
 
 export const CATEGORIES = ["coffee_machine", "monitor", "site", "supplies", "idea"];
@@ -65,11 +66,32 @@ export default async function routes(app) {
       return reply.code(400).send({ error: "empty_report" });
     }
 
-    const row = await one(
-      `insert into problem_reports (user_id, point_id, categories, body, image_r2_key)
-       values ($1, $2, $3, $4, $5) returning id, created_at`,
-      [user?.id ?? null, pointId, categories, body || null, photoKey]
-    );
+    // Подія — у тій самій транзакції, що й сам рядок (db-schema §0). Далі
+    // її забирає scheduler і кладе в канал `admin`: адмінка підсвічує
+    // лічильник, overseer пише в Telegram. Тобто «за півсекунди», а не «на
+    // наступному обході» — скарга про зламану машину чекати не має
+    // (прохання власника 23.09.2026).
+    const row = await tx(async (client) => {
+      const { rows } = await client.query(
+        `insert into problem_reports (user_id, point_id, categories, body, image_r2_key)
+         values ($1, $2, $3, $4, $5) returning id, created_at`,
+        [user?.id ?? null, pointId, categories, body || null, photoKey]
+      );
+      // Нікнейм у токені не лежить — дістаємо його тут, щоб в алерті було
+      // видно, хто пише, а не лише uuid.
+      const who = user
+        ? (await client.query("select nickname from users where id = $1", [user.id])).rows[0]?.nickname ?? null
+        : null;
+      await enqueue(client, "admin", "problem_reported", {
+        report_id: Number(rows[0].id),
+        categories,
+        preview: (body || "").slice(0, 160),
+        photo: Boolean(photoKey),
+        point_id: pointId,
+        nickname: who,
+      });
+      return rows[0];
+    });
     return { id: row.id, created_at: row.created_at, photo: Boolean(photoKey) };
   });
 

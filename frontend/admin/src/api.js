@@ -105,6 +105,9 @@ export const api = {
   deployMenu: (body) => request("/admin/menu/deployments", { method: "POST", body }),
   problems: (p) => request(`/admin/problems${qs(p)}`),
   problemStatus: (id, status) => request(`/admin/problems/${id}`, { method: "PATCH", body: { status } }),
+  // Фото лежить у приватному бакеті: спершу беремо підписане посилання,
+  // потім браузер іде в R2 сам.
+  problemPhoto: (id, download) => request(`/admin/problems/${id}/photo${download ? "?download=1" : ""}`),
   orders: (p) => request(`/admin/orders${qs(p)}`),
   order: (id) => request(`/admin/orders/${id}`),
   orderStatus: (id, body) => request(`/admin/orders/${id}/status`, { method: "POST", body }),

@@ -67,6 +67,35 @@ async function reportTick() {
   await send(await dailyReport(pool), { log });
 }
 
+// Скарги з застосунку — не за розкладом, а одразу: людина стоїть біля
+// автомата, і «на наступному обході через пʼять хвилин» тут не годиться
+// (прохання власника 23.09.2026). api кладе подію в outbox у тій самій
+// транзакції, scheduler публікує її в канал `admin` — ми лише слухаємо той
+// самий канал, що й адмінка.
+//
+// Окреме зʼєднання, бо в режимі підписки ioredis не приймає звичайних
+// команд, а onChange() і heartbeat ходять у Redis постійно.
+const CATEGORY = {
+  coffee_machine: "кавомашина", monitor: "монітор", site: "сайт",
+  supplies: "витратники", idea: "ідея",
+};
+
+const sub = redisClient();
+await sub.subscribe("admin");
+sub.on("message", async (_channel, raw) => {
+  let event;
+  try { event = JSON.parse(raw); } catch { return; }
+  if (event.event !== "problem_reported") return;
+  const what = (event.categories ?? []).map((c) => CATEGORY[c] ?? c).join(", ");
+  const lines = [
+    `🛠 Нова скарга${event.nickname ? ` від ${event.nickname}` : " (без входу)"}`,
+    what ? `Про що: ${what}` : null,
+    event.preview ? `«${event.preview}»` : null,
+    event.photo ? "З фото" : null,
+  ].filter(Boolean);
+  await send(lines.join("\n"), { log });
+});
+
 const stopBeat = heartbeat(redis, "overseer");
 
 const stops = [
@@ -87,6 +116,7 @@ log.info("overseer піднявся", { intervalMs: INTERVAL, telegram: Boolean(
 
 onShutdown({
   "перевірки": () => { stopBeat(); return Promise.all(stops.map((stop) => stop())); },
+  "підписка": () => sub.unsubscribe("admin"),
   "redis": () => closeRedis(),
   "postgres": () => pool.end(),
 }, { log, timeoutMs: 30_000 });

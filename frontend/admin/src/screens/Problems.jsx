@@ -5,10 +5,21 @@ import { api } from "../api.js";
 import { Badge, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 import { go } from "../app.jsx";
 
+// Ті самі ключі, що шле застосунок (backend/api/src/routes/problems.js).
 const CATEGORY = {
-  machine: "автомат", app: "застосунок", site: "сайт", payment: "оплата",
-  bonus: "бонус", delivery: "доставка", other: "інше",
+  coffee_machine: "кавомашина", monitor: "монітор", site: "сайт",
+  supplies: "витратники", idea: "ідея",
 };
+
+const BTN = { height: 24, padding: "0 8px" };
+
+// Посилання підписане й живе пʼять хвилин, тому беремо його на клік, а не
+// разом зі списком: інакше половина посилань у таблиці протухла б раніше,
+// ніж до них дійшли руки.
+async function photo(id, download) {
+  const { url } = await api.problemPhoto(id, download);
+  window.open(url, "_blank", "noopener");
+}
 
 export function Problems() {
   const [status, setStatus] = useState("");
@@ -70,7 +81,19 @@ export function Problems() {
               </span>
             ),
           },
-          { key: "body", title: "деталі", render: (p) => <span title={p.body ?? ""}>{(p.body ?? "").slice(0, 90) || <span className="muted">без тексту</span>}{p.image_r2_key ? " 📎" : ""}</span> },
+          {
+            key: "body", title: "деталі", render: (p) => (
+              <span className="row" style={{ gap: 6 }}>
+                <span title={p.body ?? ""}>{(p.body ?? "").slice(0, 90) || <span className="muted">без тексту</span>}</span>
+                {p.image_r2_key && (
+                  <>
+                    <button className="btn" style={BTN} title="відкрити фото" onClick={(e) => { e.stopPropagation(); photo(p.id, false); }}>📎</button>
+                    <button className="btn" style={BTN} title="зберегти фото" onClick={(e) => { e.stopPropagation(); photo(p.id, true); }}>⤓</button>
+                  </>
+                )}
+              </span>
+            ),
+          },
           {
             key: "status", title: "стан", render: (p) => (
               <span className="row" style={{ gap: 6 }}>
