@@ -279,7 +279,18 @@ export function Plant({ ctx }) {
 
   const plant = plants?.[index] ?? null;
   // Нове кавенятко (купив саджанець чи скосив старе) спершу отримує ім'я.
-  useEffect(() => { if (plant && !plant.name) ctx.push("plantName", { plant }); }, [plant?.id]);
+  //
+  // «Уже пропонували» памʼятає sessionStorage, а не ref: коли попап
+  // закривають, стек порожніє, .stage міняє key — і екран кавенятка
+  // монтується наново разом з усіма своїми ref-ами. Без цієї позначки
+  // попап відкривався б назад тієї ж миті, і «Пізніше» не працювало б
+  // (23.09.2026).
+  useEffect(() => {
+    if (!plant || plant.name) return;
+    const key = `extrovert.named.${plant.id}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { /* приватний режим */ }
+    ctx.push("plantName", { plant });
+  }, [plant?.id]);
 
   if (error) return <div className="stage-pad"><div className="panel">Не вдалось завантажити: {error}</div></div>;
   if (!plants) return <div className="stage-pad"><div className="skeleton" /></div>;

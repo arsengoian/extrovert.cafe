@@ -1189,9 +1189,19 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 [data-idle] [data-sway="branch"]:nth-of-type(2n) { animation-delay: -1.9s }
 [data-idle] [data-sway="crown"] { animation: aIdleCrown 5.2s ease-in-out infinite }
 /* «Ім'я нового кавенятка»: небо, картка знизу, паросток із подякою. */
-.name-sky { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 74%, var(--sky1) 0%, var(--sky2) 72%) }
-.name-card { position: absolute; left: 8px; right: 8px; bottom: 12px; z-index: 160; border: 1px solid var(--line); border-radius: 22px; background: var(--panel); box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden; display: flex; flex-direction: column }
-.name-hero { position: relative; height: 176px; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
+/* left/right — 0, top/bottom ставить PlantName за розміром .stage: попап
+   портальний, і його межі більше не залежать від скролера. z-index вище за
+   затемнення (150) — тепер це сусіди в одному контексті, а не вкладені. */
+.name-sky { position: absolute; left: 0; right: 0; top: 0; bottom: 0; z-index: 155; overflow: hidden; background: radial-gradient(120% 80% at 50% 74%, var(--sky1) 0%, var(--sky2) 72%) }
+/* max-height — щоб на низькому екрані (iPhone SE, 568 px) картка не лізла
+   вгору за межі неба, де її обрізав overflow: hidden. Не влазить — скролиться
+   форма, а паросток на платформі лишається цілим. */
+.name-card {
+  position: absolute; left: 8px; right: 8px; bottom: 12px; max-height: calc(100% - 24px); z-index: 160;
+  border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden; display: flex; flex-direction: column;
+}
+.name-hero { position: relative; flex: none; height: 176px; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
 .name-platform { position: absolute; left: 50%; bottom: -22px; width: 168px; height: 83px; margin-left: -112px }
 /* -55px, а не -34: у макеті паросток стояв на землі попереду трави, а не в
    ній (помилка макета, власник 23.09.2026). Зміряно на екрані: основа
@@ -1200,10 +1210,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .name-scene { position: absolute; left: 50%; top: -55px; width: 0; height: 0; margin-left: -121px }
 .name-bubble { position: absolute; left: 50%; top: 38px; margin-left: 6px; max-width: 168px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
   background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(4px) saturate(160%); color: var(--ink); font-size: 12.5px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .28); animation: aHop 2.6s ease-in-out infinite }
-.name-form { padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px }
+.name-form { padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto }
 .name-form > b { font-size: 19px; font-weight: 900; line-height: 1.15 }
 .name-form > p { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); text-wrap: pretty }
 .name-form > .cta { height: 50px; border-radius: 16px; font-size: 16px }
+.name-later { align-self: center; padding: 6px 10px; font-size: 12.5px; color: var(--muted) }
 .name-field { height: 52px; border-radius: 14px; border: 1px solid var(--accent); background: var(--panel2); display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 14px }
 .name-field input { flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--ink); font: inherit; font-size: 17px; font-weight: 800; outline: none }
 .name-field span { flex: none; font-size: 12px; font-weight: 800; color: var(--muted) }
