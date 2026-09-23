@@ -3,6 +3,7 @@
 // далі цього екрана не пускає (users.consent_at, db-schema §1).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { TopbarBack } from "../ui/TopbarBack.jsx";
 
 const Refresh = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
