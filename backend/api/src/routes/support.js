@@ -12,6 +12,7 @@ import { redisClient } from "@extrovert/lib/redis.js";
 import { many, one, query, tx } from "../db.js";
 import { requireAdmin, userFromRequest } from "../auth.js";
 import { fail } from "../errors.js";
+import { enqueue } from "@extrovert/lib/outbox.js";
 import { TelegramError, bot, download, sendMessage } from "../support/telegram.js";
 
 const redis = redisClient();
@@ -40,24 +41,19 @@ function parse(message) {
 
 // Привітання на /start — тексти з docs/support_bot_copy.md §6: з кодом
 // (тред уже знає акаунт) і без нього (людина знайшла бота сама).
-const GREETING_LINKED = `Привіт! Це підтримка EXTROVERT.CAFE 👋
+const GREETING_LINKED = `Привіт! Це підтримка extrovert.cafe 👋
 
 Бачимо, з якого ви акаунта — не треба нічого пояснювати про себе.
 
-Опишіть, що сталось: що замовляли, приблизно коли, і що пішло не так.
-Якщо є фото — просто прикріпіть, часто це найшвидший спосіб все пояснити.
+Опишіть, що сталось: що замовляли, приблизно коли, і що пішло не так. Якщо є фото — просто прикріпіть, часто це найшвидший спосіб усе пояснити.
 
 Відповідаємо живою людиною, тож трохи почекати — нормально.`;
 
-const GREETING_ANONYMOUS = `Привіт! Це підтримка EXTROVERT.CAFE 👋
+const GREETING_ANONYMOUS = `Привіт! Це підтримка extrovert.cafe 👋
 
-Цей чат не прив'язаний до вашого акаунта в застосунку — якщо звернення
-про конкретне замовлення чи кавенятко, краще зайти через кнопку
-«Підтримка» в самому застосунку, так ми одразу побачимо ваш акаунт.
+Цей чат не прив'язаний до вашого акаунта в застосунку — якщо звернення про конкретне замовлення чи кавенятко, краще зайти через кнопку «Підтримка» в самому застосунку: так ми одразу побачимо ваш акаунт.
 
-Якщо це не про акаунт (питання про автомат, локацію, щось на точці) —
-просто пишіть тут, вкажіть, будь ласка, де саме стоїть автомат і приблизно
-коли це було.`;
+Якщо це не про акаунт (питання про автомат, локацію, щось на точці) — просто пишіть тут. Вкажіть, будь ласка, де саме стоїть автомат і приблизно коли це було.`;
 
 export default async function routes(app) {
   // Посилання на бота. Гостю — просто t.me/<бот>, гравцю — з одноразовим
@@ -109,11 +105,20 @@ export default async function routes(app) {
          returning id, user_id`,
         [chatId, userId, message.from?.username ?? null]
       );
-      await client.query(
+      const { rowCount } = await client.query(
         `insert into support_messages (thread_id, direction, telegram_update_id, telegram_message_id, body, attachments)
          values ($1, 'in', $2, $3, $4, $5) on conflict (telegram_update_id) do nothing`,
         [rows[0].id, update.update_id, message.message_id, text, files.length ? JSON.stringify(files) : null]
       );
+      // Повтор того самого update Telegram присилає сам — події на нього не
+      // шлемо, інакше адмінка блимала б на порожньому місці.
+      if (rowCount) {
+        await enqueue(client, "admin", "support_message", {
+          thread_id: Number(rows[0].id),
+          preview: (text ?? "").slice(0, 120),
+          files: files.length,
+        });
+      }
       return rows[0];
     });
 
@@ -196,7 +201,8 @@ export default async function routes(app) {
          values ($1, 'out', $2, $3, $4) returning id, direction, body, attachments, created_at`,
         [thread.id, sent.message_id, text, admin.id]
       );
-      await client.query("update support_threads set last_admin_at = now() where id = $1", [thread.id]);
+      await client.query(
+        "update support_threads set last_admin_at = now(), status = 'open' where id = $1", [thread.id]);
       return rows[0];
     });
     return { ok: true, message: row };

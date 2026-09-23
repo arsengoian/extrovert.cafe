@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 74f4472</p>
+  <p class="eyebrow">extrovert.cafe · джерело 8c1010d</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3341,10 +3341,11 @@ GET    /api/v1/goods/by-code/{code}       ⚠️ 404 «Облік товарів
 у нас немає, а товар без групи стає в касі осторонь решти. Створення —
 окремий прапорець, бо ціну можна виправити наступним прогоном, а зайвий
 товар прибирають руками в кабінеті.</li>
-<li><strong>Звіряються всі напої, не лише активні.</strong> «Вимкнений» означає «немає на
-екрані кіоска», а не «немає в касі»: поки позиція лишається в машині,
-чек на неї прийде, і без товару в каталозі він не зійдеться. Так у
-каталог і поїхали бонусні позиції <code>a901</code>–<code>a904</code>.</li>
+<li><strong>Звіряються лише активні напої</strong> (рішення власника 23.09.2026).
+Вимкнений напій — це позиція, якої в машині ще немає (бонусні
+<code>a901</code>–<code>a904</code> з&#39;являться, коли їх заведуть через телеметрію Jetinno);
+до того часу в каталозі каси їй робити нічого. Чотири такі товари вже
+встигли поїхати в каталог 23.09 — прибрати їх можна в кабінеті.</li>
 <li><strong>Коди вигадувати не можна.</strong> Колишні <code>x034</code>/<code>x038</code> прибрані: нумерацію
 задає оператор машини — номер із літерою машини попереду (перша — «a»).
 Наші власні позиції отримали великі номери в тому ж форматі, доки
@@ -4094,7 +4095,7 @@ R2. Умови переїзду перелічені в розділі «Баз�
 людині відчути, що її почули.</p>
 <h2 id="support-bot-copy-1-botfather-newbot-і-setname"><a class="anchor" href="#support-bot-copy-1-botfather-newbot-і-setname" aria-hidden="true">#</a>1. BotFather — <code>/newbot</code> і <code>/setname</code></h2>
 <p><strong>Ім&#39;я (Name):</strong></p>
-<pre><code>EXTROVERT.CAFE — підтримка
+<pre><code>extrovert.cafe — підтримка
 </code></pre>
 <p><strong>Юзернейм (Username):</strong> Telegram вимагає закінчення на <code>bot</code>, тож повний
 збіг із <code>@extrovert.cafe</code> (заброньований для Instagram/TikTok, за
@@ -4105,11 +4106,11 @@ R2. Умови переїзду перелічені в розділі «Баз�
 <li><code>@extrovert_support_bot</code> — якщо перший зайнятий</li>
 </ul>
 <h2 id="support-bot-copy-2-botfather-setabout-до-120-символів-видно-в-профілі-бота"><a class="anchor" href="#support-bot-copy-2-botfather-setabout-до-120-символів-видно-в-профілі-бота" aria-hidden="true">#</a>2. BotFather — <code>/setabout</code> (до 120 символів, видно в профілі бота)</h2>
-<pre><code>Підтримка EXTROVERT.CAFE. Машина щось не те зробила — пишіть, розберемось. Відповідає людина, не бот.
+<pre><code>Підтримка extrovert.cafe. Машина щось не те зробила — пишіть, розберемось. Відповідає людина, не бот.
 </code></pre>
 <p>(102 символи)</p>
 <h2 id="support-bot-copy-3-botfather-setdescription-до-512-символів-видно-в-порожньом"><a class="anchor" href="#support-bot-copy-3-botfather-setdescription-до-512-символів-видно-в-порожньом" aria-hidden="true">#</a>3. BotFather — <code>/setdescription</code> (до 512 символів, видно в порожньому чаті до /start)</h2>
-<pre><code>Це підтримка кавового автомата EXTROVERT.CAFE — не ще один бот-меню і не
+<pre><code>Це підтримка кавового автомата extrovert.cafe — не ще один бот-меню і не
 робот-відповідач. Повідомлення читає реальна людина з нашої команди.
 
 Пишіть, якщо:
@@ -4128,7 +4129,7 @@ R2. Умови переїзду перелічені в розділі «Баз�
 документ): те саме кавенятко-маскот з графічного доку
 (<a class="doclink" href="#bush-graphics-customization"><code>bush_graphics_customization.md</code></a>), у спокійнішій позі, без святкової міміки
 з головного застосунку — тут воно не радіє капучино, а уважно слухає.
-Найпростіший безпечний варіант на старт: просто вордмарк <code>EXTROVERT.CAFE</code> на
+Найпростіший безпечний варіант на старт: просто вордмарк <code>extrovert.cafe</code> на
 фірмовому фоні, без персонажа — узгоджується з ієрархією стійки
 (<code>BRAND_CANDIDATES.md</code>: вордмарк несе впізнаваність, кавенятко — це шар арту
 застосунку, не обов&#39;язково самої підтримки).</p>
@@ -4141,7 +4142,7 @@ R2. Умови переїзду перелічені в розділі «Баз�
 <p>Два варіанти залежно від того, чи прийшов гравець за
 <code>t.me/&lt;бот&gt;?start=&lt;одноразовий код&gt;</code> (§4 <a class="doclink" href="#svc"><code>services.md</code></a>), чи знайшов бота сам.</p>
 <h3 id="support-bot-copy-6-1-з-кодом-тред-прив-язується-до-акаунта"><a class="anchor" href="#support-bot-copy-6-1-з-кодом-тред-прив-язується-до-акаунта" aria-hidden="true">#</a>6.1 З кодом — тред прив&#39;язується до акаунта</h3>
-<pre><code>Привіт! Це підтримка EXTROVERT.CAFE 👋
+<pre><code>Привіт! Це підтримка extrovert.cafe 👋
 
 Бачимо, з якого ви акаунта — не треба нічого пояснювати про себе.
 
@@ -4151,7 +4152,7 @@ R2. Умови переїзду перелічені в розділі «Баз�
 Відповідаємо живою людиною, тож трохи почекати — нормально.
 </code></pre>
 <h3 id="support-bot-copy-6-2-без-коду-анонімний-тред"><a class="anchor" href="#support-bot-copy-6-2-без-коду-анонімний-тред" aria-hidden="true">#</a>6.2 Без коду — анонімний тред</h3>
-<pre><code>Привіт! Це підтримка EXTROVERT.CAFE 👋
+<pre><code>Привіт! Це підтримка extrovert.cafe 👋
 
 Цей чат не прив&#39;язаний до вашого акаунта в застосунку — якщо звернення
 про конкретне замовлення чи кавенятко, краще зайти через кнопку
@@ -10851,7 +10852,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 74f4472 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 8c1010d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

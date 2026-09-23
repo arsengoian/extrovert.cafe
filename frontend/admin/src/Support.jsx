@@ -4,6 +4,8 @@
 // Telegram від імені бота.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "./api.js";
+import { go } from "./app.jsx";
+import { connectEvents } from "./ws.js";
 
 const time = (iso) => (iso ? new Date(iso).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const who = (t) => t.nickname || (t.telegram_username ? `@${t.telegram_username}` : `чат ${t.telegram_chat_id ?? t.id}`);
@@ -94,14 +96,27 @@ function Thread({ id, onChanged }) {
   );
 }
 
-export function Support() {
+export function Support({ id = null }) {
   const [list, setList] = useState(null);
   const [status, setStatus] = useState("open");
-  const [open, setOpen] = useState(null);
   const [error, setError] = useState(null);
+  // Обрана розмова живе в адресі (#/support/<id>), а не в стані: інакше
+  // перезавантаження скидало її, і після кожного оновлення доводилось
+  // шукати тред заново.
+  const open = id ? Number(id) : null;
 
   const load = useCallback(() => api.supportThreads(status).then(setList).catch((e) => setError(e.message)), [status]);
   useEffect(() => { load(); }, [load]);
+
+  // Нове повідомлення в підтримку приходить подією, а не опитуванням:
+  // людина написала — розмова спливла в списку сама. Відкритий тред
+  // перечитує себе сам (ключ нижче), тож тут досить оновити список.
+  const [beat, setBeat] = useState(0);
+  useEffect(() => connectEvents((e) => {
+    if (e.event !== "support_message") return;
+    load();
+    setBeat((n) => n + 1);
+  }), [load]);
 
   return (
     <section>
@@ -116,7 +131,7 @@ export function Support() {
         </div>
         <div className="right">
           {[["open", "Відкриті"], ["closed", "Закриті"]].map(([s, label]) => (
-            <button key={s} className={`btn${status === s ? " primary" : ""}`} onClick={() => { setStatus(s); setOpen(null); }}>{label}</button>
+            <button key={s} className={`btn${status === s ? " primary" : ""}`} onClick={() => { setStatus(s); go("support"); }}>{label}</button>
           ))}
           <button className="btn" onClick={load}>Оновити</button>
         </div>
@@ -127,7 +142,7 @@ export function Support() {
           {list?.threads.length === 0 && <li className="muted">Порожньо</li>}
           {list?.threads.map((t) => (
             <li key={t.id}>
-              <button className={`thread-row${open === t.id ? " on" : ""}`} onClick={() => setOpen(t.id)}>
+              <button className={`thread-row${open === t.id ? " on" : ""}`} onClick={() => go(`support/${t.id}`)}>
                 <span className="row between">
                   <b>{who(t)}</b>
                   {t.waiting && t.status === "open" && <span className="dot" title="чекає на відповідь" />}
@@ -140,7 +155,7 @@ export function Support() {
             </li>
           ))}
         </ul>
-        {open ? <Thread id={open} onChanged={load} /> : <p className="muted">Оберіть розмову зліва.</p>}
+        {open ? <Thread key={`${open}:${beat}`} id={open} onChanged={load} /> : <p className="muted">Оберіть розмову зліва.</p>}
       </div>
     </section>
   );

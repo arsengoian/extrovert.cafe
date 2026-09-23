@@ -38,8 +38,14 @@ function claimsFrom(token) {
   return claims;
 }
 
-// Канал з sub: user:<uuid> слухає телефон, point:<id> — кіоск.
-const channelFor = (sub) => (/^(user|point):/.test(sub) ? sub : null);
+// Канал з sub: user:<uuid> слухає телефон, point:<id> — кіоск, а всі
+// адміни сидять в одному спільному "admin" — їм потрібні ті самі події
+// (нове повідомлення в підтримку), і розділяти їх по особах нема сенсу.
+const channelFor = (sub) => {
+  if (/^(user|point):/.test(sub)) return sub;
+  if (/^admin:/.test(sub)) return "admin";
+  return null;
+};
 
 const server = createServer((req, res) => {
   if (req.url === "/healthz") return res.writeHead(200).end('{"ok":true}');
@@ -61,7 +67,7 @@ sub.on("pmessage", (_pattern, channel, payload) => {
     if (socket.readyState === socket.OPEN) socket.send(payload);
   }
 });
-await sub.psubscribe("user:*", "point:*");
+await sub.psubscribe("user:*", "point:*", "admin");
 
 wss.on("connection", (socket, req) => {
   const offered = (req.headers["sec-websocket-protocol"] || "").split(",").map((s) => s.trim());

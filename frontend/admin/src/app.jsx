@@ -100,7 +100,7 @@ function Screen({ name, arg, counts }) {
     case "promos": return <Promos />;
     case "deployments": return <Deployments />;
     case "problems": return <Problems />;
-    case "support": return <Support />;
+    case "support": return <Support id={arg} />;
     case "quiz-responses": return <QuizResponses />;
     case "orders": return arg ? <Order id={arg} /> : <Orders />;
     case "users": return arg ? <User id={arg} /> : <Users />;

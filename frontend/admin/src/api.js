@@ -34,6 +34,14 @@ function refresh() {
   return refreshing;
 }
 
+// Свіжий токен для вебсокета: у заголовку його не передати, тож він їде
+// підпротоколом — і мусить бути дійсним саме на момент рукостискання.
+export async function ensureToken() {
+  if (token) return token;
+  try { await refresh(); } catch { return null; }
+  return token;
+}
+
 async function send(path, { method = "GET", body } = {}) {
   return fetch(`${BASE}${path}`, {
     method,
