@@ -18,10 +18,19 @@ import { Onboarding } from "./screens/Onboarding.jsx";
 import { BonusPopup } from "./screens/Bonus.jsx";
 import "./theme.js";
 
+const TAB_KEY = "extrovert.tab";
+
 export function App({ bonusToken = null, returningFromPayment = false, login = null, legalDoc = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
-  const [tab, setTab] = useState("plant");
+  // Вкладка переживає перезавантаження: людина оновлює сторінку на «Складі»
+  // й має лишитись на «Складі», а не поїхати на кавенятко. Стек екранів
+  // поверх вкладки навмисно не відновлюємо — у нього кладуть props із
+  // живими об'єктами (лот, предмет, кавенятко), і «відновлений» екран
+  // показував би застарілі дані замість свіжих.
+  const [tab, setTab] = useState(() => {
+    try { return sessionStorage.getItem(TAB_KEY) || "plant"; } catch { return "plant"; }
+  });
   const [stack, setStack] = useState([]);           // екрани поверх вкладки
   // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
   // розділі «Поза авторизацією» — ними користуються ще без акаунта.
@@ -103,7 +112,11 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Заміна верхнього екрана без кроку назад: вкладки «Умови / Приватність»
   // міняють і текст, і заголовок топбару, як два окремі кадри макета.
   const replace = useCallback((name, props = {}) => setStack((s) => [...s.slice(0, -1), { name, props }]), []);
-  const openTab = useCallback((next) => { setTab(next); setStack([]); }, []);
+  const openTab = useCallback((next) => {
+    setTab(next);
+    setStack([]);
+    try { sessionStorage.setItem(TAB_KEY, next); } catch { /* приватний режим — просто не памʼятаємо */ }
+  }, []);
 
   // Бонус із QR: щойно гравець увійшов — попап над «Покупками», як у кадрі
   // «Попап редіму бонусу». Токен прибираємо з адреси, щоб оновлення

@@ -28,7 +28,7 @@ const login = loginToken ? api.emailVerify(loginToken) : null;
 // Постійні адреси документів — на них посилаються ззовні (екран згоди
 // Google OAuth, Mailgun, сторінки магазинів застосунків), тож вони мають
 // відкриватись самі по собі, і з акаунтом, і без.
-const legalDoc = { "/privacy-policy": "privacy" }[window.location.pathname] ?? null;
+const legalDoc = { "/privacy-policy": "privacy", "/terms": "terms" }[window.location.pathname] ?? null;
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

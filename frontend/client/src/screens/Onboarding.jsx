@@ -3,8 +3,6 @@
 // далі цього екрана не пускає (users.consent_at, db-schema §1).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Legal } from "./Legal.jsx";
-import { TopbarBack } from "../ui/TopbarBack.jsx";
 
 const Refresh = () => (
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -29,7 +27,6 @@ export function Onboarding({ me, onDone, onCancel }) {
   const [status, setStatus] = useState("free");
   const [agreed, setAgreed] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [doc, setDoc] = useState(null);
 
   // Перевіряємо з затримкою, як і при переказі: «вільний» має бути видно
   // до натискання «Почати».
@@ -57,19 +54,6 @@ export function Onboarding({ me, onDone, onCancel }) {
     }
   };
 
-  // Умови й політика відкриваються тут же, поверх екрана: у застосунок
-  // без згоди ще не пускаємо, а прочитати їх до згоди треба.
-  if (doc) {
-    return (
-      <>
-        <TopbarBack title={doc === "terms" ? "Умови користування" : "Приватність"} onBack={() => setDoc(null)} />
-        <div className="stage">
-          <Legal doc={doc} ctx={{ replace: setDoc, push: setDoc }} />
-        </div>
-      </>
-    );
-  }
-
   const [label, tone] = STATUS[status];
   return (
     <>
@@ -96,8 +80,8 @@ export function Onboarding({ me, onDone, onCancel }) {
             </button>
             <div>
               Погоджуюсь на обробку та аналіз даних і приймаю{" "}
-              <a className="doc-link" href="#terms" onClick={(e) => { e.preventDefault(); setDoc("terms"); }}>умови користування</a> та{" "}
-              <a className="doc-link" href="#privacy" onClick={(e) => { e.preventDefault(); setDoc("privacy"); }}>політику приватності</a>.
+              <a className="doc-link" href="/terms" target="_blank" rel="noopener noreferrer">умови користування</a> та{" "}
+              <a className="doc-link" href="/privacy-policy" target="_blank" rel="noopener noreferrer">політику приватності</a>.
             </div>
           </div>
 
