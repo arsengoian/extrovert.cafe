@@ -6,7 +6,7 @@
 // затримкою фіскалізації.
 import { readCursor, writeCursor } from "@extrovert/lib/jobs.js";
 import { pool } from "@extrovert/lib/db.js";
-import { cashierToken } from "./cashier.js";
+import { cashierToken, resetCashierToken } from "./cashier.js";
 import { ingest } from "./receipts.js";
 
 const API = process.env.CHECKBOX_API || "https://api.checkbox.ua";
@@ -39,7 +39,7 @@ export async function pollReceipts({ log }) {
       url.searchParams.set("offset", String(offset));
 
       const res = await fetch(url, { headers: { authorization: `Bearer ${auth}` } });
-      if (res.status === 401) { token = null; throw new Error("токен касира протух"); }
+      if (res.status === 401) { resetCashierToken(); throw new Error("токен касира протух"); }
       if (!res.ok) throw new Error(`receipts/search: HTTP ${res.status}`);
       const data = await res.json();
       const list = data.results ?? [];

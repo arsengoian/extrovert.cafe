@@ -14,7 +14,6 @@ import {
 
 export const ANCHOR = { x: STAGE_W / 2, y: GROUND_Y };
 
-const LEAF_GROUP = "leaves_batch_normal";
 const BRANCH_GROUP = "branch_skins_custom";
 const FRUIT_GROUP = "fruit_bud_greenbean";
 

@@ -20,7 +20,7 @@
     "logs": "docker compose logs -f --tail=100",
     "docs:map": "bun scripts/build-data-map.mjs",
     "docs:map:check": "bun scripts/build-data-map.mjs --check",
-    "check:jsx": "bun scripts/check-jsx.mjs",
+    "lint": "eslint .",
     "seed:pull": "bun scripts/seed.mjs pull",
     "seed:apply": "bun scripts/seed.mjs apply",
     "planting:data": "bun scripts/build-planting-data.mjs",
@@ -38,6 +38,10 @@
     "keys:ssh": "bun scripts/keys.mjs ssh"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.12.0",
     "marked": "^18.0.13",
     "pngjs": "^7.0.0"
   }

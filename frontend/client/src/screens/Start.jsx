@@ -35,7 +35,6 @@ const WarnIcon = () => (
 // них — варіант «без бонусів»: блок із плитками просто не показуємо.
 export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null, note = null, next = "/" }) {
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
 
   // Перехід, а не запит: далі екран Google, а повертається людина вже з
   // кукою сесії (backend/api/src/routes/auth.js). Працює однаково на
@@ -89,7 +88,7 @@ export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null,
             <button className="gbtn" disabled={busy} onClick={google}><GoogleG />Увійти через Google</button>
             <button className="gbtn" disabled={busy} onClick={onEmail}><MailIcon />Увійти через пошту</button>
             <button className="ghost-pill" onClick={onProblem}><WarnIcon />Повідомити про проблему</button>
-            {(error || note) && <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>{error || note}</div>}
+            {note && <div className="muted" style={{ fontSize: 12, textAlign: "center" }}>{note}</div>}
           </div>
         </div>
 

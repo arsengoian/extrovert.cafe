@@ -29,6 +29,15 @@ let token = null;
 let tokenAt = 0;
 let tokenTest = null;
 
+// Кеш токена живе тут, тому й скидає його той, хто тут: poll.js колись
+// писав token = null у себе й падав із «token is not defined» на кожному
+// 401 від Checkbox (спіймано лінтером 23.09.2026).
+export function resetCashierToken() {
+  token = null;
+  tokenAt = 0;
+  tokenTest = null;
+}
+
 export async function cashierToken({ log, write = false, env = process.env } = {}) {
   const { login, password, test } = creds(env);
   if (write && !test) {

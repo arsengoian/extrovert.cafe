@@ -4,7 +4,7 @@
 import { many, one } from "../db.js";
 import { userFromRequest } from "../auth.js";
 import { fail } from "../errors.js";
-import { bucketFor, presign } from "@extrovert/lib/r2.js";
+import { presign } from "@extrovert/lib/r2.js";
 
 export const CATEGORIES = ["coffee_machine", "monitor", "site", "supplies", "idea"];
 
