@@ -40,6 +40,9 @@ function overrides(vectorStore) {
     REDIS_URL: "redis://redis:6379",
     APP_ORIGIN: "https://extrovert.cafe",
     API_ORIGIN: "https://api.extrovert.cafe",
+    // Порожньо — і адреса повернення Google береться з API_ORIGIN. Локальне
+    // значення (localhost) на прод потрапити не має.
+    OAUTH_ORIGIN: "",
     GLITCHTIP_DOMAIN: "https://errors.extrovert.cafe",
     POSTGRES_PASSWORD: randomBytes(24).toString("base64url"),
     JWT_PRIVATE_KEY: jwt,
