@@ -7,6 +7,10 @@
 # make у стилі `--drink a033` не вміє: слова з дефісом він забирає собі як
 # власні опції. Тому параметри — змінними:
 #
+# Перевіряє їх сам make ($(if ...)$(error ...)), а не `test` у рецепті: на
+# Windows рецепт виконує cmd.exe, і кожен продаж починався з рядка
+# 'test' is not recognized as an internal or external command.
+#
 #   make d-sale DRINK=a033 PAY=cash
 #   make d-plant MAIL=хтось@пошта STAGE=1 RESET=1
 #   make d-skip MAIL=хтось@пошта
@@ -46,24 +50,24 @@ d-list:
 # Ціну й бонус бере з сідів; --pay cash|card. Далі все як у житті:
 # Checkbox → вебхук → бонус → QR на екрані точки.
 d-sale:
-	@test -n "$(DRINK)" || (echo "вкажи напій: make d-sale DRINK=a033 (список - make d-list)"; exit 1)
+	@$(if $(strip $(DRINK)),,$(error вкажи напій: make d-sale DRINK=a033 (список - make d-list)))
 	$(BUN) scripts/dev-sale.mjs --drink $(DRINK) --pay $(PAY)
 
 d-plant:
-	@test -n "$(MAIL)$(NICK)" || (echo "вкажи гравця: make d-plant MAIL=пошта STAGE=1"; exit 1)
+	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-plant MAIL=пошта STAGE=1))
 	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) \
 		$(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,)
 
 d-skip:
-	@test -n "$(MAIL)$(NICK)" || (echo "вкажи гравця: make d-skip MAIL=пошта"; exit 1)
+	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-skip MAIL=пошта))
 	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip
 
 d-supply:
-	@test -n "$(MAIL)$(NICK)" || (echo "вкажи гравця: make d-supply MAIL=пошта"; exit 1)
+	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-supply MAIL=пошта))
 	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --supply $(SUPPLY)
 
 d-user:
-	@test -n "$(MAIL)$(NICK)" || (echo "вкажи гравця: make d-user MAIL=пошта"; exit 1)
+	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-user MAIL=пошта))
 	$(PRODDB) $(BUN) scripts/dev-user.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK))
 
 # DATABASE_URL з'являється всередині prod-db.sh, тому розкриває його той
@@ -74,5 +78,5 @@ d-db:
 
 # Довільний запит: make d-sql Q="select count(*) from users"
 d-sql:
-	@test -n "$(Q)" || (echo 'вкажи запит: make d-sql Q=...'; exit 1)
+	@$(if $(strip $(Q)),,$(error вкажи запит: make d-sql Q=...))
 	$(PRODDB) sh -c 'psql "$$DATABASE_URL" -Atc "$(Q)"'
