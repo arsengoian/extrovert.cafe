@@ -20,6 +20,7 @@
     "logs": "docker compose logs -f --tail=100",
     "docs:map": "bun scripts/build-data-map.mjs",
     "docs:map:check": "bun scripts/build-data-map.mjs --check",
+    "check:jsx": "bun scripts/check-jsx.mjs",
     "seed:pull": "bun scripts/seed.mjs pull",
     "seed:apply": "bun scripts/seed.mjs apply",
     "planting:data": "bun scripts/build-planting-data.mjs",
