@@ -159,6 +159,7 @@ jobs:
           cid=$(docker create --platform linux/arm/v6 -w /work kiosk-builder make pi)
           docker cp raspberry/kiosk/. "$cid:/work"
           docker start -a "$cid"
+          mkdir -p raspberry/kiosk/bin   # bin/ під .gitignore, у воркспейсі його немає
           docker cp "$cid:/work/bin/kiosk" raspberry/kiosk/bin/kiosk
           docker rm "$cid"
           file raspberry/kiosk/bin/kiosk | grep -q ARM
