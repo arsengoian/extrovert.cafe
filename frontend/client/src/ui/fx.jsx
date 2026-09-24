@@ -74,9 +74,23 @@ export function burst(host, x, y, kind = "leaf", { delay = 0, duration = 700 } =
 
 // ── тап ─────────────────────────────────────────────────────────────────
 // «Натискання кнопки»: кільце розходиться від точки дотику (як в Android) і
-// легке стиснення до 95.5 %. Механіка одна для всіх темних і градієнтних
-// інтерактивних елементів; на градієнтних і кольорових кільце густіше.
-// Прозорі кнопки-іконки й пункти меню не блимають — там нема чого заливати.
+// легке стиснення до 95.5 %. Механіка одна для всіх інтерактивних
+// елементів; на градієнтних і кольорових кільце густіше.
+//
+// Що вважаємо кнопкою (24.09.2026, після «на сірих і кольорових кнопках
+// анімації немає»): раніше умовою був власний непрозорий фон — і половина
+// того, що людина тисне, лишалась без відгуку. Рядки списків (`.task`,
+// `.list-row`), неактивна половина перемикача, картки-рядки малюють свою
+// поверхню батьківською панеллю, а самі прозорі: гейт їх відкидав, і
+// натискання виглядало як «не спрацювало».
+//
+// Тепер питання інше: це поверхня, яку тиснуть, чи слова, які читають.
+// Поверхня — це або власний фон, або блок заввишки від 30 px. Текстове
+// посилання в рядку під це не підпадає й лишається чистим; посилання-кнопка
+// на кшталт «усі лоти» позначене `data-tap="off"` явно. Те, що не має
+// блимати за задумом (пункти меню), позначене `data-tap="off"` у розмітці:
+// це рішення дизайну, і воно має бути видно там, де його ухвалили.
+const TAP_MIN_H = 30;
 let tapInstalled = false;
 
 export function installTapFx() {
@@ -86,14 +100,15 @@ export function installTapFx() {
     if (e.button !== 0 || calm()) return;
     const el = e.target.closest?.("button, [role='button'], a[href]");
     if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") return;
+    if (el.closest("[data-tap='off']")) return;
     const cs = getComputedStyle(el);
     const gradient = cs.backgroundImage.includes("gradient");
     const rgba = (cs.backgroundColor.match(/[\d.]+/g) ?? ["0", "0", "0", "0"]).map(Number);
     const alpha = rgba.length > 3 ? rgba[3] : 1;
-    if (!gradient && alpha < 0.05) return;
     const strong = gradient || Math.max(rgba[0], rgba[1], rgba[2]) - Math.min(rgba[0], rgba[1], rgba[2]) > 80;
 
     const box = el.getBoundingClientRect();
+    if (!gradient && alpha < 0.05 && (cs.display.startsWith("inline") || box.height < TAP_MIN_H)) return;
     const x = e.clientX - box.left;
     const y = e.clientY - box.top;
     const size = 2 * Math.hypot(Math.max(x, box.width - x), Math.max(y, box.height - y));

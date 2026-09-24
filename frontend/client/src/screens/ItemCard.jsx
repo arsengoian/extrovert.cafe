@@ -106,7 +106,7 @@ export function ItemCard({ item, ctx }) {
           <div className="section-head" style={{ alignItems: "baseline" }}>
             <div className="sectionTitle">Від інших користувачів</div>
             {offers.total > offers.offers.length && (
-              <button className="link-more" onClick={() => setAll(true)}>усі {offers.total} лотів</button>
+              <button className="link-more" data-tap="off" onClick={() => setAll(true)}>усі {offers.total} лотів</button>
             )}
           </div>
           {offers.offers.map((lot, i) => {

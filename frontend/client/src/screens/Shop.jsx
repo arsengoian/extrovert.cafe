@@ -142,7 +142,7 @@ export function Shop({ ctx }) {
           <div className="section">
             <div className="section-head">
               <div className="sectionTitle">Одяг</div>
-              <button className="link-more" onClick={() => ctx.push("catalog")}>
+              <button className="link-more" data-tap="off" onClick={() => ctx.push("catalog")}>
                 Весь одяг
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                   <path d="M9.5 6 15.5 12 9.5 18" />

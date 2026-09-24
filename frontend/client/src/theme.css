@@ -122,7 +122,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--panel); border: 1px solid var(--line); font-weight: 700; font-size: 15px; width: 100%;
 }
 .btn-primary { background: var(--grad); border: 0; color: var(--accent-ink) }
-.btn:active { transform: scale(.99) }
 .btn[disabled] { opacity: .5 }
 
 /* Кольори рідкості — з макета (Common/Uncommon/Rare/Epic). */
@@ -146,6 +145,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important }
   .fx-sparks > i, .fx-pop, [data-idle] [data-sway] { animation: none !important }
+  /* Стиснення кнопки в спокійному режимі малює CSS, бо весь ефект тапу
+     вимкнений (fx.jsx, calm). Поза цим режимом правила тут немає навмисно:
+     `:active` вмикається ДО того, як спрацює наш pointerdown, і кнопка з
+     готовим transform не проходила перевірку «елемент нікуди не рухається
+     сам» — стиснення не запускалось узагалі (знайдено 24.09.2026). */
+  .btn:active, .cta:active, .tile:active { transform: scale(.99) }
 }
 
 /* Кроки-«таймлайн» і посилання-репост (екран «Репост у соцмережі») */
@@ -512,11 +517,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   display: flex; flex-direction: column; align-items: center; gap: 5px;
 }
 .drink-cell[aria-pressed="true"] { border-color: var(--accent) }
-.drink-cell > span {
+/* Саме .cup, а не «будь-який span усередині»: ефект натискання підкладає
+   в кнопку свій <span class="fx-ink">, і правило на тег перебивало йому
+   position: absolute — кільце ставало звичайним рядком сітки на 54px, і
+   комірка на час анімації підростала в півтора раза (24.09.2026). */
+.drink-cell .cup {
   position: relative; align-self: stretch; height: 54px; overflow: hidden;
   mask-image: linear-gradient(#000 0%, #000 46%, transparent 100%);
 }
-.drink-cell > span img { position: absolute; left: 50%; top: 0; width: 76px; height: 76px; margin-left: -38px; object-fit: contain }
+.drink-cell .cup img { position: absolute; left: 50%; top: 0; width: 76px; height: 76px; margin-left: -38px; object-fit: contain }
 .drink-cell > b { font-size: 9.5px; font-weight: 600; line-height: 1.1; text-align: center; color: var(--muted) }
 .drink-cell[aria-pressed="true"] > b { font-weight: 800; color: var(--ink) }
 
@@ -1413,7 +1422,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 .fx-sparks { position: absolute; width: 0; height: 0; pointer-events: none; z-index: 5 }
 .fx-sparks > i { position: absolute; left: 50%; top: 50%; border-radius: 2px; opacity: 0; animation: aSpark .7s ease-out both }
-.fx-ink { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none }
+/* Геометрія кільця — не предмет переговорів: його підкладають у чужу
+   кнопку, і будь-яке правило виду `.щось > span` у тій кнопці має вищу
+   специфічність за один клас. Один такий випадок уже коштував стрибка
+   верстки в сітці напоїв, тому тут !important — він захищає накладку від
+   стилів сторінки, а не перебиває чийсь намір. */
+.fx-ink {
+  position: absolute !important; inset: 0 !important; width: auto !important; height: auto !important;
+  margin: 0 !important; border-radius: inherit; overflow: hidden; pointer-events: none;
+}
 .fx-ink > span { position: absolute; border-radius: 999px; opacity: 0; transform: translate(-50%, -50%) scale(0); animation: aRipple .6s cubic-bezier(.2, .6, .3, 1) both }
 .fx-layer { position: absolute; inset: 0; pointer-events: none; z-index: 400; overflow: hidden }
 .fx-coin { position: absolute; width: 20px; height: 21px; opacity: 0; animation: aCoinFly 1.1s cubic-bezier(.3, .05, .6, .6) both }

@@ -62,7 +62,7 @@ export function DrinkGrid({ options, sprites = {}, value, onChange }) {
     <div className="drink-grid">
       {options.map((o) => (
         <button key={o} className="drink-cell" aria-pressed={value === o} onClick={() => onChange(o)}>
-          <span>{sprites[o] && <img src={`/assets/drinks/${sprites[o]}.png`} alt="" />}</span>
+          <span className="cup">{sprites[o] && <img src={`/assets/drinks/${sprites[o]}.png`} alt="" />}</span>
           <b>{o}</b>
         </button>
       ))}
