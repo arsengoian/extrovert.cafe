@@ -7,6 +7,13 @@
 // PLAYER_IDLE_S від «зараз» — і в Redis, і в куці. Хто заходить хоч раз на
 // пів року, не вилітає з акаунта ніколи; вилогінює лише неактивність.
 // Раніше сесія жила 30 діб від входу, хоч би як часто людина грала.
+//
+// Сесія адміна тепер так само ковзна, тільки вікно коротше — тиждень
+// бездіяльності (24.09.2026). До того було 12 годин від входу й без
+// продовження: власник, який тримає панель відкритою цілий день, однаково
+// впирався в екран входу щоранку, а іноді й серед дня. Захисту це не
+// давало — пароль набирали частіше, а не рідше. Тиждень без жодного
+// відкриття панелі сесію гасить; активну — ні.
 import { randomBytes } from "node:crypto";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { PROD } from "./env.js";
@@ -16,7 +23,7 @@ import { PROD } from "./env.js";
 const redis = redisClient();
 
 const PLAYER_IDLE_S = 180 * 24 * 60 * 60;   // 180 діб без жодного оновлення
-const ADMIN_TTL_S = 12 * 60 * 60;           // 12 годин і не продовжується
+const ADMIN_IDLE_S = 7 * 24 * 60 * 60;      // тиждень без жодного відкриття панелі
 export const COOKIE = "sid";
 // Адмінка живе на сусідньому домені, але кука — на api.extrovert.cafe, тож
 // імʼя має бути своє: інакше вхід в адмінку з того самого браузера
@@ -31,7 +38,7 @@ const userKey = (userId) => `sess:user:${userId}`;
 
 export async function createSession(userId, { admin = false } = {}) {
   const id = randomBytes(24).toString("base64url");
-  const ttl = admin ? ADMIN_TTL_S : PLAYER_IDLE_S;
+  const ttl = admin ? ADMIN_IDLE_S : PLAYER_IDLE_S;
   const now = Date.now();
   const tx = redis.multi().set(key(id), JSON.stringify({ user: userId, admin, at: now, seen: now }), "EX", ttl);
   if (!admin) tx.sadd(userKey(userId), id).expire(userKey(userId), PLAYER_IDLE_S);
@@ -45,16 +52,19 @@ export async function readSession(id) {
   return raw ? JSON.parse(raw) : null;
 }
 
-// Продовжити сесію гравця ще на PLAYER_IDLE_S. Повертає новий термін для
+// Продовжити сесію ще на її вікно бездіяльності. Повертає новий термін для
 // куки або null, якщо сесії вже немає. XX — лише якщо ключ іще існує: вихід,
 // що стався між читанням і продовженням, не має воскресити сесію.
+//
+// Набір сесій (userKey) ведеться лише для гравців: там його читає видалення
+// акаунта, щоб погасити вхід на всіх пристроях. В адміна такого немає —
+// його гасить disabled_at на наступному ж рефреші.
 export async function touchSession(id, session) {
-  if (session.admin) return null;
-  const [[, ok]] = await redis.multi()
-    .set(key(id), JSON.stringify({ ...session, seen: Date.now() }), "EX", PLAYER_IDLE_S, "XX")
-    .expire(userKey(session.user), PLAYER_IDLE_S)
-    .exec();
-  return ok === "OK" ? PLAYER_IDLE_S : null;
+  const ttl = session.admin ? ADMIN_IDLE_S : PLAYER_IDLE_S;
+  const tx = redis.multi().set(key(id), JSON.stringify({ ...session, seen: Date.now() }), "EX", ttl, "XX");
+  if (!session.admin) tx.expire(userKey(session.user), ttl);
+  const [[, ok]] = await tx.exec();
+  return ok === "OK" ? ttl : null;
 }
 
 export async function dropSession(id) {

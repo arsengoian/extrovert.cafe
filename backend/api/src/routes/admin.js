@@ -12,7 +12,7 @@ import { requireAdmin, signToken } from "../auth.js";
 import { verifyPassword } from "../admin-auth.js";
 import { DEV } from "../env.js";
 import { fail } from "../errors.js";
-import { ADMIN_COOKIE, clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie } from "../session.js";
+import { ADMIN_COOKIE, clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie, touchSession } from "../session.js";
 
 const redis = redisClient();
 // Перебір пароля впирається в лічильник у Redis, а не в базу
@@ -131,8 +131,10 @@ export default async function routes(app) {
     return issueAdmin(reply, admin);
   });
 
-  // Обмін куки на свіжий токен — як у гравця, але сесія адміна не ковзна:
-  // 12 годин, і по тому вхід ще раз.
+  // Обмін куки на свіжий токен — і заразом продовження сесії: тиждень від
+  // цієї миті (session.js). Куку теж переставляємо, інакше браузер викине
+  // її за старим Max-Age, хоч у Redis сесія ще жива, — і вхід питали б за
+  // розкладом, як і раніше.
   app.post("/admin/refresh", async (req, reply) => {
     const sid = cookieFrom(req, ADMIN_COOKIE);
     const session = await readSession(sid);
@@ -147,6 +149,12 @@ export default async function routes(app) {
       reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
       return reply.code(401).send({ error: "disabled" });
     }
+    const ttl = await touchSession(sid, session);
+    if (!ttl) {
+      reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
+      return reply.code(401).send({ error: "no_session" });
+    }
+    reply.header("set-cookie", sessionCookie(sid, ttl, { name: ADMIN_COOKIE }));
     return {
       token: signToken(`admin:${admin.id}`, admin.role),
       admin: { id: admin.id, email: admin.email, role: admin.role },
