@@ -138,7 +138,7 @@ docker compose up -d --no-deps $PLAIN
 # на старому образі: оновити сам caddy можна RECREATE_CADDY=1, і тоді кілька
 # секунд простою — свідома плата.
 caddy_step() {
-  local running new_ref new_id cur_id tmp cid
+  local running new_ref new_id cur_id applied tmp cid
   running="$(docker compose ps -q caddy || true)"
   if [ -z "$running" ]; then
     echo "   caddy не запущений — піднімаємо"
@@ -162,8 +162,13 @@ caddy_step() {
     docker compose up -d --no-deps caddy
     return
   fi
-  if [ "$new_id" = "$cur_id" ]; then
-    echo "   образ той самий — не чіпаємо"
+  # Після перечитування конфігу контейнер лишається на старому образі — тому
+  # памʼятаємо, конфіг ЯКОГО образу в ньому вже застосований. Без цього кожен
+  # наступний деплой бачив би розбіжність digest-ів і робив зайвий reload,
+  # а в логи щоразу падало б попередження про дрейф.
+  applied="$(docker exec "$running" cat /etc/caddy/.applied 2>/dev/null || true)"
+  if [ "$new_id" = "$cur_id" ] || [ "$new_id" = "$applied" ]; then
+    echo "   конфіг цього образу вже застосований — не чіпаємо"
     docker compose up -d --no-deps --no-recreate caddy >/dev/null
     return
   fi
@@ -180,7 +185,8 @@ caddy_step() {
   if docker cp "$tmp/Caddyfile" "$running:/etc/caddy/Caddyfile.new" \
      && docker exec "$running" caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new \
      && docker exec "$running" caddy reload --adapter caddyfile --config /etc/caddy/Caddyfile.new \
-     && docker exec "$running" mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile; then
+     && docker exec "$running" mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile \
+     && docker exec "$running" sh -c "printf %s '$new_id' > /etc/caddy/.applied"; then
     echo "   конфіг перечитано, зʼєднання не рвались"
     echo "   ⚠ контейнер лишився на образі $cur_id — сам caddy оновить RECREATE_CADDY=1"
   else
