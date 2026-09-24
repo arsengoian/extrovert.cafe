@@ -46,11 +46,15 @@ export function BeatScale({ history }) {
 
 // ms — середня затримка проби за останнє відро; у компонентів без HTTP
 // (черга outbox, heartbeat) її немає, і тоді колонка просто порожня.
-export const BeatRow = ({ ok, name, note, value, history, ms = null }) => (
-  <div className="beat-row">
+// sub — підрядок під точкою (монітор, відеопотік): той самий рядок із
+// відступом. children замість смужки — для рядків, у яких історії немає, а
+// є самі числа: колонки лишаються ті самі, тож підписи справа не їдуть.
+export const BeatRow = ({ ok, name, note, value, history, ms = null, sub = false, children = null, onClick = null }) => (
+  <div className={`beat-row${sub ? " sub" : ""}`} onClick={onClick ?? undefined}
+       style={onClick ? { cursor: "pointer" } : undefined} data-click={onClick ? "1" : undefined}>
     <span className="name"><Dot ok={ok} />{name}</span>
-    <Beat history={history} title={note} />
-    {ms !== null && <span className="ms">{fmt.int(ms)} мс</span>}
+    {children ?? <Beat history={history} title={note} />}
+    <span className="ms">{ms === null ? "" : `${fmt.int(ms)} мс`}</span>
     <span className="value">{value}</span>
   </div>
 );

@@ -74,16 +74,27 @@ table { border-collapse: collapse; width: 100% }
 .kpi-note { font-size: 10.5px; color: var(--muted) }
 
 /* ── рядок зі смужкою пульсу ────────────────────────────────────────── */
+/* Сітка одна на всі чотири картки дашборда: назва — смужка — затримка —
+   підпис. Колонки фіксовані, розтягується сама смужка, тож у всіх блоках
+   вона однакової ширини й починається та закінчується на одній вертикалі.
+   Доти колонка «мс» зʼявлялась лише в рядків, де затримка є, і смужки
+   scheduler чи postgres були на 63 px довші за сусідні (24.09.2026). */
 .beat-row { display: flex; align-items: center; gap: 9px; padding: 5px 0 }
-/* Підрядок точки: монітор і відеопотік під самою точкою, з відступом. */
+/* Підрядок точки: монітор, відеопотік і числа телеметрії — з відступом. */
 .beat-row.sub { padding-top: 0 }
 .beat-row.sub > .name { padding-left: 18px }
-.beat-row > .name { display: flex; align-items: center; gap: 7px; width: 150px; flex: none; font-size: 11.5px; font-weight: 700 }
-.beat-row > .value { margin-left: 10px; width: 210px; flex: none; text-align: right; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.beat-scale { display: flex; justify-content: space-between; padding: 2px 0 0 159px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums }
-/* Затримка стоїть перед деталями й притиснута до правого краю смужки:
-   у макеті це та сама «128 мс» біля кожного сервіса. */
-.beat-row > .ms { margin-left: auto; width: 54px; text-align: right; flex: none; font-size: 10.5px; font-weight: 700; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums }
+.beat-row > .name { display: flex; align-items: center; gap: 7px; width: 200px; flex: none; font-size: 11.5px; font-weight: 700 }
+.beat-row > .value { width: 230px; flex: none; text-align: right; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+/* Рядок без історії (числа телеметрії): замість смужки — самі числа, на
+   всю її ширину. Колонки навколо ті самі, тож підписи справа не їдуть. */
+.beat-row > .fill { flex: 1; min-width: 0; font-size: 10.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+/* Шкала під смужкою повторює її межі, а не краї картки: «зараз» має стояти
+   там, де смужка закінчується. */
+.beat-scale { display: flex; justify-content: space-between; padding: 2px 302px 0 209px; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums }
+/* Затримка стоїть перед підписом, притиснута до правого краю смужки: у
+   макеті це та сама «128 мс» біля кожного сервіса. Колонка є завжди —
+   порожня там, де затримки не буває (heartbeat, черга outbox). */
+.beat-row > .ms { width: 54px; text-align: right; flex: none; font-size: 10.5px; font-weight: 700; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--unknown); flex: none }
 .dot.ok { background: var(--ok) } .dot.bad { background: var(--bad) } .dot.warn { background: var(--warn) }
 .beat { flex: 1; min-width: 0; display: flex; gap: 1px; height: 16px; align-items: stretch }

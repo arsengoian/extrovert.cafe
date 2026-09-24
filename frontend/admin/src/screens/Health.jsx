@@ -6,7 +6,7 @@
 import { Fragment } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, BeatRow, BeatScale } from "../charts.jsx";
+import { BeatRow, BeatScale } from "../charts.jsx";
 import { Card, Empty, Kpi, METRIC_LABELS, fmt, metricValue, useData } from "../ui.jsx";
 
 const score = (s) => (s ? `${s.ok} / ${s.total}` : "—");
@@ -20,15 +20,12 @@ const num = (v, digits = 0) =>
   v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v).toFixed(digits);
 const bits = (...parts) => parts.filter(Boolean).join(" · ") || null;
 
-// Один рядок даних під точкою. Смужки тут немає навмисно: історію цих
-// чисел малює сторінка точки, а тут потрібне саме поточне значення.
-const DataRow = ({ label, ok, value, at }) => (
-  <div className="beat-row sub">
-    <span className="name" style={{ width: 220 }}>
-      <i className={`dot ${ok === null || ok === undefined ? "" : ok ? "ok" : "bad"}`} />
-      <span className="muted">{label}</span>
-    </span>
-    <span className="value" style={{ marginLeft: 0, flex: 1, textAlign: "left" }}>
+// Один рядок даних під точкою. Смужки тут немає навмисно — історію цих
+// чисел малює сторінка точки, — але колонки ті самі, що в рядків зі
+// смужкою: числа займають її місце, а підпис справа лишається на місці.
+const DataRow = ({ label, ok, value, at, note }) => (
+  <BeatRow ok={ok ?? null} name={<span className="muted">{label}</span>} sub value={note}>
+    <span className="fill">
       {value ?? "немає даних"}
       {/* Свіжість проби ховається, поки вона свіжа: інакше кожен рядок
           тягнув би за собою «2 хв тому» і числа тонули б у датах. */}
@@ -36,7 +33,7 @@ const DataRow = ({ label, ok, value, at }) => (
         <span className="muted"> · проба {fmt.ago(at)}</span>
       )}
     </span>
-  </div>
+  </BeatRow>
 );
 
 function PointTelemetry({ point }) {
@@ -62,6 +59,7 @@ function PointTelemetry({ point }) {
           ще живий, але вже поганий. */}
       <DataRow
         label="інтернет"
+        note="ping до api"
         ok={dot(loss === null ? null : Number(loss) < 5)}
         at={at}
         value={bits(
@@ -74,17 +72,18 @@ function PointTelemetry({ point }) {
           смужками: вимкнений екран чи мертвий потік із «точка озивається»
           не видно (23.09.2026). */}
       {[["монітор", point.monitor], ["відеопотік", point.video]].map(([label, s]) => s && (
-        <div key={label} className="beat-row sub">
-          <span className="name" style={{ width: 220 }}>
-            <i className={`dot ${s.ok ? "ok" : "bad"}`} />
-            <span className="muted">{label}</span>
-          </span>
-          <span className="value" style={{ marginLeft: 0, width: 150, textAlign: "left" }}>{s.detail ?? "працює"}</span>
-          <Beat history={s.history} />
-        </div>
+        <BeatRow
+          key={label}
+          sub
+          ok={s.ok}
+          name={<span className="muted">{label}</span>}
+          history={s.history}
+          value={s.detail ?? "працює"}
+        />
       ))}
       <DataRow
         label="залізо"
+        note="малина"
         // Пороги грубі навмисно: 80 °C — throttling малини, менше гігабайта
         // вільного — місце під релізи й чергу телеметрії.
         ok={dot(num(m.temp_c) === null ? null : Number(m.temp_c) < 80 && Number(m.disk_free_mb ?? 9e9) > 1024)}
@@ -98,12 +97,14 @@ function PointTelemetry({ point }) {
       />
       <DataRow
         label="кіоск"
+        note="меню на екрані"
         ok={dot(fps === null ? null : Number(fps) > 0)}
         at={at}
         value={bits(fps !== null && `${fps} fps`, m.release && `реліз ${m.release}`)}
       />
       <DataRow
         label="автомат"
+        note="Jetinno"
         ok={jet ? true : null}
         at={jet?.measured_at ?? null}
         // Ключів автомата ми ще не бачили жодного разу — показуємо як є,
@@ -183,26 +184,23 @@ export function Health() {
         ) : (
           data.points.map((p) => (
             <Fragment key={p.id}>
-            <div className="beat-row" data-click="1" onClick={() => go(`pos/${p.id}`)} style={{ cursor: "pointer" }}>
-              <span className="name" style={{ width: 220 }}>
-                <i className={`dot ${p.ok === null ? "" : p.ok ? "ok" : "bad"}`} />
+            <BeatRow
+              ok={p.ok}
+              name={
                 <span>
                   {p.name}
                   <small className="muted" style={{ display: "block", fontWeight: 400 }}>{p.short_address ?? p.address ?? p.id}</small>
                 </span>
-              </span>
-              {/* Усе в цій картці вирівняне ліворуч від однієї межі: під
-                  точкою йдуть рядки з числами, і колонка, вирівняна
-                  праворуч, розбивала б їх на дві сходинки. */}
-              <span className="value" style={{ marginLeft: 0, width: 150, textAlign: "left" }}>
-                {p.last_seen_at ? `озивалась ${fmt.ago(p.last_seen_at)}` : "не озивалась жодного разу"}
-              </span>
-              <Beat history={p.history} />
-            </div>
+              }
+              history={p.history}
+              value={p.last_seen_at ? `озивалась ${fmt.ago(p.last_seen_at)}` : "не озивалась жодного разу"}
+              onClick={() => go(`pos/${p.id}`)}
+            />
             <PointTelemetry point={p} />
             </Fragment>
           ))
         )}
+        <BeatScale history={data.points[0]?.history} />
       </Card>
     </>
   );
