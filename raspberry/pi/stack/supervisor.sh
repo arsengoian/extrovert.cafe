@@ -215,8 +215,33 @@ while :; do
         if [ "$_mode" = "overlap" ]; then restart_overlap "$_name"; else restart_plain "$_name"; fi
     done
 
+    # 3. Новий реліз — новий код і в решти компонентів, не лише в кіоска.
+    #
+    # Досі тут був лише лог «реліз змінився». Кіоск апдейтер підміняє сам
+    # (restart.kiosk), а telemetry й інші так і лишались тим процесом, що
+    # запустився колись — із кодом старого релізу. 24.09.2026 це коштувало
+    # півдня: у релізі вже був код, який вмикає монітор через CEC, у
+    # `current` — той самий реліз, а працювала телеметрія з позаминулого, і
+    # монітор не прокидався. Видно це було лише по тому, що в пробі бракувало
+    # нового поля.
+    #
+    # Чекаємо, поки апдейтер добіжить (прапорець `updating`): перезапустити
+    # його посеред перевірки здоров'я нової версії означало б зламати відкат.
     _now=$(current_release)
-    [ "$_now" = "$LAST_RELEASE" ] || { log "реліз змінився: $LAST_RELEASE → $_now"; LAST_RELEASE=$_now; }
+    if [ "$_now" != "$LAST_RELEASE" ]; then
+        log "реліз змінився: $LAST_RELEASE → $_now"
+        LAST_RELEASE=$_now
+        PENDING_RESTART=1
+    fi
+    if [ "${PENDING_RESTART:-0}" = "1" ] && [ ! -f "$EXTROVERT_STATE/updating" ]; then
+        PENDING_RESTART=0
+        while read -r _n _x _ov _args; do
+            # Кіоск має власний шлях підміни через сусідній шар — не чіпаємо.
+            [ "$_n" = "kiosk" ] && continue
+            log "$_n: новий реліз — перезапускаю з новим кодом"
+            restart_plain "$_n"
+        done < "$WANT"
+    fi
 done
 
 stop_all

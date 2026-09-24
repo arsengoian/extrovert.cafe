@@ -47,7 +47,16 @@ registerErrorHandler(app);
 app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, done) => {
   req.rawBody = body;
   if (!body) return done(null, {});
-  try { done(null, JSON.parse(body)); } catch (e) { done(e); }
+  // Биті тіло — це 400, а не 500: помилився той, хто прислав. Без цього
+  // рядка fastify віддавав 500, і кожна крива проба з малини лягала в
+  // GlitchTip як «у нас щось зламалось» (24.09.2026).
+  try {
+    done(null, JSON.parse(body));
+  } catch (e) {
+    e.statusCode = 400;
+    e.code = "bad_json";
+    done(e);
+  }
 });
 
 // Клієнт живе на extrovert.cafe, api на піддомені; локально — різні порти.
