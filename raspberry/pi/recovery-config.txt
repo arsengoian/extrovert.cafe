@@ -1,0 +1,17 @@
+# /config.txt на розділі RECOVERY (mmcblk0p1). Дамп із пристрою 24.09.2026 —
+# рівно те, що там лежить.
+#
+# Навіщо окремий файл. Картка розмічена NOOBS, і прошивка вантажиться саме
+# з цього розділу: bootcode.bin → recovery.elf → уже потім система з p7 і
+# /boot із p6. Райдужний квадрат малює перша прошивка, тобто ця, — а
+# `disable_splash=1` у /boot/config.txt вона не читає взагалі.
+#
+# Тому 21.09.2026 «тихе завантаження» зробили наполовину: логи ядра, курсор
+# і plymouth прибрались, а квадрат лишився, бо config.txt на RECOVERY просто
+# не існувало. Створили 24.09.2026.
+#
+# Як покласти назад на чисту картку:
+#   sudo mkdir -p /mnt/rec && sudo mount /dev/mmcblk0p1 /mnt/rec
+#   sudo cp recovery-config.txt /mnt/rec/config.txt && sudo sync
+#   sudo umount /mnt/rec
+disable_splash=1

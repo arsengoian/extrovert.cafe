@@ -26,6 +26,16 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# cec-utils — єдиний спосіб дізнатись, що монітор вимкнули кнопкою, і єдиний
+# спосіб увімкнути його назад (docs/raspberry-pi.md §6-біс; перевірено на
+# Asus VP227HF 24.09.2026). Без нього телеметрія чесно каже «не знаю»,
+# тож установка не обовʼязкова — але без неї ми сліпі до сплячого екрана.
+if ! command -v cec-client >/dev/null 2>&1; then
+    echo "== ставлю cec-utils (стан монітора) =="
+    sudo apt-get install -y --no-install-recommends cec-utils \
+        || echo "   не вийшло — точка працюватиме, але стан монітора буде невідомий"
+fi
+
 echo "== розкладка в $ROOT =="
 mkdir -p "$ROOT/bin" "$ROOT/releases" "$ROOT/state" "$ROOT/logs" "$ROOT/config"
 

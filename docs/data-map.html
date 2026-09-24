@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f4b065a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 8f0df6e</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4407,22 +4407,25 @@ GPU-памʼяті під 1080p-поверхню, і на екрані був б
 </tbody></table>
 </div>
 <blockquote>
-<p>⚠️ <strong>«Квадрат усе одно видно» (власник, 24.09.2026).</strong> Райдужних квадратів
-два, і лікуються вони по-різному:</p>
-<ul>
-<li><strong>на весь екран, одразу після подачі живлення, на пів секунди</strong> — заставка
-прошивки; її і гасить <code>disable_splash=1</code>. Якщо вона лишилась, <code>config.txt</code>
-не той: картка розмічена NOOBS, і <code>/boot</code> тут — <strong>p6</strong>; рядок мусить бути
-саме у файлі, який читає прошивка (<code>mount | grep boot</code>, далі <code>grep disable_splash /boot/config.txt</code>).</li>
-<li><strong>маленький, у правому верхньому кутку, зʼявляється під час роботи</strong> —
-це не заставка, а <strong>попередження про просідання живлення</strong>. Ховати його
-(<code>avoid_warnings=1</code>) не можна: саме воно попереджає, що блок живлення чи
-кабель не тягнуть, а запис на картку при просіданні — найчастіша причина
-її смерті (§6-тер). Тепер це видно й у телеметрії: <code>throttled</code> і алерт
-«⚡ просідає живлення».</li>
-</ul>
-<p>Щоб не гадати: <code>vcgencmd get_throttled</code>. <code>0x0</code> — живлення в нормі, і тоді
-квадрат таки заставка; будь-що інше — блок живлення.</p>
+<p>⚠️ <strong>Квадрат лишався попри <code>disable_splash=1</code> — розібрано на пристрої
+24.09.2026.</strong> Причина: картка розмічена <strong>NOOBS</strong>, і прошивка вантажиться
+не з <code>/boot</code>, а з розділу <strong>RECOVERY (p1)</strong>: <code>bootcode.bin</code> → <code>recovery.elf</code>
+→ і лише потім система з p7 разом із <code>/boot</code> (p6). Квадрат малює перша
+прошивка, а <code>config.txt</code> на RECOVERY <strong>не існувало взагалі</strong> — тож наш
+рядок у <code>/boot/config.txt</code> вона просто не читала.</p>
+<p>Лікування: такий самий <code>disable_splash=1</code> покласти на RECOVERY
+(<code>raspberry/pi/recovery-config.txt</code> — дамп того, що там тепер лежить):</p>
+<pre><code class="language-sh">sudo mkdir -p /mnt/rec &amp;&amp; sudo mount /dev/mmcblk0p1 /mnt/rec
+sudo sh -c &#39;echo disable_splash=1 &gt; /mnt/rec/config.txt&#39; &amp;&amp; sudo sync
+sudo umount /mnt/rec &amp;&amp; sudo reboot
+</code></pre>
+<p><strong>Другий, зовсім інший квадрат</strong> — маленький, у правому верхньому кутку,
+зʼявляється під час роботи. Це попередження про просідання живлення, і
+ховати його (<code>avoid_warnings=1</code>) не можна: запис на картку при просіданні —
+найчастіша причина її смерті (§6-тер). Тепер воно видно й у телеметрії
+(<code>throttled</code>) і приходить алертом. Відрізнити два квадрати без здогадок:
+<code>vcgencmd get_throttled</code> — <code>0x0</code> означає, що живлення в нормі й квадрат
+таки заставка (саме так і було 24.09.2026).</p>
 </blockquote>
 <p><code>splash</code> прибрано, бо з ним plymouth показував на весь екран свою заставку з
 малиною — рівно те, чого клієнт бачити не мав. <code>consoleblank=0</code> тут не про
@@ -5028,15 +5031,54 @@ overlap-підміні, а якщо кадру так і не буде — ли�
 </tr>
 </tbody></table>
 </div>
-<p><strong>Чого ми не бачимо — і чому.</strong> Монітор у standby по HDMI не відрізнити від
-увімкненого: і hotplug, і EDID лишаються на місці (а в нас ще й
-<code>hdmi_force_hotplug=1</code>, тобто малина видає сигнал навіть у порожнечу).
-Єдиний спосіб спитати сам монітор — <strong>CEC</strong>, і телеметрія його пробує
-(<code>cec-client -s</code>, пакет <code>cec-utils</code>). Якщо монітор CEC не вміє — у метриці
-чесно стоїть <code>null</code>, і алерту немає: «не знаю» краще за вигадане
-«увімкнено». Це й пояснює 24.09.2026: власник вимкнув монітор кнопкою, а
-дашборд писав «працює», бо дивився на <code>tvservice -s</code>, тобто на власний
-вихід малини.</p>
+<p><strong>Монітор: перевірено на живому залізі 24.09.2026.</strong> Власник вимкнув екран
+кнопкою, а дашборд писав «працює». Заміряно з увімкненою й вимкненою
+панеллю Asus VP227HF:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Що питаємо</th>
+<th>Монітор увімкнений</th>
+<th>Монітор вимкнений кнопкою</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>tvservice -s</code></td>
+<td><code>HDMI CEA (16) 1920x1080</code></td>
+<td><strong>те саме</strong></td>
+</tr>
+<tr>
+<td><code>tvservice -n</code></td>
+<td><code>device_name=AUS-VP227HF</code></td>
+<td><strong>те саме</strong></td>
+</tr>
+<tr>
+<td><code>vcgencmd display_power</code></td>
+<td><code>1</code></td>
+<td><strong><code>1</code></strong></td>
+</tr>
+<tr>
+<td>EDID (<code>tvservice -d</code>)</td>
+<td>256 байт</td>
+<td><strong>256 байт</strong></td>
+</tr>
+<tr>
+<td><code>cec-client</code>, <code>pow 0</code></td>
+<td><code>power status: on</code></td>
+<td><strong><code>power status: standby</code></strong></td>
+</tr>
+</tbody></table>
+</div>
+<p>Тобто по HDMI видно лише те, що видає сама малина; правду каже <strong>тільки
+CEC</strong> — і цей монітор його вміє (не всі вміють). Тому на точці поставлено
+<code>cec-utils</code>, і телеметрія питає <code>pow 0</code>. Немає CEC — у метриці чесне
+<code>null</code> і жодного алерту: «не знаю» краще за вигадане «увімкнено».</p>
+<p><strong>І той самий CEC уміє його ввімкнути.</strong> <code>echo &quot;on 0&quot; | cec-client -s -d 1</code>
+розбудив панель за секунди — перевірено там же. Телеметрія робить це сама,
+коли бачить standby, не частіше ніж раз на 10 хвилин
+(<code>MONITOR_AUTOWAKE=0</code> у <code>config/env</code> вимикає), і позначає в пробі
+<code>monitor_woke</code>. Тобто «вимкнули екран» тепер не лише видно, а й лікується
+без виїзду.</p>
 <p>Так само не побачимо: розбите скло, вимкнений автомат Jetinno (поки немає
 його телеметрії), зависле зображення при живому кіоску (fps рахує кадри,
 а не їх вміст).</p>
@@ -11166,7 +11208,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел f4b065a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 8f0df6e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -69,13 +69,18 @@ temp_c() {
 # не відрізнити нічим, крім CEC. Тому чесна відповідь така: CEC, якщо він є,
 # інакше EDID (ловить від'єднаний кабель і знеструмлений монітор), інакше
 # null — «не знаємо», а не «увімкнено».
+#
+# Перевірено на живому залізі 24.09.2026, монітор Asus VP227HF: коли його
+# вимикають кнопкою, `tvservice -s` далі каже «HDMI CEA (16) 1920x1080», а
+# `tvservice -n` спокійно віддає device_name=AUS-VP227HF. І лише CEC каже
+# правду: `power status: standby`. Він же вміє його ввімкнути назад.
 monitor_on() {
     # CEC: єдиний спосіб дізнатись про standby. Питаємо пристрій 0 (телевізор).
     if command -v cec-client >/dev/null 2>&1; then
-        _p=$(echo "pow 0" | timeout 6 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
+        _p=$(echo "pow 0" | timeout 12 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
         case "$_p" in
-            *"power status: on"*)      echo true;  return ;;
-            *standby*)                 echo false; return ;;
+            *"power status: on"*) echo true;  return ;;
+            *standby*)            echo false; return ;;
         esac
     fi
     # EDID читається — пристрій на тому кінці є (хоч, можливо, і в сні).
@@ -95,6 +100,25 @@ monitor_source() {
     if command -v cec-client >/dev/null 2>&1; then echo cec; return; fi
     if command -v tvservice   >/dev/null 2>&1; then echo edid; return; fi
     echo none
+}
+
+# Розбудити монітор. Кіоск існує, щоб на нього дивились, тож екран у сні —
+# поломка, яку ми вміємо полагодити самі (у списку власника це «вимкнуто
+# монітор → перезапуск монітора»). Пробуємо не частіше, ніж раз на
+# MONITOR_WAKE_EVERY_S: якщо хтось вимикає його навмисно, він не має воювати
+# з нами щохвилини — і в логах видно, що ми це зробили.
+# Вимикається одним MONITOR_AUTOWAKE=0 у config/env.
+monitor_wake() {
+    [ "${MONITOR_AUTOWAKE:-1}" = "1" ] || return 1
+    command -v cec-client >/dev/null 2>&1 || return 1
+    _stamp="$EXTROVERT_STATE/monitor-wake.at"
+    _now=$(date +%s)
+    _last=$(cat "$_stamp" 2>/dev/null || echo 0)
+    [ $((_now - _last)) -ge "${MONITOR_WAKE_EVERY_S:-600}" ] || return 1
+    echo "$_now" > "$_stamp"
+    log "монітор у сні — вмикаємо через CEC"
+    echo "on 0" | timeout 12 cec-client -s -d 1 >/dev/null 2>&1
+    return 0
 }
 
 # Стан живлення прошивки: 0x1 — просідає прямо зараз, 0x10000 — просідало з
@@ -181,16 +205,21 @@ sample_json() {
     _fps=$1; _frames=$2
     _monitor=$(monitor_on)
     _msrc=$(monitor_source)
+    # Побачили сон — одразу пробуємо розбудити, і кажемо про це в пробі:
+    # інакше «монітор вимкнено» і «монітор вимкнено, але ми його ввімкнули»
+    # виглядали б однаково.
+    _woke=false
+    if [ "$_monitor" = "false" ] && monitor_wake; then _woke=true; fi
     _video=$(video_ok)
     _throttled=$(throttled)
     _rofs=$(root_readonly)
     _usb=$(usb_ok)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
-        "${_monitor:-null}" "${_msrc:-none}" "${_video:-null}" "${_throttled:-null}" \
+        "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" "${_throttled:-null}" \
         "${_rofs:-null}" "${_usb:-null}" "${_release:-unknown}"
 }
 
