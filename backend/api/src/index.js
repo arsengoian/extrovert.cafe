@@ -1,6 +1,7 @@
 // REST для застосунку гравця. Схема — db/migrations, економіка —
 // backend/api/data/economy.json, контент — db/seeds (docs/db-schema.md §7).
 import Fastify from "fastify";
+import { initErrors } from "@extrovert/lib/errors.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { closeRedis } from "@extrovert/lib/redis.js";
 import { pool } from "./db.js";
@@ -35,6 +36,10 @@ import supportRoutes from "./routes/support.js";
 import { ensureWebhook } from "./support/telegram.js";
 
 const app = Fastify({ logger: true });
+
+// Усе, що не спіймали роути, їде в GlitchTip: 500 у логах бачить лише той,
+// хто в них дивиться, а сюди можна прийти й спитати «що зламалось учора».
+initErrors("api", { log: app.log });
 registerErrorHandler(app);
 
 // Тіло потрібне байт-у-байт: підпис вебхука mono рахується від сирого

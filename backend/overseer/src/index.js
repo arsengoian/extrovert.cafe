@@ -12,12 +12,14 @@ import { presign } from "@extrovert/lib/r2.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
+import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { checkPoints, checkWebhook, dailyReport } from "./checks.js";
 import { sampleHealth } from "./health.js";
 import { send } from "./telegram.js";
 
 const log = makeLog("overseer");
+initErrors("overseer", { log });
 const redis = redisClient();
 
 const MINUTE = 60_000;

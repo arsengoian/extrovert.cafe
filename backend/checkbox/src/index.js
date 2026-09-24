@@ -9,11 +9,13 @@ import { pool } from "@extrovert/lib/db.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
+import { initErrors } from "@extrovert/lib/errors.js";
 import { every, withLock } from "@extrovert/lib/jobs.js";
 import { ingest } from "./receipts.js";
 import { pollReceipts } from "./poll.js";
 
 const log = makeLog("checkbox");
+initErrors("checkbox", { log });
 const redis = redisClient();
 const app = Fastify({ logger: false });
 const PORT = Number(process.env.PORT || 3003);

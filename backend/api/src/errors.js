@@ -1,3 +1,5 @@
+import { captureError } from "@extrovert/lib/errors.js";
+
 // Помилка з кодом відповіді, яку можна кинути звідусіль — зокрема зсередини
 // транзакції.
 //
@@ -23,6 +25,11 @@ export function registerErrorHandler(app) {
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof HttpError) return reply.code(err.status).send(err.body);
     app.log.error(err);
+    // У збірник — лише те, що справді наша поломка: 4xx це відмова за
+    // правилами, і в GlitchTip їй нічого робити.
+    if (!err.statusCode || err.statusCode >= 500) {
+      captureError(err, { tags: { route: req.routeOptions?.url ?? req.url, method: req.method } });
+    }
     const status = err.statusCode && err.statusCode < 500 ? err.statusCode : 500;
     return reply.code(status).send({ error: status === 500 ? "internal" : err.code ?? "bad_request" });
   });

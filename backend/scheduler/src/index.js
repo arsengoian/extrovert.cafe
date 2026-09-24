@@ -10,6 +10,7 @@ import { pool } from "@extrovert/lib/db.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
+import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { publishOutbox } from "./jobs/outbox.js";
 import { flushImpressions } from "./jobs/impressions.js";
@@ -18,6 +19,7 @@ import { deployMenus } from "./jobs/menu.js";
 import { backupDatabase } from "./jobs/backup.js";
 
 const log = makeLog("scheduler");
+initErrors("scheduler", { log });
 const redis = redisClient();
 
 const MINUTE = 60_000;

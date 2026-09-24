@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело ac6efe1</p>
+  <p class="eyebrow">extrovert.cafe · джерело ef06096</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -934,6 +934,20 @@ limit $4;                                                   -- $4 = limit ≤ 10
 <p>GlitchTip приймає протокол Sentry, тож кожен компонент шле помилки своїм
 SDK у <strong>свій проєкт</strong>: сповіщення, квоти й шум одного не змішуються з
 іншими.</p>
+<p><strong>Піднято 24.09.2026.</strong> До цього GlitchTip стояв порожній: контейнер
+працював, база <code>glitchtip</code> була без жодної таблиці (міграції не виконались
+при першому старті), а сервіси нічого не слали — тобто «failed to fetch»
+у власника не лишав по собі жодного сліду ніде. Тепер є організація
+<code>extrovert</code>, девʼять проєктів і DSN на кожен.</p>
+<p><strong>Своїх сервісів це коштувало сто рядків замість SDK</strong> — <code>lib/errors.js</code>
+шле envelope сам. <code>@sentry/node</code> тягне OpenTelemetry з десятком пакетів і
+патчить рантайм; на bun із лімітом 512 МБ це погана угода заради «сталась
+помилка, ось стек». Є стеля 20 подій на хвилину: зациклений сервіс не має
+ні забити квоту, ні влаштувати DDoS збирачу.</p>
+<p><strong>Дивитись помилки — з консолі, не з веба</strong>: <code>bun scripts/errors.mjs</code>
+(список), <code>--open &lt;id&gt;</code> (стек і теги), <code>--resolve &lt;id&gt;</code>. Так попросив
+власник — у веб-інтерфейс він заглядати не буде, а помилки хтось має
+читати щодня.</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -945,7 +959,7 @@ SDK у <strong>свій проєкт</strong>: сповіщення, квоти 
 <tbody><tr>
 <td><code>api</code>, <code>ws</code>, <code>checkbox</code>, <code>overseer</code>, <code>scheduler</code></td>
 <td>Node-сервіси</td>
-<td><code>@sentry/node</code></td>
+<td><code>lib/errors.js</code> — <strong>зроблено</strong></td>
 </tr>
 <tr>
 <td><code>worker</code>, <code>deployer</code></td>
@@ -11004,7 +11018,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел ac6efe1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ef06096 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

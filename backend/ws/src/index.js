@@ -9,6 +9,9 @@ import { createPublicKey, verify } from "node:crypto";
 import { WebSocketServer } from "ws";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { redisClient } from "@extrovert/lib/redis.js";
+import { initErrors } from "@extrovert/lib/errors.js";
+
+initErrors("ws");
 
 const PORT = Number(process.env.PORT || 3002);
 const REDIS_URL = process.env.REDIS_URL || "redis://127.0.0.1:6389";

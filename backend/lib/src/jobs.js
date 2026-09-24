@@ -1,3 +1,5 @@
+import { captureError } from "./errors.js";
+
 // Робота за розкладом: блокування в Redis і курсор у Postgres.
 //
 // Блокування потрібне не «про всяк випадок»: дві копії scheduler підняти
@@ -68,6 +70,8 @@ export function every(ms, name, fn, log) {
         await fn();
       } catch (e) {
         log?.error(`робота ${name} впала`, e);
+        // Фонова робота падає тихо: ніхто не дивиться в той момент у лог.
+        captureError(e, { tags: { job: name } });
       }
       if (stopped) break;
       const wait = Math.max(0, ms - (Date.now() - started));
