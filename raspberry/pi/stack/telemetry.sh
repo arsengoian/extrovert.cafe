@@ -74,39 +74,34 @@ temp_c() {
 # вимикають кнопкою, `tvservice -s` далі каже «HDMI CEA (16) 1920x1080», а
 # `tvservice -n` спокійно віддає device_name=AUS-VP227HF. І лише CEC каже
 # правду: `power status: standby`. Він же вміє його ввімкнути назад.
-monitor_on() {
-    # CEC: єдиний спосіб дізнатись і про standby, і про висмикнутий кабель.
-    # Три відповіді, і всі три важливі (заміряно 24.09.2026):
-    #   on       — екран працює;
-    #   standby  — вимкнений кнопкою;
-    #   unknown  — на тому кінці ніхто не відповідає: кабель вийняли або
-    #              монітор знеструмлено. Перепитуємо один раз, бо «unknown»
-    #              буває й від того, що шина зайнята.
+# Віддає ДВА слова: стан і звідки він відомий. Одною функцією, бо кожна
+# обгортка тут виконується в підоболонці — змінна, виставлена всередині,
+# назовні не вийде, і «чому» довелось би питати другим опитом CEC (ще 5,7 с).
+#
+# Стан: true | false | null. Звідки:
+#   cec         — монітор відповів (on або standby);
+#   cec-silent  — двічі не відповів: кабель або живлення монітора;
+#   none        — CEC у системі немає, перевірити нічим.
+monitor_probe() {
     if command -v cec-client >/dev/null 2>&1; then
         for _try in 1 2; do
             _p=$(echo "pow 0" | timeout 12 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
             case "$_p" in
-                *"power status: on"*) echo true;  return ;;
-                *standby*)            echo false; return ;;
+                *"power status: on"*) echo "true cec";  return ;;
+                *standby*)            echo "false cec"; return ;;
             esac
             [ "$_try" = "1" ] && sleep 2
         done
-        echo false
+        # Мовчить двічі — на тому кінці нікого немає. Це інша поломка, ніж
+        # сон, і лікується вона руками; будити тут нема кого.
+        echo "false cec-silent"
         return
     fi
     # Без CEC лишається EDID — але з hdmi_force_hotplug=1 прошивка віддає
     # кешоване імʼя монітора навіть із висмикнутим кабелем (перевірено
     # 24.09.2026: `tvservice -n` каже AUS-VP227HF у порожнечу). Тому це не
-    # «монітор на місці», а лише «ми не вміємо перевірити» — null.
-    echo null
-}
-
-# Звідки взялася відповідь monitor_on: без цього «true» з EDID і «true» з CEC
-# виглядають однаково, а вартують вони різного.
-monitor_source() {
-    if command -v cec-client >/dev/null 2>&1; then echo cec; return; fi
-    if command -v tvservice   >/dev/null 2>&1; then echo edid; return; fi
-    echo none
+    # «монітор на місці», а лише «ми не вміємо перевірити».
+    echo "null none"
 }
 
 # Розбудити монітор. Кіоск існує, щоб на нього дивились, тож екран у сні —
@@ -219,13 +214,15 @@ sample_json() {
     set -- $(net_metrics); _ping=$1; _jitter=$2; _loss=$3
     set -- $(kiosk_metrics "/tmp/kiosk-$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0).sock")
     _fps=$1; _frames=$2
-    _monitor=$(monitor_on)
-    _msrc=$(monitor_source)
+    set -- $(monitor_probe); _monitor=$1; _msrc=$2
     # Побачили сон — одразу пробуємо розбудити, і кажемо про це в пробі:
     # інакше «монітор вимкнено» і «монітор вимкнено, але ми його ввімкнули»
     # виглядали б однаково.
     _woke=false
-    if [ "$_monitor" = "false" ] && monitor_wake; then _woke=true; fi
+    # Будимо лише те, що відповідає: якщо на CEC ніхто не озивається
+    # (витягнутий кабель), команда «увімкнись» летіла б у порожнечу, а в
+    # пробі стояло б «будили» — неправда, яку потім видно в алерті.
+    if [ "$_monitor" = "false" ] && [ "$_msrc" = "cec" ] && monitor_wake; then _woke=true; fi
     _video=$(video_ok)
     _throttled=$(throttled)
     _rofs=$(root_readonly)

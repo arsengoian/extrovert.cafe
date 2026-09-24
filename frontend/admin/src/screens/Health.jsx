@@ -9,6 +9,27 @@ import { go } from "../app.jsx";
 import { BeatRow, BeatScale } from "../charts.jsx";
 import { Card, Empty, Kpi, METRIC_LABELS, fmt, metricValue, useData } from "../ui.jsx";
 
+// Підсумок по точці: зелена крапка лише тоді, коли зелене все, що ми вміємо
+// перевірити. Дивитись доводилось у пʼять рядків одразу — тепер відповідь
+// одна, а подробиці під нею (прохання власника 24.09.2026).
+//
+// Відеопотік у підсумок не входить, поки камери немає фізично: інакше точка
+// світилась би червоним цілодобово й підсумок нічого не означав би. Свій
+// рядок він має, і він там чесно червоний.
+function pointOk(p) {
+  if (p.ok !== true) return p.ok;               // мовчить або ще не озивалась
+  const m = p.telemetry?.pi?.metrics ?? {};
+  const checks = [
+    p.monitor ? p.monitor.ok : null,
+    m.monitor_on === false ? false : null,
+    m.root_ro === true ? false : null,
+    Number.isFinite(m.throttled) && (m.throttled & 0x5) !== 0 ? false : null,
+    m.kiosk_fps !== undefined && (m.kiosk_fps === null || Number(m.kiosk_fps) <= 0) ? false : null,
+    Number.isFinite(m.disk_free_mb) && m.disk_free_mb < 300 ? false : null,
+  ];
+  return checks.some((c) => c === false) ? false : true;
+}
+
 const score = (s) => (s ? `${s.ok} / ${s.total}` : "—");
 const tone = (s) => (!s ? "" : s.ok === s.total ? "ok" : s.total - s.ok > 1 ? "bad" : "");
 const first = (s) => (s?.bad?.length ? s.bad[0] : "усе відповідає");
@@ -68,19 +89,15 @@ function PointTelemetry({ point }) {
           loss !== null && `втрати ${loss} %`
         )}
       />
-      {/* Зв'язок — це лише про малину. Монітор і відеопотік ідуть окремими
-          смужками: вимкнений екран чи мертвий потік із «точка озивається»
-          не видно (23.09.2026). */}
-      {[["монітор", point.monitor], ["відеопотік", point.video]].map(([label, s]) => s && (
-        <BeatRow
-          key={label}
-          sub
-          ok={s.ok}
-          name={<span className="muted">{label}</span>}
-          history={s.history}
-          value={s.detail ?? "працює"}
-        />
-      ))}
+      {/* Зв'язок — це лише про малину: вимкнений екран чи мертвий потік із
+          «точка озивається» не видно. Але історія тут ні до чого — на
+          дашборді потрібен поточний стан, а тижневі смужки по кожному
+          булевому показнику живуть на сторінці точки (прохання власника
+          24.09.2026). */}
+      {[["монітор", point.monitor, "екран кіоска"], ["відеопотік", point.video, "камера точки"]]
+        .map(([label, s, note]) => s && (
+          <DataRow key={label} label={label} ok={s.ok} note={note} value={s.detail ?? "працює"} />
+        ))}
       <DataRow
         label="залізо"
         note="малина"
@@ -124,7 +141,7 @@ export function Health() {
   if (loading && !data) return <Empty>вантажимо…</Empty>;
   if (error) return <Empty>не вдалось прочитати стан: {error.message}</Empty>;
 
-  const onlinePoints = data.points.filter((p) => p.ok).length;
+  const onlinePoints = data.points.filter((p) => pointOk(p)).length;
   const silent = data.points.find((p) => !p.ok);
 
   return (
@@ -185,7 +202,7 @@ export function Health() {
           data.points.map((p) => (
             <Fragment key={p.id}>
             <BeatRow
-              ok={p.ok}
+              ok={pointOk(p)}
               name={
                 <span>
                   {p.name}

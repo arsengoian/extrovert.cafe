@@ -5,8 +5,50 @@
 // виглядати як пізні точки на тій самій лінії, а не як діра.
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, Line } from "../charts.jsx";
+import { Beat, BeatScale, Line } from "../charts.jsx";
 import { Card, Empty, Kpi, METRIC_LABELS as LABELS, Table, fmt, metricValue as human, useData } from "../ui.jsx";
+
+// Булеві показники, для яких малюємо тижневу смужку. `pick` повертає
+// true/false або null — «проби не було й судити нема з чого».
+const SIGNALS = [
+  { key: "monitor", name: "монітор", note: "CEC: увімкнений",
+    pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on) },
+  { key: "kiosk", name: "кіоск малює", note: "fps > 0",
+    pick: (m) => (m.kiosk_fps === undefined || m.kiosk_fps === null ? null : Number(m.kiosk_fps) > 0) },
+  { key: "power", name: "живлення", note: "без просідань",
+    pick: (m) => (m.throttled === undefined || m.throttled === null ? null : (Number(m.throttled) & 0x5) === 0) },
+  { key: "card", name: "картка пишеться", note: "не read-only",
+    pick: (m) => (m.root_ro === undefined || m.root_ro === null ? null : m.root_ro === false) },
+  { key: "usb", name: "флешка", note: "змонтована й пишеться",
+    pick: (m) => (m.usb_ok === undefined ? null : m.usb_ok) },
+  { key: "net", name: "інтернет", note: "втрати менші за 5 %",
+    pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < 5) },
+  { key: "video", name: "відеопотік", note: "камера відповідає",
+    pick: (m) => (m.video_ok === undefined ? null : m.video_ok) },
+];
+
+const BUCKET_MS = 30 * 60_000;
+
+// Проби телеметрії → та сама структура, яку малює Beat (charts.jsx): рядок
+// «1/0/?» по відру на півгодини. Рахуємо на клієнті, бо історія проб уже
+// приїхала разом зі сторінкою — окремий запит на сервер тут був би за тими
+// самими даними.
+function boolSeries(history, pick) {
+  const buckets = new Map();
+  for (const h of history) {
+    const v = pick(h.metrics ?? {});
+    if (v === null || v === undefined) continue;
+    const t = Math.floor(new Date(h.measured_at).getTime() / BUCKET_MS) * BUCKET_MS;
+    buckets.set(t, (buckets.get(t) ?? true) && Boolean(v));
+  }
+  const last = Math.floor(Date.now() / BUCKET_MS) * BUCKET_MS;
+  const from = last - 7 * 24 * 3600_000;
+  let line = "";
+  for (let t = from; t <= last; t += BUCKET_MS) {
+    line += buckets.has(t) ? (buckets.get(t) ? "1" : "0") : "?";
+  }
+  return { from, step: BUCKET_MS, line, fails: [], seen: buckets.size > 0 };
+}
 
 // Порядок карток метрик: спершу те, про що питають найчастіше, далі решта
 // за абеткою. Ключ, якого тут немає, не зникає — просто йде в кінець.
@@ -107,11 +149,31 @@ export function Pos({ id }) {
         </Card>
       </div>
 
-      <Card title="Звʼязок із сервером" note="півгодинні відра, 7 днів" style={{ marginTop: 12 }}>
+      {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
+          там потрібна одна відповідь «усе гаразд / ні», а «коли саме
+          гасився екран минулої середи» дивляться вже прицільно, на точці
+          (прохання власника 24.09.2026).
+          Відра півгодинні, як у overseer: у відрі досить однієї поганої
+          проби, щоб воно стало червоним, — поломку так не проґавиш. */}
+      <Card title="Історія показників" note="півгодинні відра, 7 днів" style={{ marginTop: 12 }}>
         <div className="beat-row">
           <span className="name">точка на звʼязку</span>
           <Beat history={health} />
+          <span className="ms" />
+          <span className="value">проби overseer</span>
         </div>
+        {SIGNALS.map((s) => {
+          const series = boolSeries(history, s.pick);
+          return (
+            <div className="beat-row" key={s.key}>
+              <span className="name">{s.name}</span>
+              <Beat history={series} />
+              <span className="ms" />
+              <span className="value">{series.seen ? s.note : "проб немає"}</span>
+            </div>
+          );
+        })}
+        <BeatScale history={health} />
       </Card>
 
       <div style={{ marginTop: 12 }}>
