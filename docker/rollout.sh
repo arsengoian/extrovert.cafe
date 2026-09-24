@@ -20,9 +20,11 @@ WAIT_HEALTHY="${WAIT_HEALTHY:-90}"
 
 # Сервіси, які перемикаються без розриву: вони за caddy і без публічних портів.
 ROLLING="api ws checkbox"
-# Решта — звичайний перезапуск: у них або немає трафіку ззовні (фонові
-# роботи), або є порт хоста, тобто двох копій одночасно бути не може.
-PLAIN="scheduler overseer caddy glitchtip glitchtip-worker"
+# Решта — звичайний перезапуск: трафіку ззовні в них немає, і те, що вони на
+# півхвилини зникають, не бачить ніхто.
+PLAIN="scheduler overseer glitchtip glitchtip-worker"
+# Caddy тут немає навмисно — він єдиний тримає 80/443 і має власний крок
+# нижче (caddy_step).
 
 cd "$DIR"
 
@@ -118,6 +120,79 @@ done
 echo "── решта сервісів"
 # shellcheck disable=SC2086
 docker compose up -d --no-deps $PLAIN
+
+# ── caddy ────────────────────────────────────────────────────────────────
+# Поки caddy перестворюється, назовні не відповідає ніхто: ні api, ні ws, ні
+# статика. Навантажувальний тест 23.09.2026 зловив саме це — 8,4 с без
+# відповіді й три розриви ws, хоча api/ws/checkbox перемкнулись без жодної
+# втрати.
+#
+# І найприкріше — розрив був ні за що. В імені образу стоїть ${TAG}, тег
+# міняється щодеплою, compose бачить інший рядок і перестворює контейнер.
+# А образ за тим тегом той самий: коли в docker/caddy нічого не змінилось,
+# CI не збирає нічого, а лише вішає новий тег на старий образ (deploy.yml,
+# «Перетегувати наявний образ»). Тому дивимось не на тег, а на digest.
+#
+# Якщо образ таки інший — це майже завжди правка Caddyfile, а конфіг caddy
+# уміє перечитувати на льоту, не рвучи зʼєднань. Контейнер при цьому лишається
+# на старому образі: оновити сам caddy можна RECREATE_CADDY=1, і тоді кілька
+# секунд простою — свідома плата.
+caddy_step() {
+  local running new_ref new_id cur_id tmp cid
+  running="$(docker compose ps -q caddy || true)"
+  if [ -z "$running" ]; then
+    echo "   caddy не запущений — піднімаємо"
+    docker compose up -d --no-deps caddy
+    return
+  fi
+
+  if [ "${RECREATE_CADDY:-0}" = "1" ]; then
+    echo "   RECREATE_CADDY=1 — перестворюємо (кілька секунд без відповіді)"
+    docker compose up -d --no-deps --force-recreate caddy
+    return
+  fi
+
+  new_ref="$(docker compose config --images | grep -m1 'extrovert-caddy' || true)"
+  new_id="$(docker image inspect -f '{{.Id}}' "$new_ref" 2>/dev/null || true)"
+  cur_id="$(docker inspect -f '{{.Image}}' "$running" 2>/dev/null || true)"
+  # Не змогли порівняти — поводимось як раніше. Тиха відмова тут означала б
+  # непомічений простій, а гучна — зламаний деплой через дрібницю.
+  if [ -z "$new_id" ] || [ -z "$cur_id" ]; then
+    echo "   ⚠ не вдалось порівняти образи ($new_ref) — звичайне оновлення"
+    docker compose up -d --no-deps caddy
+    return
+  fi
+  if [ "$new_id" = "$cur_id" ]; then
+    echo "   образ той самий — не чіпаємо"
+    docker compose up -d --no-deps --no-recreate caddy >/dev/null
+    return
+  fi
+
+  echo "   образ інший — пробуємо перечитати конфіг без розриву"
+  tmp="$(mktemp -d)"
+  cid="$(docker create "$new_ref")"
+  docker cp "$cid:/etc/caddy/Caddyfile" "$tmp/Caddyfile" >/dev/null
+  docker rm "$cid" >/dev/null
+
+  # Новий конфіг спершу лягає поруч і перевіряється, і тільки потім стає
+  # основним: підсунути в контейнер битий Caddyfile означало б, що caddy не
+  # підніметься після першого ж перезавантаження дроплета.
+  if docker cp "$tmp/Caddyfile" "$running:/etc/caddy/Caddyfile.new" \
+     && docker exec "$running" caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile.new \
+     && docker exec "$running" caddy reload --adapter caddyfile --config /etc/caddy/Caddyfile.new \
+     && docker exec "$running" mv /etc/caddy/Caddyfile.new /etc/caddy/Caddyfile; then
+    echo "   конфіг перечитано, зʼєднання не рвались"
+    echo "   ⚠ контейнер лишився на образі $cur_id — сам caddy оновить RECREATE_CADDY=1"
+  else
+    echo "   перечитати не вдалось — перестворюємо (кілька секунд без відповіді)"
+    docker exec "$running" rm -f /etc/caddy/Caddyfile.new >/dev/null 2>&1 || true
+    docker compose up -d --no-deps --force-recreate caddy
+  fi
+  rm -rf "$tmp"
+}
+
+echo "── caddy"
+caddy_step
 
 echo "── прибирання"
 docker image prune -f >/dev/null

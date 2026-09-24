@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело aeb3b5f</p>
+  <p class="eyebrow">extrovert.cafe · джерело 6c0f48a</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3124,9 +3124,28 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 <li>для <code>api</code>, <code>ws</code>, <code>checkbox</code> піднімає <strong>другий контейнер поруч зі старим</strong>
 (<code>--scale &lt;svc&gt;=2 --no-recreate</code>), чекає на його healthcheck і лише тоді
 гасить старий через <code>docker stop -t 30</code>;</li>
-<li>решту сервісів просто перезапускає: у них або немає зовнішнього трафіку,
-або є порт хоста, тобто двох копій одночасно бути не може.</li>
+<li><code>scheduler</code>, <code>overseer</code>, <code>glitchtip</code> просто перезапускає: зовнішнього
+трафіку в них немає, і півхвилини без них не бачить ніхто;</li>
+<li><code>caddy</code> не чіпає, поки не змінився його <strong>образ за digest</strong> — і це не
+дрібниця, а окремий крок (<code>caddy_step</code>).</li>
 </ul>
+<blockquote>
+<p><strong>Чому caddy окремо.</strong> Він єдиний тримає 80/443: поки він перестворюється,
+назовні мовчать усі сервіси одразу. Навантажувальний тест 23.09.2026 зловив
+рівно це — 8,4 с без відповіді й три розриви ws, хоча api/ws/checkbox
+перемкнулись без жодної втрати. Причина була не в новому caddy: в імені
+образу стоїть <code>${TAG}</code>, тег міняється щодеплою, compose бачить інший рядок
+і перестворює контейнер — навіть коли за тим тегом лежить <strong>той самий
+образ</strong>, бо CI лише перевісив тег (<code>imagetools create</code>). Тепер порівнюється
+digest, і на звичайному деплої caddy не торкається ніхто.</p>
+<p>Якщо образ таки інший — це майже завжди правка <code>Caddyfile</code>. Скрипт дістає
+новий конфіг із нового образу, перевіряє його <code>caddy validate</code> і
+застосовує <code>caddy reload</code>: конфіг міняється на льоту, зʼєднання не рвуться
+(перевірено на проді 24.09.2026 — 537 запитів під час перезавантаження,
+жодної втрати, найгірша відповідь 272 мс). Контейнер при цьому лишається
+на старому образі — оновити сам caddy можна <code>RECREATE_CADDY=1</code>, і тоді
+кілька секунд простою це свідома плата, а не сюрприз.</p>
+</blockquote>
 <p>Чому це працює миттєво: сервіси за проксі не публікують портів, тому дві
 копії живуть поруч. Caddy ходить у них не за фіксованою адресою, а через
 <code>dynamic a</code> — перепитує вбудований DNS докера кожні дві секунди, тож новий
@@ -10976,7 +10995,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел aeb3b5f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 6c0f48a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
