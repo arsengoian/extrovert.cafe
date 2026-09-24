@@ -11,6 +11,13 @@ export const fmt = {
   day: (d) => new Date(d).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" }),
   dayFull: (d) => new Date(d).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" }),
   time: (d) => new Date(d).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }),
+  // «181 відповідей» — не українська. Три форми, як усюди в панелі:
+  // 1 відповідь, 2 відповіді, 5 відповідей (і 11 — теж «відповідей»).
+  plural: (n, one, few, many) => {
+    const t = Math.abs(Math.round(n)) % 100, d = t % 10;
+    if (t > 10 && t < 20) return many;
+    return d === 1 ? one : d >= 2 && d <= 4 ? few : many;
+  },
   ago(d) {
     if (!d) return "—";
     const s = (Date.now() - new Date(d).getTime()) / 1000;

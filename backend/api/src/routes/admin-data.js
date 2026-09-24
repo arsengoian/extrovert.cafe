@@ -6,9 +6,13 @@
 // його на льоту дешевше, ніж тримати ще один кеш, який одного дня розійдеться
 // з базою. Коли даних стане більше, сюди прийде матеріалізоване подання —
 // і саме тому весь рахунок зібраний в одному місці.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
+import { earnedCredits } from "./quiz.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 
 const redis = redisClient();
@@ -36,27 +40,123 @@ function range(query) {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
+// Питання квізів описані в api/data/quiz.json — звідти беремо людські назви,
+// тип і КАНОНІЧНИЙ порядок варіантів. Без нього дашборд показував ключі
+// («how_found») і сортував «До 18 / 45+ / 25-34» за популярністю: для шкали
+// віку чи міцності кави це нечитабельно (24.09.2026).
+//
+// Словники два, а не один спільний: `milk` є і в анкеті («звичайне /
+// рослинне / без молока»), і в опитуванні про напій («водянисте /
+// ідеальне / густе»). Спільна мапа тихо підмінила б варіанти одного
+// питання варіантами іншого.
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const quizDef = JSON.parse(readFileSync(path.join(HERE, "..", "..", "data", "quiz.json"), "utf8"));
+
+// Короткі підписи карток — з макета: у ньому картка зветься «Вік», а не
+// «Скільки тобі років?». Питання клієнта лишається питанням клієнта, а в
+// адмінці над колонкою потрібне слово, а не речення.
+const SHORT = {
+  age: "Вік", how_found: "Як знайшли точку", favourite_drink: "Улюблена кава",
+  frequency: "Частота", when: "Коли беруть каву", where: "Де пʼють",
+  sugar: "Цукор", values: "Що найважливіше",
+};
+
+const PROFILE_Q = new Map();
+for (const step of quizDef.profile?.steps ?? []) {
+  for (const q of step.questions ?? []) {
+    PROFILE_Q.set(q.id, {
+      title: SHORT[q.id] ?? q.title ?? step.title,
+      type: q.type,
+      options: q.options ?? null,        // null — варіанти з бази (напої)
+    });
+  }
+}
+const DRINK_Q = new Map(
+  (quizDef.drink?.scales ?? []).map((s) => [s.id, { title: s.title, type: "scale", options: s.options }])
+);
+
+// «Влучання в норму»: у шкалах напою середина — це і є те, чого людина
+// хотіла. Пʼятибальної оцінки в анкеті немає й не було, тож замість
+// вигаданої «середньої оцінки 4.4 / 5» рахуємо чесну частку відповідей
+// «як має бути» — її видно з тих самих шкал і нічого не треба вигадувати.
+const IDEAL = { coffee: "якраз", milk: "ідеальне", temperature: "гаряча", cleanliness: "чисто" };
+const DIRTY = new Set(["так собі", "брудно"]);
+
+const values = (answer) =>
+  (Array.isArray(answer) ? answer : [answer]).filter((v) => v !== null && v !== undefined && v !== "");
+
 // Відповіді квізів лежать у jsonb як {питання: відповідь | [відповіді]}.
 // Рахуємо їх у застосунку, а не в SQL: питання додають у JSON-файлі, і
 // запит, який знає їхні назви, застарів би наступного тижня.
-function tally(rows) {
-  const questions = new Map();
+//
+// `answered` — скільки ЛЮДЕЙ відповіли, `total` — скільки галочок вони
+// поставили. Для питань з кількома варіантами це різні числа, і відсоток
+// у макеті рахується від людей: «смак кави 71%» плюс «ціна 54%» дають
+// більше сотні, і так і має бути.
+function tally(rows, defs) {
+  // Починаємо з усіх питань анкети, а не з тих, на які відповіли: питання,
+  // яке за місяць ніхто не зачепив, — це теж результат, і картка з нулями
+  // краща за зниклу картку (чи за «gender» замість «Стать»).
+  const questions = new Map(
+    [...defs].filter(([, d]) => d.type !== "text").map(([id]) => [id, { counts: new Map(), answered: 0 }])
+  );
   for (const row of rows) {
     for (const [question, answer] of Object.entries(row.answers ?? {})) {
-      if (!questions.has(question)) questions.set(question, new Map());
-      const counts = questions.get(question);
-      for (const value of Array.isArray(answer) ? answer : [answer]) {
-        if (value === null || value === undefined || value === "") continue;
-        const key = String(value);
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
+      if (defs.get(question)?.type === "text") continue;   // текст читають словами, не стовпчиками
+      const picked = values(answer);
+      if (!picked.length) continue;
+      if (!questions.has(question)) questions.set(question, { counts: new Map(), answered: 0 });
+      const q = questions.get(question);
+      q.answered++;
+      for (const value of picked) q.counts.set(String(value), (q.counts.get(String(value)) ?? 0) + 1);
     }
   }
-  return [...questions].map(([question, counts]) => ({
-    question,
-    total: [...counts.values()].reduce((a, b) => a + b, 0),
-    options: [...counts].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count),
-  }));
+  return [...questions].map(([question, { counts, answered }]) => {
+    const meta = defs.get(question);
+    const listed = meta?.options ?? null;
+    // Варіанти з анкети — у своєму порядку й разом із тими, яких ніхто не
+    // обрав: «нуль голосів» — теж відповідь, і в макеті вона видима.
+    const known = (listed ?? []).map((value) => ({ value, count: counts.get(value) ?? 0 }));
+    const rest = [...counts].filter(([v]) => !listed?.includes(v))
+      .map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
+    return {
+      question,
+      title: meta?.title ?? question,
+      type: meta?.type ?? "single",
+      answered,
+      total: [...counts.values()].reduce((a, b) => a + b, 0),
+      options: [...known, ...rest],
+    };
+  });
+}
+
+// Частка «як має бути» по чотирьох шкалах напою: одна відповідь — до
+// чотирьох спостережень, бо кожна шкала важить однаково.
+function idealShare(rows) {
+  let hit = 0, seen = 0;
+  for (const row of rows) {
+    for (const [q, ideal] of Object.entries(IDEAL)) {
+      const answer = row.answers?.[q];
+      if (answer === undefined || answer === null || answer === "") continue;
+      seen++;
+      if (String(answer) === ideal) hit++;
+    }
+  }
+  return seen ? hit / seen : null;
+}
+
+// Те саме по добах — ряд для графіка. Доба без відповідей у ряд не
+// потрапляє: нуль там означав би «усе погано», а не «ніхто не відповів».
+function idealByDay(rows) {
+  const days = new Map();
+  for (const row of rows) {
+    const day = new Date(row.created_at).toISOString().slice(0, 10);
+    if (!days.has(day)) days.set(day, []);
+    days.get(day).push(row);
+  }
+  return [...days].sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, list]) => ({ day, share: idealShare(list), n: list.length }))
+    .filter((d) => d.share !== null);
 }
 
 export default async function routes(app) {
@@ -174,38 +274,85 @@ export default async function routes(app) {
   });
 
   // ── Дашборд опитувань ───────────────────────────────────────────────
+  //
+  // Усі відповіді про напої за період тягнемо один раз і ріжемо фільтром у
+  // памʼяті: екран однаково показує і обраний напій, і «усі напої» поруч
+  // (у KPI, у графіку за добу), тож два запити були б за тими самими
+  // рядками. Їх тут тисячі, а не мільйони.
   app.get("/admin/quizzes", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const { from, to } = range(req.query);
     const drink = String(req.query.drink ?? "");
 
     const profile = await many(
-      "select answers from quiz_profile_responses where created_at between $1 and $2",
+      "select answers, created_at from quiz_profile_responses where created_at between $1 and $2",
       [from, to]
     );
-    const drinks = await many(
-      `select q.answers, i.slot, d.name
+    const rows = await many(
+      `select q.answers, q.free_text, q.created_at, i.slot, coalesce(d.name, i.name) as drink
          from quiz_drink_responses q
          join receipt_items i on i.id = q.receipt_item_id
          left join drinks d on d.slot = i.slot
-        where q.created_at between $1 and $2 and ($3 = '' or i.slot = $3)`,
-      [from, to, drink]
-    );
-    // Бонусні копії напою рахуються разом з основними — так і просив док:
-    // номер позиції в них той самий.
-    const perDrink = await many(
-      `select i.slot, coalesce(d.name, i.name) as name, count(*)::int as n
-         from quiz_drink_responses q join receipt_items i on i.id = q.receipt_item_id
-         left join drinks d on d.slot = i.slot
         where q.created_at between $1 and $2
-        group by 1, 2 order by n desc`,
+        order by q.created_at`,
       [from, to]
     );
 
+    // Бонусні копії напою рахуються разом з основними — так і просив док:
+    // номер позиції в них той самий.
+    const byDrink = new Map();
+    for (const r of rows) {
+      const key = r.slot ?? "";
+      if (!byDrink.has(key)) byDrink.set(key, { slot: key, name: r.drink ?? key, n: 0 });
+      byDrink.get(key).n++;
+    }
+    const perDrink = [...byDrink.values()].sort((a, b) => b.n - a.n);
+    const picked = drink ? rows.filter((r) => (r.slot ?? "") === drink) : rows;
+
+    // Скарги на чистоту — з усіх відповідей, не з обраного напою: брудний
+    // столик не залежить від того, що людина пила.
+    const clean = rows.map((r) => r.answers?.cleanliness).filter(Boolean);
+    const dirty = clean.filter((v) => DIRTY.has(String(v))).length;
+
+    // Скільки кредитів на опитування гравці заробили за весь час і скільки
+    // з них витратили. Мілстоуни рахує та сама функція, що й видає їх у
+    // клієнті, — інакше два місця розійшлися б на першій же зміні економіки.
+    const counts = await many(
+      `select bg.redeemed_by as user_id, count(*)::int as drinks
+         from receipt_items ri join bonus_grants bg on bg.receipt_id = ri.receipt_id
+        where bg.redeemed_by is not null and ri.is_bonus_drink = false
+        group by 1`
+    );
+    const earned = counts.reduce((a, u) => a + earnedCredits(u.drinks), 0);
+    const spent = (await one("select count(*)::int as n from quiz_drink_responses"))?.n ?? 0;
+
+    const players = (await one("select count(*)::int as n from users"))?.n ?? 0;
+    const filled = (await one("select count(*)::int as n from quiz_profile_responses"))?.n ?? 0;
+
+    const texts = picked.filter((r) => r.free_text?.trim());
     return {
       from, to, drink,
-      profile: { total: profile.length, questions: tally(profile) },
-      drinks: { total: drinks.length, questions: tally(drinks), per_drink: perDrink },
+      profile: {
+        total: profile.length,
+        filled, players,
+        questions: tally(profile, PROFILE_Q),
+      },
+      drinks: {
+        total: picked.length,
+        total_all: rows.length,
+        per_drink: perDrink,
+        questions: tally(picked, DRINK_Q),
+        ideal: idealShare(picked),
+        ideal_all: idealShare(rows),
+        by_day: idealByDay(picked),
+        by_day_all: idealByDay(rows),
+        credits: { earned, spent },
+        cleanliness: { dirty, answered: clean.length },
+        texts: texts.slice(-40).reverse().map((r) => ({
+          text: r.free_text.trim(), at: r.created_at, drink: r.drink ?? r.slot,
+        })),
+        texts_total: texts.length,
+      },
     };
   });
 

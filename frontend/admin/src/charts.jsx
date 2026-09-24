@@ -65,7 +65,10 @@ export const BeatRow = ({ ok, name, note, value, history, ms = null, sub = false
 // area — заливка під лінією (0.2 прозорості, як у макеті). У дизайні нею
 // показують «скільки», а чистою лінією — «як змінюється»: дохід, покупки й
 // монети залиті, а зерна ні. Робимо так само.
-export function Line({ series, height = 150, format = fmt.int, area = false }) {
+// max — коли шкала відома наперед. Для часток це 1: інакше графік
+// розтягується під власний максимум, і просідання з 88 % до 84 % виглядає
+// як обвал (дашборд опитувань, 24.09.2026).
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -77,7 +80,7 @@ export function Line({ series, height = 150, format = fmt.int, area = false }) {
 
   const points = series.flatMap((s) => s.points);
   const has = points.length > 0;
-  const max = Math.max(1, ...points.map((p) => p.y));
+  const max = maxProp ?? Math.max(1, ...points.map((p) => p.y));
   const xs = [...new Set(points.map((p) => +new Date(p.x)))].sort((a, b) => a - b);
   const padL = 34, padB = 16, padT = 8;
   const innerW = Math.max(40, w - padL - 6);
@@ -210,14 +213,18 @@ export function Donut({ items, colors = ["#FE810B", "#FFB020", "#8B94A3"] }) {
 }
 
 // Стовпчики: для розподілів (відповіді квізів, події за днями).
-export function Bars({ items, max: maxProp, format = fmt.int, color = "var(--accent)" }) {
+//
+// label — скільки місця під підпис. За замовчуванням 150: підписи подій
+// довгі. На дашборді опитувань таких карток три в ряд, і там підпис
+// вужчий, інакше сама смужка стискається до нечитабельної.
+export function Bars({ items, max: maxProp, format = fmt.int, color = "var(--accent)", label = 150 }) {
   const max = maxProp ?? Math.max(1, ...items.map((i) => i.value));
   if (!items.length) return <Empty>немає відповідей</Empty>;
   return (
     <div className="stack" style={{ gap: 7 }}>
       {items.map((i) => (
         <div key={i.label} className="row" style={{ gap: 8 }}>
-          <span style={{ width: 150, flex: "none", fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={i.label}>{i.label}</span>
+          <span style={{ width: label, flex: "none", fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={i.label}>{i.label}</span>
           <span style={{ flex: 1, height: 14, background: "var(--panel2)", borderRadius: 4, overflow: "hidden" }}>
             <span style={{ display: "block", height: "100%", width: `${(i.value / max) * 100}%`, background: color, borderRadius: 4 }} />
           </span>
