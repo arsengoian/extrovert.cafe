@@ -8,6 +8,14 @@ import { go } from "../app.jsx";
 import { Beat, Line } from "../charts.jsx";
 import { Card, Empty, Kpi, METRIC_LABELS as LABELS, Table, fmt, metricValue as human, useData } from "../ui.jsx";
 
+// Порядок карток метрик: спершу те, про що питають найчастіше, далі решта
+// за абеткою. Ключ, якого тут немає, не зникає — просто йде в кінець.
+const ORDER = [
+  "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
+  "ping_ms", "jitter_ms", "loss_pct", "throttled", "temp_c", "cpu",
+  "mem_used_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
+];
+
 export function Pos({ id }) {
   const { data, error, loading } = useData(() => api.point(id), [id]);
 
@@ -75,8 +83,18 @@ export function Pos({ id }) {
                   <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : l.source === "jetinno" ? "Автомат Jetinno" : "Камера"}</b>
                   <span className="muted" style={{ fontSize: 10.5 }}>{fmt.ago(l.measured_at)}</span>
                 </div>
+                {/* Усі метрики, а не перші дванадцять. Обрізання підвело
+                    24.09.2026: проба виросла до вісімнадцяти полів, і саме
+                    monitor_on з monitor_woke — те, заради чого сюди й
+                    заходять, — не влізло, бо порядок ключів у jsonb свій.
+                    Знайомі підписи йдуть першими, решта — як прийшли. */}
                 <div className="grid k2" style={{ gap: 6 }}>
-                  {Object.entries(l.metrics ?? {}).slice(0, 12).map(([k, v]) => (
+                  {Object.entries(l.metrics ?? {})
+                    .sort(([a], [b]) => {
+                      const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+                      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+                    })
+                    .map(([k, v]) => (
                     <div key={k} className="row" style={{ justifyContent: "space-between", fontSize: 11.5 }}>
                       <span className="muted">{LABELS[k] ?? k}</span>
                       <b>{human(k, v)}</b>

@@ -75,22 +75,29 @@ temp_c() {
 # `tvservice -n` спокійно віддає device_name=AUS-VP227HF. І лише CEC каже
 # правду: `power status: standby`. Він же вміє його ввімкнути назад.
 monitor_on() {
-    # CEC: єдиний спосіб дізнатись про standby. Питаємо пристрій 0 (телевізор).
+    # CEC: єдиний спосіб дізнатись і про standby, і про висмикнутий кабель.
+    # Три відповіді, і всі три важливі (заміряно 24.09.2026):
+    #   on       — екран працює;
+    #   standby  — вимкнений кнопкою;
+    #   unknown  — на тому кінці ніхто не відповідає: кабель вийняли або
+    #              монітор знеструмлено. Перепитуємо один раз, бо «unknown»
+    #              буває й від того, що шина зайнята.
     if command -v cec-client >/dev/null 2>&1; then
-        _p=$(echo "pow 0" | timeout 12 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
-        case "$_p" in
-            *"power status: on"*) echo true;  return ;;
-            *standby*)            echo false; return ;;
-        esac
+        for _try in 1 2; do
+            _p=$(echo "pow 0" | timeout 12 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
+            case "$_p" in
+                *"power status: on"*) echo true;  return ;;
+                *standby*)            echo false; return ;;
+            esac
+            [ "$_try" = "1" ] && sleep 2
+        done
+        echo false
+        return
     fi
-    # EDID читається — пристрій на тому кінці є (хоч, можливо, і в сні).
-    if command -v tvservice >/dev/null 2>&1; then
-        _n=$(tvservice -n 2>/dev/null)
-        case "$_n" in
-            *device_name*) echo true;  return ;;
-            *)             echo false; return ;;
-        esac
-    fi
+    # Без CEC лишається EDID — але з hdmi_force_hotplug=1 прошивка віддає
+    # кешоване імʼя монітора навіть із висмикнутим кабелем (перевірено
+    # 24.09.2026: `tvservice -n` каже AUS-VP227HF у порожнечу). Тому це не
+    # «монітор на місці», а лише «ми не вміємо перевірити» — null.
     echo null
 }
 

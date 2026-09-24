@@ -32,6 +32,9 @@ export const METRIC_LABELS = {
   down_mbit: "вниз, Мбіт", up_mbit: "вгору, Мбіт", disk_free_mb: "диск вільно, МБ",
   hdmi: "HDMI", camera: "камера", fps: "fps", release: "реліз", kiosk_fps: "fps кіоска",
   monitor_on: "монітор", video_ok: "відеопотік",
+  monitor_src: "чим перевірено монітор", monitor_woke: "будили монітор",
+  throttled: "живлення (біти)", root_ro: "картка read-only", usb_ok: "флешка",
+  kiosk_frames: "кадрів усього",
 };
 
 export const metricValue = (key, value) => {
