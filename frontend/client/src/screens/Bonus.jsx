@@ -5,7 +5,7 @@
 // Бонус прив'язаний до чека, а не до гравця, тому забрати його може будь-хто,
 // хто першим відкрив посилання: QR горить на екрані точки дві хвилини.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { Sparks, markCoinSource } from "../ui/fx.jsx";
@@ -30,7 +30,7 @@ export function BonusPopup({ token, ctx, onClose }) {
         // телефоні, QR на точці більше не потрібен.
         else api.post(`/bonus/${encodeURIComponent(token)}/seen`, {}).catch(() => {});
       })
-      .catch((e) => setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message));
+      .catch((e) => setError(ERRORS[e.body?.error] ?? errText(e)));
   }, [token]);
 
   const take = async () => {
@@ -41,7 +41,7 @@ export function BonusPopup({ token, ctx, onClose }) {
       await ctx.refreshMe();
       onClose();
     } catch (e) {
-      setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message);
+      setError(ERRORS[e.body?.error] ?? errText(e));
     } finally {
       setBusy(false);
     }

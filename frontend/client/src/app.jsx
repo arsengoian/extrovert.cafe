@@ -12,6 +12,7 @@ import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
 import { TopbarBack } from "./ui/TopbarBack.jsx";
 import { connectEvents } from "./ws.js";
+import { NetStatus } from "./ui/Net.jsx";
 import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 import { Onboarding } from "./screens/Onboarding.jsx";
@@ -54,6 +55,9 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Попап над вкладкою: «Переказ виконано», «Монети зараховано» у макеті
   // висять над гаманцем, а не над екраном, з якого прийшли.
   const [notice, setNotice] = useState(null);
+  // null — ще не підключались; false — сокет мовчить. Смужку малює NetStatus,
+  // і не раніше, ніж мовчання стане довшим за звичайне перепідключення.
+  const [wsOnline, setWsOnline] = useState(null);
   // Що сказати на стартовому екрані: посилання з листа не спрацювало чи
   // api не відповідає.
   const [bootNote, setBootNote] = useState(loginNote);
@@ -155,9 +159,10 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // баланси в HUD мають оновлюватись без перезаходу.
   useEffect(() => {
     if (!me) return undefined;
-    return connectEvents((msg) => {
-      if (msg.event && msg.event !== "hello") refreshMe().catch(() => {});
-    });
+    return connectEvents(
+      (msg) => { if (msg.event && msg.event !== "hello") refreshMe().catch(() => {}); },
+      setWsOnline
+    );
   }, [me?.id, refreshMe]);
 
   // Документ за адресою, а людина з акаунтом і згодою: показуємо його поверх
@@ -282,6 +287,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
         <Nav tab={tab} onTab={openTab} badges={me.badges} />
       )}
       {notice}
+      <NetStatus wsOnline={wsOnline} />
     </div>
   );
 }

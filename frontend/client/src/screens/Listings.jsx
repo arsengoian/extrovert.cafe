@@ -6,7 +6,7 @@
 // зрозуміти, чому лот не продається, можна лише за ним (services.md §4).
 // Відстає він не більше ніж на хвилину.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { ConfirmSheet } from "../ui/Popup.jsx";
 import { plural } from "../ui/plural.js";
@@ -65,7 +65,7 @@ export function Listings() {
   const cancel = async (lot) => {
     setBusy(true);
     try { await api.del(`/market/listings/${lot.id}`); setAsked(null); await load(); }
-    catch (e) { setError(e.body?.error ?? e.message); }
+    catch (e) { setError(errText(e)); }
     finally { setBusy(false); }
   };
 

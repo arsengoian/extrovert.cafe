@@ -3,7 +3,7 @@
 // на маркеті лишаються — на них тримається звітність точки й картина
 // другої сторони угоди.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 
 const WORD = "видалити";
 
@@ -38,7 +38,7 @@ export function DeleteAccount({ ctx }) {
     try {
       setDone(await api.post("/me/deletion", { confirm: word.trim().toLowerCase() }));
     } catch (e) {
-      setError(e.body?.error === "confirm_required" ? `Напиши «${WORD}», щоб підтвердити` : e.body?.error ?? e.message);
+      setError(e.body?.error === "confirm_required" ? `Напиши «${WORD}», щоб підтвердити` : errText(e));
     } finally {
       setBusy(false);
     }

@@ -8,7 +8,7 @@
 // appearance.draft (docs/bush_planting_ui.md §1).
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { plural } from "../ui/plural.js";
 import { Scene } from "./Scene.jsx";
 import { usePlantAssets } from "./assets.js";
@@ -128,7 +128,7 @@ export function Planting({ ctx, plantId, title, resume }) {
         setPhase(draft?.phase ?? first);
         if (draft?.items) { setItems({ ...EMPTY, ...draft.items }); setSheet(resume ? "resume" : "edit"); }
       })
-      .catch((e) => setError(e.body?.error ?? e.message));
+      .catch((e) => setError(errText(e)));
   }, [id]);
 
   // Кадр підганяється під реальний розмір сцени й панелі: у браузері на ПК і
@@ -315,7 +315,7 @@ export function Planting({ ctx, plantId, title, resume }) {
       await ctx.refreshMe();
       ctx.pop();
     } catch (e) {
-      setError(ERRORS[e.body?.error] ?? e.body?.error ?? e.message);
+      setError(ERRORS[e.body?.error] ?? errText(e));
       setSheet("edit");
     } finally {
       setBusy(false);

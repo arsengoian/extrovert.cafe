@@ -796,7 +796,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .set-price { flex: none; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 800 }
 .set-price img { width: 14px; height: 15px }
 .set-price small { font-size: inherit; font-weight: 600; color: var(--muted) }
-.set-tiles { display: flex; gap: 8px; justify-content: space-between }
+/* П'ять плиток по 62 px із проміжками — це 342 px, і на 328-піксельному
+   екрані остання зрізається краєм. Стискати плитки не можна (в них спрайт
+   50 px), переносити рядком — теж: комплект читається саме як один ряд.
+   Тому ряд їде вбік пальцем, а смуги прокрутки немає: на телефоні вона й
+   так не малюється, а на вузькому десктопі з'їдала б висоту (24.09.2026). */
+.set-tiles {
+  display: flex; gap: 8px; justify-content: space-between;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  scroll-snap-type: x proximity;
+}
+.set-tiles::-webkit-scrollbar { display: none }
+.set-tiles > .set-tile { scroll-snap-align: start }
+/* Ряд поміщається від 370 px і ширше — на вужчому екрані край підтирається,
+   щоб було видно, що він їде далі, а не просто обрізаний. */
+@media (max-width: 369px) {
+  .set-tiles { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+               mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent) }
+}
 .set-tile { flex: none; width: 62px; height: 62px; border-radius: 14px; background: rgba(var(--t), .16); border: 1.5px solid rgba(var(--t), .45); display: flex; align-items: center; justify-content: center }
 .set-total { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted) }
 .set-total img { width: 12px; height: 13px }
@@ -1428,3 +1445,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .fx-bean { position: absolute; width: 18px; height: 20px; opacity: 0; z-index: 81; pointer-events: none; animation: aArc .9s cubic-bezier(.4, .1, .8, .6) both }
 .plant-barrel.fx-barrel-in { animation: aPopIn .55s cubic-bezier(.34, 1.56, .64, 1) .95s both }
 .plant-area > .fx-sparks { z-index: 82 }
+
+/* ── звʼязок ─────────────────────────────────────────────────────────── */
+/* Смужка зверху — фоновий стан (події перестали приходити), тост знизу —
+   реакція на дію. Обидва поверх усього, включно з попапами: якщо натиснув
+   у попапі й запит не дійшов, сказати про це треба там, де людина дивиться.
+   z-index 200 — вище за sheet-backdrop (150) і попапи (160). */
+.net-banner {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 200;
+  padding: 6px 12px; text-align: center; font-size: 12px; font-weight: 700;
+  color: var(--accent-ink); background: var(--grad);
+}
+.net-toast {
+  position: absolute; left: 50%; bottom: 92px; z-index: 200;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px); padding: 10px 16px; border-radius: var(--radius-pill);
+  background: var(--panel2); border: 1px solid var(--line);
+  color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .45);
+  animation: net-toast-in .18s ease-out;
+}
+@keyframes net-toast-in { from { opacity: 0; transform: translate(-50%, 8px) } to { opacity: 1; transform: translate(-50%, 0) } }

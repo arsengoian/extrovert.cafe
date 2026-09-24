@@ -6,7 +6,7 @@
 // Чого кущ хоче — каже сервер (plant.growth): таблиця переходів живе в
 // economy.json, і другої її копії тут бути не має.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
@@ -150,7 +150,7 @@ function SaleCard({ plant, onDone }) {
   const [error, setError] = useState(null);
   const unlist = async () => {
     try { await api.del(`/market/listings/${plant.listing.id}`); onDone(); }
-    catch (e) { setError(e.body?.error ?? e.message); }
+    catch (e) { setError(errText(e)); }
   };
   return (
     <div className="sale-card">
@@ -216,7 +216,7 @@ function ScytheSheet({ plant, onClose, onDone }) {
   const [error, setError] = useState(null);
   const scythe = async () => {
     try { const r = await api.post(`/me/plants/${plant.id}/scythe`); onDone(r.plant_id); }
-    catch (e) { setError(e.body?.error ?? e.message); }
+    catch (e) { setError(errText(e)); }
   };
   return (
     <div className="plant-sheet danger">

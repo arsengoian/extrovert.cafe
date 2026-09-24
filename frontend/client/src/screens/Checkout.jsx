@@ -7,7 +7,7 @@
 // браузері. Поштомати, у які товар не влазить, api не повертає взагалі.
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { NotEnoughBeans } from "../ui/NotEnough.jsx";
 
 const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
@@ -59,7 +59,7 @@ export function Checkout({ item, ctx }) {
     api.get(`/shop/products/${productId}`).then((p) => {
       setProduct(p);
       if (p.options?.size && !form.size) set({ size: p.options.size[1] ?? p.options.size[0] });
-    }).catch((e) => setError(e.body?.error ?? e.message));
+    }).catch((e) => setError(errText(e)));
   }, [productId]);
 
   if (error && !product) return <div className="stage-pad"><div className="panel">{error}</div></div>;

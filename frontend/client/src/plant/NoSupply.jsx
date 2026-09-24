@@ -3,7 +3,7 @@
 // в діло («Купити й посипати»).
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { Coins2 } from "../ui/Coins.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { useStageBottom } from "../ui/Popup.jsx";
@@ -49,7 +49,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
                                    onClose={() => ctx.notify(null)} />);
         return;
       }
-      setError(e.body?.error ?? e.message);
+      setError(errText(e));
     } finally {
       setBusy(false);
     }

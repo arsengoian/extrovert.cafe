@@ -6,7 +6,7 @@
 // яка мовчки нічого не робить, тут немає.
 import { useEffect, useState } from "react";
 import { markCoinSource } from "../ui/fx.jsx";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ConfirmSheet, ResultPopup } from "../ui/Popup.jsx";
 
 export const PENDING_KEY = "extrovert.pending_invoice";
@@ -72,7 +72,7 @@ export function CoinPacks({ ctx }) {
     } catch (e) {
       setError(e.body?.error === "payments_not_connected"
         ? "Оплата карткою ще не підключена – скоро."
-        : e.body?.error ?? e.message);
+        : errText(e));
     } finally {
       setBusy(null);
     }

@@ -7,7 +7,7 @@
 // анімація «Відкриття скриньки», потім попап «Скриньку відкрито».
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
@@ -151,7 +151,7 @@ export function CratePreview({ item, ctx }) {
       await ctx.refreshMe();
       ctx.openTab("stock");
     } catch (e) {
-      setError(e.body?.error === "payments_not_connected" ? "Оплата карткою ще не підключена – скоро." : e.body?.error ?? e.message);
+      setError(e.body?.error === "payments_not_connected" ? "Оплата карткою ще не підключена – скоро." : errText(e));
     } finally {
       setBusy(false);
     }

@@ -3,7 +3,7 @@
 // пояснення й кнопка ціни. Скринька й одяг мають власні екрани, решта
 // різниться сценою, текстом і тим, що робить кнопка, — тому один компонент.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 
@@ -111,7 +111,7 @@ export function ShopItem({ item, ctx }) {
       if (e.body?.error === "not_enough" && target.currency !== "beans") {
         ctx.notify(<NotEnoughCoins what={item.title} price={target.price} have={coinsHave} ctx={ctx} onClose={() => ctx.notify(null)} />);
       } else {
-        setError(e.body?.error === "not_enough" ? `Не вистачає зерен: треба ${target.price}, є ${beansHave}` : e.body?.error ?? e.message);
+        setError(e.body?.error === "not_enough" ? `Не вистачає зерен: треба ${target.price}, є ${beansHave}` : errText(e));
       }
     } finally {
       setBusy(false);

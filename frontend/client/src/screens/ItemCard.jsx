@@ -3,7 +3,7 @@
 // Лоти лежать прямо в превʼю, як у макеті: на маркеті та сама річ часто
 // дешевша, і ховати це від гравця нечесно.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { renderMarkdown } from "../ui/markdown.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
@@ -49,7 +49,7 @@ export function ItemCard({ item, ctx }) {
       await load();
     } catch (e) {
       if (e.body?.error === "not_enough") short(price);
-      else setError(e.body?.error ?? e.message);
+      else setError(errText(e));
     } finally {
       setBusy(false);
     }

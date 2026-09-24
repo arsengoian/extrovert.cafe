@@ -2,7 +2,7 @@
 // продажі, нарахування, статуси замовлень приходять сюди системними
 // репліками (gamification_ui §«Сповіщення» — пушів ми не робимо).
 import { Fragment, useEffect, useRef, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 
 const BLOCKED = {
   mood: "Кавенятко засумувало й мовчить. Полий його – і воно знову заговорить.",
@@ -28,7 +28,7 @@ export function Chat({ ctx, plant }) {
 
   const id = plant?.id;
   useEffect(() => {
-    api.get(`/me/plants/${id}/chat`).then(setData).catch((e) => setError(e.body?.error ?? e.message));
+    api.get(`/me/plants/${id}/chat`).then(setData).catch((e) => setError(errText(e)));
   }, [id]);
 
   // Нове повідомлення має бути видно без прокрутки — інакше відповідь
@@ -60,7 +60,7 @@ export function Chat({ ctx, plant }) {
     } catch (e) {
       setData((d) => ({ ...d, messages: d.messages.filter((m) => m.id !== optimistic.id) }));
       setText(message);
-      setError(e.body?.error === "not_enough_coins" ? "no_coins" : e.body?.error ?? e.message);
+      setError(e.body?.error === "not_enough_coins" ? "no_coins" : errText(e));
     } finally {
       setSending(false);
     }

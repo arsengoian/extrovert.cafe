@@ -8,6 +8,7 @@
 // повідомлення йде тільки коли стан змінився. Щоденний звіт — виняток: він
 // не алерт, а зведення.
 import { pool } from "@extrovert/lib/db.js";
+import { presign } from "@extrovert/lib/r2.js";
 import { redisClient, closeRedis } from "@extrovert/lib/redis.js";
 import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
@@ -87,11 +88,23 @@ sub.on("message", async (_channel, raw) => {
   try { event = JSON.parse(raw); } catch { return; }
   if (event.event !== "problem_reported") return;
   const what = (event.categories ?? []).map((c) => CATEGORY[c] ?? c).join(", ");
+  // Фото — прямим посиланням, а не файлом: бакет приватний, і тягнути
+  // мегабайти через бота, щоб їх потім тримав телеграм, немає за що.
+  // Доба — щоб посилання лишалось робочим, коли алерт читають зранку
+  // (прохання власника 24.09.2026).
+  let photo = null;
+  if (event.image_key) {
+    try {
+      photo = presign({ method: "GET", purpose: "uploads", key: event.image_key, expiresIn: 24 * 3600 }).url;
+    } catch (e) {
+      log.warn({ err: e.message }, "не підписали посилання на фото скарги");
+    }
+  }
   const lines = [
     `🛠 Нова скарга${event.nickname ? ` від ${event.nickname}` : " (без входу)"}`,
     what ? `Про що: ${what}` : null,
     event.preview ? `«${event.preview}»` : null,
-    event.photo ? "З фото" : null,
+    photo ?? (event.photo ? "З фото" : null),
   ].filter(Boolean);
   await send(lines.join("\n"), { log });
 });

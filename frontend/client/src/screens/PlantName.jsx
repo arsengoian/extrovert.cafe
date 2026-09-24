@@ -4,7 +4,7 @@
 // мінімум — на відміну від нікнейма, який унікальний.
 import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
@@ -48,7 +48,7 @@ export function PlantName({ plant, ctx }) {
       await api.patch(`/me/plants/${plant.id}`, { name: name.trim() });
       ctx.pop();
     } catch (e) {
-      setError(e.body?.error === "empty_name" ? "Ім'я не може бути порожнім" : e.body?.error ?? e.message);
+      setError(e.body?.error === "empty_name" ? "Ім'я не може бути порожнім" : errText(e));
     } finally {
       setBusy(false);
     }

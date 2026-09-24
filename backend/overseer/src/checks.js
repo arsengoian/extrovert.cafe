@@ -63,7 +63,10 @@ export async function checkWebhook() {
     // Тобто це не поломка, а «не спитати»: мовчимо, а не лякаємо.
     const hook = await res.json().catch(() => null);
     if (!hook || typeof hook !== "object") {
-      return { state: "unknown", message: "Checkbox не показує налаштувань вебхука для цієї каси" };
+      // Формулювання читає власник у картці дашборда, тож воно має казати
+      // не лише «не видно», а й «і це не поломка»: перевірено 24.09.2026 —
+      // чеки в цей самий час ішли саме вебхуком (receipts.source).
+      return { state: "unknown", message: "Checkbox не показує налаштувань цієї каси — стежимо по чеках" };
     }
     if (!hook.last_error_date) return { state: "ok", message: "без помилок" };
     return {

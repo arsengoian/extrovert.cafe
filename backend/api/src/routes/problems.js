@@ -109,6 +109,9 @@ export default async function routes(app) {
         categories,
         preview: (body || "").slice(0, 160),
         photo: Boolean(photoKey),
+        // Ключ, а не готове посилання: підпис живе обмежений час, а подія
+        // може полежати в outbox — хай overseer підписує в мить відправки.
+        image_key: photoKey,
         point_id: pointId,
         nickname: who,
       });

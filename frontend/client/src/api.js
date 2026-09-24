@@ -38,15 +38,31 @@ export async function ensureToken() {
 }
 
 export class ApiError extends Error {
-  constructor(status, body) {
-    super(body?.error || `HTTP ${status}`);
+  constructor(status, body, offline = false) {
+    super(offline ? "Немає звʼязку" : body?.error || `HTTP ${status}`);
     this.status = status;
     this.body = body;
+    /* Запит не дійшов узагалі: мережі немає, api перезапускається, або
+     * браузер відхилив його ще на preflight. Для екрана це не «помилка
+     * операції», а «спробуй ще раз» — і каже це один тост на весь
+     * застосунок, а не текст у тому місці, де натиснули (24.09.2026). */
+    this.offline = offline;
   }
 }
 
+// Текст помилки для екрана. null — коли показувати нічого не треба: про
+// обрив звʼязку вже сказав тост, і дублювати його блоком у пів-екрана
+// означало б двічі лякати тим самим.
+export const errText = (e) => (e?.offline ? null : e?.body?.error ?? e?.message ?? null);
+
 async function refresh() {
   refreshing ??= fetch(`${BASE}/auth/refresh`, { method: "POST", credentials: "include" })
+    .catch(() => {
+      // Той самий обрив, що й у send(): без цього TypeError із fetch
+      // долітав до екрана повз ApiError.
+      window.dispatchEvent(new CustomEvent("extrovert:offline"));
+      throw new ApiError(0, null, true);
+    })
     .then(async (res) => {
       if (!res.ok) throw new ApiError(res.status, await res.json().catch(() => null));
       const data = await res.json();
@@ -61,12 +77,22 @@ async function send(path, { method, body, auth }) {
   const headers = {};
   if (body) headers["content-type"] = "application/json";
   if (auth && token) headers.authorization = `Bearer ${token}`;
-  return fetch(`${BASE}${path}`, {
-    method,
-    headers,
-    credentials: "include",
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  try {
+    return await fetch(`${BASE}${path}`, {
+      method,
+      headers,
+      credentials: "include",
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    // fetch кидає TypeError і на вимкнений Wi-Fi, і на api, що
+    // перезапускається, і на відхилений preflight — розрізнити їх із
+    // браузера не можна, та й не треба: для людини це одне й те саме.
+    // Раніше цей TypeError доходив до екрана як є, і в підказці під
+    // кнопкою світилось «Failed to fetch» (24.09.2026).
+    window.dispatchEvent(new CustomEvent("extrovert:offline"));
+    throw new ApiError(0, null, true);
+  }
 }
 
 async function request(path, { method = "GET", body, auth = true, retry = true } = {}) {

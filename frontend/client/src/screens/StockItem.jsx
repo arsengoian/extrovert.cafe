@@ -3,7 +3,7 @@
 // слот, скільки є й вільних, дві дії; «Кому вдягнути» — кавенята з
 // мініатюрою і тим, що станеться з річчю в цьому слоті.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { ConfirmSheet } from "../ui/Popup.jsx";
 import { PlantView } from "../plant/PlantView.jsx";
@@ -59,7 +59,7 @@ export function StockItemSheet({ item, ctx, onClose }) {
       await api.put(`/me/plants/${plants[0].id}/wardrobe/${item.slot}`, { user_item_id: item.user_item_id });
       setDone(plants[0]);
     } catch (e) {
-      setError(WEAR_ERROR[e.body?.error] ?? e.body?.error ?? e.message);
+      setError(WEAR_ERROR[e.body?.error] ?? errText(e));
     } finally {
       setBusy(false);
     }

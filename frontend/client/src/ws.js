@@ -15,7 +15,10 @@ const MAX_PAUSE_MS = 30_000;
 // в одну мілісекунду.
 const REDEPLOY_PAUSE_MS = 200;
 
-export function connectEvents(onEvent) {
+export function connectEvents(onEvent, onStatus) {
+  // Стан для інтерфейсу: смужку «відновлюємо звʼязок» малює застосунок, а
+  // не ws — він лише каже правду про сокет, без жодних порогів і таймерів.
+  const status = (online) => { try { onStatus?.(online); } catch { /* не наша справа */ } };
   let socket = null;
   let closed = false;
   let attempt = 0;
@@ -52,12 +55,13 @@ export function connectEvents(onEvent) {
 
     socket = new WebSocket(URL_WS, ["extrovert.v1", `jwt.${token}`]);
 
-    socket.onopen = () => { attempt = 0; };
+    socket.onopen = () => { attempt = 0; status(true); };
     socket.onmessage = (e) => {
       try { onEvent(JSON.parse(e.data)); } catch { /* чужий формат — ігноруємо */ }
     };
     socket.onclose = (e) => {
       if (closed) return;
+      status(false);
       if (e.code === 4401) {
         // Сервер не прийняв токен. Викидаємо його, щоб наступна спроба
         // почалась з оновлення, а не з того самого відхиленого рядка.

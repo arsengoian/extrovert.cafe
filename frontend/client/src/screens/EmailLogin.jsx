@@ -4,7 +4,7 @@
 // §3). Екран зібраний із деталей кадру «Твій нікнейм» — той самий лід,
 // поле й кнопка внизу, — щоб не вигадувати для нього окремої мови.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ERRORS = {
@@ -40,7 +40,9 @@ export function EmailLogin({ next = "/" }) {
       setSent({ email: to, minutes: r.minutes });
       setWait(r.cooldown);
     } catch (e) {
-      setError(ERRORS[e.body?.error] ?? (e.status ? e.message : "Немає зв'язку – перевір інтернет"));
+      // Про обрив звʼязку каже тост (ui/Net.jsx) — тут лишаються лише
+      // причини, за яких лист таки не піде.
+      setError(ERRORS[e.body?.error] ?? errText(e));
       if (e.body?.retry_after) setWait(e.body.retry_after);
     } finally {
       setBusy(false);

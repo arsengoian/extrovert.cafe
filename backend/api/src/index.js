@@ -57,14 +57,27 @@ app.addContentTypeParser("application/json", { parseAs: "string" }, (req, body, 
 const ORIGINS = DEV
   ? /^(https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?|https:\/\/(extrovert|admin\.extrovert)\.cafe)$/
   : /^https:\/\/(extrovert|admin\.extrovert)\.cafe$/;
+// Перелік методів збираємо з самих роутів, а не пишемо рядком. Рядок уже
+// підвів: у ньому були GET,POST,PATCH,DELETE — а `PUT` (гардероб і
+// саджанці) не було, і браузер відкидав запит ще на preflight. У клієнта це
+// виглядало як «failed to fetch» без жодного рядка в логах сервера, а
+// локально не відтворювалось узагалі: dev-клієнт ходить через проксі Vite,
+// тобто з того самого origin, де preflight не потрібен (24.09.2026).
+const METHODS = new Set(["OPTIONS"]);
+app.addHook("onRoute", (route) => {
+  for (const m of [].concat(route.method)) METHODS.add(String(m).toUpperCase());
+});
+let allowMethods = null;
+
 app.addHook("onRequest", async (req, reply) => {
   const origin = req.headers.origin;
   if (origin && ORIGINS.test(origin)) {
+    allowMethods ??= [...METHODS].join(",");
     reply.header("access-control-allow-origin", origin);
     reply.header("access-control-allow-credentials", "true");
     reply.header("vary", "origin");
     reply.header("access-control-allow-headers", "authorization,content-type");
-    reply.header("access-control-allow-methods", "GET,POST,PATCH,DELETE,OPTIONS");
+    reply.header("access-control-allow-methods", allowMethods);
   }
   if (req.method === "OPTIONS") reply.code(204).send();
 });

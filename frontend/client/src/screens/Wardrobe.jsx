@@ -6,7 +6,7 @@
 // саме «Подарувати», а не заповнені слоти (economy §3.4) — тому внизу весь
 // час видно, скільки дасть поточний комплект і який предмет тягне тір донизу.
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, errText } from "../api.js";
 import { PlantView } from "../plant/PlantView.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { ConfirmSheet } from "../ui/Popup.jsx";
@@ -31,7 +31,7 @@ export function Wardrobe({ ctx, plant }) {
 
   const id = plant?.id;
   const load = () => api.get(`/me/plants/${id}/wardrobe`).then(setData);
-  useEffect(() => { load().catch((e) => setNote(e.body?.error ?? e.message)); }, [id]);
+  useEffect(() => { load().catch((e) => setNote(errText(e))); }, [id]);
 
   if (!data) return <div className="stage-pad"><div className="skeleton" /></div>;
 
@@ -43,7 +43,7 @@ export function Wardrobe({ ctx, plant }) {
   const run = async (fn) => {
     setBusy(true);
     setNote(null);
-    try { await fn(); } catch (e) { setNote(e.body?.error ?? e.message); } finally { setBusy(false); }
+    try { await fn(); } catch (e) { setNote(errText(e)); } finally { setBusy(false); }
   };
 
   const takeOff = () => run(async () => { await api.del(`/me/plants/${id}/wardrobe`); await load(); });
