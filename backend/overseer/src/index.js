@@ -14,7 +14,7 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
-import { checkDevices, checkPoints, checkWebhook, dailyReport } from "./checks.js";
+import { checkDevices, checkPoints, checkWebhook, dailyReport, outageKind } from "./checks.js";
 import { sampleHealth } from "./health.js";
 import { send } from "./telegram.js";
 
@@ -54,11 +54,13 @@ async function tick() {
 
   const points = await checkPoints(pool);
   for (const p of points) {
-    if (await changed(`point:${p.id}`, p.state)) {
-      lines.push(p.state === "ok"
-        ? `✅ ${p.name}: знову на звʼязку`
-        : `🔌 ${p.name}: мовчить ${p.silentFor}`);
-    }
+    if (!(await changed(`point:${p.id}`, p.state))) continue;
+    if (p.state !== "ok") { lines.push(`🔌 ${p.name}: мовчить ${p.silentFor}`); continue; }
+    // Повернулась — кажемо не лише «жива», а й що це було. Проби з черги
+    // доїжджають у тій самій пачці, що й свіжа, тож на цей момент відповідь
+    // уже лежить у базі (checks.js, outageKind).
+    const why = await outageKind(pool, p.id);
+    lines.push(`✅ ${p.name}: знову на звʼязку${why ? ` — ${why}` : ""}`);
   }
 
   // Поломки залізяки: монітор, живлення, картка, кіоск, диск, флешка,

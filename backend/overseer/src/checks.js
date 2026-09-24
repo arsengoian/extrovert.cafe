@@ -236,6 +236,55 @@ export async function checkDevices(pool) {
   return out;
 }
 
+// Що це було: лежала малина чи просто не було інтернету.
+//
+// Відповідь дає сама телеметрія, і вона однозначна. Малина не викидає проб
+// при обриві: усе, що не пішло, лягає в state/telemetry.queue і доїжджає
+// потім зі СВОЇМ measured_at. Тому в базі лишається два різні сліди:
+//
+//   мережа лежала    — ряд measured_at суцільний, дірки немає, але
+//                      received_at у тих проб пізніший на весь час обриву;
+//   малина лежала    — у measured_at дірка: міряти в цей час не було кому,
+//                      і задним числом її вже ніхто не заповнить.
+//
+// Розрізняє їх `received_at`, який ми й так пишемо на кожен рядок. Третій
+// випадок виходить сам собою: дірка є, а машина не перезавантажувалась —
+// значить, система жила, а телеметрія мовчала. Це найгірший із трьох, бо
+// означає, що щось зависло тихо, і його варто називати вголос.
+//
+// Вікно — 12 годин: довше мовчання класифікувати нема з чого, і тоді
+// повідомлення лишається без пояснення, а не з вигаданим.
+const OUTAGE_MIN_S = 180;    // менше трьох хвилин — це не «обрив», а ритм проб
+
+export async function outageKind(pool, pointId) {
+  const { rows: [r] } = await pool.query(
+    `with p as (
+       select measured_at, received_at,
+              lag(measured_at) over (order by measured_at) as prev
+         from device_telemetry
+        where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours')
+     select coalesce(max(extract(epoch from (measured_at - prev))), 0) as hole_s,
+            coalesce(max(extract(epoch from (received_at - measured_at))), 0) as late_s,
+            (select (metrics->>'uptime_s')::float from device_telemetry
+              where point_id = $1 and source = 'pi'
+              order by measured_at desc limit 1) as uptime_s
+       from p`,
+    [pointId]
+  );
+  if (!r) return null;
+  const hole = Number(r.hole_s), late = Number(r.late_s), uptime = Number(r.uptime_s);
+
+  if (hole >= OUTAGE_MIN_S) {
+    // Аптайм менший за дірку — машина в цей час була вимкнена або
+    // перезавантажувалась. Більший — вона працювала, а мовчала телеметрія.
+    return Number.isFinite(uptime) && uptime < hole
+      ? `малина не працювала ${human(hole / 60)}`
+      : `малина працювала, але не слала проб ${human(hole / 60)} — щось зависало`;
+  }
+  if (late >= OUTAGE_MIN_S) return `не було інтернету ${human(late / 60)}, малина працювала`;
+  return null;
+}
+
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {
