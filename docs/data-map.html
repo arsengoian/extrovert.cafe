@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 8f0df6e</p>
+  <p class="eyebrow">extrovert.cafe · джерело af598fd</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5074,11 +5074,17 @@ CEC</strong> — і цей монітор його вміє (не всі вмі�
 <code>cec-utils</code>, і телеметрія питає <code>pow 0</code>. Немає CEC — у метриці чесне
 <code>null</code> і жодного алерту: «не знаю» краще за вигадане «увімкнено».</p>
 <p><strong>І той самий CEC уміє його ввімкнути.</strong> <code>echo &quot;on 0&quot; | cec-client -s -d 1</code>
-розбудив панель за секунди — перевірено там же. Телеметрія робить це сама,
-коли бачить standby, не частіше ніж раз на 10 хвилин
-(<code>MONITOR_AUTOWAKE=0</code> у <code>config/env</code> вимикає), і позначає в пробі
-<code>monitor_woke</code>. Тобто «вимкнули екран» тепер не лише видно, а й лікується
-без виїзду.</p>
+розбудив панель за секунди — перевірено там же. Телеметрія робить це сама на
+кожній пробі, де бачить standby (<code>MONITOR_AUTOWAKE=0</code> у <code>config/env</code>
+вимикає — це і є спосіб лишити екран темним навмисно), і позначає в пробі
+<code>monitor_woke</code>. Сама проба однаково йде як «вимкнено»: інакше в історії не
+лишилось би сліду, а одне таке спостереження на кожен випадок там має бути.
+Тобто «вимкнули екран» тепер не лише видно, а й лікується без виїзду.</p>
+<p>Окремого швидкого циклу опитування немає навмисно: один опит CEC коштує
+<strong>5,7 с</strong> (заміряно на точці), і ганяти його щопівхвилини на Pi 1 означає
+відбирати час у кіоска. Якщо колись знадобиться реакція за секунди, дешевий
+шлях уже перевірений там же: тримати <code>cec-client</code> відкритим через fifo і
+писати в нього <code>pow 0</code> — відповідь приходить за <strong>50–230 мс</strong>.</p>
 <p>Так само не побачимо: розбите скло, вимкнений автомат Jetinno (поки немає
 його телеметрії), зависле зображення при живому кіоску (fps рахує кадри,
 а не їх вміст).</p>
@@ -11208,7 +11214,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 8f0df6e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел af598fd — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
