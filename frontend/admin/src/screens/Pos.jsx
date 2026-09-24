@@ -37,6 +37,7 @@ const HARDWARE = [
   { key: "mem_used_mb", name: "памʼять, МБ", color: "#5AA9FF" },
   { key: "kiosk_fps", name: "fps кіоска", color: "#B07CFF" },
   { key: "temp_c", name: "температура, °C", color: "#FFB020", format: (v) => v.toFixed(0) },
+  { key: "disk_free_mb", name: "диск вільно, МБ", color: "#3FBF6F" },
 ];
 
 const BUCKET_MS = 30 * 60_000;
@@ -115,7 +116,34 @@ export function Pos({ id }) {
              note={pi ? "остання проба з малини" : "малина ще нічого не слала"} />
       </div>
 
-      <div className="wrap-cols">
+      {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
+          там потрібна одна відповідь «усе гаразд / ні», а «коли саме
+          гасився екран минулої середи» дивляться вже прицільно, на точці
+          (прохання власника 24.09.2026).
+          Відра півгодинні, як у overseer: у відрі досить однієї поганої
+          проби, щоб воно стало червоним, — поломку так не проґавиш. */}
+      <Card title="Історія показників" note="півгодинні відра, 7 днів">
+        <div className="beat-row">
+          <span className="name">точка на звʼязку</span>
+          <Beat history={health} />
+          <span className="ms" />
+          <span className="value">проби overseer</span>
+        </div>
+        {SIGNALS.map((s) => {
+          const series = boolSeries(history, s.pick);
+          return (
+            <div className="beat-row" key={s.key}>
+              <span className="name">{s.name}</span>
+              <Beat history={series} />
+              <span className="ms" />
+              <span className="value">{series.seen ? s.note : "проб немає"}</span>
+            </div>
+          );
+        })}
+        <BeatScale history={health} />
+      </Card>
+
+      <div className="wrap-cols" style={{ marginTop: 12 }}>
         <div className="stack">
         <Card title="Ping і jitter" note="7 днів, за часом виміру">
           {ping.length || jitter.length ? (
@@ -128,19 +156,20 @@ export function Pos({ id }) {
           )}
         </Card>
 
-        {/* Три окремі осі, а не три лінії на одній: памʼять міряється
-            сотнями МБ, fps — десятками, температура — півсотнею градусів.
-            На спільній шкалі памʼять притиснула б дві інші до нуля, і
-            перегрів на 82 °C виглядав би так само, як 48 °C. */}
-        <Card title="Памʼять, fps і температура" note="7 днів, за часом виміру">
-          <div className="grid k3">
+        {/* Кожен показник — своя вісь і своя лінія на всю ширину колонки:
+            памʼять міряється сотнями МБ, диск — тисячами, fps — десятками,
+            температура — півсотнею градусів. На спільній шкалі диск
+            притиснув би решту до нуля, і перегрів на 82 °C виглядав би так
+            само, як 48 °C. */}
+        <Card title="Залізо точки" note="7 днів, за часом виміру">
+          <div className="stack" style={{ gap: 10 }}>
             {HARDWARE.map((h) => {
               const points = series(h.key);
               return (
                 <div key={h.key}>
                   <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>{h.name}</div>
                   {points.length
-                    ? <Line series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} />
+                    ? <Line series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} legend={false} />
                     : <Empty>проб немає</Empty>}
                 </div>
               );
@@ -182,33 +211,6 @@ export function Pos({ id }) {
           )}
         </Card>
       </div>
-
-      {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
-          там потрібна одна відповідь «усе гаразд / ні», а «коли саме
-          гасився екран минулої середи» дивляться вже прицільно, на точці
-          (прохання власника 24.09.2026).
-          Відра півгодинні, як у overseer: у відрі досить однієї поганої
-          проби, щоб воно стало червоним, — поломку так не проґавиш. */}
-      <Card title="Історія показників" note="півгодинні відра, 7 днів" style={{ marginTop: 12 }}>
-        <div className="beat-row">
-          <span className="name">точка на звʼязку</span>
-          <Beat history={health} />
-          <span className="ms" />
-          <span className="value">проби overseer</span>
-        </div>
-        {SIGNALS.map((s) => {
-          const series = boolSeries(history, s.pick);
-          return (
-            <div className="beat-row" key={s.key}>
-              <span className="name">{s.name}</span>
-              <Beat history={series} />
-              <span className="ms" />
-              <span className="value">{series.seen ? s.note : "проб немає"}</span>
-            </div>
-          );
-        })}
-        <BeatScale history={health} />
-      </Card>
 
       <div style={{ marginTop: 12 }}>
         <Table

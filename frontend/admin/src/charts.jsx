@@ -68,7 +68,10 @@ export const BeatRow = ({ ok, name, note, value, history, ms = null, sub = false
 // max — коли шкала відома наперед. Для часток це 1: інакше графік
 // розтягується під власний максимум, і просідання з 88 % до 84 % виглядає
 // як обвал (дашборд опитувань, 24.09.2026).
-export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null }) {
+// legend — підпис під графіком. На картці з кількома лініями він потрібен,
+// а там, де ряд один і його назва вже стоїть заголовком над графіком,
+// повторює її вдруге.
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -124,9 +127,11 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
               <text key={t} className="axis" x={i ? w - 30 : padL} y={height - 3}>{fmt.day(t)}</text>
             ))}
           </svg>
-          <div className="legend">
-            {series.map((s) => <span key={s.name}><i style={{ background: s.color }} />{s.name}</span>)}
-          </div>
+          {legend && (
+            <div className="legend">
+              {series.map((s) => <span key={s.name}><i style={{ background: s.color }} />{s.name}</span>)}
+            </div>
+          )}
         </>
       )}
     </div>
