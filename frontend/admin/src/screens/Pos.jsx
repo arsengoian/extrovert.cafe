@@ -10,6 +10,10 @@ import { Card, Empty, Kpi, METRIC_LABELS as LABELS, Table, fmt, metricValue as h
 
 // Булеві показники, для яких малюємо тижневу смужку. `pick` повертає
 // true/false або null — «проби не було й судити нема з чого».
+//
+// Памʼяті тут немає навмисно: у неї є своя лінія нижче, а «є запас / немає
+// запасу» на тижневій смужці однаково зелене й не каже нічого, чого не
+// видно з графіка (прохання власника 24.09.2026).
 const SIGNALS = [
   { key: "monitor", name: "монітор", note: "CEC: увімкнений",
     pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on) },
@@ -27,8 +31,6 @@ const SIGNALS = [
     pick: (m) => (m.video_ok === undefined ? null : m.video_ok) },
   { key: "temp", name: "температура", note: "нижче 80 °C",
     pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80) },
-  { key: "memory", name: "памʼять", note: "є запас",
-    pick: (m) => (m.mem_total_mb ? Number(m.mem_used_mb) / Number(m.mem_total_mb) <= 0.92 : null) },
 ];
 
 // Що малюємо лініями під мережею: три показники, по яких видно, що точці

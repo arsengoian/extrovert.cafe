@@ -9,20 +9,33 @@ import { useEffect, useRef, useState } from "react";
 import { Dot, Empty, fmt } from "./ui.jsx";
 
 // Смужка пульсу: рядок «1/0/?» на півгодинне відро (api віддає саме так).
+//
+// SVG, а не 337 <i> у флексі (переписано 24.09.2026). Тиждень півгодинними
+// відрами — це 337 колонок на ~600 px: у флексі з `gap: 1px` самі зазори
+// зʼїдали 336 px із 339, на дані лишалось по 0.46 px на відро, і браузер
+// округляв кожне до нуля або одного пікселя. Виходив ритмічний візерунок
+// із груп і прогалин, якого в даних немає, — власник резонно спитав, що він
+// означає. Тепер ширина відра — дробова одиниця viewBox, і всі вони рівні
+// за визначенням, як би не змінювалась ширина екрана.
 export function Beat({ history, title }) {
   const line = history?.line ?? "";
   const step = history?.step ?? 1800_000;
   const from = history?.from ?? 0;
   const fails = new Map((history?.fails ?? []).map((f) => [f.t, f.detail]));
+  if (!line.length) return <svg className="beat" viewBox="0 0 1 1" preserveAspectRatio="none" />;
   return (
-    <div className="beat" title={title}>
+    <svg className="beat" viewBox={`0 0 ${line.length} 1`} preserveAspectRatio="none" aria-label={title}>
       {[...line].map((c, i) => {
         const t = from + i * step;
         const detail = fails.get(t);
         const when = new Date(t).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-        return <i key={i} data-s={c} title={c === "?" ? `${when}: проб не було` : c === "1" ? `${when}: усе гаразд` : `${when}: ${detail ?? "падало"}`} />;
+        return (
+          <rect key={i} data-s={c} x={i + 0.1} width={0.8} y={0} height={1}>
+            <title>{c === "?" ? `${when}: проб не було` : c === "1" ? `${when}: усе гаразд` : `${when}: ${detail ?? "падало"}`}</title>
+          </rect>
+        );
       })}
-    </div>
+    </svg>
   );
 }
 
