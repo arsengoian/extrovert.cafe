@@ -495,6 +495,16 @@ int main(int argc, char **argv) {
          * і порожній: під шаром кіоска видно запасну картинку fbi з
          * останніми цінами (docs/raspberry-pi.md §6), а на overlap-підміні —
          * стару копію кіоска. Непрозорий порожній кадр закрив би і те, і те. */
+        /* Зсув проти вигоряння: чотири позиції по колу, крок раз на
+         * BURNIN_SHIFT_PERIOD_S. Малюємо на два пікселі вбік — цього не
+         * видно оком, але статична картинка перестає бути статичною для
+         * панелі (config.h). */
+        {
+            int phase = (int)(sim_t / BURNIN_SHIFT_PERIOD_S) & 3;
+            comp.shift_x = (phase == 1 || phase == 2) ? BURNIN_SHIFT_PX : 0.0;
+            comp.shift_y = (phase >= 2) ? BURNIN_SHIFT_PX : 0.0;
+        }
+
         bool have_menu = menu_tex.id != 0;
         gl_clear(!have_menu);
         if (have_menu) gl_draw_quad(&comp, &menu_tex, 0, 0, STAGE_W, STAGE_H, 1.0);

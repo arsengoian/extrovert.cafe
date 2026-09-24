@@ -1,12 +1,97 @@
 // Перевірки overseer. Кожна повертає стан, а не текст алерту: вирішувати,
 // чи писати в чат, — справа виклику (алерт лише на зміну стану).
-const SILENT_MINUTES = 15;                 // малина шле телеметрію частіше
+// Малина шле пробу раз на хвилину (stack/telemetry.sh), тож три хвилини
+// мовчання — це вже три пропущені проби поспіль, а не «мережа моргнула».
+// Разом із хвилинним обходом це означає: точка впала — знаємо за 3-4 хв.
+const SILENT_MINUTES = 3;
 
 const human = (minutes) => {
   if (minutes < 60) return `${Math.round(minutes)} хв`;
   const hours = minutes / 60;
   return hours < 24 ? `${hours.toFixed(1)} год` : `${(hours / 24).toFixed(1)} діб`;
 };
+
+// Поломки, які видно лише в телеметрії: екран малює, точка «на звʼязку», а
+// насправді щось уже не так. Кожна — окремий стан, щоб алерт приходив і
+// зникав сам (прохання власника 24.09.2026: «у кожному випадку поломки має
+// приходити відразу звіт в overseer»).
+//
+// Біти vcgencmd get_throttled: 0x1 — просідає живлення ЗАРАЗ, 0x4 — частота
+// зрізана зараз. «Було колись» (0x10000+) не алертимо: воно лишається
+// назавжди до перезавантаження й перетворилось би на вічне попередження.
+const DEVICE_CHECKS = [
+  {
+    key: "power",
+    bad: (m) => Number.isFinite(m.throttled) && (m.throttled & 0x5) !== 0,
+    down: () => "просідає живлення — це вбиває картку памʼяті, перевір блок і кабель",
+    up: () => "живлення в нормі",
+    icon: "⚡",
+  },
+  {
+    key: "card",
+    bad: (m) => m.root_ro === true,
+    down: () => "картка стала read-only: оновлення не встановиться, стан не збережеться",
+    up: () => "картка знову пишеться",
+    icon: "💾",
+  },
+  {
+    key: "monitor",
+    // null — «не знаємо» (немає ні CEC, ні tvservice): мовчимо.
+    bad: (m) => m.monitor_on === false,
+    down: (m) => (m.monitor_src === "cec" ? "монітор у режимі очікування" : "монітор не відповідає (немає EDID — кабель чи живлення)"),
+    up: () => "монітор увімкнено",
+    icon: "🖥",
+  },
+  {
+    key: "kiosk",
+    // Кіоск живий, але не малює. fps приходить із його ж сокета, тож null —
+    // це «сокет не відповів», теж погано.
+    bad: (m) => m.kiosk_fps !== undefined && (m.kiosk_fps === null || Number(m.kiosk_fps) <= 0),
+    down: () => "меню не малюється (0 fps)",
+    up: () => "меню малюється",
+    icon: "🖼",
+  },
+  {
+    key: "disk",
+    bad: (m) => Number.isFinite(m.disk_free_mb) && m.disk_free_mb < 300,
+    down: (m) => `на картці лишилось ${Math.round(m.disk_free_mb)} МБ`,
+    up: () => "місця на картці вистачає",
+    icon: "💽",
+  },
+];
+
+// Стан кожної перевірки для кожної живої точки — за останньою пробою.
+// Проба старіша за SILENT_MINUTES не розглядається: про мовчазну точку вже
+// сказав checkPoints, і дублювати його пʼятьма алертами не треба.
+export async function checkDevices(pool) {
+  const { rows } = await pool.query(
+    `select p.id, p.name, t.metrics, t.measured_at
+       from points p
+       join lateral (
+         select metrics, measured_at from device_telemetry
+          where point_id = p.id and source = 'pi'
+          order by measured_at desc limit 1) t on true
+      where p.status = 'live'
+        and t.measured_at > now() - make_interval(mins => $1)`,
+    [SILENT_MINUTES]
+  );
+
+  const out = [];
+  for (const row of rows) {
+    const m = row.metrics ?? {};
+    for (const check of DEVICE_CHECKS) {
+      const bad = Boolean(check.bad(m));
+      out.push({
+        key: `${row.id}:${check.key}`,
+        state: bad ? "bad" : "ok",
+        text: bad
+          ? `${check.icon} ${row.name}: ${check.down(m)}`
+          : `✅ ${row.name}: ${check.up(m)}`,
+      });
+    }
+  }
+  return out;
+}
 
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.

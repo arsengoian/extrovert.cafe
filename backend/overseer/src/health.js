@@ -12,7 +12,7 @@
 import { presign } from "@extrovert/lib/r2.js";
 import { checkWebhook } from "./checks.js";
 
-const SILENT_MINUTES = 15;              // скільки точці можна мовчати
+const SILENT_MINUTES = 3;               // три пропущені проби поспіль (checks.js)
 const TIMEOUT_MS = 8000;
 const KEEP_DAYS = 7;
 

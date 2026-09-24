@@ -18,7 +18,11 @@ LOG_TAG=telemetry
 . "$(dirname "$0")/common.sh"
 
 API="${API_URL:-https://api.extrovert.cafe/api/v1}"
-PERIOD="${TELEMETRY_PERIOD_S:-300}"
+# Хвилина, а не пʼять: від цього періоду напряму залежить, за скільки ми
+# дізнаємось, що точка впала (overseer бачить мовчання через SILENT_MINUTES).
+# Проба — це кілька кілобайт і секунди очікування мережі, не рахунок за
+# трафік (прохання власника прискорити сповіщення, 24.09.2026).
+PERIOD="${TELEMETRY_PERIOD_S:-60}"
 TOKEN_FILE="${WS_TOKEN_FILE:-$EXTROVERT_ROOT/config/point.key}"
 QUEUE="$EXTROVERT_STATE/telemetry.queue"
 QUEUE_MAX=500                      # ~2 доби проб: більше нікому не потрібно
@@ -52,23 +56,58 @@ temp_c() {
 
 # Монітор. Кіоск може малювати бездоганно в порожнечу: екран вимкнули,
 # від'єднали чи він сам пішов у сон — знати про це треба здалеку (прохання
-# власника 23.09.2026). tvservice показує стан HDMI, vcgencmd — чи взагалі
-# подається живлення на вихід; беремо перше, що є в системі.
+# власника 23.09.2026).
+#
+# ⚠️ Чесно про межі методу (24.09.2026, після того як власник вимкнув монітор
+# кнопкою, а телеметрія далі казала «увімкнено»). По HDMI видно РІВНО три
+# речі, і жодна з них не про кнопку на моніторі:
+#   tvservice -s      — що ВИДАЄ малина (у нас ще й hdmi_force_hotplug=1,
+#                       тож вона видає сигнал навіть у нікуди);
+#   tvservice -n      — чи читається EDID, тобто чи є на тому кінці пристрій;
+#   cec pow           — питання «ти увімкнений?» самому монітору.
+# Монітор у standby зазвичай тримає і hotplug, і EDID — від увімкненого його
+# не відрізнити нічим, крім CEC. Тому чесна відповідь така: CEC, якщо він є,
+# інакше EDID (ловить від'єднаний кабель і знеструмлений монітор), інакше
+# null — «не знаємо», а не «увімкнено».
 monitor_on() {
-    if command -v tvservice >/dev/null 2>&1; then
-        _s=$(tvservice -s 2>/dev/null) || { echo null; return; }
-        case "$_s" in
-            "")            echo null ;;
-            *"TV is off"*) echo false ;;
-            *)             echo true ;;
+    # CEC: єдиний спосіб дізнатись про standby. Питаємо пристрій 0 (телевізор).
+    if command -v cec-client >/dev/null 2>&1; then
+        _p=$(echo "pow 0" | timeout 6 cec-client -s -d 1 2>/dev/null | grep -i "power status:")
+        case "$_p" in
+            *"power status: on"*)      echo true;  return ;;
+            *standby*)                 echo false; return ;;
         esac
-        return
     fi
+    # EDID читається — пристрій на тому кінці є (хоч, можливо, і в сні).
+    if command -v tvservice >/dev/null 2>&1; then
+        _n=$(tvservice -n 2>/dev/null)
+        case "$_n" in
+            *device_name*) echo true;  return ;;
+            *)             echo false; return ;;
+        esac
+    fi
+    echo null
+}
+
+# Звідки взялася відповідь monitor_on: без цього «true» з EDID і «true» з CEC
+# виглядають однаково, а вартують вони різного.
+monitor_source() {
+    if command -v cec-client >/dev/null 2>&1; then echo cec; return; fi
+    if command -v tvservice   >/dev/null 2>&1; then echo edid; return; fi
+    echo none
+}
+
+# Стан живлення прошивки: 0x1 — просідає прямо зараз, 0x10000 — просідало з
+# моменту завантаження. Саме воно малює той «райдужний квадрат» у кутку, і
+# воно ж — головна причина, чому вмирають SD-карти: запис під час просідання
+# псує файлову систему (docs/raspberry-pi.md). Пишемо число як є: розбирати
+# біти зручніше на сервері, ніж у sh.
+throttled() {
     if command -v vcgencmd >/dev/null 2>&1; then
-        case "$(vcgencmd display_power 2>/dev/null)" in
-            *=1) echo true ;;
-            *=0) echo false ;;
-            *)   echo null ;;
+        _t=$(vcgencmd get_throttled 2>/dev/null)
+        case "$_t" in
+            throttled=0x*) printf '%d' "$(printf '%s' "${_t#throttled=}")" 2>/dev/null || echo null ;;
+            *) echo null ;;
         esac
         return
     fi
@@ -85,6 +124,28 @@ video_ok() {
         return
     fi
     echo null
+}
+
+# Картка стала read-only. Ядро робить так само мовчки, коли ловить помилки
+# запису, — і далі все «працює», доки не знадобиться щось записати: оновлення
+# не встановиться, черга телеметрії не збережеться, стан кіоска не ляже. Це
+# один із найпідступніших відмов, бо екран при цьому малює як завжди.
+root_readonly() {
+    if grep -q " / .*[( ,]ro[ ,)]" /proc/mounts 2>/dev/null; then echo true; return; fi
+    # Перевірка ділом: mount може казати rw, а запис уже не проходити.
+    _probe="$EXTROVERT_STATE/.rw-probe"
+    if ( : > "$_probe" ) 2>/dev/null; then rm -f "$_probe"; echo false; else echo true; fi
+}
+
+# Флешка під запис відео (video.md): точка монтування має бути змонтована й
+# писатись. Немає USB — немає й буфера запису, а дізнаємось ми про це зараз,
+# а не коли знадобиться архів.
+usb_ok() {
+    _mnt="${RECORDER_BUF:-}"
+    [ -n "$_mnt" ] || { echo null; return; }
+    grep -q " $_mnt " /proc/mounts 2>/dev/null || { echo false; return; }
+    _probe="$_mnt/.rw-probe"
+    if ( : > "$_probe" ) 2>/dev/null; then rm -f "$_probe"; echo true; else echo false; fi
 }
 
 mem_used_mb() { awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{ printf "%.0f", (t-a)/1024 }' /proc/meminfo; }
@@ -119,13 +180,18 @@ sample_json() {
     set -- $(kiosk_metrics "/tmp/kiosk-$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0).sock")
     _fps=$1; _frames=$2
     _monitor=$(monitor_on)
+    _msrc=$(monitor_source)
     _video=$(video_ok)
+    _throttled=$(throttled)
+    _rofs=$(root_readonly)
+    _usb=$(usb_ok)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"video_ok":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
-        "${_monitor:-null}" "${_video:-null}" "${_release:-unknown}"
+        "${_monitor:-null}" "${_msrc:-none}" "${_video:-null}" "${_throttled:-null}" \
+        "${_rofs:-null}" "${_usb:-null}" "${_release:-unknown}"
 }
 
 # ── відправка ────────────────────────────────────────────────────────────

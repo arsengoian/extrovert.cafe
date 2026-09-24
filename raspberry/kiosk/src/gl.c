@@ -187,7 +187,7 @@ void gl_draw_quad(gl_compositor_t *c, const gl_texture_t *tex,
     glVertexAttribPointer(c->a_pos, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void *)0);
     glVertexAttribPointer(c->a_uv, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void *)(2 * sizeof(GLfloat)));
 
-    glUniform2f(c->u_offset_px, (float)dst_x, (float)dst_y);
+    glUniform2f(c->u_offset_px, (float)(dst_x + c->shift_x), (float)(dst_y + c->shift_y));
     glUniform2f(c->u_scale_px, (float)dst_w, (float)dst_h);
     glUniform1f(c->u_alpha, (float)alpha);
 

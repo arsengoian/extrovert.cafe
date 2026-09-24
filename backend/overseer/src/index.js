@@ -14,7 +14,7 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
-import { checkPoints, checkWebhook, dailyReport } from "./checks.js";
+import { checkDevices, checkPoints, checkWebhook, dailyReport } from "./checks.js";
 import { sampleHealth } from "./health.js";
 import { send } from "./telegram.js";
 
@@ -46,6 +46,9 @@ async function tick() {
         ? `✅ ${p.name}: знову на звʼязку`
         : `🔌 ${p.name}: мовчить ${p.silentFor}`);
   }
+
+  // Поломки залізяки: монітор, живлення, картка, кіоск, місце на диску.
+  for (const d of await checkDevices(pool)) await onChange(`device:${d.key}`, d.state, d.text);
 
   const webhook = await checkWebhook();
   // «unknown» — це не поломка, а «не змогли спитати»: мовчимо.

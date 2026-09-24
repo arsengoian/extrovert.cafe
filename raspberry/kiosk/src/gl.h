@@ -20,6 +20,9 @@ typedef struct {
     GLuint vbo;
     GLint a_pos, a_uv;
     GLint u_offset_px, u_scale_px, u_stage_size, u_alpha, u_tex;
+    /* Зсув усієї сцени проти вигоряння панелі (main.c, burnin_shift):
+     * додається до кожного квада, тож окремого коду в render.c не треба. */
+    double shift_x, shift_y;
 } gl_compositor_t;
 
 /* Ініціалізація виконується один раз після eglMakeCurrent. */
