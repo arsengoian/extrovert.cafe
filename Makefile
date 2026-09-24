@@ -23,7 +23,7 @@ include dev.mk
         plant api ws scheduler checkbox overseer client build \
         docs docs-check kb-check kb-embed kb-store kb-push kb-ask planting-data \
         deploy-client deploy-client-dry keys-jwt keys-secret keys-ssh smoke \
-        tf-plan tf-apply tf-output ssh-public \
+        tf-plan tf-apply tf-output ssh-public errors \
         act-secrets act-build act-deploy admin deploy-admin deploy-admin-dry \
         release-push deploy-qr deploy-qr-dry deploy-redirect deploy-redirect-dry         env-prod-check env-push act-knowledge act-frontends
 
@@ -78,6 +78,8 @@ help:
 	@echo   make tf-apply      застосувати: дроплет, файрвол, проект
 	@echo   make tf-output     адреси й готова команда ssh
 	@echo   make ssh-public    зайти на публічний дроплет
+	@echo ---------------------------------------------------------------
+	@echo   make errors        помилки сервісів із GlitchTip (A="--open 12")
 	@echo ---------------------------------------------------------------
 	@echo   make act-secrets   зібрати .secrets для act з локального .env
 	@echo   make act-build     зібрати й залити образи в ghcr через act
@@ -150,6 +152,13 @@ build:
 
 smoke:
 	$(BUN) scripts/smoke.mjs
+
+# Помилки сервісів із GlitchTip у консоль. Аргументи передаються як є:
+#   make errors                 — невирішені по всіх проєктах
+#   make errors A="--open 12"   — стек і теги однієї
+#   make errors A="--resolve 12"
+errors:
+	$(BUN) scripts/errors.mjs $(A)
 
 ## ── доки й база знань ───────────────────────────────────────────────────
 
