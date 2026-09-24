@@ -41,6 +41,9 @@ PKGS_DESKTOP = $(PKGS_BASE) glesv2 egl
 # і бути не може. Змінна WS_URL однаково перебиває, коли треба інше.
 WS_URL_DESKTOP = ws://127.0.0.1:3002/
 WS_URL_PI = wss://ws.extrovert.cafe/
+# Те саме для api: звідти кіоск бере знімок стану точки після підключення.
+API_URL_DESKTOP = http://127.0.0.1:3001/api/v1
+API_URL_PI = https://api.extrovert.cafe/api/v1
 
 .PHONY: desktop pi tools clean
 
@@ -48,7 +51,7 @@ desktop: bin/kiosk-desktop
 
 bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 	@mkdir -p bin
-	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_DESKTOP)"' $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
+	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_DESKTOP)"' -DAPI_DEFAULT_URL='"$(API_URL_DESKTOP)"' $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
 		$(SRC_COMMON) src/platform_desktop.c \
 		-o $@ \
 		$(shell pkg-config --libs $(PKGS_DESKTOP)) -lm
@@ -62,7 +65,7 @@ pi: bin/kiosk
 
 bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 	@mkdir -p bin
-	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_PI)"' $(shell pkg-config --cflags $(PKGS_BASE)) \
+	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_PI)"' -DAPI_DEFAULT_URL='"$(API_URL_PI)"' $(shell pkg-config --cflags $(PKGS_BASE)) \
 		-I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads \
 		-I/opt/vc/include/interface/vmcs_host/linux \
 		$(SRC_COMMON) src/platform_dispmanx.c \

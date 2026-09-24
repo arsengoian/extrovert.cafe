@@ -263,11 +263,27 @@ static void bonus_link(char *out, size_t n, const char *token) {
  * system_code — тоді в рядку те саме, що на картці поруч; назва з події
  * потрібна лише коли напою в меню немає (його щойно прибрали, а чек уже
  * пробито). */
-bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
-                     const char *code, const char *name, int coins,
-                     const char *claim_token, int items, bonus_popup_t *out) {
-    bonus_row_t *row = take_row(b, now, "подію");
+/* Спільне тіло для свіжої події й для рядка, відновленого зі знімка.
+ * remain_s — скільки цьому QR лишилось висіти: у свіжої події це повний
+ * BONUS_TTL_S, у відновленого — те, що сказав сервер. out=NULL — без попапа
+ * (знімок не вітає людину вдруге з покупкою, яку вона зробила хвилину тому). */
+static bool add_row(bonus_state_t *b, double now, const menu_t *menu,
+                    const char *code, const char *name, int coins,
+                    const char *claim_token, int items, double remain_s,
+                    bonus_popup_t *out) {
+    bonus_row_t *row = take_row(b, now, out ? "подію" : "знімок");
     if (!row) return false;
+    if (remain_s < BONUS_TTL_S) {
+        /* bonus_update рахує залишок як BONUS_TTL_S - (now - created_at),
+         * тож «народжуємо» рядок у минулому рівно настільки, скільки він
+         * уже провисів. Заразом і підпис «о котрій нарахували» стає
+         * правдою, а не часом перепідключення. */
+        row->created_at = now - (BONUS_TTL_S - remain_s);
+        time_t t = time(NULL) - (time_t)(BONUS_TTL_S - remain_s);
+        struct tm lt;
+        localtime_r(&t, &lt);
+        snprintf(row->earned_at, sizeof(row->earned_at), "%02d:%02d", lt.tm_hour, lt.tm_min);
+    }
 
     const drink_t *found = NULL;
     if (code && code[0]) {
@@ -295,10 +311,41 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
     snprintf(row->claim_token, sizeof(row->claim_token), "%s", claim_token ? claim_token : "");
 
     b->count++;
-    fill_popup(row, out);
-    fprintf(stderr, "bonus: подія — %s, %d монет%s\n", row->drink_name, row->coins,
-            row->secret ? " + предмет" : "");
+    if (out) fill_popup(row, out);
+    fprintf(stderr, "bonus: %s — %s, %d монет%s\n", out ? "подія" : "зі знімка",
+            row->drink_name, row->coins, row->secret ? " + предмет" : "");
     return true;
+}
+
+bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
+                     const char *code, const char *name, int coins,
+                     const char *claim_token, int items, bonus_popup_t *out) {
+    return add_row(b, now, menu, code, name, coins, claim_token, items, BONUS_TTL_S, out);
+}
+
+bool bonus_restore(bonus_state_t *b, double now, const menu_t *menu,
+                   const char *code, const char *name, int coins,
+                   const char *claim_token, int expires_in_s) {
+    double remain = (double)expires_in_s;
+    if (remain <= 0.0) return false;                     /* уже вигорів */
+    if (remain > BONUS_TTL_S) remain = BONUS_TTL_S;      /* сервер щедріший за екран */
+    return add_row(b, now, menu, code, name, coins, claim_token, -1, remain, NULL);
+}
+
+bool bonus_has(const bonus_state_t *b, const char *claim_token) {
+    if (!claim_token || !claim_token[0]) return false;
+    for (int i = 0; i < b->count; i++)
+        if (strcmp(b->rows[i].claim_token, claim_token) == 0) return true;
+    return false;
+}
+
+int bonus_tokens(const bonus_state_t *b, char out[][BONUS_TOKEN_MAX], int max) {
+    int n = 0;
+    for (int i = 0; i < b->count && n < max; i++) {
+        if (!b->rows[i].claim_token[0]) continue;
+        snprintf(out[n++], BONUS_TOKEN_MAX, "%s", b->rows[i].claim_token);
+    }
+    return n;
 }
 
 bool bonus_tick_emulate(bonus_state_t *b, double now, const menu_t *menu, bonus_popup_t *out) {

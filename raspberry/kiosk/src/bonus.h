@@ -31,11 +31,13 @@
 #include "menu.h"
 #include "popup.h"
 
+#define BONUS_TOKEN_MAX 64
+
 typedef struct {
     char drink_name[64];
     char sprite[32];       /* ключ у assets/drinks/, може бути порожнім */
     char qr_payload[128];
-    char claim_token[64];  /* по ньому впізнаємо бонус, який забрав телефон */
+    char claim_token[BONUS_TOKEN_MAX];  /* по ньому впізнаємо бонус, який забрав телефон */
     char earned_at[8];     /* "09:41" — коли нарахували, для дрібного підпису */
     int coins;
     bool secret;           /* разом із монетами випав предмет — бейдж-подарунок */
@@ -78,6 +80,23 @@ bool bonus_add_event(bonus_state_t *b, double now, const menu_t *menu,
  * точки більше нікому не потрібен. true, якщо такий рядок справді був:
  * тоді main.c показує плашку «Бонус отримано». */
 bool bonus_mark_taken(bonus_state_t *b, const char *claim_token);
+
+/* Рядок зі знімка стану точки (ws_take_snapshot): QR, який висів на екрані,
+ * поки кіоск був offline. Від bonus_add_event відрізняється двома речами —
+ * лишок часу приходить із сервера, а не рахується від повного TTL, і попапа
+ * немає: людина купила каву хвилину тому, вітати її вдруге нема з чим.
+ * false — панель повна або бонус уже вигорів. */
+bool bonus_restore(bonus_state_t *b, double now, const menu_t *menu,
+                   const char *code, const char *name, int coins,
+                   const char *claim_token, int expires_in_s);
+
+/* Чи вже є рядок із таким токеном: знімок і подія легко перетинаються, і
+ * той самий QR не має зайняти два слоти з трьох. */
+bool bonus_has(const bonus_state_t *b, const char *claim_token);
+
+/* Токени рядків, що зараз на панелі — головному циклу, щоб звірити їх зі
+ * знімком і прибрати те, чого сервер уже не показує. Повертає кількість. */
+int bonus_tokens(const bonus_state_t *b, char out[][BONUS_TOKEN_MAX], int max);
 
 /* Вміст для демо-показу попапу (POPUP=1, SIGUSR1, DESKTOP_FRAMES): той
  * самий попап, що й на справжній бонус, але без рядка в панелі — щоб

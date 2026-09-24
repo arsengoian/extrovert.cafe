@@ -240,9 +240,24 @@ int main(int argc, char **argv) {
         }
     }
 
+    /* Знімок стану точки після кожного підключення: без нього bonus_ready,
+     * опублікований у мить перепідключення, не побачить ніхто, і людина
+     * стоятиме біля машини з чеком, а QR на екрані не буде. */
+    char state_url[256] = {0};
+    const char *api_url = getenv("API_URL");
+    if (!api_url || !api_url[0]) api_url = API_DEFAULT_URL;
+    const char *point = getenv("POINT");
+    if (api_url[0] && point && point[0]) {
+        size_t n = strlen(api_url);
+        snprintf(state_url, sizeof(state_url), "%s%spoints/%s/state",
+                 api_url, (n && api_url[n - 1] == '/') ? "" : "/", point);
+    } else {
+        fprintf(stderr, "main: без POINT знімка стану не буде — лише події ws\n");
+    }
+
     ws_client_t *ws = NULL;
     if (ws_token && ws_token[0]) {
-        ws = ws_start(ws_url, ws_token);
+        ws = ws_start(ws_url, ws_token, state_url);
     } else {
         fprintf(stderr, "main: WS_TOKEN не заданий — бонуси емулюються (bun scripts/point-token.mjs <point>)\n");
     }
@@ -383,6 +398,31 @@ int main(int argc, char **argv) {
         bool bonus_taken = false;
 
         if (ws) {
+            /* Знімок стану точки: приїжджає після кожного (пере)підключення
+             * і описує панель цілком. Вирівнюємо по ньому — інакше після
+             * обриву на екрані лишився б QR, який уже забрали, і не
+             * зʼявився б той, що пробили, поки ми мовчали. */
+            ws_snapshot_t snap;
+            if (ws_take_snapshot(ws, &snap)) {
+                char have[BONUS_MAX_VISIBLE][BONUS_TOKEN_MAX];
+                int hn = bonus_tokens(&bonus, have, BONUS_MAX_VISIBLE);
+                for (int i = 0; i < hn; i++) {
+                    bool still = false;
+                    for (int j = 0; j < snap.count && !still; j++)
+                        still = strcmp(snap.rows[j].claim_token, have[i]) == 0;
+                    /* Плашку «Бонус отримано» тут не показуємо: ми не знаємо,
+                     * забрали той QR телефоном чи він просто вигорів, поки
+                     * нас не було, — а вітати навмання гірше, ніж мовчати. */
+                    if (!still) bonus_mark_taken(&bonus, have[i]);
+                }
+                for (int j = 0; j < snap.count; j++) {
+                    if (bonus_has(&bonus, snap.rows[j].claim_token)) continue;
+                    bonus_restore(&bonus, sim_t, &menu, snap.rows[j].code, snap.rows[j].drink,
+                                  snap.rows[j].coins, snap.rows[j].claim_token,
+                                  snap.rows[j].expires_in_s);
+                }
+            }
+
             /* Події зі свого потоку забираємо без блокувань і без мережі —
              * кадр не має чекати на роутер (ws.h). */
             ws_event_t events[8];

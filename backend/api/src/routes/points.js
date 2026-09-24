@@ -41,6 +41,56 @@ export default async function routes(app) {
     }
   });
 
+  // Знімок стану точки — те, що кіоск питає після кожного (пере)підключення
+  // до ws (docs/services.md §4).
+  //
+  // Навіщо він узагалі. Події їдуть через Redis pub/sub, а pub/sub нічого не
+  // зберігає: `bonus_ready`, опублікований у ті півсекунди, поки кіоск
+  // перепідключався, не отримає ніхто й ніколи. Людина стоїть біля машини з
+  // чеком, а QR на екрані немає — і жоден лог про це не скаже. Тому після
+  // кожного connect кіоск бере поточний список активних QR і вирівнює панель
+  // по ньому: чого немає в списку — прибирає (забрали або вигоріло), чого
+  // бракує — додає.
+  //
+  // Меню сюди не входить навмисно: його кіоск і так перепитує в бакета за
+  // розкладом, тож друга копія тієї самої правди тільки розійшлася б.
+  app.get("/points/:id/state", async (req, reply) => {
+    const authorized = pointFromRequest(req);
+    if (!authorized || authorized !== req.params.id) {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
+    // Напій беремо з позицій чека тим самим правилом, що й checkbox, коли
+    // створював грант: перша платна небонусна позиція — та, яку людина
+    // щойно купила й упізнає на панелі.
+    const { rows } = await query(
+      `select g.claim_token, g.coins_yellow as coins,
+              ceil(extract(epoch from (g.show_until - now())))::int as expires_in_s,
+              i.system_code as code, i.name as drink
+         from bonus_grants g
+         left join lateral (
+           select system_code, name from receipt_items
+            where receipt_id = g.receipt_id and not is_bonus_drink and price_uah > 0
+            order by id limit 1) i on true
+        where g.point_id = $1
+          and g.claimed_at is null
+          and g.status = 'pending'
+          and g.show_until > now()
+        order by g.id`,
+      [authorized]
+    );
+    reply.header("cache-control", "no-store");
+    return {
+      now: new Date().toISOString(),
+      bonuses: rows.map((r) => ({
+        claim_token: r.claim_token,
+        code: r.code ?? "",
+        drink: r.drink ?? "",
+        coins: r.coins,
+        expires_in_s: r.expires_in_s,
+      })),
+    };
+  });
+
   app.post("/points/:id/telemetry", async (req, reply) => {
     const authorized = pointFromRequest(req);
     if (!authorized || authorized !== req.params.id) {

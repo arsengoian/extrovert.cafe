@@ -105,6 +105,12 @@
 #define WS_DEFAULT_URL "ws://127.0.0.1:3002/"
 #endif
 #define WS_CONNECT_TIMEOUT_S 10
+/* Куди йти по знімок стану точки після кожного підключення (ws.c,
+ * docs/services.md §4). Так само прошито збіркою й перебивається API_URL —
+ * тією самою змінною, що її вже читає telemetry.sh. */
+#ifndef API_DEFAULT_URL
+#define API_DEFAULT_URL "http://127.0.0.1:3001/api/v1"
+#endif
 /* Пінг рідший за типовий таймаут NAT (30-60 с), але частіший за нього ж на
  * домашніх роутерах — 25 с тримає зʼєднання й ловить мовчазний обрив. */
 #define WS_PING_PERIOD_S 25.0

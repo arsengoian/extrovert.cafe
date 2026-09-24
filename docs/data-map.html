@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 6c0f48a</p>
+  <p class="eyebrow">extrovert.cafe · джерело ac6efe1</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -729,8 +729,17 @@ Checkbox ─ опитування раз на хв ───┤
 покаже, бо й на екрані точки бонуса вже немає.</p>
 <p>Кожна подія несе свій <code>outbox.id</code>, і кіоск відкидає повтор. Pub/sub нічого
 не зберігає, тож <strong>після кожного (пере)підключення кіоск питає знімок</strong>
-(<code>GET /api/v1/points/&lt;point&gt;/state</code>: версія меню й активні QR) і лише потім
-слухає події. Окремої «стрічки подій» роутом немає: вона дублювала б
+(<code>GET /api/v1/points/&lt;point&gt;/state</code>) і вирівнює по ньому панель: чого в
+знімку немає — прибирає, чого бракує — додає.</p>
+<p><strong>Зроблено 24.09.2026</strong> (<code>backend/api/src/routes/points.js</code>, <code>ws.c</code>,
+<code>bonus.c</code>). Порядок такий: підписка, потім знімок — знімок ДО підписки
+лишив би дірку рівно в ту мить, коли ми ще не слухаємо. У знімку самі лише
+активні QR: <code>claim_token</code>, код напою, монети й <strong>лишок</strong> часу показу, з
+якого кіоск відновлює рядок так, ніби той висів усі ці секунди (включно з
+підписом «о котрій нарахували»). Попапа відновлений рядок не показує —
+покупка сталась хвилину тому, вітати людину вдруге нема з чим. Версії меню
+в знімку немає навмисно: меню кіоск і так перепитує в бакета за розкладом,
+і друга копія тієї самої правди просто розійшлася б із першою. Окремої «стрічки подій» роутом немає: вона дублювала б
 вебсокет, а два джерела однієї правди завжди розходяться. Так обрив мережі не лишає на екрані ні старих цін, ні QR, який
 уже забрали.</p>
 <p><strong>Вебсокет у C на Stretch — зроблено</strong> (<code>raspberry/kiosk/src/ws.c</code>, 21.09.2026).
@@ -10995,7 +11004,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 6c0f48a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ac6efe1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

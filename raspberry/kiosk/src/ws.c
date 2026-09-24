@@ -28,6 +28,7 @@
 struct ws_client {
     char url[256];
     char token[2048];
+    char state_url[256];
 
     /* розібраний url */
     bool tls;
@@ -45,6 +46,9 @@ struct ws_client {
 
     long long seen[WS_SEEN_CAP];
     int seen_n, seen_pos;
+
+    ws_snapshot_t snap;
+    bool snap_ready;   /* знімок приїхав і його ще не забрав головний потік */
 };
 
 /* ─── дрібниці ──────────────────────────────────────────────────────── */
@@ -433,6 +437,93 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
     push_event(w, &e);
 }
 
+/* ─── знімок стану точки ────────────────────────────────────────────── */
+
+/* Один HTTP-запит після кожного підключення (ws.h). Робимо його тут, у
+ * мережевому потоці, а не в головному: у головному будь-яке очікування
+ * мережі — це завмерлий кадр (той самий урок, що з menu_poll у main.c). */
+
+struct sbuf { char *p; size_t len, cap; };
+
+static size_t sbuf_write(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    struct sbuf *b = (struct sbuf *)userdata;
+    size_t add = size * nmemb;
+    if (b->len + add + 1 > b->cap) {
+        size_t ncap = b->cap ? b->cap * 2 : 4096;
+        while (ncap < b->len + add + 1) ncap *= 2;
+        char *np = realloc(b->p, ncap);
+        if (!np) return 0;
+        b->p = np; b->cap = ncap;
+    }
+    memcpy(b->p + b->len, ptr, add);
+    b->len += add;
+    b->p[b->len] = '\0';
+    return add;
+}
+
+static void fetch_snapshot(ws_client_t *w) {
+    if (!w->state_url[0]) return;
+
+    struct sbuf b = { 0 };
+    CURL *c = curl_easy_init();
+    if (!c) return;
+    struct curl_slist *hdrs = NULL;
+    char auth[2100];
+    snprintf(auth, sizeof(auth), "authorization: Bearer %s", w->token);
+    hdrs = curl_slist_append(hdrs, auth);
+    curl_easy_setopt(c, CURLOPT_URL, w->state_url);
+    curl_easy_setopt(c, CURLOPT_HTTPHEADER, hdrs);
+    curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, sbuf_write);
+    curl_easy_setopt(c, CURLOPT_WRITEDATA, &b);
+    curl_easy_setopt(c, CURLOPT_TIMEOUT, 10L);
+    curl_easy_setopt(c, CURLOPT_NOSIGNAL, 1L);
+    CURLcode rc = curl_easy_perform(c);
+    long code = 0;
+    curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &code);
+    curl_slist_free_all(hdrs);
+    curl_easy_cleanup(c);
+
+    if (rc != CURLE_OK || code != 200 || !b.p) {
+        fprintf(stderr, "ws: знімок не взяли (%s, код %ld)\n", curl_easy_strerror(rc), code);
+        free(b.p);
+        return;
+    }
+
+    cJSON *root = cJSON_Parse(b.p);
+    free(b.p);
+    if (!root) { fprintf(stderr, "ws: битий JSON у знімку\n"); return; }
+
+    ws_snapshot_t snap = { 0 };
+    const cJSON *arr = cJSON_GetObjectItemCaseSensitive(root, "bonuses");
+    const cJSON *it = NULL;
+    cJSON_ArrayForEach(it, arr) {
+        if (snap.count >= WS_SNAPSHOT_MAX) break;
+        ws_event_t *e = &snap.rows[snap.count];
+        memset(e, 0, sizeof(*e));
+        snprintf(e->event, sizeof(e->event), "bonus_ready");
+        const cJSON *v;
+        if (cJSON_IsString(v = cJSON_GetObjectItemCaseSensitive(it, "claim_token")))
+            snprintf(e->claim_token, sizeof(e->claim_token), "%s", v->valuestring);
+        if (cJSON_IsString(v = cJSON_GetObjectItemCaseSensitive(it, "code")))
+            snprintf(e->code, sizeof(e->code), "%s", v->valuestring);
+        if (cJSON_IsString(v = cJSON_GetObjectItemCaseSensitive(it, "drink")))
+            snprintf(e->drink, sizeof(e->drink), "%s", v->valuestring);
+        if (cJSON_IsNumber(v = cJSON_GetObjectItemCaseSensitive(it, "coins")))
+            e->coins = v->valueint;
+        e->expires_in_s = cJSON_IsNumber(v = cJSON_GetObjectItemCaseSensitive(it, "expires_in_s"))
+                        ? v->valueint : (int)BONUS_TTL_S;
+        e->items = -1;
+        if (e->claim_token[0]) snap.count++;
+    }
+    cJSON_Delete(root);
+
+    pthread_mutex_lock(&w->lock);
+    w->snap = snap;
+    w->snap_ready = true;
+    pthread_mutex_unlock(&w->lock);
+    fprintf(stderr, "ws: знімок стану — активних бонусів %d\n", snap.count);
+}
+
 /* ─── життя одного зʼєднання ────────────────────────────────────────── */
 
 /* Повертає код закриття: 0 — мережа впала, інакше код кадру close. */
@@ -467,6 +558,12 @@ static int run_connection(ws_client_t *w) {
 
     fprintf(stderr, "ws: зʼєднання встановлене (%s)\n", curl_url);
     pthread_mutex_lock(&w->lock); w->online = true; pthread_mutex_unlock(&w->lock);
+
+    /* Порядок саме такий: спершу підписка, потім знімок. Подія, що прийшла
+     * між ними, панель не зламає — рядок із тим самим токеном додається
+     * один раз, — а от знімок ДО підписки лишив би дірку рівно в ту мить,
+     * коли ми ще не слухаємо. */
+    fetch_snapshot(w);
 
     int close_code = 0;
     double last_ping = now_s();
@@ -608,12 +705,13 @@ static void parse_url(ws_client_t *w, const char *url) {
     snprintf(w->path, sizeof(w->path), "%s", slash && *slash ? slash : "/");
 }
 
-ws_client_t *ws_start(const char *url, const char *token) {
+ws_client_t *ws_start(const char *url, const char *token, const char *state_url) {
     ws_client_t *w = calloc(1, sizeof(*w));
     if (!w) return NULL;
 
     snprintf(w->url, sizeof(w->url), "%s", url ? url : "");
     snprintf(w->token, sizeof(w->token), "%s", token ? token : "");
+    snprintf(w->state_url, sizeof(w->state_url), "%s", state_url ? state_url : "");
     parse_url(w, w->url);
     pthread_mutex_init(&w->lock, NULL);
 
@@ -625,6 +723,15 @@ ws_client_t *ws_start(const char *url, const char *token) {
         return NULL;
     }
     return w;
+}
+
+bool ws_take_snapshot(ws_client_t *w, ws_snapshot_t *out) {
+    if (!w || !out) return false;
+    bool has = false;
+    pthread_mutex_lock(&w->lock);
+    if (w->snap_ready) { *out = w->snap; w->snap_ready = false; has = true; }
+    pthread_mutex_unlock(&w->lock);
+    return has;
 }
 
 int ws_drain(ws_client_t *w, ws_event_t *out, int max) {
