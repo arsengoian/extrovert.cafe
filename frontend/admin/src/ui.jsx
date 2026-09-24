@@ -35,7 +35,7 @@ export const fmt = {
 // дашборді здоровʼя — і підпис для нового ключа має зʼявитись одразу в обох.
 export const METRIC_LABELS = {
   cpu: "CPU, %", temp_c: "температура, °C", uptime_s: "аптайм", mem_used_mb: "памʼять, МБ",
-  ping_ms: "ping, мс", jitter_ms: "jitter, мс", loss_pct: "втрати, %",
+  ping_ms: "ping, мс", jitter_ms: "jitter, мс", loss_pct: "втрати, %", mem_total_mb: "памʼять всього, МБ",
   down_mbit: "вниз, Мбіт", up_mbit: "вгору, Мбіт", disk_free_mb: "диск вільно, МБ",
   hdmi: "HDMI", camera: "камера", fps: "fps", release: "реліз", kiosk_fps: "fps кіоска",
   monitor_on: "монітор", video_ok: "відеопотік",

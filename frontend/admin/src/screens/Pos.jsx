@@ -25,6 +25,18 @@ const SIGNALS = [
     pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < 5) },
   { key: "video", name: "відеопотік", note: "камера відповідає",
     pick: (m) => (m.video_ok === undefined ? null : m.video_ok) },
+  { key: "temp", name: "температура", note: "нижче 80 °C",
+    pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80) },
+  { key: "memory", name: "памʼять", note: "є запас",
+    pick: (m) => (m.mem_total_mb ? Number(m.mem_used_mb) / Number(m.mem_total_mb) <= 0.92 : null) },
+];
+
+// Що малюємо лініями під мережею: три показники, по яких видно, що точці
+// стає зле ще до того, як щось упаде (прохання власника 24.09.2026).
+const HARDWARE = [
+  { key: "mem_used_mb", name: "памʼять, МБ", color: "#5AA9FF" },
+  { key: "kiosk_fps", name: "fps кіоска", color: "#B07CFF" },
+  { key: "temp_c", name: "температура, °C", color: "#FFB020", format: (v) => v.toFixed(0) },
 ];
 
 const BUCKET_MS = 30 * 60_000;
@@ -55,7 +67,7 @@ function boolSeries(history, pick) {
 const ORDER = [
   "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
   "ping_ms", "jitter_ms", "loss_pct", "throttled", "temp_c", "cpu",
-  "mem_used_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
+  "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
 export function Pos({ id }) {
@@ -104,6 +116,7 @@ export function Pos({ id }) {
       </div>
 
       <div className="wrap-cols">
+        <div className="stack">
         <Card title="Ping і jitter" note="7 днів, за часом виміру">
           {ping.length || jitter.length ? (
             <Line series={[
@@ -114,6 +127,27 @@ export function Pos({ id }) {
             <Empty>малина ще не слала мережевих метрик</Empty>
           )}
         </Card>
+
+        {/* Три окремі осі, а не три лінії на одній: памʼять міряється
+            сотнями МБ, fps — десятками, температура — півсотнею градусів.
+            На спільній шкалі памʼять притиснула б дві інші до нуля, і
+            перегрів на 82 °C виглядав би так само, як 48 °C. */}
+        <Card title="Памʼять, fps і температура" note="7 днів, за часом виміру">
+          <div className="grid k3">
+            {HARDWARE.map((h) => {
+              const points = series(h.key);
+              return (
+                <div key={h.key}>
+                  <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>{h.name}</div>
+                  {points.length
+                    ? <Line series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} />
+                    : <Empty>проб немає</Empty>}
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+        </div>
 
         <Card title="Компоненти точки" note="остання проба">
           {latest.length === 0 ? (

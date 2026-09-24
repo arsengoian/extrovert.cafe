@@ -175,15 +175,26 @@ root_readonly() {
 # Флешка під запис відео (video.md): точка монтування має бути змонтована й
 # писатись. Немає USB — немає й буфера запису, а дізнаємось ми про це зараз,
 # а не коли знадобиться архів.
+#
+# Шлях за замовчуванням — /mnt/buf, як у fstab кожної точки
+# (docs/raspberry-pi.md §флешка). Раніше тут стояла порожня змінна, і без
+# RECORDER_BUF у config/env метрика цілодобово віддавала null: у базі
+# «проб немає», в адмінці прочерк, в overseer — тиша, хоча флешка стоїть і
+# її нема кому перевірити (помітив власник 24.09.2026). Точці без флешки
+# вимикають перевірку явно: RECORDER_BUF= у config/env.
 usb_ok() {
-    _mnt="${RECORDER_BUF:-}"
+    _mnt="${RECORDER_BUF-/mnt/buf}"
     [ -n "$_mnt" ] || { echo null; return; }
     grep -q " $_mnt " /proc/mounts 2>/dev/null || { echo false; return; }
     _probe="$_mnt/.rw-probe"
     if ( : > "$_probe" ) 2>/dev/null; then rm -f "$_probe"; echo true; else echo false; fi
 }
 
-mem_used_mb() { awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{ printf "%.0f", (t-a)/1024 }' /proc/meminfo; }
+# Дві цифри, а не одна: «зайнято 387 МБ» саме по собі не поломка й не
+# норма — це залежить від того, скільки памʼяті на платі. Overseer
+# порівнює саме частку (24.09.2026).
+mem_used_mb()  { awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{ printf "%.0f", (t-a)/1024 }' /proc/meminfo; }
+mem_total_mb() { awk '/MemTotal/{ printf "%.0f", $2/1024 }' /proc/meminfo; }
 uptime_s()    { awk '{ printf "%.0f", $1 }' /proc/uptime; }
 disk_free_mb() { df -Pm "$EXTROVERT_ROOT" 2>/dev/null | awk 'NR==2 { print $4 }'; }
 
@@ -210,7 +221,7 @@ kiosk_metrics() { # kiosk_metrics <сокет>
 }
 
 sample_json() {
-    _cpu=$(cpu_percent); _temp=$(temp_c); _mem=$(mem_used_mb); _up=$(uptime_s); _disk=$(disk_free_mb)
+    _cpu=$(cpu_percent); _temp=$(temp_c); _mem=$(mem_used_mb); _memt=$(mem_total_mb); _up=$(uptime_s); _disk=$(disk_free_mb)
     set -- $(net_metrics); _ping=$1; _jitter=$2; _loss=$3
     set -- $(kiosk_metrics "/tmp/kiosk-$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0).sock")
     _fps=$1; _frames=$2
@@ -229,8 +240,8 @@ sample_json() {
     _usb=$(usb_ok)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
-        "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_up:-null}" "${_disk:-null}" \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
+        "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_memt:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
         "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" "${_throttled:-null}" \
         "${_rofs:-null}" "${_usb:-null}" "${_release:-unknown}"

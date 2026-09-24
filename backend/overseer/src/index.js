@@ -27,37 +27,59 @@ const INTERVAL = Number(process.env.OVERSEER_INTERVAL_MS || 5 * MINUTE);
 
 // Повідомляємо лише про зміну стану — і пам'ятаємо попередній у Redis, щоб
 // перезапуск сервісу не перетворювався на нову хвилю алертів.
-async function onChange(key, state, text) {
+//
+// Сам текст звідси НЕ відправляється: обхід збирає всі зміни й шле їх одним
+// повідомленням (див. tick). Коли точку знеструмили, одночасно міняються
+// пʼять станів — пʼять окремих сповіщень підряд читаються гірше за один
+// список і виглядають як пʼять різних поломок (прохання власника,
+// 24.09.2026).
+async function changed(key, state) {
   const previous = await redis.get(`overseer:${key}`);
   if (previous === state) return false;
   await redis.set(`overseer:${key}`, state);
   // Перший запуск після порожнього Redis: стан запам'ятовуємо, але мовчимо,
   // якщо він добрий — інакше кожен деплой вітався б купою «усе гаразд».
-  if (previous === null && state === "ok") return false;
-  await send(text, { log });
-  return true;
+  return !(previous === null && state === "ok");
+}
+
+// Подія, яка сталася один раз (перезавантаження точки): ключ унікальний
+// сам по собі, тож досить запамʼятати, що ми про нього вже казали. Тиждень
+// життя — щоб Redis не збирав ключі назавжди.
+async function first(key) {
+  return Boolean(await redis.set(`overseer:${key}`, "1", "EX", 7 * 86400, "NX"));
 }
 
 async function tick() {
+  const lines = [];
+
   const points = await checkPoints(pool);
   for (const p of points) {
-    await onChange(`point:${p.id}`, p.state,
-      p.state === "ok"
+    if (await changed(`point:${p.id}`, p.state)) {
+      lines.push(p.state === "ok"
         ? `✅ ${p.name}: знову на звʼязку`
         : `🔌 ${p.name}: мовчить ${p.silentFor}`);
+    }
   }
 
-  // Поломки залізяки: монітор, живлення, картка, кіоск, місце на диску.
-  for (const d of await checkDevices(pool)) await onChange(`device:${d.key}`, d.state, d.text);
+  // Поломки залізяки: монітор, живлення, картка, кіоск, диск, флешка,
+  // температура, мережа, памʼять — і окремо факт перезавантаження.
+  for (const d of await checkDevices(pool)) {
+    const say = d.once ? await first(`device:${d.key}`) : await changed(`device:${d.key}`, d.state);
+    if (say) lines.push(d.text);
+  }
 
   const webhook = await checkWebhook();
   // «unknown» — це не поломка, а «не змогли спитати»: мовчимо.
-  if (webhook && webhook.state !== "unknown") {
-    await onChange("checkbox-webhook", webhook.state,
-      webhook.state === "ok"
-        ? "✅ Вебхук Checkbox: помилок немає"
-        : `⚠️ Вебхук Checkbox: ${webhook.message}`);
+  if (webhook && webhook.state !== "unknown" && await changed("checkbox-webhook", webhook.state)) {
+    lines.push(webhook.state === "ok"
+      ? "✅ Вебхук Checkbox: помилок немає"
+      : `⚠️ Вебхук Checkbox: ${webhook.message}`);
   }
+
+  // Поганим — нагору: коли в одному повідомленні і «картка read-only», і
+  // «монітор увімкнено», перше має бути першим рядком, бо саме його читають
+  // з екрана блокування.
+  if (lines.length) await send(lines.sort((a, b) => a.startsWith("✅") - b.startsWith("✅")).join("\n"), { log });
 }
 
 // Звіт раз на добу о 9:00 за Києвом: не алерт, а зведення за вчора.

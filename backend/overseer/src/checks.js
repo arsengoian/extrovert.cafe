@@ -46,9 +46,32 @@ const human = (minutes) => {
 // зникав сам (прохання власника 24.09.2026: «у кожному випадку поломки має
 // приходити відразу звіт в overseer»).
 //
+// Правило списку: **на кожен показник, який шле малина, тут є рядок** —
+// або перевірка, або явна причина, чому її немає. Інакше показник тихо
+// живе в базі й не значить нічого. Станом на 24.09.2026 без алерту свідомо
+// лишились:
+//   video_ok  — камери фізично немає, і поки CAMERA_URL порожній, метрика
+//               чесно false цілодобово; алерт був би вічним. Рядок на
+//               дашборді в неї є, і він там червоний.
+//   cpu       — сам по собі нічого не означає: Pi 1 на 100 % CPU — це
+//               звичайна збірка меню. Поломку видно через kiosk_fps.
+//   release   — «точка не оновлюється» перевіряється не тут: щоб про це
+//               судити, треба знати, який реліз мав приїхати (маніфест у
+//               бакеті), а не лише який стоїть.
+//   monitor_src / monitor_woke / kiosk_frames — не стани, а пояснення до
+//               інших показників; вони йдуть у текст алерту.
+//
 // Біти vcgencmd get_throttled: 0x1 — просідає живлення ЗАРАЗ, 0x4 — частота
 // зрізана зараз. «Було колись» (0x10000+) не алертимо: воно лишається
 // назавжди до перезавантаження й перетворилось би на вічне попередження.
+//
+// `bad` бачить дві речі: останню пробу й останні до трьох проб. Показники,
+// які або зламані, або ні (картка read-only, флешка, fps), судимо по
+// останній. Шумні — температуру, втрати пакетів, памʼять — лише коли ВСІ
+// останні проби погані: одна загублена пінг-пачка з пʼяти буває щодня, і
+// алерт на неї став би маятником, як 24.09.2026 із порогом мовчання.
+const steady = (recent, bad) => recent.length > 0 && recent.every(bad);
+
 const DEVICE_CHECKS = [
   {
     key: "power",
@@ -94,21 +117,82 @@ const DEVICE_CHECKS = [
     up: () => "місця на картці вистачає",
     icon: "💽",
   },
+  {
+    // Флешка під запис відео (video.md). null — RECORDER_BUF не заданий,
+    // тобто писати нікуди й не збирались: це не поломка.
+    key: "usb",
+    bad: (m) => m.usb_ok === false,
+    down: () => "флешка не пишеться або не змонтована — відео нема куди писати",
+    up: () => "флешка на місці",
+    icon: "🔌",
+  },
+  {
+    // 80 °C — за пʼять градусів до тротлінгу Pi. Три проби поспіль, бо
+    // хвилинний стрибок на збірці меню — не поломка.
+    key: "temp",
+    bad: (m, recent) => steady(recent, (x) => Number.isFinite(x.temp_c) && x.temp_c >= 80),
+    down: (m) => `перегрів ${Math.round(m.temp_c)} °C — перевір, чи не затулений корпус`,
+    up: () => "температура в нормі",
+    icon: "🌡",
+  },
+  {
+    // Половина пакетів — це вже не «інтернет підгальмовує». Повний обрив
+    // сюди не дійде: про нього скаже мовчання точки.
+    key: "net",
+    bad: (m, recent) => steady(recent, (x) => Number.isFinite(x.loss_pct) && x.loss_pct >= 50),
+    down: (m) => `інтернет ледве живий: втрати ${Math.round(m.loss_pct)} %`,
+    up: () => "інтернет у нормі",
+    icon: "📶",
+  },
+  {
+    // Памʼять має сенс лише у відсотках від того, скільки її є, — тому
+    // перевірка мовчить, доки на точці старий telemetry.sh без mem_total_mb.
+    key: "memory",
+    bad: (m, recent) => steady(recent, (x) =>
+      Number.isFinite(x.mem_total_mb) && x.mem_total_mb > 0 && x.mem_used_mb / x.mem_total_mb > 0.92),
+    down: (m) => `памʼять майже скінчилась: ${Math.round(m.mem_used_mb)} з ${Math.round(m.mem_total_mb)} МБ`,
+    up: () => "памʼяті вистачає",
+    icon: "🧠",
+  },
 ];
 
-// Стан кожної перевірки для кожної живої точки — за останньою пробою.
-// Проба старіша за SILENT_MINUTES не розглядається: про мовчазну точку вже
-// сказав checkPoints, і дублювати його пʼятьма алертами не треба.
+// Перезавантаження — подія, а не стан: писати «точка перезавантажилась», а
+// через десять хвилин «уже не перезавантажується» безглуздо. Тому одне
+// повідомлення на подію, а не пара «зламалось / полагодилось».
+//
+// Знати про це треба: раптовий ребут без нашого оновлення — це або просіло
+// живлення, або хтось висмикнув шнур. Саме той випадок, коли решта
+// показників за хвилину знову зелені й поломки ніби й не було.
+//
+// Шукаємо не «малий аптайм», а аптайм, що ПІШОВ НАЗАД між двома сусідніми
+// пробами. Спокуса порахувати момент старту (`measured_at - uptime`) і
+// взяти його за ключ виглядає простішою, але вона хибна: обидва доданки
+// повзуть, і округлення до хвилини на межі дає то одну хвилину, то сусідню
+// — тобто «точка перезавантажилась» приходило б знову й знову на той самий
+// старт. Аптайм, що зменшився, — факт без округлень.
+export function rebootKey(probes) {
+  const [last, prev] = probes;
+  if (!prev) return null;                       // одна проба — порівнювати нема з чим
+  const now = last.metrics?.uptime_s, before = prev.metrics?.uptime_s;
+  if (!Number.isFinite(now) || !Number.isFinite(before) || now >= before) return null;
+  // Ключ — саме та проба, у якій це вперше видно: другий обхід по тих самих
+  // пробах (телеметрія спізнюється) нічого не повторить.
+  return `boot:${new Date(last.measured_at).toISOString()}`;
+}
+
+// Стан кожної перевірки для кожної живої точки — за останніми пробами.
+// Проба старіша за поріг мовчання не розглядається: про мовчазну точку вже
+// сказав checkPoints, і дублювати його вісьмома алертами не треба.
 export async function checkDevices(pool) {
   const { rows } = await pool.query(
-    `select p.id, p.name, t.metrics,
+    `select p.id, p.name, t.metrics, t.measured_at,
             extract(epoch from (now() - t.measured_at)) / 60 as age_minutes,
             r.period_s
        from points p
        join lateral (
          select metrics, measured_at from device_telemetry
           where point_id = p.id and source = 'pi'
-          order by measured_at desc limit 1) t on true
+          order by measured_at desc limit 3) t on true
        left join lateral (
          select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
            from (select measured_at from device_telemetry
@@ -117,22 +201,37 @@ export async function checkDevices(pool) {
       where p.status = 'live'`
   );
 
-  const out = [];
+  // Лятераль віддає до трьох проб на точку окремими рядками — збираємо їх
+  // назад у пачку, найсвіжіша перша.
+  const points = new Map();
   for (const row of rows) {
+    if (!points.has(row.id)) points.set(row.id, { id: row.id, name: row.name, period_s: row.period_s, probes: [] });
+    points.get(row.id).probes.push(row);
+  }
+
+  const out = [];
+  for (const point of points.values()) {
+    const probes = point.probes.sort((a, b) => new Date(b.measured_at) - new Date(a.measured_at));
+    const last = probes[0];
     // Проба застара — нічого не кажемо: про мовчазну точку вже сказав
-    // checkPoints, і пʼять алертів про її залізо були б тим самим удруге.
-    if (Number(row.age_minutes) >= silenceLimit(row.period_s ? Number(row.period_s) : null)) continue;
-    const m = row.metrics ?? {};
+    // checkPoints, і вісім алертів про її залізо були б тим самим удруге.
+    if (Number(last.age_minutes) >= silenceLimit(point.period_s ? Number(point.period_s) : null)) continue;
+
+    const m = last.metrics ?? {};
+    const recent = probes.map((p) => p.metrics ?? {});
     for (const check of DEVICE_CHECKS) {
-      const bad = Boolean(check.bad(m));
+      const bad = Boolean(check.bad(m, recent));
       out.push({
-        key: `${row.id}:${check.key}`,
+        key: `${point.id}:${check.key}`,
         state: bad ? "bad" : "ok",
         text: bad
-          ? `${check.icon} ${row.name}: ${check.down(m)}`
-          : `✅ ${row.name}: ${check.up(m)}`,
+          ? `${check.icon} ${point.name}: ${check.down(m, recent)}`
+          : `✅ ${point.name}: ${check.up(m)}`,
       });
     }
+
+    const boot = rebootKey(probes);
+    if (boot) out.push({ key: `${point.id}:${boot}`, once: true, text: `🔁 ${point.name}: точка перезавантажилась` });
   }
   return out;
 }

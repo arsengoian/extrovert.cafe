@@ -26,6 +26,13 @@ function pointOk(p) {
     Number.isFinite(m.throttled) && (m.throttled & 0x5) !== 0 ? false : null,
     m.kiosk_fps !== undefined && (m.kiosk_fps === null || Number(m.kiosk_fps) <= 0) ? false : null,
     Number.isFinite(m.disk_free_mb) && m.disk_free_mb < 300 ? false : null,
+    // Ті самі пороги, що в overseer (checks.js, DEVICE_CHECKS): підсумок на
+    // дашборді має гаснути рівно тоді, коли приходить алерт, — інакше
+    // «зелено, але в телеграмі поломка» (24.09.2026).
+    m.usb_ok === false ? false : null,
+    Number.isFinite(m.temp_c) && m.temp_c >= 80 ? false : null,
+    m.mem_total_mb > 0 && m.mem_used_mb / m.mem_total_mb > 0.92 ? false : null,
+    Number.isFinite(m.loss_pct) && m.loss_pct >= 50 ? false : null,
   ];
   return checks.some((c) => c === false) ? false : true;
 }
