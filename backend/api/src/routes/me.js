@@ -5,6 +5,7 @@ import { requireUser } from "../auth.js";
 import { generateNickname } from "../nickname.js";
 import { TERMS_VERSION } from "./legal.js";
 import { economy } from "../economy.js";
+import { flushNotices } from "../notify.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -199,12 +200,17 @@ export async function nicknameRoutes(app) {
           [user.id, s.water_liters, s.compost_kg, s.fertilizer_kg, s.insecticide_bottles]
         );
         const { rows: have } = await client.query("select 1 from plants where owner_id = $1", [user.id]);
+        let first = null;
         for (let i = have.length; i < s.plants; i++) {
-          await client.query(
-            "insert into plants (owner_id, face_set_id) values ($1, $2)",
+          const { rows: made } = await client.query(
+            "insert into plants (owner_id, face_set_id) values ($1, $2) returning id",
             [user.id, 1 + Math.floor(Math.random() * 3)]
           );
+          first ??= made[0].id;
         }
+        // Стартовий кущ — теж кущ: якщо гравцю щось писали до нього
+        // (наприклад, повернення оплати), воно чекало в pending_notices.
+        if (first) await flushNotices(client, user.id, first);
       }
       return { ok: true, nickname };
     });

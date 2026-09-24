@@ -4,7 +4,7 @@
 import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
-import { notifyPlant } from "../notify.js";
+import { flushNotices, notifyPlant } from "../notify.js";
 import { growthState } from "./planting.js";
 
 const DAYS = 24 * 60 * 60 * 1000;
@@ -99,7 +99,8 @@ export default async function routes(app) {
       await client.query("delete from chat_messages where plant_id = $1", [plant.id]);
       await client.query("update plants set owner_id = $2, chat_seen_at = null where id = $1", [plant.id, target.id]);
       const { rows: me } = await client.query("select nickname from users where id = $1", [user.id]);
-      await notifyPlant(target.id, `${me[0].nickname} подарував тобі кавенятко «${plant.name || "без імені"}».`, { client });
+      // Чат щойно очищено — це перший рядок у ньому, і він саме про цей кущ.
+      await notifyPlant(target.id, `${me[0].nickname} подарував тобі кавенятко «${plant.name || "без імені"}».`, { client, plantId: plant.id });
       return { ok: true, to: target.nickname };
     });
   });
@@ -122,6 +123,7 @@ export default async function routes(app) {
         "insert into plants (owner_id, face_set_id) values ($1, $2) returning id",
         [user.id, 1 + Math.floor(Math.random() * 3)]
       );
+      await flushNotices(client, user.id, rows[0].id);
       return { ok: true, plant_id: rows[0].id };
     });
   });

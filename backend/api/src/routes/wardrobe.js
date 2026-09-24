@@ -271,7 +271,9 @@ export default async function routes(app) {
         [user.id, beans, { plant_id: plant.id, set_id: set.id, tier: state.tier }]
       );
 
-      await notifyPlant(user.id, `Дякую за комплект! Тримай ${beansWord(beans)} — заслужено.`, { client });
+      // Саме від цього куща: подяка за одяг від сусіднього кавенятка —
+      // дрібниця, яку видно одразу (24.09.2026).
+      await notifyPlant(user.id, `Дякую за комплект! Тримай ${beansWord(beans)} — заслужено.`, { client, plantId: plant.id });
       return { ok: true, beans, tier: state.tier };
     });
   });

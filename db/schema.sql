@@ -791,6 +791,44 @@ ALTER SEQUENCE public.payments_id_seq OWNED BY public.payments.id;
 
 
 --
+-- Name: pending_notices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.pending_notices (
+    id bigint NOT NULL,
+    user_id uuid NOT NULL,
+    body text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: TABLE pending_notices; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.pending_notices IS 'Сповіщення, які нікуди покласти: у гравця немає кавенятка. Переїжджають у чат першого ж куща';
+
+
+--
+-- Name: pending_notices_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.pending_notices_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: pending_notices_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.pending_notices_id_seq OWNED BY public.pending_notices.id;
+
+
+--
 -- Name: plant_stage_transitions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1793,6 +1831,13 @@ ALTER TABLE ONLY public.payments ALTER COLUMN id SET DEFAULT nextval('public.pay
 
 
 --
+-- Name: pending_notices id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pending_notices ALTER COLUMN id SET DEFAULT nextval('public.pending_notices_id_seq'::regclass);
+
+
+--
 -- Name: plant_stage_transitions id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2187,6 +2232,14 @@ ALTER TABLE ONLY public.payments
 
 ALTER TABLE ONLY public.payments
     ADD CONSTRAINT payments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: pending_notices pending_notices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pending_notices
+    ADD CONSTRAINT pending_notices_pkey PRIMARY KEY (id);
 
 
 --
@@ -2714,6 +2767,13 @@ CREATE INDEX payments_user_id_created_at_idx ON public.payments USING btree (use
 
 
 --
+-- Name: pending_notices_user_id_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX pending_notices_user_id_id_idx ON public.pending_notices USING btree (user_id, id);
+
+
+--
 -- Name: plant_stage_transitions_plant_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3116,6 +3176,14 @@ ALTER TABLE ONLY public.payments
 
 
 --
+-- Name: pending_notices pending_notices_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pending_notices
+    ADD CONSTRAINT pending_notices_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- Name: plant_stage_transitions plant_stage_transitions_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3470,4 +3538,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923140000'),
     ('20260923160000'),
     ('20260923170000'),
-    ('20260923171000');
+    ('20260923171000'),
+    ('20260924070000');

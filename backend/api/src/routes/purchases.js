@@ -12,7 +12,7 @@ import { one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
-import { notifyPlant } from "../notify.js";
+import { flushNotices, notifyPlant } from "../notify.js";
 
 const CARE = {
   water: { column: "water_liters", amount: economy.care.water.batch_liters, price: economy.care.water.price_coins },
@@ -97,6 +97,8 @@ export default async function routes(app) {
           "insert into plants (owner_id, face_set_id) values ($1, $2) returning id, face_set_id",
           [user.id, 1 + Math.floor(Math.random() * 3)]
         );
+        // Кущ зʼявився — віддаємо в його чат те, що чекало без куща.
+        await flushNotices(client, user.id, rows[0].id);
         return { ok: true, kind: "sapling", plant_id: rows[0].id, spent };
       });
     }
