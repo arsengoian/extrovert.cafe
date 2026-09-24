@@ -254,33 +254,59 @@ export async function checkDevices(pool) {
 //
 // Вікно — 12 годин: довше мовчання класифікувати нема з чого, і тоді
 // повідомлення лишається без пояснення, а не з вигаданим.
+//
+// Дірку від зависання телеметрії відрізняє аптайм — але порівнювати його
+// треба ПО ОБИДВА БОКИ дірки, а не з її тривалістю. Перша версія брала
+// аптайм останньої проби: варто було overseer подивитись на шість хвилин
+// пізніше, ніж тривала пʼятихвилинна дірка, і аптайм машини, яка щойно
+// завантажилась, уже переростав дірку — перезавантаження читалось як
+// «телеметрія мовчала» (зловлено на тесті 24.09.2026).
+//
+// Правильне питання: чи міг аптайм дорости від того, що був ДО дірки, до
+// того, що став ПІСЛЯ. Якщо машина не вимикалась, різниця аптаймів дорівнює
+// різниці часу. Якщо менша — вона встигла злітати в нуль.
 const OUTAGE_MIN_S = 180;    // менше трьох хвилин — це не «обрив», а ритм проб
+// Годинника з батарейкою на платі немає: після знеструмлення час підхоплює
+// fake-hwclock, і перші проби можуть поїхати на хвилину-другу. Дві хвилини
+// допуску — щоб цей зсув не читався як перезавантаження.
+const CLOCK_SLACK_S = 120;
 
 export async function outageKind(pool, pointId) {
-  const { rows: [r] } = await pool.query(
+  const { rows: [gap] } = await pool.query(
     `with p as (
-       select measured_at, received_at,
-              lag(measured_at) over (order by measured_at) as prev
+       select measured_at,
+              (metrics->>'uptime_s')::float as uptime,
+              lag(measured_at) over w as prev_at,
+              lag((metrics->>'uptime_s')::float) over w as prev_uptime
          from device_telemetry
-        where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours')
-     select coalesce(max(extract(epoch from (measured_at - prev))), 0) as hole_s,
-            coalesce(max(extract(epoch from (received_at - measured_at))), 0) as late_s,
-            (select (metrics->>'uptime_s')::float from device_telemetry
-              where point_id = $1 and source = 'pi'
-              order by measured_at desc limit 1) as uptime_s
-       from p`,
+        where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours'
+       window w as (order by measured_at))
+     select extract(epoch from (measured_at - prev_at)) as hole_s, uptime, prev_uptime
+       from p where prev_at is not null
+      order by measured_at - prev_at desc limit 1`,
     [pointId]
   );
-  if (!r) return null;
-  const hole = Number(r.hole_s), late = Number(r.late_s), uptime = Number(r.uptime_s);
+  const { rows: [delay] } = await pool.query(
+    `select coalesce(max(extract(epoch from (received_at - measured_at))), 0) as late_s
+       from device_telemetry
+      where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours'`,
+    [pointId]
+  );
 
+  const hole = Number(gap?.hole_s ?? 0);
   if (hole >= OUTAGE_MIN_S) {
-    // Аптайм менший за дірку — машина в цей час була вимкнена або
-    // перезавантажувалась. Більший — вона працювала, а мовчала телеметрія.
-    return Number.isFinite(uptime) && uptime < hole
-      ? `малина не працювала ${human(hole / 60)}`
-      : `малина працювала, але не слала проб ${human(hole / 60)} — щось зависало`;
+    const after = Number(gap.uptime), before = Number(gap.prev_uptime);
+    // Без аптайму (стара проба) судимо лише за самою діркою: пропав час —
+    // значить, пропала й машина. Це слабше твердження, але не вигадане.
+    const grew = Number.isFinite(after) && Number.isFinite(before)
+      ? after >= before + hole - CLOCK_SLACK_S
+      : Number.isFinite(after) && after >= hole;
+    return grew
+      ? `малина працювала, але не слала проб ${human(hole / 60)} — щось зависало`
+      : `малина не працювала ${human(hole / 60)}`;
   }
+
+  const late = Number(delay?.late_s ?? 0);
   if (late >= OUTAGE_MIN_S) return `не було інтернету ${human(late / 60)}, малина працювала`;
   return null;
 }
