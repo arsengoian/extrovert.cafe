@@ -10,9 +10,8 @@
 // Overseer, а не api: перевірка — це фонова робота, і робити її в процесі,
 // який відповідає гравцям, означає ділити з ними таймаути.
 import { presign } from "@extrovert/lib/r2.js";
-import { checkWebhook } from "./checks.js";
+import { checkWebhook, silenceLimit } from "./checks.js";
 
-const SILENT_MINUTES = 3;               // три пропущені проби поспіль (checks.js)
 const TIMEOUT_MS = 8000;
 const KEEP_DAYS = 7;
 
@@ -138,12 +137,23 @@ export async function sampleHealth({ pool, redis, log }) {
 
   // Точки: кожна окремою ціллю, щоб у таблиці POS було видно саме ту, що
   // мовчить.
+  // Поріг мовчання — з ритму самої точки (checks.js, silenceLimit): період
+  // задається на пристрої, і фіксоване число на сервері вже одного разу
+  // перетворило дашборд на маятник.
   const { rows: points } = await pool.query(
-    `select id, name, extract(epoch from (now() - last_seen_at)) / 60 as silent
-       from points where status = 'live'`
+    `select p.id, p.name,
+            extract(epoch from (now() - p.last_seen_at)) / 60 as silent,
+            t.period_s
+       from points p
+       left join lateral (
+         select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
+           from (select measured_at from device_telemetry
+                  where point_id = p.id and source = 'pi'
+                  order by measured_at desc limit 10) recent) t on true
+      where p.status = 'live'`
   );
   for (const p of points) {
-    const ok = p.silent !== null && p.silent < SILENT_MINUTES;
+    const ok = p.silent !== null && p.silent < silenceLimit(p.period_s ? Number(p.period_s) : null);
     targets.push([`point:${p.id}`, ok, ok ? null : p.silent === null ? "не озивалась жодного разу" : `мовчить ${Math.round(p.silent)} хв`]);
 
     // «Точка на зв'язку» — це лише про малину: кіоск може бездоганно

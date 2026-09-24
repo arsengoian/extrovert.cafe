@@ -1,9 +1,39 @@
 // Перевірки overseer. Кожна повертає стан, а не текст алерту: вирішувати,
 // чи писати в чат, — справа виклику (алерт лише на зміну стану).
-// Малина шле пробу раз на хвилину (stack/telemetry.sh), тож три хвилини
-// мовчання — це вже три пропущені проби поспіль, а не «мережа моргнула».
-// Разом із хвилинним обходом це означає: точка впала — знаємо за 3-4 хв.
-const SILENT_MINUTES = 3;
+// Скільки точці можна мовчати — рахуємо з її ж ритму, а не з константи.
+//
+// 24.09.2026 тут стояло фіксовані 3 хвилини «бо малина шле щохвилини». Малина
+// шле раз на 313 секунд: період заданий у config/env на самій точці, і дефолт
+// у telemetry.sh його не перебиває. Вийшов маятник — «мовчить 4 хв» і «знову
+// на звʼязку» по колу кожні пʼять хвилин, рівно між пробами.
+//
+// Урок не про число, а про звʼязність: поріг на сервері й період на пристрої
+// оновлюються різними шляхами (деплой і реліз через бакет) і збігаються не
+// завжди. Тому сервер дивиться, ЯК ЧАСТО точка озивалась насправді, і чекає
+// три такі періоди. Поміняли період на точці — поріг поїде за ним сам.
+const SILENT_FLOOR_MIN = 3;    // швидше однаково не дізнаємось: обхід раз на хвилину
+const SILENT_CEIL_MIN = 20;    // довше мовчання — це вже точно не «проба спізнилась»
+const SILENT_DEFAULT_MIN = 15; // ритму ще не знаємо (перша доба точки)
+
+// Ритм точки: середній проміжок між останніми пробами. `lateral` — щоб
+// рахувати по кожній точці окремо й не тягти всю таблицю.
+const POINTS_SQL = `
+  select p.id, p.name, p.last_seen_at,
+         extract(epoch from (now() - p.last_seen_at)) / 60 as silent_minutes,
+         t.period_s
+    from points p
+    left join lateral (
+      select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
+        from (select measured_at from device_telemetry
+               where point_id = p.id and source = 'pi'
+               order by measured_at desc limit 10) recent) t on true
+   where p.status = 'live'`;
+
+export function silenceLimit(periodSeconds) {
+  if (!periodSeconds) return SILENT_DEFAULT_MIN;
+  const minutes = (periodSeconds * 3) / 60 + 1;
+  return Math.min(SILENT_CEIL_MIN, Math.max(SILENT_FLOOR_MIN, minutes));
+}
 
 const human = (minutes) => {
   if (minutes < 60) return `${Math.round(minutes)} хв`;
@@ -65,19 +95,27 @@ const DEVICE_CHECKS = [
 // сказав checkPoints, і дублювати його пʼятьма алертами не треба.
 export async function checkDevices(pool) {
   const { rows } = await pool.query(
-    `select p.id, p.name, t.metrics, t.measured_at
+    `select p.id, p.name, t.metrics,
+            extract(epoch from (now() - t.measured_at)) / 60 as age_minutes,
+            r.period_s
        from points p
        join lateral (
          select metrics, measured_at from device_telemetry
           where point_id = p.id and source = 'pi'
           order by measured_at desc limit 1) t on true
-      where p.status = 'live'
-        and t.measured_at > now() - make_interval(mins => $1)`,
-    [SILENT_MINUTES]
+       left join lateral (
+         select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
+           from (select measured_at from device_telemetry
+                  where point_id = p.id and source = 'pi'
+                  order by measured_at desc limit 10) recent) r on true
+      where p.status = 'live'`
   );
 
   const out = [];
   for (const row of rows) {
+    // Проба застара — нічого не кажемо: про мовчазну точку вже сказав
+    // checkPoints, і пʼять алертів про її залізо були б тим самим удруге.
+    if (Number(row.age_minutes) >= silenceLimit(row.period_s ? Number(row.period_s) : null)) continue;
     const m = row.metrics ?? {};
     for (const check of DEVICE_CHECKS) {
       const bad = Boolean(check.bad(m));
@@ -96,17 +134,17 @@ export async function checkDevices(pool) {
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {
-  const { rows } = await pool.query(
-    `select id, name, last_seen_at,
-            extract(epoch from (now() - last_seen_at)) / 60 as silent_minutes
-       from points where status = 'live'`
-  );
-  return rows.map((p) => ({
-    id: p.id,
-    name: p.name,
-    state: p.last_seen_at && p.silent_minutes < SILENT_MINUTES ? "ok" : "silent",
-    silentFor: p.last_seen_at ? human(p.silent_minutes) : "від самого початку",
-  }));
+  const { rows } = await pool.query(POINTS_SQL);
+  return rows.map((p) => {
+    const limit = silenceLimit(p.period_s ? Number(p.period_s) : null);
+    return {
+      id: p.id,
+      name: p.name,
+      limitMinutes: limit,
+      state: p.last_seen_at && p.silent_minutes < limit ? "ok" : "silent",
+      silentFor: p.last_seen_at ? human(p.silent_minutes) : "від самого початку",
+    };
+  });
 }
 
 // Checkbox сам розповідає, чи доходили до нас його вебхуки: last_error_date
