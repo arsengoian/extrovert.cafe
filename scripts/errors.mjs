@@ -39,12 +39,27 @@ const flag = (name, fallback = null) => {
   return i < 0 ? fallback : args[i + 1] ?? true;
 };
 
+// Збирач помилок, який сам падає стеком, — поганий жарт. Мережа моргнула чи
+// GlitchTip перезапускається: кажемо це рядком і виходимо з кодом 1.
 const api = async (path) => {
-  const res = await fetch(`${HOST}/api/0${path}`, {
-    headers: { authorization: `Bearer ${TOKEN}` },
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!res.ok) throw new Error(`${path}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`);
+  let res;
+  try {
+    res = await fetch(`${HOST}/api/0${path}`, {
+      headers: { authorization: `Bearer ${TOKEN}` },
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (e) {
+    console.error(`${HOST} не відповідає (${e.message}) — GlitchTip лежить або немає мережі`);
+    process.exit(1);
+  }
+  if (res.status === 401 || res.status === 403) {
+    console.error("GLITCHTIP_TOKEN не підходить: перевір scopes (project:read, event:read, org:read)");
+    process.exit(1);
+  }
+  if (!res.ok) {
+    console.error(`${path}: HTTP ${res.status} ${(await res.text()).slice(0, 120)}`);
+    process.exit(1);
+  }
   return res.json();
 };
 
