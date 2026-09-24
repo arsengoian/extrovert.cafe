@@ -5,14 +5,7 @@
   "version": "0.0.1",
   "description": "спільне для сервісів: Postgres, Redis, outbox, логер",
   "exports": {
-    "./db.js": "./src/db.js",
-    "./redis.js": "./src/redis.js",
-    "./outbox.js": "./src/outbox.js",
-    "./log.js": "./src/log.js",
-    "./jobs.js": "./src/jobs.js",
-    "./menu.js": "./src/menu.js",
-    "./r2.js": "./src/r2.js",
-    "./shutdown.js": "./src/shutdown.js"
+    "./*": "./src/*"
   },
   "dependencies": {
     "pg": "^8.13.0",
