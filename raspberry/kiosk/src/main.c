@@ -92,6 +92,20 @@ static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s) {
     cairo_set_source_surface(cr, menu_s, 0, 0);
     cairo_paint(cr);
     if (ad_s) { cairo_set_source_surface(cr, ad_s, PANEL_X, AD_Y); cairo_paint(cr); }
+
+    /* Мітка «це запасна картинка»: чотири білі крапки по кутах.
+     * Запасне меню намальоване тим самим кодом, що й живе, тож на екрані їх
+     * не відрізнити — а різниця величезна: під картинкою кіоск може бути
+     * мертвий, і ціни на ній застигли тим, чим були (прохання власника
+     * 24.09.2026). Крапка 2 px у кутку 1080p — це те, що видно, лише коли
+     * знаєш, куди дивитись. */
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    for (int i = 0; i < 4; i++) {
+        double x = (i & 1) ? STAGE_W - FALLBACK_MARK_PX - FALLBACK_MARK_INSET : FALLBACK_MARK_INSET;
+        double y = (i & 2) ? STAGE_H - FALLBACK_MARK_PX - FALLBACK_MARK_INSET : FALLBACK_MARK_INSET;
+        cairo_rectangle(cr, x, y, FALLBACK_MARK_PX, FALLBACK_MARK_PX);
+    }
+    cairo_fill(cr);
     cairo_destroy(cr);
     /* pid у назві: при overlap-підміні дві копії кіоска стартують разом і
      * обидві пишуть картинку — спільний .tmp вони б зіпсували одна одній. */
@@ -137,10 +151,21 @@ typedef struct {
     pthread_mutex_t mu;
     menu_t last;         /* остання бачена потоком менюшка — і джерело хеша
                            * для дедуп-виходу в menu_poll (out->hash) */
-    menu_t pending;      /* нова менюшка, чекає, поки головний потік забере
-                           * її й перерендерить (тільки тут чіпаємо GL/Cairo) */
+    menu_t pending;      /* нова менюшка, разом із уже намальованими
+                           * поверхнями: головному потоку лишається тільки
+                           * залити їх у текстуру */
     bool has_pending;
+    /* Малюємо ТУТ, у фоновому потоці. Раніше цим займався кадровий цикл, і
+     * render_menu() на Pi 1 (~8 с) щоразу морозив екран — рівно тоді, коли
+     * приїхали нові ціни, тобто коли на кіоск і дивляться (docs/raspberry-pi.md
+     * §7, виправлено 24.09.2026). Cairo тут безпечний: до старту потоку
+     * перший рендер робить main, після — лише цей потік, а головному
+     * дістається готова поверхня під мʼютексом. GL лишається там, де був:
+     * контекст у головного потоку, і ділити його ні з ким не можна. */
+    cairo_surface_t *pending_menu;
+    cairo_surface_t *pending_ad;
     const char *url;
+    const char *assets_dir;
     volatile sig_atomic_t stop;
 } menu_poller_t;
 
@@ -164,11 +189,27 @@ static void *menu_poll_thread(void *arg) {
         if (mp->stop) break;
 
         if (menu_poll(mp->url, &attempt)) {
+            struct timespec t0, t1;
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            cairo_surface_t *m = render_menu(&attempt, mp->assets_dir);
+            cairo_surface_t *a = render_ad(&attempt, mp->assets_dir);
+            write_fallback_png(m, a);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+
             pthread_mutex_lock(&mp->mu);
             mp->last = attempt;
             mp->pending = attempt;
+            /* Попередню, яку головний потік не встиг забрати, звільняємо тут:
+             * інакше кожне друге оновлення меню лишало б по 8 МБ. */
+            if (mp->pending_menu) cairo_surface_destroy(mp->pending_menu);
+            if (mp->pending_ad) cairo_surface_destroy(mp->pending_ad);
+            mp->pending_menu = m;
+            mp->pending_ad = a;
             mp->has_pending = true;
             pthread_mutex_unlock(&mp->mu);
+
+            fprintf(stderr, "main: меню перемальовано у фоні за %.1f с — кадр не стояв\n",
+                    (double)(t1.tv_sec - t0.tv_sec) + (double)(t1.tv_nsec - t0.tv_nsec) / 1e9);
         }
     }
     return NULL;
@@ -326,6 +367,7 @@ int main(int argc, char **argv) {
     pthread_mutex_init(&poller.mu, NULL);
     poller.last = menu;
     poller.url = url;
+    poller.assets_dir = assets_dir;
     /* Щоб SIGTERM під час оновлення не чекав на curl його повний таймаут —
      * деталі в menu.h. */
     menu_set_abort_flag(&poller.stop);
@@ -357,15 +399,29 @@ int main(int argc, char **argv) {
         bool got_new_menu = false;
         menu_t new_menu;
         pthread_mutex_lock(&poller.mu);
+        cairo_surface_t *new_menu_surf = NULL, *new_ad_surf = NULL;
         if (poller.has_pending) {
             new_menu = poller.pending;
+            new_menu_surf = poller.pending_menu; poller.pending_menu = NULL;
+            new_ad_surf = poller.pending_ad;     poller.pending_ad = NULL;
             poller.has_pending = false;
             got_new_menu = true;
         }
         pthread_mutex_unlock(&poller.mu);
         if (got_new_menu) {
             menu = new_menu;
-            apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
+            /* Тут лишилось тільки залити готові поверхні в текстури — це
+             * кадр, а не вісім секунд. */
+            if (new_menu_surf) {
+                gl_texture_destroy(&menu_tex);
+                menu_tex = gl_texture_from_cairo(new_menu_surf);
+                cairo_surface_destroy(new_menu_surf);
+            }
+            gl_texture_destroy(&ad_tex);
+            if (new_ad_surf) {
+                ad_tex = gl_texture_from_cairo(new_ad_surf);
+                cairo_surface_destroy(new_ad_surf);
+            }
             fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
         }
 
