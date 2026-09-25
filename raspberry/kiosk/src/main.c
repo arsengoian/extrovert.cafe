@@ -38,6 +38,11 @@ static void on_sigterm(int sig) { (void)sig; g_running = 0; }
 static void on_sigusr1(int sig) { (void)sig; g_popup_toggle = 1; }  /* показати/сховати демо-попап */
 static void on_sigusr2(int sig) { (void)sig; g_dump_requested = 1; }  /* знімок живого кадру на вимогу */
 
+/* Різниця двох міток у секундах — для розкладки часу рендера в лозі. */
+static double span(struct timespec s0, struct timespec s1) {
+    return (double)(s1.tv_sec - s0.tv_sec) + (double)(s1.tv_nsec - s0.tv_nsec) / 1e9;
+}
+
 static double now_s(void) {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -190,9 +195,16 @@ static void *menu_poll_thread(void *arg) {
 
         if (menu_poll(mp->url, &attempt)) {
             struct timespec t0, t1;
+            /* Три заміри, а не один. Загальні 32,8 с у лозі точки нічого не
+             * пояснювали: selftest тим часом малює те саме меню за 5,5 с, і
+             * без розкладки не видно, чи винен rsvg, чи запис
+             * 8-мегабайтної картинки в PNG на ARMv6 (25.09.2026). */
+            struct timespec tm, ta;
             clock_gettime(CLOCK_MONOTONIC, &t0);
             cairo_surface_t *m = render_menu(&attempt, mp->assets_dir);
+            clock_gettime(CLOCK_MONOTONIC, &tm);
             cairo_surface_t *a = render_ad(&attempt, mp->assets_dir);
+            clock_gettime(CLOCK_MONOTONIC, &ta);
             write_fallback_png(m, a);
             clock_gettime(CLOCK_MONOTONIC, &t1);
 
@@ -208,8 +220,9 @@ static void *menu_poll_thread(void *arg) {
             mp->has_pending = true;
             pthread_mutex_unlock(&mp->mu);
 
-            fprintf(stderr, "main: меню перемальовано у фоні за %.1f с — кадр не стояв\n",
-                    (double)(t1.tv_sec - t0.tv_sec) + (double)(t1.tv_nsec - t0.tv_nsec) / 1e9);
+            fprintf(stderr,
+                    "main: меню у фоні за %.1f с (меню %.1f + реклама %.1f + запасний png %.1f) — кадр не стояв\n",
+                    span(t0, t1), span(t0, tm), span(tm, ta), span(ta, t1));
         }
     }
     return NULL;

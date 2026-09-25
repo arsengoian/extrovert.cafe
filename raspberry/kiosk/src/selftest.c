@@ -26,11 +26,6 @@ static const char *REQUIRED[] = {
     "templates/bonus_row.svg", "templates/bonus_secret.svg",
     "templates/popup.svg", "templates/popup_bonus.svg", "templates/popup_secret.svg",
     "logo_dark.svg", "ui/coin_gold.png", "ui/hero_bush.png",
-    /* НАВМИСНА ПОЛОМКА, 25.09.2026 — перевіряємо, що битий реліз не доїде до
-     * екрана: цього файла немає й не буде, тож selftest нової версії має
-     * провалитись, апдейтер — лишити стару працювати й занести реліз у
-     * чорний список. Наступним комітом рядок зникає. */
-    "templates/навмисно-немає.svg",
 };
 
 /* Час рендера кожної поверхні — у тому самому рядку лога. Selftest ганяє
