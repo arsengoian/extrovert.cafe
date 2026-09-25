@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Badge, Card, Empty, useData } from "../ui.jsx";
+import { AdPreview } from "./AdPreview.jsx";
 
 const KINDS = [
   ["promo", "Акція"],
@@ -126,6 +127,21 @@ export function Promos() {
                 ))}
               </select>
             </label>
+            <AdPreview
+              kind={form.kind}
+              head1={form.head1}
+              head2={form.head2}
+              sub={form.sub}
+              fine={form.fine}
+              sprite={(drinks.data?.drinks ?? []).find((d) => d.slot === form.drink_code)?.sprite ?? ""}
+            />
+            <div className="promo-preview-note">
+              Так це виглядатиме на екрані точки: той самий шаблон, шрифти й
+              картинки, що й у кіоска, у масштабі 1:1. Довгий заголовок
+              обрізається тут так само, як обріже кіоск, — але рівно на межі
+              може розійтись на символ: браузер і точка міряють ширину тексту
+              трохи по-різному (там же й ±1 px на ширині плашки).
+            </div>
             {note && <div className="promo-note">{note}</div>}
             <div className="row">
               <button className="btn primary" disabled={busy || !form.head1.trim()} onClick={save}>

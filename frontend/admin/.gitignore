@@ -1,0 +1,4 @@
+# Копія кіоскових ассетів під прев'ю панелі акції: її кладе
+# scripts/copy-kiosk-assets.mjs перед кожною збіркою, джерело —
+# raspberry/kiosk/assets. У git тримати нічого: розійдеться з оригіналом.
+public/assets/kiosk/

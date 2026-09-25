@@ -4,8 +4,8 @@
   "version": "0.0.1",
   "description": "Адмінка: статика на Cloudflare Workers, дані з api",
   "scripts": {
-    "dev": "bunx --bun vite",
-    "build": "bunx --bun vite build",
+    "dev": "bun scripts/copy-kiosk-assets.mjs && bunx --bun vite",
+    "build": "bun scripts/copy-kiosk-assets.mjs && bunx --bun vite build",
     "preview": "bunx --bun vite preview",
     "deploy": "bun run build && bunx wrangler@4 deploy",
     "deploy:dry": "bun run build && bunx wrangler@4 deploy --dry-run"

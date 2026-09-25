@@ -6,6 +6,16 @@
 @font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro700.ttf') format('truetype'); font-weight: 700; font-display: swap }
 @font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro900.ttf') format('truetype'); font-weight: 900; font-display: swap }
 
+/* Шрифти кіоска — під прев'ю панелі акції (AdPreview.jsx). Імена родин тут
+   НЕ 'Extro' з вагою, а рівно ті, що стоять у ad.svg: шаблон береться з
+   кіоска як є, і font-family="Extro1000" мусить знайтися. Файли кладе в
+   public/ scripts/copy-kiosk-assets.mjs із raspberry/kiosk/assets.
+   font-display: block, а не swap: прев'ю, намальоване запасним шрифтом,
+   показало б не ту ширину пігулки — краще мить порожнечі, ніж брехня. */
+@font-face { font-family: 'Extro400'; src: url('/assets/kiosk/fonts/Extro400.ttf') format('truetype'); font-display: block }
+@font-face { font-family: 'Extro700'; src: url('/assets/kiosk/fonts/Extro700.ttf') format('truetype'); font-display: block }
+@font-face { font-family: 'Extro1000'; src: url('/assets/kiosk/fonts/Extro1000.ttf') format('truetype'); font-display: block }
+
 :root {
   --bg: #0C0E11; --panel: #15181C; --panel2: #1B1F24; --ink: #F2EFE6; --muted: #8B94A3;
   --line: rgba(242, 239, 230, .10); --accent: #FE810B; --accent-ink: #1A1206;
@@ -190,6 +200,13 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 }
 .promo-field select option { background: var(--panel2) }
 .promo-note { font-size: 11.5px; color: var(--bad) }
+/* Прев'ю панелі — рівно 470×390, як на екрані точки. Не масштабуємо й не
+   вписуємо в колонку: сенс саме в масштабі 1:1, інакше «влізе чи ні» вже не
+   перевіриш. Вужче вікно прокручує картку, а не стискає прев'ю. */
+.ad-preview { width: 470px; height: 390px; flex: none }
+.ad-preview svg { display: block }
+.promo-preview-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; max-width: 470px }
+
 .promo-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line) }
 .promo-row:first-child { border-top: 0 }
 .promo-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px }
