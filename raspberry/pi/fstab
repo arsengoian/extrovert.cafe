@@ -9,5 +9,10 @@
 # device-timeout=10s — щоб без флешки не чекати дефолтні 90 с.
 proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p6  /boot           vfat    defaults          0       2
-/dev/mmcblk0p7  /               ext4    defaults,noatime  0       1
+# commit=300 — журнал ext4 скидається раз на пʼять хвилин, а не раз на пʼять
+# секунд (25.09.2026). Наші процеси пишуть 17 МБ/добу, а картка бачила 292:
+# різниця — журнальні блоки на кожен дрібний рядок у лог і в чергу
+# телеметрії. Після правки 54 МБ/добу. Ціна — при знеструмленні зникає до
+# пʼяти хвилин свіжих даних; сама ФС лишається цілою, це журнал і гарантує.
+/dev/mmcblk0p7  /               ext4    defaults,noatime,commit=300  0       1
 LABEL=buf /mnt/buf ext4 defaults,noatime,nodiratime,errors=remount-ro,nofail,x-systemd.device-timeout=10s 0 2
