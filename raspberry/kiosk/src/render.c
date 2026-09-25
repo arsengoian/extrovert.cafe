@@ -202,6 +202,31 @@ cairo_surface_t *render_ad(const menu_t *menu, const char *assets_dir) {
     char head_font[32];
     snprintf(head_font, sizeof(head_font), FONT_1000 " %dpx", AD_HEAD_FONT_SIZE);
 
+    /* Пігулка тягнеться за міткою, а порожня мітка прибирає її зовсім.
+     * kind='none' у promos і означає «панель без плашки» (backend/lib/src/
+     * menu.js), але шаблон малював овал завжди — і на екрані висіла гола
+     * помаранчева пігулка (25.09.2026, власник). Ширина рахується так само,
+     * як у бейджі картки: від виміряного тексту й констант із config.h.
+     * У макеті пігулка була однієї ширини під найкоротшу мітку, тож
+     * «ОГОЛОШЕННЯ» вилазило за її межі з обох боків. */
+    double pill_w = 0;
+    if (menu->ad.promo_label[0]) {
+        char pill_font[32];
+        snprintf(pill_font, sizeof(pill_font), FONT_700 " %dpx", AD_PILL_FONT_SIZE);
+        int tw = 0;
+        text_extents(pill_font, menu->ad.promo_label, &tw, NULL);
+        /* Трекінг додається окремо: letter-spacing живе в ad.svg, а Pango
+         * у text_extents про нього не знає. Рахуємо код-поінти, не байти. */
+        int glyphs = 0;
+        for (const unsigned char *p = (const unsigned char *)menu->ad.promo_label; *p; p++)
+            if ((*p & 0xC0) != 0x80) glyphs++;
+        pill_w = tw + glyphs * AD_PILL_TRACKING + 2 * AD_PILL_PAD;
+    }
+    char pill_w_s[16], pill_cx_s[16], text_dy_s[16];
+    snprintf(pill_w_s, sizeof(pill_w_s), "%.1f", pill_w);
+    snprintf(pill_cx_s, sizeof(pill_cx_s), "%.1f", AD_PILL_X + pill_w / 2);
+    snprintf(text_dy_s, sizeof(text_dy_s), "%.1f", pill_w > 0 ? 0.0 : -AD_NOPILL_SHIFT);
+
     char *promo = svgtpl_esc(menu->ad.promo_label);
     char *h1_raw = svgtpl_esc(menu->ad.head1);
     char *h1 = svgtpl_ellipsize(h1_raw, head_font, AD_HEAD_MAX_W);
@@ -216,9 +241,11 @@ cairo_surface_t *render_ad(const menu_t *menu, const char *assets_dir) {
     snprintf(hero, sizeof(hero), "%s/drinks-ad/%s.png", assets_dir,
              menu->ad.sprite[0] ? menu->ad.sprite : "none");
 
-    const char *keys[] = { "PROMO_LABEL", "HEAD1", "HEAD2", "SUB", "FINE", "HERO_IMG" };
-    const char *vals[] = { promo, h1, h2, sub, fine, hero };
-    char *full = svgtpl_sub(tpl, keys, vals, 6);
+    const char *keys[] = { "PROMO_LABEL", "HEAD1", "HEAD2", "SUB", "FINE", "HERO_IMG",
+                            "PILL_W", "PILL_CX", "TEXT_DY" };
+    const char *vals[] = { promo, h1, h2, sub, fine, hero,
+                            pill_w_s, pill_cx_s, text_dy_s };
+    char *full = svgtpl_sub(tpl, keys, vals, 9);
     free(tpl);
     free(promo); free(h1); free(h2); free(sub); free(fine);
     if (!full) return NULL;

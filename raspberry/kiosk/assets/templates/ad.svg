@@ -11,16 +11,22 @@
     <rect x="0" y="0" width="470" height="390" fill="#171A1F"></rect>
     <rect x="0" y="0" width="470" height="390" fill="url(#adTint)"></rect>
     <rect x="275" y="-115" width="300" height="300" fill="url(#adGlow)"></rect>
-    <rect x="26" y="26" width="78" height="28" rx="14" ry="14" fill="url(#pill)"></rect>
+    <!-- Ширина пігулки приходить з C (render.c): вона рахується від
+         виміряного тексту, бо «ОГОЛОШЕННЯ» за макетні 78 px не влазить.
+         Нуль означає «мітки немає» — rect нульової ширини SVG не малює
+         взагалі, і тоді ж текст нижче їде вгору на {{TEXT_DY}}. -->
+    <rect x="26" y="26" width="{{PILL_W}}" height="28" rx="14" ry="14" fill="url(#pill)"></rect>
     <!-- y тут — вже базова лінія, не центр: dominant-baseline="central" з
          оригіналу librsvg не рендерить (стара дірка, поводиться як
          alphabetic завжди), тож y зсунуто на (ascent-descent)/2 з реальних
          Pango-метрик шрифту (виміряно 29.08.2026), а не залишено як є. -->
-    <text x="65" y="45.8" text-anchor="middle" font-family="Extro700" font-size="14" letter-spacing="1.4" fill="#FFFFFF">{{PROMO_LABEL}}</text>
-    <text x="26" y="94.2" font-family="Extro1000" font-size="31">{{HEAD1}}</text>
-    <text x="26" y="129.5" font-family="Extro1000" font-size="31">{{HEAD2}}</text>
-    <text x="26" y="170.0" font-family="Extro700" font-size="23" fill="url(#ring)">{{SUB}}</text>
-    <text x="26" y="202.4" font-family="Extro400" font-size="14" fill="#F2EFE6" fill-opacity="0.58">{{FINE}}</text>
+    <text x="{{PILL_CX}}" y="45.8" text-anchor="middle" font-family="Extro700" font-size="14" letter-spacing="1.4" fill="#FFFFFF">{{PROMO_LABEL}}</text>
+    <g transform="translate(0 {{TEXT_DY}})">
+      <text x="26" y="94.2" font-family="Extro1000" font-size="31">{{HEAD1}}</text>
+      <text x="26" y="129.5" font-family="Extro1000" font-size="31">{{HEAD2}}</text>
+      <text x="26" y="170.0" font-family="Extro700" font-size="23" fill="url(#ring)">{{SUB}}</text>
+      <text x="26" y="202.4" font-family="Extro400" font-size="14" fill="#F2EFE6" fill-opacity="0.58">{{FINE}}</text>
+    </g>
     <!-- Тінь уже впечена в PNG (tools/bake-drink-shadows.mjs) — filter="url(#cupShadow)"
          з оригінального макета навмисно прибрано: Pi-шний librsvg (~2.40)
          не знає feDropShadow, фільтр мовчки не спрацював би.

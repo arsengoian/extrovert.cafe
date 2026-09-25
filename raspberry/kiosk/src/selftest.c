@@ -210,6 +210,9 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     const char *popup_png = getenv("SELFTEST_POPUP_PNG");
     if (popup_png && popup_png[0] && popup_s && cairo_surface_status(popup_s) == CAIRO_STATUS_SUCCESS)
         cairo_surface_write_to_png(popup_s, popup_png);
+    const char *ad_png = getenv("SELFTEST_AD_PNG");
+    if (ad_png && ad_png[0] && ad_s && cairo_surface_status(ad_s) == CAIRO_STATUS_SUCCESS)
+        cairo_surface_write_to_png(ad_s, ad_png);
     const char *taken_png = getenv("SELFTEST_TAKEN_PNG");
     if (taken_png && taken_png[0] && taken_s && cairo_surface_status(taken_s) == CAIRO_STATUS_SUCCESS)
         cairo_surface_write_to_png(taken_s, taken_png);
