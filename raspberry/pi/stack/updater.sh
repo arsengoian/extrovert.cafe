@@ -163,6 +163,20 @@ selftest_release() { # selftest_release <реліз> → 0/1
     ASSETS="$_dir/assets" \
     SELFTEST_PNG="$EXTROVERT_STATE/selftest-$1.png" \
       "$_bin" --selftest >> "$EXTROVERT_LOGS/updater.log" 2>&1
+    _rc=$?
+    # Знімок потрібен рівно для одного: подивитись, ЧОМУ версія не пройшла
+    # перевірку. Вдалі нікому не цікаві, а лежали вони вічно — за чотири дні
+    # релізів на точці назбиралось пʼятнадцять картинок (знайдено 25.09.2026,
+    # коли власник спитав про check-now). Три останні провальні лишаємо:
+    # більше однієї поспіль поламаної версії ще не бувало, але запас корисний.
+    if [ "$_rc" -eq 0 ]; then
+        rm -f "$EXTROVERT_STATE/selftest-$1.png"
+    else
+        ls -1t "$EXTROVERT_STATE"/selftest-*.png 2>/dev/null | tail -n +4 | while read -r _old; do
+            rm -f "$_old"
+        done
+    fi
+    return "$_rc"
 }
 
 # ── Кроки 6-9: підміна з відкатом ────────────────────────────────────────

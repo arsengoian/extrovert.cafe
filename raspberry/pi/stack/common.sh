@@ -21,7 +21,13 @@ export EXTROVERT_ROOT EXTROVERT_STATE
 
 POINT="${POINT:-kyiv-01}"
 UPDATE_URL="${UPDATE_URL:-https://pos.extrovert.cafe/releases/pi/manifest.json}"
-UPDATE_PERIOD_S="${UPDATE_PERIOD_S:-900}"
+# Дві хвилини, а не пʼятнадцять (25.09.2026). CI не має як штовхнути точку:
+# вона за роутером у локальній мережі, і достукатись до неї ззовні не можна —
+# ходить тільки вона сама. Тому єдине, що керує затримкою «задеплоїли →
+# приїхало на точку», це період опитування, а коштує воно нічого:
+# маніфест питається з If-None-Match і без змін віддає 304 на пару сотень
+# байтів. Пʼятнадцять хвилин очікування були платою ні за що.
+UPDATE_PERIOD_S="${UPDATE_PERIOD_S:-120}"
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 
 log() {

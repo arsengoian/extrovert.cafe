@@ -55,7 +55,7 @@ if [ ! -f "$ROOT/config/env" ]; then
 POINT=kyiv-01
 # URL=https://pos.extrovert.cafe/points/\$POINT/menu.json
 UPDATE_URL=https://pos.extrovert.cafe/releases/pi/manifest.json
-UPDATE_PERIOD_S=900
+UPDATE_PERIOD_S=120
 POPUP=1
 ENV
     echo "створено $ROOT/config/env — перевір POINT і UPDATE_URL"
