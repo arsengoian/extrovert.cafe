@@ -72,6 +72,37 @@ export const BeatRow = ({ ok, name, note, value, history, ms = null, sub = false
   </div>
 );
 
+// Розриви в ряду. Точка мовчала десять годин — і лінія чесно має розірватись,
+// а не зʼєднати вечір із ранком прямою, по якій не видно, що між ними нічого
+// не було (знайшов власник 25.09.2026: смужки вгорі сірі, а графіки під ними
+// показують бадьоре життя).
+//
+// Поріг не константа: ряди сюди приходять із різним кроком (проба малини раз
+// на хвилину, добові підсумки раз на добу), і одне число для всіх або рвало б
+// суцільні ряди, або не рвало б жодного. Беремо МЕДІАНУ кроку — вона не
+// зважає на самі дірки, — і рвемо там, де проміжок утричі більший.
+const GAP_FACTOR = 3;
+
+function segments(points, gapMs) {
+  const sorted = [...points].sort((a, b) => +new Date(a.x) - +new Date(b.x));
+  if (sorted.length < 2) return sorted.length ? [sorted] : [];
+  let limit = gapMs;
+  if (!limit) {
+    const steps = sorted.slice(1)
+      .map((p, i) => +new Date(p.x) - +new Date(sorted[i].x))
+      .sort((a, b) => a - b);
+    const median = steps[Math.floor(steps.length / 2)] || 0;
+    limit = median > 0 ? median * GAP_FACTOR : Infinity;
+  }
+  const out = [[sorted[0]]];
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = +new Date(sorted[i].x) - +new Date(sorted[i - 1].x);
+    if (gap > limit) out.push([]);
+    out.at(-1).push(sorted[i]);
+  }
+  return out;
+}
+
 // Лінійний графік: кілька рядів, спільна шкала. Пусті дані — чесний підпис,
 // а не порожня сітка.
 //
@@ -84,7 +115,9 @@ export const BeatRow = ({ ok, name, note, value, history, ms = null, sub = false
 // legend — підпис під графіком. На картці з кількома лініями він потрібен,
 // а там, де ряд один і його назва вже стоїть заголовком над графіком,
 // повторює її вдруге.
-export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true }) {
+// gapMs — з якого проміжку між точками вважати, що даних не було. За
+// замовчуванням рахується з самого ряду (див. segments вище).
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true, gapMs = 0 }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -103,6 +136,7 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
   const innerH = height - padB - padT;
   const x = (t) => padL + (xs.length < 2 ? innerW / 2 : (innerW * (+new Date(t) - xs[0])) / (xs.at(-1) - xs[0]));
   const y = (v) => padT + innerH - (innerH * v) / max;
+  const cut = series.map((s) => ({ ...s, runs: segments(s.points, gapMs) }));
 
   return (
     <div ref={ref}>
@@ -117,25 +151,32 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
                 <text className="axis" x={0} y={y(max * k) + 3}>{format(max * k)}</text>
               </g>
             ))}
-            {area && series.map((s) => (
+            {area && cut.flatMap((s) => s.runs.map((run, n) => (
               <path
-                key={`${s.name}-area`}
+                key={`${s.name}-area-${n}`}
                 fill={s.color}
                 fillOpacity="0.2"
                 stroke="none"
-                d={`M${s.points.map((p) => `${x(p.x)},${y(p.y)}`).join("L")}L${x(s.points.at(-1)?.x ?? 0)},${y(0)}L${x(s.points[0]?.x ?? 0)},${y(0)}Z`}
+                d={`M${run.map((p) => `${x(p.x)},${y(p.y)}`).join("L")}L${x(run.at(-1).x)},${y(0)}L${x(run[0].x)},${y(0)}Z`}
               />
-            ))}
-            {series.map((s) => (
-              <polyline
-                key={s.name}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="2"
-                strokeLinejoin="round"
-                points={s.points.map((p) => `${x(p.x)},${y(p.y)}`).join(" ")}
-              />
-            ))}
+            )))}
+            {cut.flatMap((s) => s.runs.map((run, n) => (
+              // Одинока точка між двома дірками — крапка: polyline нульової
+              // довжини браузер не малює взагалі, і проба виглядала б як
+              // відсутня.
+              run.length === 1 ? (
+                <circle key={`${s.name}-dot-${n}`} cx={x(run[0].x)} cy={y(run[0].y)} r="1.6" fill={s.color} />
+              ) : (
+                <polyline
+                  key={`${s.name}-${n}`}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth="2"
+                  strokeLinejoin="round"
+                  points={run.map((p) => `${x(p.x)},${y(p.y)}`).join(" ")}
+                />
+              )
+            )))}
             {xs.length > 1 && [xs[0], xs.at(-1)].map((t, i) => (
               <text key={t} className="axis" x={i ? w - 30 : padL} y={height - 3}>{fmt.day(t)}</text>
             ))}
