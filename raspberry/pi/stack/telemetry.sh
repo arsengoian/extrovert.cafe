@@ -307,13 +307,94 @@ queue_push() {
     fi
 }
 
+# ── Перештампування черги після стрибка годинника ────────────────────────
+#
+# Точка може піднятись із живленням, але без інтернету: годинник тоді
+# показує останню відому мітку (common.sh, «Годинник»), а проби лягають у
+# чергу з часом, зсунутим рівно на довжину простою. Коли мережа зʼявиться,
+# NTP пересуне годинник — і черга поїде на сервер із брехливим measured_at,
+# тобто на графіках виникне купа точок у минулому. Саме той симптом, від
+# якого лікували графіки 25.09.2026, тільки з іншого боку.
+#
+# Виправляти є з чого: кожна проба несе uptime_s, а він не залежить від
+# годинника. Справжній час проби = зараз − (аптайм зараз − аптайм проби).
+# Коли годинник увесь час був правильний, ця формула дає те саме значення,
+# що вже стоїть у рядку, — тобто перерахунок безпечний за побудовою.
+#
+# Чіпаємо лише ті рядки, що їх поклав ЦЕЙ процес: uptime чужого завантаження
+# ні про що не говорить. Лічильник у памʼяті сам обнуляється при старті, а
+# обрізання черги ріже з початку — тож «останні N» лишаються нашими.
+queue_restamp() { # queue_restamp <скільки останніх рядків>
+    [ -s "$QUEUE" ] || return 0
+    _n=$1
+    _total=$(wc -l < "$QUEUE")
+    [ "$_n" -gt "$_total" ] && _n=$_total
+    [ "$_n" -gt 0 ] || return 0
+
+    _now=$(date -u +%s); _up=$(uptime_s)
+    tail -n "$_n" "$QUEUE" > "$QUEUE.tail" || return 1
+    # Рівно один рядок на вхідний — інакше paste нижче зсуне все на рядок і
+    # зіпсує чергу. Рядок без uptime_s дає "@0" і лишиться без змін.
+    awk -v now="$_now" -v up="$_up" '
+        # 11 — довжина самого `"uptime_s":`, далі йде число. Спершу тут стояло
+        # 12, і перша цифра аптайму мовчки відпадала: проби лишались
+        # правдоподібними, тільки не в тому порядку (спіймано стендом).
+        { if (match($0, /"uptime_s":[0-9]+/))
+              printf "@%d\n", now - (up - (substr($0, RSTART + 11, RLENGTH - 11) + 0));
+          else print "@0" }' "$QUEUE.tail" > "$QUEUE.ep" || return 1
+    date -u -f "$QUEUE.ep" '+%Y-%m-%dT%H:%M:%SZ' > "$QUEUE.iso" 2>/dev/null || {
+        rm -f "$QUEUE.tail" "$QUEUE.ep" "$QUEUE.iso"; return 1; }
+
+    _head=$((_total - _n))
+    if [ "$_head" -gt 0 ]; then head -n "$_head" "$QUEUE" > "$QUEUE.fix"; else : > "$QUEUE.fix"; fi
+    paste -d '\t' "$QUEUE.ep" "$QUEUE.iso" "$QUEUE.tail" | awk -F '\t' '
+        { if ($1 == "@0") print $3;
+          else { line = $3; sub(/"measured_at":"[^"]*"/, "\"measured_at\":\"" $2 "\"", line); print line } }' \
+        >> "$QUEUE.fix" || { rm -f "$QUEUE.tail" "$QUEUE.ep" "$QUEUE.iso" "$QUEUE.fix"; return 1; }
+
+    # Кількість рядків мусить зійтися: черга дорожча за виправлення часу.
+    if [ "$(wc -l < "$QUEUE.fix")" -eq "$_total" ]; then
+        mv -f "$QUEUE.fix" "$QUEUE"
+        log "годинник стрибнув — перештампував $_n проб за uptime"
+    else
+        log "перештампування дало не ту кількість рядків — лишаю чергу як є"
+        rm -f "$QUEUE.fix"
+    fi
+    rm -f "$QUEUE.tail" "$QUEUE.ep" "$QUEUE.iso"
+}
+
 mkdir -p "$EXTROVERT_STATE"
 log "телеметрія піднялась: кожні ${PERIOD}с у $API"
 
+QUEUED_THIS_BOOT=0
+PREV_EPOCH=$(date -u +%s)
+PREV_UPTIME=$(uptime_s)
+
 while [ "$STOPPING" -eq 0 ]; do
     _started=$(date +%s)
+
+    # Чи не стрибнув годинник від минулого проходу? Еталон — uptime: він
+    # росте рівно, хоч би що робили з датою. Розбіжність більша за пʼять
+    # секунд і означає, що NTP щойно пересунув час, — а значить, усе, що ми
+    # встигли покласти в чергу до того, має неправильний measured_at.
+    _up_now=$(uptime_s); _ep_now=$(date -u +%s)
+    _drift=$(( _ep_now - (PREV_EPOCH + (_up_now - PREV_UPTIME)) ))
+    [ "$_drift" -lt 0 ] && _drift=$(( -_drift ))
+    if [ "$QUEUED_THIS_BOOT" -gt 0 ] && clock_ntp_ok; then
+        # Годинник щойно став надійним. Стрибок більший за пʼять секунд —
+        # виправляємо; менший означає, що проби й так із правильним часом.
+        # Лічильник обнуляємо в обох випадках: далі проби вже з NTP.
+        [ "$_drift" -ge 5 ] && queue_restamp "$QUEUED_THIS_BOOT"
+        QUEUED_THIS_BOOT=0
+    fi
+    PREV_EPOCH=$_ep_now; PREV_UPTIME=$_up_now
+
     if [ -f "$TOKEN_FILE" ]; then
-        queue_push "$(sample_json)"
+        if queue_push "$(sample_json)"; then
+            # Поки годинник не підтверджений NTP, проба може лежати з часом
+            # із минулого — рахуємо такі, щоб потім було що виправляти.
+            clock_ntp_ok || QUEUED_THIS_BOOT=$((QUEUED_THIS_BOOT + 1))
+        fi
         send_queue || true
     else
         log "немає $TOKEN_FILE — пропускаємо прохід"
