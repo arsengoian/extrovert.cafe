@@ -176,6 +176,11 @@ mkdir -p "$EXTROVERT_LOGS" "$EXTROVERT_STATE"
 [ -L "$EXTROVERT_CURRENT" ] || die "нема симлінка $EXTROVERT_CURRENT — спершу install.sh"
 state_write supervisor.pid "$$"
 
+# Годинник — ДО запуску компонентів: телеметрія починає штампувати проби з
+# першої ж секунди, а кіоск іде за HTTPS, який з часом у минулому відмовляє
+# (common.sh, розділ «Годинник»).
+clock_restore
+
 # components.conf: <імʼя> <exec> <overlap:0|1> <enabled:0|1> [аргументи...]
 grep -v '^[[:space:]]*#' "$COMPONENTS_CONF" 2>/dev/null | grep -v '^[[:space:]]*$' \
   | while read -r _n _x _ov _en _args; do
@@ -189,10 +194,17 @@ while read -r _n _x _ov _args; do
 done < "$WANT"
 
 LAST_RELEASE=$(current_release)
+CLOCK_TICK=0
 
 while :; do
     sleep 2
     [ "$STOPPING" = "1" ] && break
+
+    # Мітка часу раз на хвилину: частіше немає сенсу (журнал ext4 однаково
+    # скидається раз на пʼять хвилин, commit=300), рідше — більше втратимо
+    # при знеструмленні.
+    CLOCK_TICK=$((CLOCK_TICK + 1))
+    if [ "$CLOCK_TICK" -ge 30 ]; then CLOCK_TICK=0; clock_save; fi
 
     # 1. Доглядаємо дітей
     for _e in $PIDS; do

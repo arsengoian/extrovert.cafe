@@ -93,3 +93,51 @@ current_release() {
     [ -L "$EXTROVERT_CURRENT" ] || { echo ""; return; }
     basename "$(readlink "$EXTROVERT_CURRENT")"
 }
+
+# ── Годинник ─────────────────────────────────────────────────────────────
+#
+# У Pi 1 немає RTC, тож після знеструмлення час бере fake-hwclock — а той
+# пише свій файл у /etc, який під overlay лежить на read-only корені й
+# замерз на даті образу (docs/raspberry-pi.md §5). Тобто механізм, який
+# раніше рятував, з 25.09.2026 більше не працює: точка щоразу піднімається
+# з тим самим часом із минулого, і розрив росте місяцями.
+#
+# Чим це погано насправді, окрім кривих графіків: з годинником у минулому
+# HTTPS відмовляє — сертифікат «ще не дійсний» (raspberry/pi/fix-clock.sh
+# описує це з натури), тобто точка не візьме ні меню, ні оновлення. Рятує
+# NTP, але лише коли мережа вже є; до того моменту проби телеметрії лягають
+# у чергу з брехливим measured_at.
+#
+# Тому тримаємо власну мітку на розділі data — єдиному, що переживає
+# перезавантаження. Раз на хвилину записуємо час, АЛЕ лише підтверджений
+# NTP: інакше одного разу збережений хибний час пінився б назавжди. На
+# старті піднімаємо годинник до мітки, якщо він позаду. Це не заміна NTP, а
+# те, що закриває вікно до його першої синхронізації.
+CLOCK_MARK="${CLOCK_MARK:-$EXTROVERT_STATE/clock}"
+
+clock_ntp_ok() { timedatectl 2>/dev/null | grep -qi "NTP synchronized: *yes"; }
+
+_clock_mark_read() {
+    _m=$(cat "$CLOCK_MARK" 2>/dev/null) || _m=""
+    case "$_m" in ""|*[!0-9]*) echo 0 ;; *) echo "$_m" ;; esac
+}
+
+clock_save() {
+    clock_ntp_ok || return 0
+    _now=$(date -u +%s)
+    [ "$_now" -gt "$(_clock_mark_read)" ] || return 0   # мітка лише вперед
+    printf '%s\n' "$_now" > "$CLOCK_MARK.tmp" && mv -f "$CLOCK_MARK.tmp" "$CLOCK_MARK"
+}
+
+clock_restore() {
+    _mark=$(_clock_mark_read)
+    [ "$_mark" -gt 0 ] || return 0
+    _now=$(date -u +%s)
+    [ "$_mark" -gt "$_now" ] || return 0
+    _behind=$((_mark - _now))
+    if sudo -n date -u -s "@$_mark" >/dev/null 2>&1; then
+        log "годинник відставав на ${_behind}с — підняв до останньої відомої мітки"
+    else
+        log "годинник відставав на ${_behind}с, підняти не вдалось (sudo -n)"
+    fi
+}
