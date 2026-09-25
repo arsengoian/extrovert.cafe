@@ -17,6 +17,7 @@ import { flushImpressions } from "./jobs/impressions.js";
 import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
 import { deployMenus } from "./jobs/menu.js";
 import { backupDatabase } from "./jobs/backup.js";
+import { watchPiRelease } from "./jobs/release.js";
 
 const log = makeLog("scheduler");
 initErrors("scheduler", { log });
@@ -37,6 +38,10 @@ const JOBS = [
   { name: "np-directory", every: 6 * HOUR, ttl: 3 * HOUR, run: () => syncDirectory({ pool, log }) },
   // Щогодини лише перевірка «чи є сьогоднішній дамп» — сам дамп раз на добу.
   { name: "db-backup", every: HOUR, ttl: 50 * MINUTE, run: () => backupDatabase({ log }) },
+  // Півхвилини: стільки не шкода чекати, поки викочений реліз доїде на
+  // точку. Запит дешевий — маніфест питається з If-None-Match і без змін
+  // віддає 304 на пару сотень байтів.
+  { name: "pi-release", every: 30_000, ttl: 25_000, run: () => watchPiRelease({ pool, redis, log }) },
 ];
 
 // Порту в scheduler немає — про те, що він живий, каже позначка в Redis.

@@ -403,6 +403,27 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
         return;
     }
 
+    /* «На бакеті новий реліз» — єдина подія, яку кіоск не малює, а передає
+     * далі: торкається state/check-now, і апдейтер виходить з очікування за
+     * пʼять секунд замість того, щоб чекати свого кола (scheduler,
+     * jobs/release.js). Оновленнями завідує апдейтер — кіоск тут лише
+     * листоноша, бо ws тримає саме він.
+     *
+     * Файл створюється прямо тут, у мережевому потоці: це один open(), а не
+     * очікування мережі, і головного циклу він не стосується. */
+    if (cJSON_IsString(ev) && strcmp(ev->valuestring, "pi_release") == 0) {
+        const char *state_dir = getenv("EXTROVERT_STATE");
+        if (state_dir && state_dir[0]) {
+            char flag[1024];
+            snprintf(flag, sizeof(flag), "%s/check-now", state_dir);
+            FILE *f = fopen(flag, "w");
+            if (f) { fclose(f); fprintf(stderr, "ws: є новий реліз — просимо апдейтер перевірити зараз\n"); }
+            else   { fprintf(stderr, "ws: не змогли створити %s\n", flag); }
+        }
+        cJSON_Delete(root);
+        return;
+    }
+
     ws_event_t e = { 0 };
     const cJSON *id = cJSON_GetObjectItemCaseSensitive(root, "id");
     e.id = cJSON_IsNumber(id) ? (long long)id->valuedouble : 0;
