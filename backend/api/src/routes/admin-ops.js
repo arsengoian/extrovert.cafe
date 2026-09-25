@@ -290,13 +290,22 @@ export default async function routes(app) {
   });
 
   app.patch("/admin/promos/:id", async (req, reply) => {
-    if (!requireAdmin(req, reply)) return;
+    const admin = requireAdmin(req, reply);
+    if (!admin) return;
     const values = promoFrom(req.body);
-    const promo = await one(
-      `update promos set kind = $2, head1 = $3, head2 = $4, sub = $5, fine = $6, drink_code = $7
-        where id = $1 and archived_at is null returning *`, [req.params.id, ...values]);
-    if (!promo) fail(404, "no_such_promo");
-    return { promo };
+    return tx(async (client) => {
+      const { rows } = await client.query(
+        `update promos set kind = $2, head1 = $3, head2 = $4, sub = $5, fine = $6, drink_code = $7
+          where id = $1 and archived_at is null returning *`, [req.params.id, ...values]);
+      if (!rows.length) fail(404, "no_such_promo");
+      // Правка ПОТОЧНОЇ акції — це зміна того, що просто зараз на екрані, тож
+      // меню треба перекласти так само, як при виборі іншої акції. Без цього
+      // запит відповідав 200, рядок у базі мінявся, а точка місяцями показувала
+      // старий текст — і зрозуміти це можна було лише дійшовши до екрана
+      // (25.09.2026, власник: додав тип «оголошення», на малині не змінилось).
+      if (rows[0].is_current) await queueMenuRefresh(client, admin.id);
+      return { promo: rows[0] };
+    });
   });
 
   // Не видаляємо: акція могла поїхати на точку, і в історії деплойментів на
