@@ -25,7 +25,10 @@ API="${API_URL:-https://api.extrovert.cafe/api/v1}"
 PERIOD="${TELEMETRY_PERIOD_S:-60}"
 TOKEN_FILE="${WS_TOKEN_FILE:-$EXTROVERT_ROOT/config/point.key}"
 QUEUE="$EXTROVERT_STATE/telemetry.queue"
-QUEUE_MAX=500                      # ~2 доби проб: більше нікому не потрібно
+QUEUE_MAX=500                      # ~8 годин проб: більше нікому не потрібно
+# Скільки проб в одному POST. Має бути не більше за MAX_BATCH в api
+# (backend/api/src/routes/points.js): більший пакет сервер відкидає з 400.
+BATCH_MAX=200
 PING_HOST="${TELEMETRY_PING_HOST:-api.extrovert.cafe}"
 
 STOPPING=0
@@ -252,20 +255,38 @@ sample_json() {
 send_queue() {
     [ -s "$QUEUE" ] || return 0
     [ -f "$TOKEN_FILE" ] || return 1
-    _body=$(awk 'BEGIN{ printf "{\"samples\":[" } { printf "%s%s", (NR>1 ? "," : ""), $0 } END{ print "]}" }' "$QUEUE")
-    _code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
-        -H "authorization: Bearer $(cat "$TOKEN_FILE")" \
-        -H 'content-type: application/json' \
-        -X POST "$API/points/$POINT/telemetry" -d "$_body" 2>/dev/null) || _code=000
-    case "$_code" in
-        2*) _n=$(wc -l < "$QUEUE"); : > "$QUEUE"; log "надіслано проб: $_n"; return 0 ;;
-        401|403) log "токен точки не приймають ($_code) — телеметрія чекає"; return 1 ;;
-        # 400 — сервер не зміг це прочитати, і завтра теж не зможе. Тримати
-        # такий пакет вічно означає зупинити телеметрію назавжди; краще
-        # втратити ці проби, ніж усі наступні.
-        400) _n=$(wc -l < "$QUEUE"); : > "$QUEUE"; log "сервер не прийняв пакет (400) — викидаю $_n проб, щоб не стояла черга"; return 1 ;;
-        *) log "не вийшло надіслати ($_code), лишаємо в черзі"; return 1 ;;
-    esac
+    _sent=0
+    # Пачками по BATCH_MAX, а не всією чергою одним пакетом. Черга тримає до
+    # 500 проб, а api приймає 200 за раз (MAX_BATCH у routes/points.js) і на
+    # 201-й віддає 400 — а 400 у нас означає «викинути чергу». Тобто обрив
+    # мережі довший за три з половиною години стирав УСЮ зібрану за нього
+    # історію рівно в мить повернення (знайдено 25.09.2026).
+    while [ -s "$QUEUE" ]; do
+        head -n "$BATCH_MAX" "$QUEUE" > "$QUEUE.batch" || return 1
+        _n=$(wc -l < "$QUEUE.batch")
+        _body=$(awk 'BEGIN{ printf "{\"samples\":[" } { printf "%s%s", (NR>1 ? "," : ""), $0 } END{ print "]}" }' "$QUEUE.batch")
+        _code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            -H "authorization: Bearer $(cat "$TOKEN_FILE")" \
+            -H 'content-type: application/json' \
+            -X POST "$API/points/$POINT/telemetry" -d "$_body" 2>/dev/null) || _code=000
+        case "$_code" in
+            2*) tail -n +$((_n + 1)) "$QUEUE" > "$QUEUE.rest" && mv "$QUEUE.rest" "$QUEUE"
+                _sent=$((_sent + _n)) ;;
+            401|403) rm -f "$QUEUE.batch"; log "токен точки не приймають ($_code) — телеметрія чекає"; return 1 ;;
+            # 400 — сервер не зміг це прочитати, і завтра теж не зможе. Тримати
+            # такий пакет вічно означає зупинити телеметрію назавжди; краще
+            # втратити ці проби, ніж усі наступні. Викидаємо ЛИШЕ цю пачку:
+            # решта черги може бути цілком здоровою.
+            400) tail -n +$((_n + 1)) "$QUEUE" > "$QUEUE.rest" && mv "$QUEUE.rest" "$QUEUE"
+                 log "сервер не прийняв пачку (400) — викидаю $_n проб, решту лишаю" ;;
+            *) rm -f "$QUEUE.batch"
+               [ "$_sent" -gt 0 ] && log "надіслано проб: $_sent, решта лишається в черзі"
+               log "не вийшло надіслати ($_code), лишаємо в черзі"; return 1 ;;
+        esac
+    done
+    rm -f "$QUEUE.batch"
+    [ "$_sent" -gt 0 ] && log "надіслано проб: $_sent"
+    return 0
 }
 
 queue_push() {

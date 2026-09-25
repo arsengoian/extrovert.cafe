@@ -279,32 +279,48 @@ const OUTAGE_MIN_S = 180;    // менше трьох хвилин — це не
 const CLOCK_SLACK_S = 120;
 
 export async function outageKind(pool, pointId) {
-  const { rows: [gap] } = await pool.query(
+  // Якір — НАЙСВІЖІШИЙ розрив у ДОСТАВЦІ, а не найбільша дірка у вимірах.
+  // Перша версія брала максимум за дванадцять годин і після трихвилинного
+  // обриву написала «малина не працювала 10.3 год»: вона чесно знайшла нічне
+  // вимкнення, про яке вранці вже повідомила. Питання ж не «яка найгірша
+  // дірка за добу», а «що це зараз було» (знайшов власник, 25.09.2026).
+  //
+  // Рядок, який шукаємо, — перша проба, що доїхала ПІСЛЯ паузи. У ній є все
+  // потрібне:
+  //   outage_s — скільки часу від точки нічого не приходило (сам обрив);
+  //   hole_s   — скільки часу ніхто нічого не МІРЯВ. Малина, що працює,
+  //              міряє собі далі в чергу, і дірка тут дорівнює одному
+  //              періоду; малина, що лежить, не міряє нічого, і дірка
+  //              дорівнює обриву.
+  //
+  // Друга спроба ловила «свіжість» через received_at за останні пʼять
+  // хвилин — і розсипалась, щойно overseer заглядав пізніше. Тепер вікна
+  // немає взагалі: беремо останній розрив, хоч би коли ми на нього дивились.
+  const { rows: [o] } = await pool.query(
     `with p as (
-       select measured_at,
+       select measured_at, received_at,
               (metrics->>'uptime_s')::float as uptime,
-              lag(measured_at) over w as prev_at,
+              lag(received_at) over w as prev_recv,
+              lag(measured_at) over w as prev_meas,
               lag((metrics->>'uptime_s')::float) over w as prev_uptime
          from device_telemetry
-        where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours'
-       window w as (order by measured_at))
-     select extract(epoch from (measured_at - prev_at)) as hole_s, uptime, prev_uptime
-       from p where prev_at is not null
-      order by measured_at - prev_at desc limit 1`,
-    [pointId]
+        where point_id = $1 and source = 'pi' and received_at > now() - interval '12 hours'
+       window w as (order by received_at, measured_at))
+     select extract(epoch from (received_at - prev_recv)) as outage_s,
+            extract(epoch from (measured_at - prev_meas)) as hole_s,
+            uptime, prev_uptime
+       from p
+      where prev_recv is not null
+        and received_at - prev_recv >= make_interval(secs => $2)
+      order by received_at desc, measured_at desc
+      limit 1`,
+    [pointId, OUTAGE_MIN_S]
   );
-  const { rows: [delay] } = await pool.query(
-    `select coalesce(max(extract(epoch from (received_at - measured_at))), 0) as late_s
-       from device_telemetry
-      where point_id = $1 and source = 'pi' and measured_at > now() - interval '12 hours'`,
-    [pointId]
-  );
+  if (!o) return null;
 
-  const hole = Number(gap?.hole_s ?? 0);
+  const outage = Number(o.outage_s), hole = Number(o.hole_s);
   if (hole >= OUTAGE_MIN_S) {
-    const after = Number(gap.uptime), before = Number(gap.prev_uptime);
-    // Без аптайму (стара проба) судимо лише за самою діркою: пропав час —
-    // значить, пропала й машина. Це слабше твердження, але не вигадане.
+    const after = Number(o.uptime), before = Number(o.prev_uptime);
     const grew = Number.isFinite(after) && Number.isFinite(before)
       ? after >= before + hole - CLOCK_SLACK_S
       : Number.isFinite(after) && after >= hole;
@@ -312,10 +328,7 @@ export async function outageKind(pool, pointId) {
       ? `малина працювала, але не слала проб ${human(hole / 60)} — щось зависало`
       : `малина не працювала ${human(hole / 60)}`;
   }
-
-  const late = Number(delay?.late_s ?? 0);
-  if (late >= OUTAGE_MIN_S) return `не було інтернету ${human(late / 60)}, малина працювала`;
-  return null;
+  return `не було інтернету ${human(outage / 60)}, малина працювала`;
 }
 
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
