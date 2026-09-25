@@ -63,14 +63,31 @@ const wss = new WebSocketServer({ server, handleProtocols: (protocols) => {
 const sub = redisClient();
 const rooms = new Map();        // канал → Set(ws)
 
+// Один канал на ВСІ точки. Потрібен рівно для оповіщень, які стосуються
+// кожної з них незалежно від того, скільки їх і як вони звуться: зараз це
+// «на бакеті новий реліз кіоска», яке шле CI одним рядком одразу після
+// публікації маніфесту (deploy.yml). Інакше тому, хто шле, довелося б
+// спершу спитати базу про живі точки — а це або ще один запит із CI, або
+// список id, вписаний у воркфлоу руками.
+const ALL_POINTS = "points";
+
 sub.on("pmessage", (_pattern, channel, payload) => {
+  if (channel === ALL_POINTS) {
+    for (const [name, room] of rooms) {
+      if (!name.startsWith("point:")) continue;
+      for (const socket of room) {
+        if (socket.readyState === socket.OPEN) socket.send(payload);
+      }
+    }
+    return;
+  }
   const room = rooms.get(channel);
   if (!room) return;
   for (const socket of room) {
     if (socket.readyState === socket.OPEN) socket.send(payload);
   }
 });
-await sub.psubscribe("user:*", "point:*", "admin");
+await sub.psubscribe("user:*", "point:*", "admin", ALL_POINTS);
 
 wss.on("connection", (socket, req) => {
   const offered = (req.headers["sec-websocket-protocol"] || "").split(",").map((s) => s.trim());

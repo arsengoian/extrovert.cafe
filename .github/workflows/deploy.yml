@@ -189,6 +189,33 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: bun scripts/push-release.mjs
 
+      # Сказати точкам, що є нова версія, замість чекати, поки котрась сама
+      # спитає маніфест. Достукатись до малини ззовні не можна — вона за
+      # роутером у локальній мережі, — але вона сама тримає ws до прода, а
+      # ws роздає те, що прийшло в Redis. Тож достатньо одного publish на
+      # дроплеті: кіоск торкнеться state/check-now, і апдейтер вийде з
+      # очікування за пʼять секунд (docs/raspberry-pi.md §6-біс).
+      #
+      # Крок навмисно НЕ валить збірку: реліз уже лежить у бакеті, і якщо
+      # оповістити не вийшло, точки підхоплять його опитуванням за дві
+      # хвилини. Це сповіщення, а не доставка.
+      - name: Сказати точкам, що є реліз
+        if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          PORT: ${{ secrets.SERVER_PORT || '2222' }}
+          USER_: ${{ secrets.SERVER_USER || 'root' }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_notify
+          chmod 600 ~/.ssh/id_notify
+          # Команда в одинарних лапках: $(docker ps …) має виконатись НА
+          # дроплеті, а не на раннері, де докера з нашим redis немає.
+          ssh -i ~/.ssh/id_notify -p "$PORT" -o StrictHostKeyChecking=accept-new "$USER_@$HOST" \
+            'docker exec $(docker ps --format "{{.Names}}" | grep -m1 redis) redis-cli publish points "{\"event\":\"pi_release\"}"' \
+            || echo "не достукались до дроплета — точки підхоплять реліз опитуванням"
+
   # Лінтер. Тримає рівно те, що збірка не ловить: звернення до неоголошених
   # імен (у тому числі JSX-тегів — це окреме правило react/jsx-no-undef) і
   # мертві змінні. Обидва випадки 23.09.2026 доїхали до прода.
