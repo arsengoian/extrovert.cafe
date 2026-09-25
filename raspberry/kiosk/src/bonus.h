@@ -47,6 +47,7 @@ typedef struct {
     cairo_surface_t *bar_surf;  gl_texture_t bar_tex;     /* оновлюється щокадру */
     cairo_surface_t *timer_surf; gl_texture_t timer_tex;  /* перепікається раз на секунду */
     int last_baked_sec;            /* remain-у-секундах, для якого timer_surf вже актуальний; -1 = ще ніколи */
+    int last_bar_px;               /* ширина смуги в ПІКСЕЛЯХ, яку вже намальовано; -1 = ще ніколи */
 } bonus_row_t;
 
 typedef struct {

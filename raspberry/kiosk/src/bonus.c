@@ -35,6 +35,19 @@ static void draw_bar_local(cairo_t *cr, double frac) {
 /* Переюзана поверхня — тільки clear+перемалювати, без нової алокації
  * буфера щокадру; текстура оновлюється glTexSubImage2D (gl.c). */
 static void redraw_bar(bonus_row_t *row, double frac) {
+    /* Смуга 398 px вигоряє за дві хвилини, тобто повзе на ПІКСЕЛЬ раз на
+     * третину секунди. Перемальовувати її 60 разів на секунду — це 59 разів
+     * намалювати те саме: Cairo-контекст, закруглений прямокутник, градієнт
+     * і заливка на кожен рядок панелі, а потім ще й заливка текстури в GPU.
+     * Саме через це три бонуси на екрані давали 43 fps замість 60
+     * (docs/raspberry-pi.md §7). Малюємо лише коли змінилась ЦІЛА ширина —
+     * картинка виходить піксель у піксель та сама, роботи в двадцять разів
+     * менше (25.09.2026). */
+    if (frac < 0) frac = 0;
+    if (frac > 1) frac = 1;
+    int px = (int)(BONUS_BAR_W * frac + 0.5);
+    if (row->bar_surf && px == row->last_bar_px) return;
+    row->last_bar_px = px;
     if (!row->bar_surf) {
         row->bar_surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
                                                      (int)BONUS_BAR_W, (int)BONUS_BAR_H);
@@ -213,6 +226,7 @@ static bonus_row_t *take_row(bonus_state_t *b, double now, const char *who) {
     bonus_row_t *row = &b->rows[b->count];
     memset(row, 0, sizeof(*row));
     row->last_baked_sec = -1;
+    row->last_bar_px = -1;
     row->created_at = now;
 
     time_t t = time(NULL);

@@ -116,8 +116,16 @@ static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s) {
      * обидві пишуть картинку — спільний .tmp вони б зіпсували одна одній. */
     char tmp[1024];
     snprintf(tmp, sizeof(tmp), "%s.%d.tmp", path, (int)getpid());
-    if (cairo_surface_write_to_png(s, tmp) == CAIRO_STATUS_SUCCESS && rename(tmp, path) == 0)
-        fprintf(stderr, "main: запасна картинка → %s\n", path);
+    /* Час пишемо завжди, а не лише у фоновому рендері: там рядок зʼявляється
+     * тільки коли змінилось меню, тобто раз на кілька днів, а тут — на
+     * кожному старті кіоска. Вісім мегабайтів ARGB через zlib на ARMv6 —
+     * головний підозрюваний у тих 32,8 с (25.09.2026). */
+    struct timespec p0, p1;
+    clock_gettime(CLOCK_MONOTONIC, &p0);
+    bool written = cairo_surface_write_to_png(s, tmp) == CAIRO_STATUS_SUCCESS && rename(tmp, path) == 0;
+    clock_gettime(CLOCK_MONOTONIC, &p1);
+    if (written)
+        fprintf(stderr, "main: запасна картинка → %s за %.1f с\n", path, span(p0, p1));
     else
         fprintf(stderr, "main: запасна картинка не записалась (%s)\n", path);
     cairo_surface_destroy(s);
