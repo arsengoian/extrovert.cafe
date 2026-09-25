@@ -29,6 +29,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/resource.h>   /* setpriority — фоновий рендер поступається кадру */
 
 static volatile sig_atomic_t g_running = 1;
 static volatile sig_atomic_t g_popup_toggle = 0;
@@ -89,9 +90,28 @@ static void load_fonts(const char *assets_dir) {
  * хтось руками через scp. Меню з рекламою, без панелі бонусів і попапів:
  * вигадані QR у статичній картинці нікому не потрібні. Через .tmp і
  * rename — щоб знеструмлення посеред запису не лишило битий PNG. */
-static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s) {
+static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, unsigned long hash) {
     const char *path = getenv("FALLBACK_PNG");
     if (!path || !path[0] || !menu_s) return;
+    /* Поруч із картинкою лежить хеш меню, з якого її намальовано. Збігається
+     * і сам файл на місці — писати нічого: та сама картинка вже там.
+     * Коштує це 7,1 с на ARMv6 (заміряно на точці 25.09.2026), і платили ми
+     * їх на КОЖНОМУ старті кіоска, тобто на кожному релізі — у той самий
+     * момент, коли процесор і так ділиться між старою копією, що малює, і
+     * новою, що піднімається. */
+    char hpath[1100];
+    snprintf(hpath, sizeof(hpath), "%s.hash", path);
+    char want[32];
+    snprintf(want, sizeof(want), "%lu", hash);
+    if (hash) {
+        FILE *hf = fopen(hpath, "r");
+        if (hf) {
+            char had[32] = {0};
+            bool same = fgets(had, sizeof(had), hf) && strcmp(had, want) == 0 && access(path, R_OK) == 0;
+            fclose(hf);
+            if (same) { fprintf(stderr, "main: запасна картинка вже від цього меню — не переписую\n"); return; }
+        }
+    }
     cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, STAGE_W, STAGE_H);
     cairo_t *cr = cairo_create(s);
     cairo_set_source_surface(cr, menu_s, 0, 0);
@@ -124,9 +144,13 @@ static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s) {
     clock_gettime(CLOCK_MONOTONIC, &p0);
     bool written = cairo_surface_write_to_png(s, tmp) == CAIRO_STATUS_SUCCESS && rename(tmp, path) == 0;
     clock_gettime(CLOCK_MONOTONIC, &p1);
-    if (written)
+    if (written) {
+        /* Хеш кладемо ПІСЛЯ картинки: обірветься живлення між ними — наступний
+         * старт просто перепише картинку, а не повірить у застарілу. */
+        FILE *hf = fopen(hpath, "w");
+        if (hf) { fprintf(hf, "%s", want); fclose(hf); }
         fprintf(stderr, "main: запасна картинка → %s за %.1f с\n", path, span(p0, p1));
-    else
+    } else
         fprintf(stderr, "main: запасна картинка не записалась (%s)\n", path);
     cairo_surface_destroy(s);
 }
@@ -143,7 +167,7 @@ static void apply_menu(const menu_t *menu, const char *assets_dir,
     }
     gl_texture_destroy(ad_tex);
     if (a) *ad_tex = gl_texture_from_cairo(a);
-    write_fallback_png(m, a);
+    write_fallback_png(m, a, menu->hash);
     if (m) cairo_surface_destroy(m);
     if (a) cairo_surface_destroy(a);
 }
@@ -184,6 +208,21 @@ typedef struct {
 
 static void *menu_poll_thread(void *arg) {
     menu_poller_t *mp = (menu_poller_t *)arg;
+    /* Поступаємось кадровому циклу. Ядро на Pi 1 одне, і робота цього потоку
+     * (rsvg, cairo, zlib) рівно та сама за природою, що й малювання кадру —
+     * планувальник ділить процесор порівну й уповільнює обох. Заміряно
+     * 25.09.2026: меню коштує 5,5 с, картинка 7,1 с, а у фоні разом виходило
+     * 32,8 с — решта це чиста конкуренція.
+     *
+     * nice тут безпечний саме тому, що на цей потік ніхто не дивиться: меню
+     * оновлюється раз на кілька днів, і якщо воно намалюється на пів
+     * хвилини пізніше, не помітить ніхто. А от просілі кадри на екрані
+     * помітно одразу.
+     *
+     * PRIO_PROCESS із who=0 у Linux означає саме ПОТІК, що викликав, а не
+     * весь процес — це давня особливість ядра, і тут вона якраз доречна. */
+    if (setpriority(PRIO_PROCESS, 0, 10) != 0)
+        fprintf(stderr, "main: не вийшло знизити пріоритет потоку меню\n");
     for (;;) {
         pthread_mutex_lock(&mp->mu);
         menu_t attempt = mp->last;
@@ -213,7 +252,7 @@ static void *menu_poll_thread(void *arg) {
             clock_gettime(CLOCK_MONOTONIC, &tm);
             cairo_surface_t *a = render_ad(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &ta);
-            write_fallback_png(m, a);
+            write_fallback_png(m, a, attempt.hash);
             clock_gettime(CLOCK_MONOTONIC, &t1);
 
             pthread_mutex_lock(&mp->mu);
