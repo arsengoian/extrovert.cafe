@@ -27,7 +27,8 @@ export function Promos() {
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState(null);
+  const [note, setNote] = useState(null);     // помилки форми — під формою
+  const [flash, setFlash] = useState(null);   // відповідь на дію в бібліотеці — у бібліотеці
 
   if (error) return <Empty>не вдалось прочитати акції: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
@@ -62,20 +63,23 @@ export function Promos() {
       if (editing === p.id) reset();
       reload();
     } catch (e) {
-      setNote(e.body?.error === "promo_is_current"
+      setFlash({ ok: false, text: e.body?.error === "promo_is_current"
         ? "це поточна акція — спершу зроби поточною іншу"
-        : e.message);
+        : e.message });
     }
   };
 
   const makeCurrent = async (p) => {
     setBusy(true);
-    setNote(null);
+    setFlash(null);
     try {
       await api.promoSetCurrent(p.id);
+      // Кажемо, ЩО саме поїхало на екран: без цього єдиний слід успіху —
+      // бейдж, який зʼявляється десь у списку, і його легко не помітити.
+      setFlash({ ok: true, text: `«${p.head1}» тепер на екрані — меню поїде на точку протягом хвилини` });
       reload();
     } catch (e) {
-      setNote(e.message);
+      setFlash({ ok: false, text: e.message });
     } finally {
       setBusy(false);
     }
@@ -133,6 +137,11 @@ export function Promos() {
         </Card>
 
         <Card title="Бібліотека" note={`${data.promos.length} шт.`}>
+          {flash && (
+            <div className="promo-note" style={{ color: flash.ok ? "var(--ok)" : "var(--bad)", marginBottom: 8 }}>
+              {flash.text}
+            </div>
+          )}
           {data.promos.length === 0 ? (
             <Empty>акцій ще немає</Empty>
           ) : (
