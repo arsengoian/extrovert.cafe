@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>      /* getpid() — суфікс тимчасового файла кешу */
 
 /* FNV-1a — той самий клас перевірки, що JSON.stringify(d)===lastHash
  * в app.js, тільки без переалокації рядка щоразу. */
@@ -100,6 +101,52 @@ const cup_tier_t *menu_find_cup(const menu_t *m, const char *key) {
     return NULL;
 }
 
+/* Шлях до кешу меню: поруч зі станом стеку. Порожньо (десктоп, тести) —
+ * кеш вимкнено, поведінка та сама, що була. */
+static bool cache_path(char *buf, size_t n) {
+    const char *dir = getenv("EXTROVERT_STATE");
+    if (!dir || !dir[0]) return false;
+    snprintf(buf, n, "%s/menu-cache.json", dir);
+    return true;
+}
+
+static bool parse_body(const char *data, size_t len, menu_t *out);
+
+/* Остання вдала менюшка на диску. Читаємо її, коли мережі немає, — інакше
+ * кіоск після холодного старту без інтернету не має ЧОГО малювати: шар
+ * лишається прозорим, і на екрані висить запасна картинка від fbi
+ * (знайдено власником 25.09.2026, коли він увімкнув точку без кабелю).
+ * Ціни з кешу можуть бути вчорашні — рівно такі самі, як на тій картинці,
+ * тільки кіоск при цьому живий і малює свій кадр. */
+bool menu_load_cache(menu_t *out) {
+    char path[1024];
+    if (!cache_path(path, sizeof(path))) return false;
+    FILE *fp = fopen(path, "rb");
+    if (!fp) return false;
+    struct buf b = {0};
+    char chunk[4096];
+    size_t got;
+    while ((got = fread(chunk, 1, sizeof(chunk), fp)) > 0)
+        if (write_cb(chunk, 1, got, &b) != got) break;
+    fclose(fp);
+    bool ok = b.len && parse_body(b.data, b.len, out);
+    free(b.data);
+    fprintf(stderr, "menu: кеш %s — %s\n", path, ok ? "прочитано" : "не придатний");
+    return ok;
+}
+
+/* Пишемо через тимчасовий файл і rename: живлення на точці просідає, і
+ * напівзаписаний кеш пережив би перезавантаження, а меню — ні. */
+static void cache_store(const char *data, size_t len) {
+    char path[1024], tmp[1100];
+    if (!cache_path(path, sizeof(path))) return;
+    snprintf(tmp, sizeof(tmp), "%s.%d.tmp", path, (int)getpid());
+    FILE *fp = fopen(tmp, "wb");
+    if (!fp) return;
+    bool ok = fwrite(data, 1, len, fp) == len;
+    if (fclose(fp) != 0 || !ok || rename(tmp, path) != 0) remove(tmp);
+}
+
 bool menu_poll(const char *url, menu_t *out) {
     struct buf b = {0};
     CURL *c = curl_easy_init();
@@ -128,16 +175,22 @@ bool menu_poll(const char *url, menu_t *out) {
         return false;
     }
 
-    unsigned long h = menu_fnv1a(b.data, b.len);
-    if (out->valid && h == out->hash) {
-        free(b.data);
-        return false;               /* без змін — так само як lastHash в app.js */
-    }
+    /* Кладемо в кеш кожне вдале тіло, навіть якщо воно не змінилось: файл
+     * міг зникнути разом зі станом, а коштує це один запис на хвилину. */
+    cache_store(b.data, b.len);
 
-    cJSON *root = cJSON_ParseWithLength(b.data, b.len);
+    bool changed = parse_body(b.data, b.len, out);
     free(b.data);
+    return changed;
+}
+
+static bool parse_body(const char *data, size_t len, menu_t *out) {
+    unsigned long h = menu_fnv1a(data, len);
+    if (out->valid && h == out->hash) return false;   /* без змін — як lastHash в app.js */
+
+    cJSON *root = cJSON_ParseWithLength(data, len);
     if (!root) {
-        fprintf(stderr, "menu_poll: битий JSON\n");
+        fprintf(stderr, "menu: битий JSON\n");
         return false;
     }
 

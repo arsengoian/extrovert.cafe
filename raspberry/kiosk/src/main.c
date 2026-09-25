@@ -343,6 +343,13 @@ int main(int argc, char **argv) {
     update_init(&upd, update_flag);
     gl_texture_t update_tex = {0};
     double update_tex_w = 0;
+    /* Плашка «бонуси недоступні» — окрема текстура, але слот на екрані той
+     * самий, що в оновлення: двох плашок поруч макет не передбачає, а
+     * оновлення важливіше — воно триває хвилину й саме зникне. */
+    gl_texture_t offline_tex = {0};
+    double offline_tex_w = 0;
+    double ws_down_since = -1;
+    bool offline_shown = false;
 
     popup_state_t popup_state = POPUP_HIDDEN;
     double popup_t0 = 0;
@@ -356,8 +363,18 @@ int main(int argc, char **argv) {
     if (menu_poll(url, &menu)) {
         fprintf(stderr, "main: меню завантажено, %d напоїв\n", menu.drink_count);
         apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
+    } else if (menu_load_cache(&menu)) {
+        /* Мережі немає — беремо вчорашню менюшку з диска. Без цього кіоску
+         * нема чого малювати, шар лишається прозорим (gl_clear(!have_menu)),
+         * і на екрані висить запасна картинка fbi — рівно те, що власник
+         * побачив 25.09.2026, увімкнувши точку без кабелю. Ціни в кеші й на
+         * тій картинці однаково вчорашні, різниця в тому, що з кешем кіоск
+         * живий: малює свій кадр, тримає сокет телеметрії й покаже QR, щойно
+         * підніметься ws. */
+        fprintf(stderr, "main: мережі немає — меню з кешу, %d напоїв\n", menu.drink_count);
+        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
     } else {
-        fprintf(stderr, "main: не вдалось завантажити меню з %s, стартую з порожнім екраном\n", url);
+        fprintf(stderr, "main: ні мережі, ні кешу (%s) — стартую з порожнім екраном\n", url);
     }
 
     /* Далі опитування йде фоновим потоком (menu_poll_thread вище) — цей
@@ -428,6 +445,22 @@ int main(int argc, char **argv) {
         /* Оновлення: апдейтер створює файл-прапорець перед підміною версії,
          * кіоск показує плашку в шапці й працює далі до самого SIGTERM. */
         update_poll(&upd, update_flag, sim_t);
+        /* Бонуси живуть подіями з ws. Немає каналу — QR не зʼявиться, хоч
+         * би скільки людина чекала; єдине чесне — сказати це на екрані.
+         * ws == NULL (немає токена, десктоп) попередження не вмикає. */
+        bool ws_down = ws && !ws_online(ws);
+        if (!ws_down) ws_down_since = -1;
+        else if (ws_down_since < 0) ws_down_since = sim_t;
+        bool bonus_down = ws_down && !upd.active && sim_t - ws_down_since > WS_OFFLINE_GRACE_S;
+        if (bonus_down != offline_shown) {
+            offline_shown = bonus_down;
+            gl_texture_destroy(&offline_tex);
+            offline_tex_w = 0;
+            if (bonus_down) {
+                cairo_surface_t *os = render_update_banner(WS_OFFLINE_LABEL, &offline_tex_w);
+                if (os) { offline_tex = gl_texture_from_cairo(os); cairo_surface_destroy(os); }
+            }
+        }
         if (upd.dirty) {
             gl_texture_destroy(&update_tex);
             update_tex_w = 0;
@@ -571,6 +604,9 @@ int main(int argc, char **argv) {
         if (upd.active && update_tex.id)
             gl_draw_quad(&comp, &update_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
                          update_tex_w, UPDATE_BANNER_H, 1.0);
+        else if (offline_shown && offline_tex.id)
+            gl_draw_quad(&comp, &offline_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
+                         offline_tex_w, UPDATE_BANNER_H, 1.0);
 
         if (have_menu && popup_state != POPUP_HIDDEN && popup_tex.id) {
             double px = (STAGE_W - POPUP_W) / 2.0, py = (STAGE_H - POPUP_H) / 2.0;

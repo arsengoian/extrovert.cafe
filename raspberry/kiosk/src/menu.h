@@ -89,6 +89,13 @@ const cup_tier_t *menu_find_cup(const menu_t *m, const char *key);
  * порівнює JSON.stringify(d) з lastHash перед render(). */
 bool menu_poll(const char *url, menu_t *out);
 
+/* Остання вдала менюшка з диска ($EXTROVERT_STATE/menu-cache.json). Потрібна
+ * рівно в одному випадку: холодний старт без мережі. Без неї кіоску нема
+ * чого малювати, шар лишається прозорим — і на екрані висить запасна
+ * картинка fbi, хоч сам кіоск живий (25.09.2026). Без EXTROVERT_STATE
+ * (десктоп, тести) кеш вимкнений і функція завжди повертає false. */
+bool menu_load_cache(menu_t *out);
+
 /* Прапорець "кидай усе і виходь" для curl усередині menu_poll.
  *
  * Без цього зупинка кіоска впиралась у CURLOPT_TIMEOUT: якщо SIGTERM
