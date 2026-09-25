@@ -92,22 +92,27 @@ prune_releases() {
 }
 
 # ── Крок 1: маніфест ─────────────────────────────────────────────────────
-fetch_manifest() { # → 0 якщо є що читати в $1, 1 якщо нічого нового/помилка
+# Три різні відповіді, а не дві. «Нічого нового» і «не змогли спитати» —
+# це протилежні стани точки, а в лозі вони були одним рядком «маніфест:
+# нічого нового або мережа мовчить». Сьогодні я читав його разів пʼять,
+# розбираючись, чи є на точці інтернет, і він не сказав нічого (25.09.2026).
+fetch_manifest() { # → 0 є новий маніфест / 1 без змін (304) / 2 не спитати
     _out=$1
     _etag=""
     [ -f "$ETAG_FILE" ] && _etag=$(cat "$ETAG_FILE")
     _hdr="$EXTROVERT_STATE/.manifest.hdr"
     if [ -n "$_etag" ]; then
         curl -fsS --max-time 30 --retry 2 -D "$_hdr" -H "If-None-Match: $_etag" \
-             -o "$_out" "$UPDATE_URL" 2>>"$EXTROVERT_LOGS/updater.log" || return 1
+             -o "$_out" "$UPDATE_URL" 2>>"$EXTROVERT_LOGS/updater.log" || return 2
     else
         curl -fsS --max-time 30 --retry 2 -D "$_hdr" \
-             -o "$_out" "$UPDATE_URL" 2>>"$EXTROVERT_LOGS/updater.log" || return 1
+             -o "$_out" "$UPDATE_URL" 2>>"$EXTROVERT_LOGS/updater.log" || return 2
     fi
     grep -qi '^HTTP/.* 304' "$_hdr" 2>/dev/null && return 1
     _new_etag=$(grep -i '^etag:' "$_hdr" 2>/dev/null | head -n1 | sed 's/^[Ee][Tt][Aa][Gg]:[[:space:]]*//; s/[[:space:]]*$//')
     [ -n "$_new_etag" ] && printf '%s\n' "$_new_etag" > "$ETAG_FILE"
-    [ -s "$_out" ]
+    [ -s "$_out" ] || return 2
+    return 0
 }
 
 # ── Кроки 2-4: привезти й розпакувати ────────────────────────────────────
@@ -230,6 +235,7 @@ log "старт, джерело $UPDATE_URL, період ${UPDATE_PERIOD_S}с"
 mkdir -p "$EXTROVERT_STATE" "$EXTROVERT_LOGS" "$EXTROVERT_RELEASES"
 [ -f "$EXTROVERT_STATE/version" ] || state_write version "$(current_release)"
 
+LAST_FETCH=""     # попередній результат опитування маніфесту: пишемо лише зміни
 while :; do
     # Джитер, щоб десяток точок не бив у R2 одночасно після спільного
     # блекауту. $$ як джерело — детерміновано в межах процесу й достатньо
@@ -247,7 +253,19 @@ while :; do
     done
 
     _man="$EXTROVERT_STATE/.manifest.json"
-    fetch_manifest "$_man" || { log "маніфест: нічого нового або мережа мовчить"; continue; }
+    fetch_manifest "$_man"; _fm=$?
+    if [ "$_fm" != "0" ]; then
+        # Пишемо лише на ЗМІНУ стану. Коло раз на дві хвилини — це 720 рядків
+        # на добу, кожен з яких повторює попередній; на SD-картці, ресурс якої
+        # ми бережемо (§6-тер), такий лог — чистий знос.
+        if [ "$_fm" != "$LAST_FETCH" ]; then
+            [ "$_fm" = "1" ] && log "маніфест без змін — сидимо на $(current_release)"
+            [ "$_fm" = "2" ] && log "маніфест не спитати: мережа мовчить або бакет недоступний"
+            LAST_FETCH=$_fm
+        fi
+        continue
+    fi
+    LAST_FETCH=0
 
     _rel=$(json_get "$_man" release)
     _url=$(json_get "$_man" url)
