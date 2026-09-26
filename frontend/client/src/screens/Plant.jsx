@@ -11,7 +11,7 @@ import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
-import { Sparks, Typewriter } from "../ui/fx.jsx";
+import { Sparks, Typewriter, calm } from "../ui/fx.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -92,7 +92,118 @@ const Lock = ({ size, title }) => (
 // натискається: витратити воду, коли її не просять, було можна, і сервер
 // чесно відповідав «мені зараз потрібне інше» — але препарат при цьому вже
 // списувався б, якби відповідь загубилась (зауваження власника 23.09.2026).
-function Shelf({ care, onApply, pour, need }) {
+// ── Догляд над рослиною ──────────────────────────────────────────────
+// Копія препарату злітає з полиці по дузі до верху рослини, робить своє й
+// зникає; банка на полиці лишається, а число на кільці зменшується, як і
+// раніше. Дизайн («дошка Анімації») описував лише нахил лійки на місці, а
+// власник попросив, щоб поливали саму рослину й щоб решта препаратів теж
+// мала свою дію (26.09.2026). Мова та сама, що в решти анімацій: лише
+// transform і опасіті, без перемальовування.
+//
+// Координати — з реальних прямокутників: .plant-area масштабується цілком
+// (--pf), тож екранні пікселі ділимо на її масштаб. Ціль — верх силуету
+// рослини (об'єднання її спрайтів), тому на кожній стадії дія відбувається
+// над кроною, а не в заданій наперед точці.
+const CARE_FX_MS = 1500;
+// Нахил — за годинниковою стрілкою: препарат висить лівіше центру крони, і
+// отвором праворуч униз він сиплеться якраз на рослину. Лійка на полиці
+// віддзеркалена й дивиться носиком ВІД рослини, тож у польоті вона
+// розвертається (дзеркало знімається) — інакше вода лилася б повз кущ.
+const CARE_FX = {
+  water: { tilt: 42, parts: "drop", turn: "" },                    // на полиці віддзеркалена
+  compost: { tilt: 48, parts: "grain", color: "#6B4A2B" },
+  fertilizer: { tilt: 48, parts: "grain", color: "#EDE7D6" },
+  insecticide: { tilt: 0, shake: true, parts: "mist", turn: "scaleX(-1)" },   // носик ліворуч
+};
+
+function CareFx({ pour, areaRef }) {
+  const host = useRef(null);
+  useEffect(() => {
+    const area = areaRef.current, box = host.current;
+    if (!pour || !area || !box || calm()) return undefined;
+    const spec = CARE_FX[pour.kind];
+    const shelfImg = area.querySelector(`.shelf-item[data-kind="${pour.kind}"] img`);
+    const plantImgs = [...area.querySelectorAll(".plant-scene img")];
+    if (!spec || !shelfImg || !plantImgs.length) return undefined;
+
+    const ar = area.getBoundingClientRect();
+    const k = ar.width / area.offsetWidth || 1;
+    const local = (r) => ({ x: (r.left - ar.left) / k, y: (r.top - ar.top) / k, w: r.width / k, h: r.height / k });
+    const from = local(shelfImg.getBoundingClientRect());
+    const plant = plantImgs.map((el) => el.getBoundingClientRect()).reduce((u, r) => ({
+      left: Math.min(u.left, r.left), top: Math.min(u.top, r.top),
+      right: Math.max(u.right, r.right), bottom: Math.max(u.bottom, r.bottom),
+    }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
+    const p = local({ left: plant.left, top: plant.top, width: plant.right - plant.left, height: plant.bottom - plant.top });
+    // Над кроною, трохи лівіше центру: носик лійки й отвір мішка дивляться
+    // праворуч униз, тож частинки падають саме на рослину.
+    const to = { x: p.x + p.w / 2 - from.w * 0.9, y: Math.max(0, p.y - from.h * 0.9) };
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const mirror = shelfImg.style.transform || "";
+    // Розворот до рослини: віддзеркалене на полиці в польоті дивиться прямо.
+    // turn — як препарат має дивитись над рослиною; немає — лишається як на полиці.
+    const face = (after) => (after ? (spec.turn ?? mirror) : mirror);
+
+    const flyer = shelfImg.cloneNode();
+    Object.assign(flyer.style, { position: "absolute", left: `${from.x}px`, top: `${from.y}px`,
+      width: `${from.w}px`, height: `${from.h}px`, transform: mirror, zIndex: 60,
+      filter: "drop-shadow(0 6px 5px rgba(0,0,0,.35))" });
+    box.appendChild(flyer);
+    const t = (x, y, r = 0, sc = 1, turned = true) => `translate(${x}px, ${y}px) rotate(${r}deg) scale(${sc}) ${face(turned)}`;
+    const act = spec.shake
+      ? [{ offset: 0.44, transform: t(dx, dy, -9, 1.12) }, { offset: 0.52, transform: t(dx, dy, 9, 1.12) },
+         { offset: 0.6, transform: t(dx, dy, -9, 1.12) }, { offset: 0.68, transform: t(dx, dy, 0, 1.12) }]
+      : [{ offset: 0.44, transform: t(dx, dy, spec.tilt, 1.12) }, { offset: 0.7, transform: t(dx, dy, spec.tilt, 1.12) }];
+    const anims = [flyer.animate([
+      { offset: 0, transform: t(0, 0, 0, 1, false), opacity: 1 },
+      { offset: 0.18, transform: t(dx * 0.5, dy * 0.5 - 46, -6, 1.06, false) },      // дуга вгору
+      { offset: 0.36, transform: t(dx, dy, 0, 1.12) },
+      ...act,
+      { offset: 0.82, transform: t(dx, dy, 0, 1.12), opacity: 1 },
+      { offset: 1, transform: t(dx, dy - 10, 0, 0.9), opacity: 0 },
+    ].map((kf) => ({ easing: "ease-in-out", ...kf })), { duration: CARE_FX_MS, easing: "linear", fill: "forwards" })];
+
+    // Частинки — з носика/отвору на верх рослини.
+    const spout = { x: to.x + from.w * 0.95, y: to.y + from.h * 0.75 };
+    const fall = Math.max(40, p.y + Math.min(p.h, 120) * 0.5 - spout.y);
+    const n = spec.parts === "mist" ? 7 : spec.parts === "grain" ? 9 : 3;
+    for (let i = 0; i < n; i++) {
+      const el = document.createElement(spec.parts === "drop" ? "img" : "i");
+      let kf, dur, delay;
+      if (spec.parts === "drop") {
+        el.src = "/assets/ui/droplet.png";
+        Object.assign(el.style, { position: "absolute", width: "13px", height: "18px", left: `${spout.x + i * 6 - 6}px`, top: `${spout.y}px`, zIndex: 61 });
+        kf = [{ transform: "translateY(0) scale(.7)", opacity: 0 }, { offset: 0.2, opacity: 1 }, { transform: `translateY(${fall}px) scale(1)`, opacity: 0 }];
+        dur = 700; delay = CARE_FX_MS * 0.46 + i * 120;
+      } else if (spec.parts === "grain") {
+        const size = 3 + (i % 3);
+        Object.assign(el.style, { position: "absolute", width: `${size}px`, height: `${size}px`, borderRadius: "50%",
+          background: spec.color, left: `${spout.x + (i % 3) * 5 - 5}px`, top: `${spout.y}px`, zIndex: 61,
+          boxShadow: "0 1px 1px rgba(0,0,0,.35)" });
+        const sway = (i % 2 ? 1 : -1) * (6 + (i % 4) * 5);
+        kf = [{ transform: "translate(0,0)", opacity: 0 }, { offset: 0.15, opacity: 1 }, { transform: `translate(${sway}px, ${fall}px)`, opacity: 0 }];
+        dur = 650; delay = CARE_FX_MS * 0.46 + i * 45;
+      } else {
+        const size = 18 + (i % 3) * 7;
+        Object.assign(el.style, { position: "absolute", width: `${size}px`, height: `${size}px`, borderRadius: "50%",
+          background: "radial-gradient(closest-side, rgba(236,250,236,.75), rgba(236,250,236,0))",
+          left: `${spout.x - size / 2}px`, top: `${spout.y - size / 2}px`, zIndex: 61 });
+        const ang = (i / n) * Math.PI - Math.PI / 2 + 0.3;
+        const r = 26 + (i % 3) * 12;
+        kf = [{ transform: "translate(0,0) scale(.35)", opacity: 0 }, { offset: 0.25, opacity: 0.9 },
+              { transform: `translate(${Math.cos(ang) * r}px, ${Math.sin(ang) * r + 22}px) scale(1.5)`, opacity: 0 }];
+        dur = 900; delay = CARE_FX_MS * 0.44 + i * 50;
+      }
+      box.appendChild(el);
+      anims.push(el.animate(kf, { duration: dur, delay, easing: "ease-in", fill: "both" }));
+    }
+    return () => { anims.forEach((a) => a.cancel()); box.replaceChildren(); };
+  }, [pour?.id]);
+
+  return <div ref={host} className="care-fx" aria-hidden="true" />;
+}
+
+function Shelf({ care, onApply, need }) {
   const shown = useRef(care);
   useEffect(() => { shown.current = care; });
   return (
@@ -105,23 +216,17 @@ function Shelf({ care, onApply, pour, need }) {
           <img src={`/assets/ui/${src}.png`} alt={alt}
                style={{ left: x, top: y, width: w, height: h, transform: s.mirror ? "scaleX(-1)" : undefined }} />
         );
-        const pouring = s.kind === "water" && pour;
         const changed = (shown.current[s.key] ?? 0) !== n;
         // Вимкнено все, крім потрібного зараз. Порожню банку потрібного
         // препарату лишаємо активною: тап по ній відкриває «не вистачає» —
         // це єдиний шлях докупити.
         const off = Boolean(need) && need !== s.kind;
         return (
-          <button key={s.key} className="shelf-item" data-off={off || undefined} disabled={off}
+          <button key={s.key} className="shelf-item" data-kind={s.kind} data-off={off || undefined} disabled={off}
                   onClick={() => onApply(s.kind)}
                   style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
             {s.crop ? <span className="shelf-crop">{img}</span>
-              : s.kind === "water" ? <span className="shelf-tilt" key={pour?.id ?? "still"} data-pour={pouring ? "" : undefined}>{img}</span>
               : img}
-            {pouring && [0, 1, 2].map((i) => (
-              <img key={`${pour.id}-${i}`} className="fx-drop" src="/assets/ui/droplet.png" alt=""
-                   style={{ left: 4 + i * 5, top: 38, animationDelay: `${300 + i * 150}ms` }} />
-            ))}
             <span className="shelf-ring" data-empty={n <= 0 || undefined} style={{ left: s.ring[0], top: s.ring[1] }}>
               <img src="/assets/ui/ring.png" alt="" />
               <span><b key={n} className={changed ? "fx-count" : undefined}>{n}</b><small>{s.unit}</small></span>
@@ -288,7 +393,8 @@ export function Plant({ ctx }) {
     watch.current.observe(el);
   }, []);
   const [fx, setFx] = useState(null);                 // перехід стадії: попередня сцена й куди виросло
-  const [pour, setPour] = useState(null);             // полив, що зараз грає
+  const [pour, setPour] = useState(null);             // догляд, що зараз грає: { id, kind }
+  const area = useRef(null);
   const care = ctx.me?.care ?? {};
   useEffect(() => {
     if (!fx) return undefined;
@@ -297,7 +403,7 @@ export function Plant({ ctx }) {
   }, [fx]);
   useEffect(() => {
     if (!pour) return undefined;
-    const t = setTimeout(() => setPour(null), 1400);
+    const t = setTimeout(() => setPour(null), CARE_FX_MS + 200);
     return () => clearTimeout(t);
   }, [pour]);
 
@@ -384,7 +490,7 @@ export function Plant({ ctx }) {
     const from = plant.growth_stage;
     try {
       const r = await api.post(`/me/plants/${plant.id}/care`, { kind });
-      if (kind === "water") setPour({ id: Date.now() });
+      setPour({ id: Date.now(), kind });
       await ctx.refreshMe();
       await reload();
       if (r.grown) setFx({ id: Date.now(), prev, from, to: r.stage });
@@ -429,7 +535,7 @@ export function Plant({ ctx }) {
   return (
     <div className="plant-screen" {...swipe}>
       <div className="plant-layer" ref={layer} style={{ "--pf": pf }}>
-        <div className="plant-area">
+        <div className="plant-area" ref={area}>
           <img className="plant-platform" src="/assets/ui/platform.png" alt="" />
           {want && (
             <button className="wish" title={want.title} onClick={wish} style={{ left: cx, top: cy }}>
@@ -457,7 +563,8 @@ export function Plant({ ctx }) {
               </>
             ) : <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
-          <Shelf care={care} onApply={apply} pour={pour} need={need} />
+          <Shelf care={care} onApply={apply} need={need} />
+          <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
             <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
               <img src="/assets/ui/barrel.png" alt="" />
