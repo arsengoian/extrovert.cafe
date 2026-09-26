@@ -353,11 +353,17 @@ export default async function routes(app) {
       for (const d of drinks) {
         const price = Number(d.price_uah);
         if (!Number.isFinite(price) || price < 0 || price > 100000) fail(400, "bad_price");
+        // Порядок карток на екрані. Кіоск нічого не сортує — малює рівно так,
+        // як віддало меню (`order by sort_order, name`), тож єдине місце, де
+        // цей порядок можна змінити, — тут. Раніше його не було в жодному
+        // інтерфейсі, і рядки переставляли SQL-ом (26.09.2026, власник).
+        const sort = d.sort_order === undefined || d.sort_order === null ? null : Number(d.sort_order);
+        if (sort !== null && (!Number.isInteger(sort) || sort < 0 || sort > 100000)) fail(400, "bad_sort_order");
         const { rows } = await client.query(
           `update drinks set price_uah = $2, coins = coalesce($3, coins), is_bonus = coalesce($4, is_bonus),
-                  active = coalesce($5, active)
-             where id = $1 returning id, slot, price_uah, coins, is_bonus, active`,
-          [d.id, price, d.coins ?? null, d.is_bonus ?? null, d.active ?? null]
+                  active = coalesce($5, active), sort_order = coalesce($6, sort_order)
+             where id = $1 returning id, slot, price_uah, coins, is_bonus, active, sort_order`,
+          [d.id, price, d.coins ?? null, d.is_bonus ?? null, d.active ?? null, sort]
         );
         if (rows[0]) out.push(rows[0]);
       }

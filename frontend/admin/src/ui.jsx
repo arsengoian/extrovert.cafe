@@ -111,7 +111,10 @@ export function useData(load, deps = []) {
   return { ...state, reload };
 }
 
-export const Table = ({ columns, rows, onRow, empty = "порожньо" }) => (
+// foot — рядок під таблицею, у тій самій картці: там живуть підказки про
+// незбережений стан, які мусять бути притулені до рядків, а не висіти
+// окремим блоком десь поруч.
+export const Table = ({ columns, rows, onRow, empty = "порожньо", foot = null }) => (
   <div className="table-card">
     <table>
       <thead>
@@ -126,5 +129,6 @@ export const Table = ({ columns, rows, onRow, empty = "порожньо" }) => (
         ))}
       </tbody>
     </table>
+    {foot && <div className="table-foot">{foot}</div>}
   </div>
 );
