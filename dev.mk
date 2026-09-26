@@ -18,7 +18,7 @@
 #
 #   make d-sale DRINK=a033 PAY=cash
 #   make d-plant MAIL=хтось@пошта STAGE=1 RESET=1
-#   make d-skip MAIL=хтось@пошта
+#   make d-skip MAIL=хтось@пошта DAYS=3
 #
 # Гравця вибираємо поштою, а не нікнеймом: нікнейми кирилицею make на
 # Windows передає знаками питання. NICK= теж працює — для латинських.
@@ -47,7 +47,7 @@ d-help:
 	@echo   make d-list                    які напої є в сідах
 	@echo   make d-sale DRINK=a033 PAY=cash   покупка тестовим касиром - чек у прод
 	@echo   make d-plant MAIL=пошта STAGE=1 RESET=1   стадія кавенятка, з очищенням посадженого
-	@echo   make d-skip MAIL=пошта         перемотати час: добовий гейт минув
+	@echo   make d-skip MAIL=пошта DAYS=3  «минуло N днів» (типово 1): гейт, полив, настрій
 	@echo   make d-supply MAIL=пошта SUPPLY=9   насипати препаратів
 	@echo   make d-give MAIL=пошта COINS=500   монети/зерна: COINS, SILVER, BEANS
 	@echo   make d-user MAIL=пошта         баланси, кавенята, останні чеки
@@ -68,7 +68,7 @@ d-plant:
 
 d-skip:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-skip MAIL=пошта))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip $(if $(DAYS),$(DAYS),1)
 
 d-supply:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-supply MAIL=пошта))

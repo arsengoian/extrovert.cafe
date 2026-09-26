@@ -5,7 +5,8 @@
 //   bun scripts/dev-plant.mjs --stage 1 --reset     # починаємо з листя
 //   bun scripts/dev-plant.mjs --stage 2             # лишити листя, садити гілки
 //   bun scripts/dev-plant.mjs --supply 9            # по 9 одиниць кожного
-//   bun scripts/dev-plant.mjs --skip                # лише перемотати час
+//   bun scripts/dev-plant.mjs --skip                # «минула доба»
+//   bun scripts/dev-plant.mjs --skip 3              # «минуло три дні» — кущ засумує
 //
 // Проти прод-бази запускається через scripts/prod-db.sh (make d-plant),
 // бо роута для цього немає й не буде: це пряма правка бази.
@@ -36,16 +37,27 @@ if (!plant) throw new Error("у гравця немає кавенятка");
 const stage = flag("stage");
 const reset = flag("reset", false);
 const supply = flag("supply");
-// --skip нічого не міняє, крім часу: кущ лишається як є, але добовий гейт
-// уже минув, і полив не «щойно був». Саме це потрібно, щоб пройти цикл
-// росту за один вечір, не підміняючи стадію руками.
-const skip = flag("skip", false);
+// --skip [N] — «минуло N днів» (типово один): усі часові мітки куща йдуть
+// назад на N, порожні лишаються порожніми. Кущ як був, але добовий гейт
+// минув, а полив відсунувся рівно на стільки, скільки «пройшло».
+//
+// Раніше --skip ставив обидві мітки на «дві доби тому» незалежно від того,
+// якими вони були. Тож двічі поспіль нічого не додавало, а кущ, не политий
+// чотири дні, після «пропуску дня» ставав ЗДОРОВІШИМ — полив «повертався»
+// на дві доби (26.09.2026, власник: «команда змінює дату поливання?»).
+// Тепер настрій рахується чесно: від 3 днів без поливу — сумне, від 7 —
+// зів'яле (routes/plants.js, moodOf).
+const skipArg = flag("skip", null);
+const skipDays = skipArg === null ? 0 : skipArg === true ? 1 : Number(skipArg);
+if (skipArg !== null && !(Number.isInteger(skipDays) && skipDays > 0)) {
+  throw new Error("--skip приймає ціле число днів, наприклад --skip 3");
+}
 
-if (skip) {
+if (skipDays) {
   await sql`
     update plants
-       set last_stage_transition_at = now() - interval '2 days',
-           last_watered_at = now() - interval '2 days'
+       set last_stage_transition_at = last_stage_transition_at - make_interval(days => ${skipDays}),
+           last_watered_at = last_watered_at - make_interval(days => ${skipDays})
      where id = ${plant.id}`;
 }
 
