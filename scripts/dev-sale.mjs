@@ -71,6 +71,26 @@ const call = async (method, path, body) => {
 
 // Зміна: чек без відкритої зміни Checkbox не приймає.
 let shift = await call("GET", "/api/v1/cashier/shift").catch(() => null);
+
+// …але й зі старою не приймає: понад добу відкрита зміна дає
+// shift.opened_too_long, бо закон вимагає Z-звіт раз на добу. На бойовій
+// касі зміну закриває касир наприкінці дня, а тестова висить рівно доти,
+// доки хтось не згадає про неї, — тобто після вихідних продаж падає завжди.
+// Закриваємо самі: Z-звіт тестової каси нікому нічого не коштує, а ручний
+// крок посеред налагодження коштує уваги (26.09.2026, власник).
+const shiftHours = (s) => (s?.opened_at ? (Date.now() - Date.parse(s.opened_at)) / 3600000 : 0);
+if (shift?.status === "OPENED" && shiftHours(shift) >= 23) {
+  console.log(`зміну відкрито ${shiftHours(shift).toFixed(1)} год тому — закриваю (Z-звіт) і відкриваю нову`);
+  let closing = await call("POST", "/api/v1/shifts/close", {});
+  for (let i = 0; i < 30 && closing.status !== "CLOSED"; i++) {
+    await Bun.sleep(1000);
+    closing = await call("GET", `/api/v1/shifts/${closing.id}`);
+  }
+  if (closing.status !== "CLOSED") throw new Error(`зміна не закрилась: ${closing.status}`);
+  console.log(`зміна ${closing.serial ?? closing.id} закрита, Z-звіт ${closing.z_report?.serial ?? closing.z_report?.id ?? "—"}`);
+  shift = null;
+}
+
 if (!shift || shift.status !== "OPENED") {
   console.log("відкриваємо зміну…");
   shift = await call("POST", "/api/v1/shifts", {});
