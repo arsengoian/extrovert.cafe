@@ -29,6 +29,49 @@ CREATE EXTENSION IF NOT EXISTS citext WITH SCHEMA public;
 COMMENT ON EXTENSION citext IS 'data type for case-insensitive character strings';
 
 
+--
+-- Name: announce_plant_owner(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.announce_plant_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    insert into outbox (channel, event, payload)
+    values ('user:' || old.owner_id, 'plants', jsonb_build_object('plant_id', new.id, 'gone', true)),
+           ('user:' || new.owner_id, 'plants', jsonb_build_object('plant_id', new.id, 'gone', false));
+  end if;
+  return new;
+end $$;
+
+
+--
+-- Name: announce_user_balance(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.announce_user_balance() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if (new.coins_yellow, new.coins_silver, new.beans,
+      new.water_liters, new.compost_kg, new.fertilizer_kg, new.insecticide_bottles)
+     is distinct from
+     (old.coins_yellow, old.coins_silver, old.beans,
+      old.water_liters, old.compost_kg, old.fertilizer_kg, old.insecticide_bottles)
+  then
+    -- Числа їдуть у самій події: клієнт зараз однаково перечитує /me, але
+    -- так її можна застосувати й без запиту.
+    insert into outbox (channel, event, payload)
+    values ('user:' || new.id, 'balance', jsonb_build_object(
+      'yellow', new.coins_yellow, 'silver', new.coins_silver, 'beans', new.beans,
+      'water_liters', new.water_liters, 'compost_kg', new.compost_kg,
+      'fertilizer_kg', new.fertilizer_kg, 'insecticide_bottles', new.insecticide_bottles));
+  end if;
+  return new;
+end $$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -2984,6 +3027,20 @@ CREATE INDEX wardrobe_sets_plant_id_idx ON public.wardrobe_sets USING btree (pla
 
 
 --
+-- Name: plants plants_announce_owner; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER plants_announce_owner AFTER UPDATE OF owner_id ON public.plants FOR EACH ROW EXECUTE FUNCTION public.announce_plant_owner();
+
+
+--
+-- Name: users users_announce_balance; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER users_announce_balance AFTER UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.announce_user_balance();
+
+
+--
 -- Name: bonus_grants bonus_grants_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3539,4 +3596,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923160000'),
     ('20260923170000'),
     ('20260923171000'),
-    ('20260924070000');
+    ('20260924070000'),
+    ('20260927010000');

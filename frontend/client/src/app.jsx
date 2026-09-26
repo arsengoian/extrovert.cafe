@@ -5,7 +5,7 @@
 // поверх них. Бібліотека тут коштувала б кілобайти на телефоні заради
 // одного pushState. Екрани бувають двох видів: повні (зі своїм топбаром) і
 // шторки (поверх поточної вкладки) — як у макетах.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
 import { api, getToken } from "./api.js";
 import { Hud } from "./ui/Hud.jsx";
@@ -156,13 +156,25 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   }, [returningFromPayment, Boolean(me)]);
 
   // Події з ws: після будь-якої зміни в акаунті перечитуємо профіль —
-  // баланси в HUD мають оновлюватись без перезаходу.
+  // баланси в HUD мають оновлюватись без перезаходу. Шле їх сама база
+  // (тригери на users і plants, міграція announce_user_changes): кожна зміна
+  // балансу чи власника кавенятка, з якого б маршруту вона не прийшла.
+  //
+  // Перечитування збираємо в одне, через 200 мс після останньої події: одна
+  // транзакція може змінити баланс кількома UPDATE, а свою дію клієнт і так
+  // перечитує сам — без цього кожен полив коштував би два-три однакові /me.
+  const eventRefresh = useRef(null);
   useEffect(() => {
     if (!me) return undefined;
-    return connectEvents(
-      (msg) => { if (msg.event && msg.event !== "hello") refreshMe().catch(() => {}); },
+    const stop = connectEvents(
+      (msg) => {
+        if (!msg.event || msg.event === "hello") return;
+        clearTimeout(eventRefresh.current);
+        eventRefresh.current = setTimeout(() => refreshMe().catch(() => {}), 200);
+      },
       setWsOnline
     );
+    return () => { clearTimeout(eventRefresh.current); stop(); };
   }, [me?.id, refreshMe]);
 
   // Документ за адресою, а людина з акаунтом і згодою: показуємо його поверх

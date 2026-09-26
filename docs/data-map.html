@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело fc8914e</p>
+  <p class="eyebrow">extrovert.cafe · джерело 087da79</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1239,6 +1239,20 @@ Checkbox і оплати mono pay, на які рядок посилається
 відправити двічі, тому в кожній події її <code>outbox.id</code>, і клієнти відкидають
 повтор. Доставка «принаймні раз» + ідемпотентний отримувач — це найближче
 до «рівно раз», що взагалі досяжне.</p>
+<p><strong>Зміни акаунта гравця пише в outbox сама база — тригерами</strong> (міграція
+<code>announce_user_changes</code>, 27.09.2026; перші й поки єдині тригери в схемі).
+Будь-яка зміна балансів чи запасів у <code>users</code> дає подію <code>balance</code> у канал
+<code>user:&lt;uuid&gt;</code> (числа їдуть у самій події), перехід кавенятка до іншого
+власника — подію <code>plants</code> обом. Клієнт на будь-яку подію перечитує <code>/me</code>,
+тож шапка й поличка оновлюються самі, без поллінгу.</p>
+<p>Чому тригер, а не <code>enqueue()</code> у маршрутах. Клієнт давно тримав сокет, а
+ws-сервер слухав <code>user:*</code> — але жоден маршрут у канал гравця нічого не
+слав, і шапка оновлювалась лише після власних дій людини: продаж її лоту,
+подарунок, оплата з іншого пристрою до відкритого застосунку не доходили.
+Баланси міняють із десяток маршрутів, і кожен новий забув би про подію.
+Тригер ловить усі, включно з тими, яких ще не написали, і пише подію в ту
+саму транзакцію — рівно гарантія, заради якої існує outbox. Ціна — логіка,
+якої не видно з коду маршруту; тому вона записана тут і в самій міграції.</p>
 <h3 id="db-точка-текстовий-ключ-із-першого-дня"><a class="anchor" href="#db-точка-текстовий-ключ-із-першого-дня" aria-hidden="true">#</a>Точка — текстовий ключ із першого дня</h3>
 <p><code>point_id</code> відповідає <code>^[a-z0-9][a-z0-9-]{1,30}$</code> (<a class="doclink" href="#urls"><code>urls.md</code></a>). Не uuid: він
 їде в URL кіоска й у ключі R2.</p>
@@ -2330,7 +2344,7 @@ Checkbox (пише <code>checkbox</code>), нічна синхронізація
 <td><code>user:&lt;uuid&gt;</code></td>
 <td>публікатор <code>outbox</code> у <code>scheduler</code></td>
 <td>ws → телефон</td>
-<td>бонус зарахований, продаж на маркеті, срібні монети, розсилка, <code>order.updated</code></td>
+<td><code>balance</code> і <code>plants</code> — пишуть тригери бази (§0); задумані ще бонус, продаж на маркеті, розсилка, <code>order.updated</code></td>
 </tr>
 <tr>
 <td><code>admin:health</code></td>
@@ -11755,7 +11769,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел fc8914e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 087da79 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
