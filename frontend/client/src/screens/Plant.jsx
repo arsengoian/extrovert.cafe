@@ -11,7 +11,7 @@ import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
-import { Sparks } from "../ui/fx.jsx";
+import { Sparks, Typewriter } from "../ui/fx.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -445,7 +445,7 @@ export function Plant({ ctx }) {
           {!onSale && (
             <button className="plant-bubble" onClick={() => !lock && ctx.push("chat", { plant })}>
               <b>{plant.name || "Кавенятко"}</b>
-              {line}
+              <Typewriter text={line} />
             </button>
           )}
           <div className="plant-scene">

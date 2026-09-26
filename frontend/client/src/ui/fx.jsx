@@ -219,3 +219,50 @@ export function RollingNumber({ value, format = fmt }) {
     </span>
   );
 }
+
+// ── друк по літерах ─────────────────────────────────────────────────────
+// Репліка кавенятка з'являється буква за буквою, але швидко — щоб читалась
+// як жива, а не щоб чекати (власник, 26.09.2026). ~70 знаків на секунду:
+// звичайна репліка друкується менше ніж за секунду.
+//
+// Ще не надрукований хвіст лежить на своєму місці невидимим: розмір блоку з
+// першого кадру такий самий, як у кінці, тож хмарка не росте й не смикає
+// сусідів під час друку. Для читачів екрана — повний текст одразу через
+// aria-label, а анімовані шматки від них сховані.
+const TYPE_CPS = 70;
+
+export function Typewriter({ text, cps = TYPE_CPS }) {
+  const chars = Array.from(String(text ?? ""));   // код-поінти: емодзі не рвемо навпіл
+  const full = () => (calm() ? chars.length : 0);
+  // Лічильник прив'язаний до тексту, для якого його рахували. Нова репліка
+  // скидає його ще в цьому ж рендері: інакше перший кадр показав би новий
+  // текст цілком (лічильник лишався від старого, довшого), і лише потім
+  // друк почався б з нуля — спалах замість друку.
+  const [st, setSt] = useState(() => ({ text, shown: full() }));
+  if (st.text !== text) setSt({ text, shown: full() });
+  const shown = st.text === text ? st.shown : full();
+
+  useEffect(() => {
+    if (calm()) { setSt({ text, shown: chars.length }); return undefined; }
+    const started = performance.now();
+    let raf = 0;
+    const tick = () => {
+      const n = Math.min(chars.length, Math.floor(((performance.now() - started) / 1000) * cps) + 1);
+      setSt({ text, shown: n });
+      if (n < chars.length) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    // Запасний таймер: requestAnimationFrame стоїть у фоновій вкладці й у
+    // деяких вбудованих переглядачах, і без цього текст так і лишився б
+    // невидимим. Таймер спрацьовує й там — і дописує репліку до кінця.
+    const done = setTimeout(() => setSt({ text, shown: chars.length }), (chars.length / cps) * 1000 + 400);
+    return () => { cancelAnimationFrame(raf); clearTimeout(done); };
+  }, [text, cps]);
+
+  return (
+    <span aria-label={text}>
+      <span aria-hidden="true">{chars.slice(0, shown).join("")}</span>
+      <span aria-hidden="true" style={{ visibility: "hidden" }}>{chars.slice(shown).join("")}</span>
+    </span>
+  );
+}
