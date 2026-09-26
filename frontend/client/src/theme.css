@@ -677,10 +677,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    350 px — це кадр макета (390 мінус поля): при stretch на ширшому екрані
    хмарка відповзала від кавенятка (на 430 px між ними лишалось 24 px замість
    64), а на вужчому налазила. */
-.hero { position: relative; flex: none; width: 350px; max-width: 100%; margin-inline: auto; height: 196px }
-.hero > img { position: absolute; left: 24px; top: 0; width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0 12px 22px rgba(0, 0, 0, .45)) }
+/* На вузьких екранах (328 px — 26.09.2026, власник) групу стискали поля
+   сторінки: 288 px замість 350, а кущ і хмарка лишались прибиті до її
+   країв — і хмарка лягала на кущ на 126 px замість макетних 64.
+   Тому, по-перше, група виходить за поля сторінки аж до країв екрана
+   (від'ємний margin рахується сам: (контейнер − група) / 2), а по-друге,
+   відступи куща й хмарки від країв групи не сталі 24 px, а такі, щоб
+   перекриття лишалось макетним на будь-якій ширині:
+   перекриття = 2·відступ + 170 + 196 − ширина = 64 ⇒ відступ = (ширина − 302) / 2.
+   На 350 це рівно 24, як у макеті; на 328 — 13. */
+.hero {
+  position: relative; flex: none; height: 196px;
+  width: min(350px, 100vw);
+  margin-inline: calc((100% - min(350px, 100vw)) / 2);
+}
+.hero > img { position: absolute; left: max(0px, calc((100% - 302px) / 2)); top: 0; width: 170px; height: 170px; object-fit: contain; filter: drop-shadow(0 12px 22px rgba(0, 0, 0, .45)) }
 .hero-bubble {
-  position: absolute; right: 24px; bottom: 4px; width: 196px; padding: 10px 12px; border: 1px solid var(--line);
+  position: absolute; right: max(0px, calc((100% - 302px) / 2)); bottom: 4px; width: 196px; padding: 10px 12px; border: 1px solid var(--line);
   border-radius: 6px 18px 18px; background: var(--bubble); backdrop-filter: blur(8px); box-shadow: 0 10px 24px rgba(0, 0, 0, .22);
   font-size: 12.5px; line-height: 1.32; color: var(--ink); text-wrap: pretty;
   animation: aHop 2.6s ease-in-out infinite;
@@ -805,7 +818,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .email-sent { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding-top: 8px }
 .email-sent > img { width: 132px; height: auto }
 .email-sent > b { font-size: 22px; font-weight: 900 }
-.email-sent .lead14 b { color: var(--ink); font-weight: 800; word-break: break-all }
+/* Пошта не рветься посеред (власник, 26.09.2026): `word-break: break-all`
+   дозволяв розрив між будь-якими двома символами, і адреса ламалась там,
+   де скінчився рядок, — біля «@», хоча цілою влізла б на наступний.
+   `overflow-wrap: anywhere` спершу переносить адресу цілою й рве лише
+   тоді, коли вона довша за весь рядок. */
+.email-sent .lead14 b { color: var(--ink); font-weight: 800; overflow-wrap: anywhere }
 .consent { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 14px; display: flex; gap: 12px; align-items: flex-start }
 .consent > div { font-size: 13px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
 .consent-box { width: 22px; height: 22px; flex: none; border-radius: 6px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: #fff }
