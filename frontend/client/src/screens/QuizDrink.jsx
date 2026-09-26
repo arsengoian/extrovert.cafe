@@ -31,7 +31,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
         <div className="panel">
           <div className="h2">Поки немає доступного опитування</div>
           <p className="muted" style={{ marginBottom: 0 }}>
-            Опитування відкриваються на 1-му, 4-му й далі кожному 10-му напої.
+            Можливість отримати бонуси за відгук відкривається на 1-му, 4-му й далі кожному 10-му напої.
           </p>
         </div>
       </div>
@@ -107,7 +107,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
         >
           {paid
             ? <div className="result-sum"><img src="/assets/ui/coin_silver.png" alt="срібних монет" />{data.reward}</div>
-            : <div className="short-note" style={{ textAlign: "center" }}>Монет за нього вже не буде, але ми його прочитаємо.</div>}
+            : <div className="short-note" style={{ textAlign: "center" }}>Ми його обовʼязково прочитаємо.</div>}
         </ResultPopup>
       )}
     </div>

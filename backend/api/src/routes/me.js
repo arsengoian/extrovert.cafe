@@ -102,7 +102,12 @@ export default async function routes(app) {
               coalesce(json_agg(json_build_object(
                   'id', ri.id, 'name', ri.name, 'qty', ri.qty, 'sum', ri.sum_uah,
                   'system_code', ri.system_code, 'is_bonus', ri.is_bonus_drink,
-                  'sprite', d.sprite, 'answered', q.id is not null
+                  'sprite', d.sprite, 'answered', q.id is not null,
+                  -- Скільки РЕАЛЬНО нараховано за відгук саме до цієї позиції.
+                  -- Без цього клієнт писав «+40» за кожен пройдений відгук, хоча
+                  -- поза кредитом (1-й, 4-й, далі кожен 10-й напій) відгук
+                  -- приймається без монет (власник, 26.09.2026).
+                  'quiz_coins', coalesce(q.coins_awarded, 0)
               ) order by ri.id) filter (where ri.id is not null), '[]') as items
          from receipts r
          join points p on p.id = r.point_id
