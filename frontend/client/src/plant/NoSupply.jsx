@@ -45,7 +45,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
         // Замість рядка «не вистачає» — той самий попап зі способами
         // дібрати монети, що й у крамниці.
         onClose();
-        ctx.notify(<NotEnoughCoins what={`${pack.title} · ${pack.unit}`} price={pack.price} have={balance} ctx={ctx}
+        ctx.notify(<NotEnoughCoins what={`${pack.title} (${pack.unit})`} price={pack.price} have={balance} ctx={ctx}
                                    onClose={() => ctx.notify(null)} />);
         return;
       }
@@ -67,9 +67,10 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
         {pack && (
           <>
             <div className="care-card-row care-pack">
-              {/* Назва з самого товару: «Вода · 5 л», а не вигадана «Пачка
-                  5 л» (зауваження власника 23.09.2026). */}
-              <b>{pack.title} · {pack.unit}</b>
+              {/* Назва з самого товару, а не вигадана «Пачка 5 л» (зауваження
+                  власника 23.09.2026). Кількість — у дужках: «Добриво (3 кг)»,
+                  а не через крапку (26.09.2026). */}
+              <b>{pack.title} ({pack.unit})</b>
               <span><Coins2 />{fmt(pack.price)}</span>
             </div>
             <div className="care-card-balance">

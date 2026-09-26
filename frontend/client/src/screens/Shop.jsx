@@ -41,7 +41,7 @@ function CareRow({ item, onOpen }) {
   return (
     <button className="list-row" onClick={() => onOpen(item)}>
       <span className="ico"><Art item={item} /></span>
-      <span className="name">{item.unit ? `${item.title} · ${item.unit}` : item.title}</span>
+      <span className="name">{item.unit ? `${item.title} (${item.unit})` : item.title}</span>
       <span className="cost"><Coins2 size={17} overlap={6} />{item.price}</span>
     </button>
   );

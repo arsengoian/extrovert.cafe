@@ -59,6 +59,18 @@ const WISH_LINE = [
   "Боби зелені. Ще оприскування – і достигнуть",
   "Боби достигли. Тепер одягни мене!",
 ];
+// Стадії 5 і 6 — ті два переходи, де препарат не заданий, а випадає для
+// кожного куща свій (economy.json: «fertilizer|insecticide», сервер обирає в
+// pickNeed). Таблиця вище знала лише один варіант на стадію, тож кавенятко
+// казало «випало добриво», коли насправді просило інсектицид (власник,
+// 26.09.2026) — і так само навпаки на шостій. Тут обидва варіанти.
+const WISH_BY_NEED = {
+  5: { fertilizer: "Три бутони. Цього разу випало добриво – буде п'ять",
+       insecticide: "Три бутони. Цього разу випав інсектицид – оприскай, і буде п'ять" },
+  6: { fertilizer: "П'ять бутонів. Ще добрива – і буде сім",
+       insecticide: "П'ять бутонів, і хтось гризе листя. Оприскай" },
+};
+const wishLine = (stage, need) => WISH_BY_NEED[stage]?.[need] ?? WISH_LINE[stage];
 const DRESSED_LINE = "Комплект на мені. Хочу ще один скін";
 const SAD_LINE = "Три дні без поливу. Полий мене, будь ласка";
 const WITHERED_LINE = "Мене не поливали тиждень. Води, будь ласка";
@@ -101,7 +113,7 @@ function Shelf({ care, onApply, pour, need }) {
         const off = Boolean(need) && need !== s.kind;
         return (
           <button key={s.key} className="shelf-item" data-off={off || undefined} disabled={off}
-                  title={off ? `Кавенятко зараз просить інше` : s.title} onClick={() => onApply(s.kind)}
+                  onClick={() => onApply(s.kind)}
                   style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
             {s.crop ? <span className="shelf-crop">{img}</span>
               : s.kind === "water" ? <span className="shelf-tilt" key={pour?.id ?? "still"} data-pour={pouring ? "" : undefined}>{img}</span>
@@ -124,7 +136,12 @@ function Shelf({ care, onApply, pour, need }) {
 // Меню дій — кадр «Меню дій з кавенятком»: картка над кнопкою «…». Кавенятку
 // на маркеті меню не відкривається — замість нього картка «Зняти з продажу»,
 // тож тут рядок зняття завжди неактивний.
-function ActionMenu({ onGift, onSell, onScythe }) {
+// only — кавенятко в гравця єдине: віддати чи продати його не можна (сервер
+// відповідає last_plant). Кажемо це в самому рядку, а не помилкою після
+// натискання (власник, 26.09.2026).
+const ONLY_ONE = "Потрібно мати хоч одне кавенятко";
+
+function ActionMenu({ onGift, onSell, onScythe, only }) {
   const row = (icon, title, sub, onClick, extra = {}) => (
     <button className="menu-row" onClick={onClick} disabled={extra.off} data-danger={extra.danger || undefined}>
       <span className="menu-ico">{icon}</span>
@@ -134,9 +151,9 @@ function ActionMenu({ onGift, onSell, onScythe }) {
   return (
     <div className="plant-menu">
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8.5V21" /><path d="M4.5 12.5h15V21h-15z" /><path d="M4.5 8.5h15v4h-15z" /><path d="M12 8.5S9.2 8.5 8 7.3a2.4 2.4 0 1 1 4-2.6" /><path d="M12 8.5s2.8 0 4-1.2a2.4 2.4 0 1 0-4-2.6" /></svg>,
-        "Подарувати другу", "Переходить іншому користувачу з усім подарованим одягом", onGift)}
+        "Подарувати другу", only ? ONLY_ONE : "Переходить іншому користувачу з усім подарованим одягом", onGift, { off: only })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.4v9.2" /><path d="M14.6 9.6c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.9.8-2.9 2 0 2.8 5.9 1.6 5.9 4.2 0 1.2-1.3 2-3 2-1.3 0-2.4-.5-3-1.3" /></svg>,
-        "Продати на ринку", "Ціна в монетах або бобах, мінімум 10", onSell)}
+        "Продати на ринку", only ? ONLY_ONE : "Ціна в монетах або бобах, мінімум 10", onSell, { off: only })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19h14" /><path d="M7 19c0-4.4 2.6-7.6 6-9" /><path d="M13 10c-3.6 1.6-4.4 5-4.4 9" /><path d="M17.5 5.5 20 3" /></svg>,
         "Зняти з продажу", "Кавенятко не виставлене", undefined, { off: true })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M7 7v12.2A1.8 1.8 0 0 0 8.8 21h6.4a1.8 1.8 0 0 0 1.8-1.8V7" /></svg>,
@@ -212,11 +229,17 @@ function GiftSheet({ plant, onClose, onDone }) {
 }
 
 // «Попап · скосити»: червона картка, що втрачається, і що лишиться.
+// Слово-підтвердження, як при видаленні акаунта (DeleteAccount.jsx): косіння
+// безповоротне, і дві кнопки поруч — це один помилковий тап (власник, 26.09.2026).
+const SCYTHE_WORD = "скосити";
+
 function ScytheSheet({ plant, onClose, onDone }) {
   const [error, setError] = useState(null);
+  const [word, setWord] = useState("");
+  const confirmed = word.trim().toLowerCase() === SCYTHE_WORD;
   const scythe = async () => {
-    try { const r = await api.post(`/me/plants/${plant.id}/scythe`); onDone(r.plant_id); }
-    catch (e) { setError(errText(e)); }
+    try { const r = await api.post(`/me/plants/${plant.id}/scythe`, { confirm: word.trim().toLowerCase() }); onDone(r.plant_id); }
+    catch (e) { setError(e.body?.error === "confirm_required" ? `Напиши «${SCYTHE_WORD}», щоб підтвердити` : errText(e)); }
   };
   return (
     <div className="plant-sheet danger">
@@ -226,10 +249,12 @@ function ScytheSheet({ plant, onClose, onDone }) {
       </div>
       <p style={{ lineHeight: 1.5 }}>Використовуй цю опцію лише якщо кавенятко зовсім негарне вдалося і хочеш виростити нове. Ресурси, витрачені на кавенятко, та подаровані комплекти буде втрачено.</p>
       <div className="scythe-keep"><img src="/assets/ui/sprout.png" alt="" /><b>Ти отримаєш лише: 1 саджанець</b></div>
+      <input className="confirm-input" value={word} placeholder={`напиши «${SCYTHE_WORD}»`}
+             autoComplete="off" spellCheck={false} onChange={(e) => setWord(e.target.value)} />
       {error && <p style={{ color: "var(--accent-text)" }}>{error}</p>}
       <div className="scythe-btns">
         <button onClick={onClose}>Я передумав</button>
-        <button onClick={scythe}>Скосити</button>
+        <button disabled={!confirmed} onClick={scythe}>Скосити</button>
       </div>
     </div>
   );
@@ -337,7 +362,7 @@ export function Plant({ ctx }) {
       : plant.mood === "sad" ? SAD_LINE
       : shelfEmpty ? EMPTY_LINE
       : plant.growth_stage >= 10 && dressed ? DRESSED_LINE
-      : WISH_LINE[plant.growth_stage] ?? "Хочу уваги");
+      : wishLine(plant.growth_stage, growth.need) ?? "Хочу уваги");
 
   const openPlanting = () => {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
@@ -493,7 +518,7 @@ export function Plant({ ctx }) {
       )}
       {popup && !popup.startsWith("supply:") && <div className="plant-dim" onClick={close} />}
       {popup === "menu" && (
-        <ActionMenu onGift={() => setPopup("gift")}
+        <ActionMenu only={plants.length <= 1} onGift={() => setPopup("gift")}
                     onSell={() => { close(); ctx.push("sellPlant", { plant }); }}
                     onScythe={() => setPopup("scythe")} />
       )}

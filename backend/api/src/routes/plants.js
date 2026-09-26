@@ -110,6 +110,9 @@ export default async function routes(app) {
   app.post("/me/plants/:id/scythe", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
+    // Те саме слово, що просить попап: косіння безповоротне, тож сервер не
+    // вірить на слово інтерфейсу, як і при видаленні акаунта (26.09.2026).
+    if (String(req.body?.confirm ?? "").trim().toLowerCase() !== "скосити") fail(400, "confirm_required");
     return tx(async (client) => {
       const plant = await lockOwnPlant(client, req.params.id, user.id);
       await releaseFittingRoom(client, plant.id);

@@ -129,7 +129,7 @@ export function ShopItem({ item, ctx }) {
 
       <div className="shop-head">
         <div className="preview-head">
-          <h2>{item.unit ? `${item.title} · ${item.unit}` : item.title}</h2>
+          <h2>{item.unit ? `${item.title} (${item.unit})` : item.title}</h2>
           <p>{item.subtitle}</p>
         </div>
         {chip}
