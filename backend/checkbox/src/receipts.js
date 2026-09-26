@@ -7,6 +7,7 @@
 // (docs/checkbox.md, «Наш приймач»).
 import { pool } from "@extrovert/lib/db.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
+import { rollDrinkDrop } from "@extrovert/lib/economy.js";
 
 // Суми Checkbox тримає в копійках — переводимо тут і більше ніде
 // (db-schema §0).
@@ -72,6 +73,9 @@ export async function ingest(receipt, { source, log }) {
     // дав монети (перший платний із каталогу) — саме його людина щойно
     // купила й упізнає на панелі.
     let shown = null;
+    // Коди предметів, що випали з цього чека. Лежатимуть у bonus_grants.items
+    // до моменту, коли людина забере бонус.
+    const drops = [];
     for (const line of goods) {
       const g = line.good ?? line;
       const code = g.code ?? g.system_code ?? "";
@@ -103,6 +107,25 @@ export async function ingest(receipt, { source, log }) {
          values ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [receiptId, code, slot, g.name ?? code, qty, price, uah(line.sum ?? g.price), isBonus]
       );
+
+      // Лутдроп (economy §4, §4.1): бонус-напій несе предмет завжди, звичайний —
+      // з імовірністю shadow_drop і лише Common. Кидаємо на кожен напій у чеку,
+      // бо в доці сказано «кожна покупка напою», а не «кожен чек»; кількість
+      // теж рахується, але зі стелею — каса іноді пробиває дивні числа, і
+      // тисяча ролів з одного рядка нікому не потрібна.
+      // Річ ЛИШЕ обирається тут, а видається при отриманні бонусу (api,
+      // wallet.js): поки QR не забрали, власника в предмета немає.
+      if (drink.length) {
+        const rolls = Math.min(10, Math.max(1, Math.round(qty)));
+        for (let n = 0; n < rolls; n++) {
+          const tier = rollDrinkDrop(isBonus);
+          if (!tier) continue;
+          const { rows: picked } = await client.query(
+            "select code from item_defs where active and tier = $1 order by random() limit 1", [tier]
+          );
+          if (picked.length) drops.push(picked[0].code);
+        }
+      }
     }
 
     // Бонус прив'язаний до чека, а не до часу: дві хвилини — це лише
@@ -112,9 +135,9 @@ export async function ingest(receipt, { source, log }) {
     // є сам токен, а світиться він лише на екрані тієї покупки.
     const claim = token();
     await client.query(
-      `insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, show_until)
-       values ($1, $2, $3, $4, now() + interval '${SHOW_MINUTES} minutes')`,
-      [receiptId, pointId, coins, claim]
+      `insert into bonus_grants (receipt_id, point_id, coins_yellow, claim_token, items, show_until)
+       values ($1, $2, $3, $4, $5, now() + interval '${SHOW_MINUTES} minutes')`,
+      [receiptId, pointId, coins, claim, drops.length ? JSON.stringify(drops) : null]
     );
 
     // Подія для кіоска — у тій самій транзакції (db-schema §0): інакше
@@ -127,6 +150,9 @@ export async function ingest(receipt, { source, log }) {
       drink: shown?.name ?? "",
       coins,
       claim_token: claim,
+      // Скільки предметів випало. Кіоск уміє домалювати їх у попап
+      // (bonus.h, поле items) — просто досі йому цього ніхто не казав.
+      items: drops.length,
       expires_in_s: SHOW_MINUTES * 60,
     });
 
