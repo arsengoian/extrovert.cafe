@@ -15,7 +15,9 @@ const CATEGORIES = [
 export function Problem({ ctx }) {
   const [point, setPoint] = useState(null);
   // Перша категорія відмічена одразу — як у кадрі «Повідомити про проблему».
-  const [picked, setPicked] = useState(["coffee_machine"]);
+  // Порожньо за замовчанням: категорію обирає людина. Раніше тут стояла
+  // «Кавомашина», і звернення приходили з тим, чого ніхто не обирав.
+  const [picked, setPicked] = useState([]);
   const [body, setBody] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -74,7 +76,7 @@ export function Problem({ ctx }) {
       });
       setSent(true);
     } catch (e) {
-      setError(e.body?.error === "empty_report" ? "Оберіть, що саме не працює, або опишіть словами" : e.message);
+      setError(e.body?.error === "no_category" ? "Оберіть, що саме не працює" : e.message);
     } finally {
       setBusy(false);
     }
@@ -95,7 +97,9 @@ export function Problem({ ctx }) {
       </div>
 
       <div className="field">
-        <div className="sectionTitle">Що саме</div>
+        {/* Поки нічого не обрано, кнопка «Надіслати» неактивна — кажемо чому
+            тут, біля списку, а не помилкою після натискання. */}
+        <div className="sectionTitle">Що саме{picked.length ? "" : " · оберіть хоч одне"}</div>
         <div className="list-card">
           {CATEGORIES.map((c) => {
             const on = picked.includes(c.id);
@@ -154,7 +158,7 @@ export function Problem({ ctx }) {
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className={`cta send${photo ? "" : " flush"}`} disabled={busy} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
+      <button className={`cta send${photo ? "" : " flush"}`} disabled={busy || !picked.length} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
 
       {sent && (
         <ResultPopup
