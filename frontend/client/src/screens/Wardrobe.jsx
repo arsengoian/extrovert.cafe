@@ -61,6 +61,7 @@ export function Wardrobe({ ctx, plant }) {
       setNote(`Кавенятко в захваті: +${beans(r.beans)}`);
     } catch (e) {
       if (e.body?.error === "incomplete") throw Object.assign(e, { body: { error: "Спершу заповни всі п'ять слотів" } });
+      if (e.body?.error === "not_grown") throw Object.assign(e, { body: { error: "Кавенятко ще росте – подарувати комплект можна дорослому" } });
       throw e;
     }
   });
@@ -119,7 +120,12 @@ export function Wardrobe({ ctx, plant }) {
             ? <>Комплект уже подаровано: +{data.set.beans_awarded} <Bean />. Предмети з нього замкнені назавжди.</>
             : data.gift.can
               ? <>Подарунок розраховується на основі рідкості предмета «{data.gift.weakest_item}» – {data.gift.beans} <Bean /></>
-              : `Подарувати можна лише повний комплект – бракує ${data.gift.missing === 1 ? "1 предмета" : `${data.gift.missing} предметів`}`}
+              : data.gift.missing > 0
+                ? `Подарувати можна лише повний комплект – бракує ${data.gift.missing === 1 ? "1 предмета" : `${data.gift.missing} предметів`}`
+                /* Комплект зібрано, але кущ ще росте. Кажемо це тут, а не
+                   помилкою після натискання: предмети замикаються назавжди,
+                   і людина має розуміти умову до того, як тисне. */
+                : "Подарувати можна лише дорослому кавенятку – спершу виростіть його до останнього етапу"}
         </div>
         {!gifted && <button disabled={!data.gift.can || busy} onClick={gift}>Подарувати</button>}
       </div>

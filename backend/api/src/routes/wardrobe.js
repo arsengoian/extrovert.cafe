@@ -13,6 +13,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { beansWord, notifyPlant } from "../notify.js";
+import { growthState } from "./planting.js";
 
 const SLOTS = economy.set.slots;                 // head, body, pants, feet, acc_1
 const TIERS = ["common", "uncommon", "rare", "epic"];
@@ -87,6 +88,10 @@ export default async function routes(app) {
 
     const filled = slots.filter((s) => s.item).length;
     const tier = set?.tier ?? null;
+    // Доросле кавенятко чи ще росте: від цього залежить не тільки відповідь
+    // на «Подарувати», а й те, що написано під кнопкою. Краще сказати
+    // заздалегідь, ніж дати натиснути й відмовити.
+    const grown = growthState(plant).done;
     return {
       plant: { id: plant.id, name: plant.name, growth_stage: plant.growth_stage },
       set: set ? { id: set.id, tier: set.tier, complete: set.complete, gifted: set.gifted, beans_awarded: set.beans_awarded } : null,
@@ -101,7 +106,8 @@ export default async function routes(app) {
         // Найслабший предмет називаємо поіменно — так видно, що саме тягне
         // комплект донизу.
         weakest_item: slots.find((s) => s.item?.tier === tier)?.item?.name ?? null,
-        can: Boolean(set && set.complete && !set.gifted),
+        can: Boolean(set && set.complete && !set.gifted && grown),
+        grown,
         missing: SLOTS.length - filled,
       },
     };
@@ -250,6 +256,11 @@ export default async function routes(app) {
 
       const state = await refresh(client, set.id);
       if (!state.complete) fail(409, "incomplete");
+      // Дарують ДОРОСЛОМУ кавенятку: одяг — нагорода за вирощене, а не за
+      // намір. Перевірки не було взагалі, тож комплект замикався назавжди
+      // й на паростку (26.09.2026, власник). growthState().done означає
+      // «далі рости нікуди» — остання стадія з дозрілими плодами.
+      if (!growthState(plant).done) fail(409, "not_grown");
 
       const beans = economy.set.beans_by_tier[state.tier] ?? 0;
       await client.query(
