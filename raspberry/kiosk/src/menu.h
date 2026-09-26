@@ -89,6 +89,11 @@ const cup_tier_t *menu_find_cup(const menu_t *m, const char *key);
  * порівнює JSON.stringify(d) з lastHash перед render(). */
 bool menu_poll(const char *url, menu_t *out);
 
+/* Закрити зʼєднання, яке menu_poll тримає між опитуваннями. Кличеться при
+ * завершенні; окремо жити без нього можна — ядро закриє сокет разом із
+ * процесом, — але тоді valgrind і curl_global_cleanup() скаржаться. */
+void menu_poll_close(void);
+
 /* Остання вдала менюшка з диска ($EXTROVERT_STATE/menu-cache.json). Потрібна
  * рівно в одному випадку: холодний старт без мережі. Без неї кіоску нема
  * чого малювати, шар лишається прозорим — і на екрані висить запасна

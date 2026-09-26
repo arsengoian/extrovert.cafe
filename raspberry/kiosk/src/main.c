@@ -732,6 +732,7 @@ int main(int argc, char **argv) {
     gl_texture_destroy(&update_tex);
     bonus_destroy(&bonus);
     platform_destroy(plat);
+    menu_poll_close();   /* до curl_global_cleanup(): хендл ще живий */
     curl_global_cleanup();
     return 0;
 }

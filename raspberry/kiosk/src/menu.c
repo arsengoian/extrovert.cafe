@@ -147,26 +147,58 @@ static void cache_store(const char *data, size_t len) {
     if (fclose(fp) != 0 || !ok || rename(tmp, path) != 0) remove(tmp);
 }
 
+/* Один хендл на весь процес, а не новий на кожне опитування.
+ *
+ * Чому це важливо саме тут. Новий easy-хендл означає нове зʼєднання: DNS-
+ * запит, SYN, TLS-рукостискання. На точці kyiv-01 роутер губить саме НОВІ
+ * зʼєднання — заміряно 26.09.2026 прямо з малини: звичайний запит 0,7 с, а
+ * час від часу DNS зависає рівно на 5,5 с (таймаут resolv.conf плюс
+ * повтор) або connect на 15,6 с (ретрансміти загубленого SYN: 1+2+4+8).
+ * При CURLOPT_TIMEOUT=15 друге означає гарантовану помилку — і в логу було
+ * 51 «menu_poll: http помилка» на 100 рядків.
+ *
+ * Хендл, що живе далі, тримає з'єднання відкритим (keep-alive) і кешує
+ * DNS, тож більшість опитувань не створює нічого нового й роутеру нема що
+ * губити. Таймаут лишаємо 15 с: стартове опитування (main.c) синхронне, і
+ * довший таймаут відкладав би перший кадр на поганій мережі.
+ *
+ * Потокобезпечність: easy-хендл не можна ділити між потоками ОДНОЧАСНО.
+ * Тут цього й немає — main.c кличе menu_poll() один раз до pthread_create,
+ * а далі лише потік опитування. */
+static CURL *poll_curl = NULL;
+
+void menu_poll_close(void) {
+    if (poll_curl) { curl_easy_cleanup(poll_curl); poll_curl = NULL; }
+}
+
 bool menu_poll(const char *url, menu_t *out) {
     struct buf b = {0};
-    CURL *c = curl_easy_init();
-    if (!c) return false;
+    if (!poll_curl) {
+        poll_curl = curl_easy_init();
+        if (!poll_curl) return false;
+        curl_easy_setopt(poll_curl, CURLOPT_WRITEFUNCTION, write_cb);
+        curl_easy_setopt(poll_curl, CURLOPT_TIMEOUT, 15L);
+        curl_easy_setopt(poll_curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(poll_curl, CURLOPT_USERAGENT, "raspberry/kiosk/0.1");
+        curl_easy_setopt(poll_curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(poll_curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
+        /* Щоб NAT роутера не викинув простояле зʼєднання між опитуваннями. */
+        curl_easy_setopt(poll_curl, CURLOPT_TCP_KEEPALIVE, 1L);
+        /* Типові 60 с менші за період опитування, тобто DNS питався б щоразу
+         * наново. Година — адреси Cloudflare стабільні, а при обриві libcurl
+         * однаково перепитає. */
+        curl_easy_setopt(poll_curl, CURLOPT_DNS_CACHE_TIMEOUT, 3600L);
+        /* Той самий сенс, що і "t="+Date.now() в getJSON() з app.js — кеш
+         * проксі не повинен віддавати старе тіло, з якого й береться хеш. */
+        curl_easy_setopt(poll_curl, CURLOPT_HTTPHEADER, NULL);
+    }
+    CURL *c = poll_curl;
     curl_easy_setopt(c, CURLOPT_URL, url);
-    curl_easy_setopt(c, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(c, CURLOPT_WRITEDATA, &b);
-    curl_easy_setopt(c, CURLOPT_TIMEOUT, 15L);
-    curl_easy_setopt(c, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(c, CURLOPT_USERAGENT, "raspberry/kiosk/0.1");
-    curl_easy_setopt(c, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(c, CURLOPT_XFERINFOFUNCTION, xfer_cb);
-    /* Той самий сенс, що і "t="+Date.now() в getJSON() з app.js — кеш проксі
-     * не повинен віддавати старе тіло, з якого й береться хеш. */
-    curl_easy_setopt(c, CURLOPT_HTTPHEADER, NULL);
 
     CURLcode rc = curl_easy_perform(c);
     long http_code = 0;
     curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &http_code);
-    curl_easy_cleanup(c);
 
     if (rc != CURLE_OK || http_code < 200 || http_code >= 300 || b.len == 0) {
         fprintf(stderr, "menu_poll: http помилка (%s, код %ld)\n",
