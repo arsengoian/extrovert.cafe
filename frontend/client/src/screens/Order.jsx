@@ -68,7 +68,9 @@ export function Order({ id, ctx }) {
                 {state !== "next" && sub(s) && <small>{sub(s)}</small>}
                 {s === "shipped" && state !== "next" && order.ttn && (
                   <div className="tl-ttn">
-                    <span>ТТН {ttnOf(order.ttn)}</span>
+                    {/* selectable: номер переносять у застосунок пошти
+                        руками не рідше, ніж кнопкою «копіювати» */}
+                    <span className="selectable">ТТН {ttnOf(order.ttn)}</span>
                     <button onClick={copy}>{copied ? "скопійовано" : "копіювати"}</button>
                   </div>
                 )}

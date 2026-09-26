@@ -61,7 +61,7 @@ export function Transfer({ ctx }) {
       ctx.notify(<TransferDone done={r} onClose={() => ctx.notify(null)} />);
     } catch (e) {
       const code = e.body?.error;
-      setError(code === "no_such_user" ? "Такого нікнейма немає"
+      setError(code === "no_such_user" ? "Такого нікнейма не знайдено"
         : code === "self_transfer" ? "Це ти сам"
         : code === "not_enough" ? "Не вистачає жовтих монет"
         : code ?? e.message);

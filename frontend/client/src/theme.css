@@ -27,6 +27,21 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
 
+/* Випадкове виділення — дрібна, але постійна прикрість на телефоні: трохи
+   затримав палець на кнопці чи протягнув по списку, і півекрана синє.
+   Тому за замовчанням не виділяємо нічого, а там, де текст справді
+   копіюють, вмикаємо назад — прицільно, а не «вимкнути все» (прохання
+   власника 26.09.2026: «не дуже агресивно»).
+   Що лишається виділюваним: поля вводу (без цього вони непридатні),
+   повідомлення чату, довгі тексти на кшталт умов і відповідей підтримки,
+   і будь-що, позначене класом .selectable — наприклад ТТН чи нікнейм,
+   які люди переносять у інші застосунки. */
+body { -webkit-user-select: none; user-select: none }
+input, textarea, [contenteditable="true"],
+.chat-msg, .doc, .item-text, .selectable {
+  -webkit-user-select: text; user-select: text;
+}
+
 html, body, #root { height: 100% }
 
 body {
@@ -58,9 +73,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .stage-pad { min-height: 100%; padding: 14px; display: flex; flex-direction: column; gap: 12px }
 
 .hud { flex: none; padding: 10px 12px; display: flex; align-items: center; gap: 8px }
+/* Це <button> (веде в гаманець), тож гасимо шрифт і колір від браузера —
+   решта стилю та сама, що була в <div>. */
 .hud-pill {
   flex: 1; display: flex; align-items: center; justify-content: space-between;
   padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel);
+  color: inherit; font: inherit; text-align: inherit; cursor: pointer;
 }
 .hud-val { display: flex; align-items: center; gap: 3px; font-size: 14px; font-weight: 700 }
 .hud-val img { width: 21px; height: 22px }

@@ -28,11 +28,15 @@ export function Hud({ me, onOpen, onSupport }) {
 
   return (
     <div className="hud">
-      <div className="hud-pill">
+      {/* Плашка з балансами — кнопка: дивишся на числа, тиснеш на них і
+          потрапляєш у гаманець, де вони розписані. Іконки праворуч мають
+          свої дії, тому в кнопку загорнута саме плашка, а не весь топбар
+          (прохання власника 26.09.2026). */}
+      <button className="hud-pill" aria-label="Гаманець" onClick={() => onOpen("wallet")}>
         <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.png" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
         <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.png" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
         <span className="hud-val"><img src="/assets/ui/bean.png" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
-      </div>
+      </button>
       <button className="icon-btn" aria-label="Повідомити про проблему" onClick={() => onOpen("problem")}>
         <img src="/assets/ui/nav_problem.png" alt="" style={{ width: 24, height: 23 }} />
       </button>

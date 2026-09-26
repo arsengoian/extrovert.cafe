@@ -183,7 +183,7 @@ function GiftSheet({ plant, onClose, onDone }) {
     } catch (e) {
       const c = e.body?.error;
       setError(c === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
-        : c === "no_such_user" ? "Такого нікнейма немає" : c === "self_gift" ? "Це ти сам" : c ?? e.message);
+        : c === "no_such_user" ? "Такого нікнейма не знайдено" : c === "self_gift" ? "Це ти сам" : c ?? e.message);
     }
   };
 
