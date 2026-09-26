@@ -102,6 +102,7 @@ export function Planting({ ctx, plantId, title, resume }) {
   const [items, setItems] = useState(EMPTY);
   const [selected, setSelected] = useState(null);
   const [sheet, setSheet] = useState("intro");        // intro | edit | skins | confirm | resume
+  const [skipFg, setSkipFg] = useState(false);        // «пропустити» листя на чолі
   const [busy, setBusy] = useState(false);
   const rootRef = useRef(null);
   const sheetRef = useRef(null);
@@ -119,11 +120,16 @@ export function Planting({ ctx, plantId, title, resume }) {
 
   const id = plantId ?? ctx.me?.plants?.[0]?.id;
 
+  // Перший крок поточної стадії. Потрібен двом місцям: старту й «почати
+  // заново», тож рахується один раз і з одного джерела.
+  const phaseOf = (planting) => (planting === "leaves" ? "leafBg" : planting === "branches" ? "branch" : "bud");
+  const firstPhase = phaseOf(data?.state?.planting);
+
   useEffect(() => {
     api.get(`/me/plants/${id}/planting`)
       .then((d) => {
         setData(d);
-        const first = d.state.planting === "leaves" ? "leafBg" : d.state.planting === "branches" ? "branch" : "bud";
+        const first = phaseOf(d.state.planting);
         const draft = d.draft;
         setPhase(draft?.phase ?? first);
         if (draft?.items) { setItems({ ...EMPTY, ...draft.items }); setSheet(resume ? "resume" : "edit"); }
@@ -284,16 +290,25 @@ export function Planting({ ctx, plantId, title, resume }) {
 
   // ── чернетка ──────────────────────────────────────────────────────────
   const saveDraft = useRef(null);
+  const pendingDraft = useRef(null);   // що саме чекає на відправку
+  const putDraft = (draft) => api.put(`/me/plants/${id}/planting/draft`, { draft }).catch(() => {});
+
   useEffect(() => {
     if (!data || !phase) return undefined;
+    const count = (items.bg?.length ?? 0) + (items.fg?.length ?? 0) + (items.branches?.length ?? 0) + (items.buds?.length ?? 0);
+    const draft = count ? { kind: data.state.planting, phase, items, count } : null;
+    pendingDraft.current = draft;
     clearTimeout(saveDraft.current);
-    saveDraft.current = setTimeout(() => {
-      const count = (items.bg?.length ?? 0) + (items.fg?.length ?? 0) + (items.branches?.length ?? 0) + (items.buds?.length ?? 0);
-      const draft = count ? { kind: data.state.planting, phase, items, count } : null;
-      api.put(`/me/plants/${id}/planting/draft`, { draft }).catch(() => {});
-    }, 700);
+    saveDraft.current = setTimeout(() => { pendingDraft.current = null; putDraft(draft); }, 700);
     return () => clearTimeout(saveDraft.current);
   }, [items, phase, data, id]);
+
+  // Вихід з екрана не має коштувати останніх правок. Затримка в 700 мс
+  // економить запити, поки людина розставляє листя, — але якщо після
+  // останнього кліку одразу вийти в меню, cleanup гасив таймер, і робота
+  // зникала. Саме так губилося фонове листя (26.09.2026, власник): запит
+  // переживе розмонтування компонента, а відкладений таймер — ні.
+  useEffect(() => () => { if (pendingDraft.current) putDraft(pendingDraft.current); }, []);
 
   // «Незавершена посадка» живе на вкладці кавенятка (HUD і меню на місці),
   // а далі редактор відкривається вже з кнопкою «Назад».
@@ -302,7 +317,7 @@ export function Planting({ ctx, plantId, title, resume }) {
   const commit = async () => {
     setBusy(true);
     try {
-      const payload = { items: { bg: items.bg, fg: items.fg, branches: items.branches, buds: items.buds } };
+      const payload = { items: { bg: items.bg, fg: skipFg ? [] : items.fg, branches: items.branches, buds: items.buds } };
       // Готові координати рахує клієнт: сервер геометрію не перевіряє (§9).
       for (const [key, kind] of [["bg", "leafBg"], ["fg", "leafFg"], ["branches", "branch"], ["buds", "bud"]]) {
         const list2 = payload.items[key];
@@ -312,11 +327,17 @@ export function Planting({ ctx, plantId, title, resume }) {
         payload.items[key] = list2.map((it) => resolve(it, { assets, cfg: c, targets: t }));
       }
       await api.post(`/me/plants/${id}/planting`, payload);
+      // Посаджене — вже не чернетка. Гасимо і таймер, і те, що чекало на
+      // відправку: інакше flush при виході воскресив би її на сервері, і
+      // кавенятко знову просило б «продовжити незавершену посадку».
+      clearTimeout(saveDraft.current);
+      pendingDraft.current = null;
       await ctx.refreshMe();
       ctx.pop();
     } catch (e) {
       setError(ERRORS[e.body?.error] ?? errText(e));
       setSheet("edit");
+      setSkipFg(false);   // не лишаємо людину в режимі пропуску після помилки
     } finally {
       setBusy(false);
     }
@@ -353,7 +374,10 @@ export function Planting({ ctx, plantId, title, resume }) {
     if (phase !== "leafFg") return plant;
     return (
       <div className="pl-pair">
-        <button className="pl-btn ghost" onClick={() => { setList([]); setSelected(null); setSheet("confirm"); }}>Пропустити</button>
+        {/* Не стираємо розставлене: якщо посадка впаде (немає препарату,
+            не та кількість), листя має лишитись на місці. Пропуск — це
+            намір, який враховує commit, а не видалення роботи наперед. */}
+        <button className="pl-btn ghost" onClick={() => { setSkipFg(true); setSelected(null); setSheet("confirm"); }}>Пропустити</button>
         {plant}
       </div>
     );
@@ -411,7 +435,12 @@ export function Planting({ ctx, plantId, title, resume }) {
               <b className="pl-sheet-title">Ти вже почав садити {what.verb}</b>
               <p>{drafted} {what.count(drafted)} уже посаджено, <CareIcon need={need} h={16} style={{ display: "inline", verticalAlign: -3 }} /> ще не списано</p>
               <div className="pl-pair">
-                <button className="pl-btn ghost" onClick={() => { setItems(EMPTY); setSelected(null); leaveResume("intro"); }}>Почати заново</button>
+                {/* Разом із листям скидаємо й КРОК. Інакше «почати заново» на
+                    другому кроці стирало фонове листя, лишаючи тебе на
+                    передньому: посадити фонове вже нема де, а сервер вимагає
+                    його кількість — і кавенятко застрягало назавжди, тільки
+                    скосити (26.09.2026, власник). */}
+                <button className="pl-btn ghost" onClick={() => { setItems(EMPTY); setSelected(null); setPhase(firstPhase); leaveResume("intro"); }}>Почати заново</button>
                 <button className="pl-btn" onClick={() => leaveResume("edit")}>Продовжити</button>
               </div>
             </>
@@ -470,7 +499,7 @@ export function Planting({ ctx, plantId, title, resume }) {
 
       {sheet === "confirm" && (
         <>
-          {host && createPortal(<div className="sheet-backdrop" onClick={() => setSheet("edit")} />, host)}
+          {host && createPortal(<div className="sheet-backdrop" onClick={() => { setSheet("edit"); setSkipFg(false); }} />, host)}
           <div className="care-card">
             <div className="care-card-head">
               <CareIcon need={need} h={47} />
@@ -482,7 +511,7 @@ export function Planting({ ctx, plantId, title, resume }) {
               <b>{supplyLeft} {CARE[need].unit} → {Math.max(0, supplyLeft - 1)} {CARE[need].unit}</b>
             </div>
             <div className="care-card-btns">
-              <button onClick={() => setSheet("edit")}>Ще ні</button>
+              <button onClick={() => { setSheet("edit"); setSkipFg(false); }}>Ще ні</button>
               <button disabled={busy || supplyLeft < 1} onClick={commit}>{busy ? "Саджаємо…" : "Посадити"}</button>
             </div>
           </div>
