@@ -7,7 +7,7 @@ import { getThemeMode, setThemeMode } from "../theme.js";
 
 const PROVIDER = { google: "Google", email: "Пошта", dev: "Девелоперський вхід" };
 const THEMES = [
-  { id: "system", label: "Як у пристрої" },
+  { id: "system", label: "Як пристрій" },
   { id: "light", label: "Світла" },
   { id: "dark", label: "Темна" },
 ];

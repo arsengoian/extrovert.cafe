@@ -22,6 +22,13 @@ async function words() {
 
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 
+// Та сама межа, що в NICKNAME_RE (routes/me.js). Генератор її не знав:
+// найдовша пара словника — 20 символів, а з хвостом «-1234» виходило 25,
+// тобто нікнейм, який сам сервер відхилив би як bad_nickname, — і такий
+// гравець не зміг би пересберегти навіть власне ім'я (26.09.2026).
+const MAX_LEN = 24;
+const TAIL_LEN = 5;   // «-1234»
+
 export async function generateNickname() {
   const { adjectives, nouns } = await words();
   if (!adjectives.length || !nouns.length) {
@@ -37,7 +44,11 @@ export async function generateNickname() {
     const form = adjective.forms?.[noun.gender] ?? adjective.word;
     const base = `${form}_${noun.word}`;
     // Хвіст додаємо лише з другої спроби — перші кілька пар пробуємо голими.
-    const candidate = attempt < 6 ? base : `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // З хвостом беремо тільки ту пару, що з ним влазить у межу; довшу
+    // пропускаємо — наступна спроба обере іншу.
+    const tailed = attempt >= 6;
+    if (tailed && [...base].length + TAIL_LEN > MAX_LEN) continue;
+    const candidate = tailed ? `${base}-${Math.floor(1000 + Math.random() * 9000)}` : base;
     const taken = await one("select 1 from users where nickname = $1", [candidate]);
     if (!taken) return candidate;
   }

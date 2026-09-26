@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ConfirmSheet } from "../ui/Popup.jsx";
 
-const MAX = 20;
-// Той самий набір, що перевіряє api (backend/api/src/routes/me.js): букви
-// будь-якої абетки, цифри, підкреслення й дефіс.
-const VALID = /^[\p{L}\p{N}_-]{3,20}$/u;
+// Та сама межа й той самий набір, що перевіряє api (backend/api/src/routes/me.js):
+// букви будь-якої абетки, цифри, підкреслення й дефіс, 3–24 символи.
+// Тут стояло 20 при серверних 24 — а найдовша згенерована пара має рівно 20,
+// тож до свого нікнейма не можна було дописати й літери (власник, 26.09.2026).
+const MAX = 24;
+const VALID = /^[\p{L}\p{N}_-]{3,24}$/u;
 const ERRORS = {
-  bad_nickname: "3–20 символів: букви, цифри, підкреслення й дефіс",
+  bad_nickname: "3–24 символи: букви, цифри, підкреслення й дефіс",
   nickname_taken: "Такий нікнейм уже зайнятий",
 };
 
@@ -81,7 +83,7 @@ export function NicknameChange({ ctx }) {
           {/* Закоротке ім'я — це не «зайнятий»: раніше обидва випадки
               виглядали однаково, і людина шукала вільний варіант замість
               того, щоб дописати літеру. */}
-          {trimmed && !valid && <span>3–20 символів</span>}
+          {trimmed && !valid && <span>3–24 символи</span>}
         </label>
         <div className="nick-tools">
           <button onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
