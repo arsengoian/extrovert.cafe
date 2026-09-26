@@ -71,10 +71,13 @@ export function Chat({ ctx, plant }) {
   return (
     <div className="chat">
       <div className="chat-log">
+        {/* Порожня історія — плашка посередині, як вступ у телеграм-боті, а
+            не повідомлення від кавенятка: це підказка інтерфейсу, а не репліка,
+            і вона зникає з першим же повідомленням (власник, 26.09.2026). */}
         {data.messages.length === 0 && (
-          <div className="chat-msg chat-plant">
-            Кавенятко знає, скільки в тебе монет, чого воно хоче далі й що ти купував.
-            Спитай його – наприклад, «що мені робити зараз?».
+          <div className="chat-intro">
+            Кавенятко місцеве. Знає, як тут все працює, хто, що, і куди. Напиши йому –
+            воно усе розповість, а заодно і розважить 😎
           </div>
         )}
         {data.messages.map((m) => {
@@ -112,9 +115,9 @@ export function Chat({ ctx, plant }) {
               />
               <button className="chat-send" title="Надіслати" onClick={send}>
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15" /><path d="M13 6l6 6-6 6" /></svg>
-                {data.price > 0
-                  ? <span>{data.price}<img src="/assets/ui/coin_gold.png" alt="золота монета" /></span>
-                  : <span>{data.free_left} безкоштовно</span>}
+                {/* Ціна — лише коли за повідомлення справді треба платити;
+                    безкоштовні нічим не позначаємо (власник, 26.09.2026). */}
+                {data.price > 0 && <span>{data.price}<img src="/assets/ui/coin_gold.png" alt="золота монета" /></span>}
               </button>
             </>
           )}
