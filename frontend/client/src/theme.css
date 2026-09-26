@@ -337,7 +337,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .card-item .art { flex: 1; min-height: 58px; display: flex; align-items: center; justify-content: center }
 .card-item .art img { max-width: 100%; max-height: 58px; object-fit: contain }
 .card-item .name { font-size: 12px; font-weight: 700; text-align: center }
-.card-item .cost { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800 }
+/* Ціна притиснута до низу: назви бувають в один і два рядки, і без цього
+   ціни в ряду стояли на різній висоті (власник, 26.09.2026). */
+.card-item .cost { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 800; margin-top: auto }
 .card-item .cost img { width: 18px; height: 19px }
 
 /* Список однорядкових товарів (догляд, дрібниці «у грі»). */

@@ -88,18 +88,9 @@ export function Shop({ ctx }) {
 
   useEffect(() => {
     api.get("/shop").then(setShop).catch(() => setShop({ coins: [], beans: [] }));
-    // Три речі для вітрини одягу: у макеті це прев'ю колекції, а не список.
-    // Показуємо ті, у яких є намальований спрайт: поки це лише ковбойський
-    // комплект, і вітрина з трьох заглушок виглядала б як поламаний магазин.
-    api.get("/catalog/items")
-      .then((r) => {
-        const items = r.items ?? [];
-        const drawn = items.filter((i) => /^cowboy_(head|body|feet)$/.test(i.sprite_id ?? ""));
-        const order = { head: 1, body: 0, feet: 2 };
-        drawn.sort((a, b) => order[a.slot] - order[b.slot]);
-        setClothes((drawn.length === 3 ? drawn : items).slice(0, 3));
-      })
-      .catch(() => {});
+    // Три речі на вітрині — добова випадкова трійка з сервера
+    // (/catalog/featured): однакова для всіх до київської півночі.
+    api.get("/catalog/featured").then((r) => setClothes(r.items ?? [])).catch(() => {});
   }, []);
 
   const open = (item) => {
@@ -141,7 +132,7 @@ export function Shop({ ctx }) {
         <>
           <div className="section">
             <div className="section-head">
-              <div className="sectionTitle">Одяг</div>
+              <div className="sectionTitle">Сьогодні у моді</div>
               <button className="link-more" data-tap="off" onClick={() => ctx.push("catalog")}>
                 Весь одяг
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">

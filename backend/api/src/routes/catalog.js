@@ -46,6 +46,24 @@ export default async function routes(app) {
     };
   });
 
+  // «Сьогодні у моді» — три речі на вітрині Магазину. Випадкові, але на
+  // добу: порядок задає md5 від київської дати й коду речі, тож до півночі
+  // за Києвом усі бачать ті самі три, а перезавантаження їх не тасує. Кеш
+  // без сховища — його нема чого інвалідовувати, а нова річ у каталозі
+  // просто бере участь у завтрашньому жеребкуванні. Раніше тут стояв
+  // фіксований ковбойський комплект (власник, 26.09.2026: «мають бути
+  // закешовані рандомні товари»).
+  app.get("/catalog/featured", async () => {
+    const rows = await many(
+      `select code, name, collection, description_md, slot, tier, sprite_id
+         from item_defs
+        where active
+        order by md5(to_char(now() at time zone 'Europe/Kyiv', 'YYYY-MM-DD') || code)
+        limit 3`
+    );
+    return { items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier) })) };
+  });
+
   // Набори одягу: Склад групує предмети саме за ними.
   app.get("/catalog/collections", async () => {
     const rows = await many(
