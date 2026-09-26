@@ -143,7 +143,7 @@ export function Shop({ ctx }) {
             <div className="cards">
               {clothes.map((it) => (
                 <button key={it.code} className="card-item" onClick={() => ctx.push("itemCard", { item: it })}>
-                  <span className="art"><ItemIcon sprite={it.sprite_id} size={58} name={it.name} style={{ width: 58 }} /></span>
+                  <span className="art"><ItemIcon sprite={it.sprite_id} size={58} style={{ width: 58 }} /></span>
                   <span className="name">{it.name}</span>
                   <span className="cost">
                     <Coins2 size={15} overlap={6} />
