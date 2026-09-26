@@ -73,6 +73,17 @@ export function growthState(plant) {
   };
 }
 
+// Чернетка має сенс лише для тієї посадки, під яку її почали. Якщо стадія
+// відтоді змінилась (правка бази, зміна економіки), стара чернетка
+// підсунула б крок іншого типу — гілки замість бутонів, — і сервер
+// відмовляв би за кількістю на кожній спробі посадити. З такого стану
+// кущ виходив лише скошуванням (власник, 26.09.2026), тож чужа чернетка —
+// те саме, що її немає.
+export function liveDraft(plant, state = growthState(plant)) {
+  const draft = plant.appearance?.draft;
+  return draft && state.planting && draft.kind === state.planting ? draft : null;
+}
+
 async function loadPlant(client, id, userId) {
   const { rows } = await client.query("select * from plants where id = $1 and owner_id = $2 for update", [id, userId]);
   return rows[0] ?? null;
@@ -154,7 +165,7 @@ export default async function routes(app) {
     const supply = await one("select water_liters, compost_kg, fertilizer_kg, insecticide_bottles from users where id = $1", [user.id]);
     return {
       state,
-      draft: plant.appearance?.draft ?? null,
+      draft: liveDraft(plant, state),
       appearance: plant.appearance ?? {},
       supply,
     };
@@ -218,10 +229,11 @@ export default async function routes(app) {
         const base = before.reduce((m, it) => Math.max(m, it.id ?? 0), 0);
         appearance[key] = [...before, ...list.map((it, n) => ({ ...it, id: base + n + 1 }))];
       };
-      append("leaves_bg", items.bg);
-      append("leaves_fg", items.fg);
-      append("branches", items.branches);
-      append("buds", items.buds);
+      // Лише поля цієї посадки: що б клієнт не доклав зверху (скажімо,
+      // бутони з чернетки минулої стадії), перевірено лише їх — і
+      // посаджено теж лише їх.
+      const INTO = { bg: "leaves_bg", fg: "leaves_fg", branches: "branches", buds: "buds" };
+      for (const key of Object.keys(state.limits)) append(INTO[key], items[key]);
 
       await advance(client, plant, state, { consumed: state.need, appearance });
       return { ok: true, stage: state.to, left: spent[0].left };

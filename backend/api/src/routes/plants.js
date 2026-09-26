@@ -5,7 +5,7 @@ import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { flushNotices, notifyPlant } from "../notify.js";
-import { growthState } from "./planting.js";
+import { growthState, liveDraft } from "./planting.js";
 
 const DAYS = 24 * 60 * 60 * 1000;
 const SAD_AFTER_DAYS = 3;
@@ -28,7 +28,7 @@ export function canGrow(plant) {
   return Date.now() - new Date(plant.last_stage_transition_at).getTime() >= DAYS;
 }
 
-const view = (p) => ({
+const view = (p, growth = growthState(p), draft = liveDraft(p, growth)) => ({
   id: p.id,
   name: p.name,
   growth_stage: p.growth_stage,
@@ -37,8 +37,8 @@ const view = (p) => ({
   appearance: p.appearance,
   mood: moodOf(p),
   can_grow: canGrow(p),
-  growth: growthState(p),
-  draft: p.appearance?.draft ? { kind: p.appearance.draft.kind, count: p.appearance.draft.count ?? null } : null,
+  growth,
+  draft: draft ? { kind: draft.kind, count: draft.count ?? null } : null,
   on_sale: Boolean(p.listing_id),
   // Ціна лота — для плашки «На продажу · 1 800» на головному екрані.
   listing: p.listing_price ? { id: p.listing_id, price: p.listing_price, currency: p.listing_currency } : null,

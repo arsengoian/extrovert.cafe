@@ -110,10 +110,19 @@ const BUDS_TOTAL = 7;
 const FIELD = { leafBg: "bg", leafFg: "fg", branch: "branches", bud: "buds" };
 const EMPTY = { bg: [], fg: [], branches: [], buds: [] };
 
+// Кроки кожної посадки й поле, яке кожен із них наповнює.
+const PHASES = { leaves: ["leafBg", "leafFg"], branches: ["branch"], buds: ["bud"] };
+const PHASE_OF_FIELD = Object.fromEntries(Object.entries(FIELD).map(([p, f]) => [f, p]));
+
+// «Кількість не збігається» сама по собі нічого не каже: людина не знає, що
+// саме полічено не так. Сервер віддає поле й межі — показуємо їх.
+const COUNT_OF = { bg: "Фонових листків", fg: "Листків на чолі", branches: "Гілок", buds: "Бутонів" };
+const badCount = ({ key, min, max, got }) =>
+  `${COUNT_OF[key] ?? "Елементів"} треба ${min === max ? min : `від ${min} до ${max}`}, а стоїть ${got}.`;
+
 const ERRORS = {
   no_supply: "Не вистачає препарату",
   too_soon: "Одна стадія на добу – посадка відкриється завтра",
-  bad_count: "Кількість не збігається з умовою",
   nothing_to_plant: "Зараз садити нічого",
   on_sale: "Кавенятко виставлене на продаж",
 };
@@ -158,9 +167,22 @@ export function Planting({ ctx, plantId, title, resume }) {
       .then((d) => {
         setData(d);
         const first = phaseOf(d.state.planting);
-        const draft = d.draft;
-        setPhase(draft?.phase ?? first);
-        if (draft?.items) { setItems({ ...EMPTY, ...draft.items }); setSheet(resume ? "resume" : "edit"); }
+        const draft = d.draft;   // сервер віддає лише чернетку цієї посадки (liveDraft)
+        // Крок із чернетки — лише якщо він належить цій посадці. А на «чоло»
+        // без повного фонового листя не пускаємо: посадити там його нема
+        // де, а сервер вимагатиме його кількість — це й був глухий кут, з
+        // якого кущ виходив лише скошуванням (власник, 26.09.2026).
+        let next = PHASES[d.state.planting]?.includes(draft?.phase) ? draft.phase : first;
+        if (next === "leafFg" && (draft?.items?.bg?.length ?? 0) < (d.state.limits?.bg?.[0] ?? 0)) next = "leafBg";
+        setPhase(next);
+        // З чернетки беремо лише поля цієї посадки; якщо в них порожньо,
+        // продовжувати нічого — починаємо з «як це працює».
+        const own = (PHASES[d.state.planting] ?? []).map((p) => FIELD[p]);
+        const kept = Object.fromEntries(own.map((key) => [key, draft?.items?.[key] ?? []]));
+        if (own.some((key) => kept[key].length)) {
+          setItems({ ...EMPTY, ...kept });
+          setSheet(resume ? "resume" : "edit");
+        }
       })
       .catch((e) => setError(errText(e)));
   }, [id]);
@@ -370,7 +392,9 @@ export function Planting({ ctx, plantId, title, resume }) {
   const commit = async () => {
     setBusy(true);
     try {
-      const payload = { items: { bg: items.bg, fg: skipFg ? [] : items.fg, branches: items.branches, buds: items.buds } };
+      // Шлемо лише поля цієї посадки (сервер інших і не садить).
+      const all = { bg: items.bg, fg: skipFg ? [] : items.fg, branches: items.branches, buds: items.buds };
+      const payload = { items: Object.fromEntries(PHASES[data.state.planting].map((p) => [FIELD[p], all[FIELD[p]]])) };
       // Готові координати рахує клієнт: сервер геометрію не перевіряє (§9).
       for (const [key, kind] of [["bg", "leafBg"], ["fg", "leafFg"], ["branches", "branch"], ["buds", "bud"]]) {
         const list2 = payload.items[key];
@@ -388,7 +412,17 @@ export function Planting({ ctx, plantId, title, resume }) {
       await ctx.refreshMe();
       ctx.pop();
     } catch (e) {
-      setError(ERRORS[e.body?.error] ?? errText(e));
+      const body = e.body ?? {};
+      if (body.error === "bad_count") {
+        // Не зійшлось поле іншого кроку (фонове листя, поки ти на «чолі»)
+        // — ведемо туди, де його можна виправити, а не лишаємо з кнопкою,
+        // яка щоразу відмовлятиме.
+        const back = PHASE_OF_FIELD[body.key];
+        if (back && back !== phase) { setPhase(back); setSelected(null); }
+        setError(badCount(body));
+      } else {
+        setError(ERRORS[body.error] ?? errText(e));
+      }
       setSheet("edit");
       setSkipFg(false);   // не лишаємо людину в режимі пропуску після помилки
     } finally {

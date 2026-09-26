@@ -474,7 +474,7 @@ export function Plant({ ctx }) {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
     // двадцять листків і лише на «Посадити» дізнається, що зарано.
     if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
-    ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка", resume: Boolean(plant.appearance?.draft?.count) });
+    ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка", resume: Boolean(plant.draft?.count) });   // лише чернетка поточної посадки (liveDraft)
   };
 
   // Один тап по банці = одне застосування. Сервер вирішує, чи це рухає
