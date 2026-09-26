@@ -7,7 +7,7 @@
 // від ЦЕНТРА — між ними centerAnchorForRoot (§2).
 import {
   BRANCH_LOCAL, centerAnchorForRoot, clampToPolygon, inAnnulus, makeCurve,
-  normalFromCenter, outwardNormal, pointInPolygon, transformLocalPoint,
+  normalFromCenter, outwardNormal, pointInPolygon, rad, transformLocalPoint,
 } from "./geometry.js";
 
 export const LEAF_GROUP = "leaves_batch_normal";
@@ -80,7 +80,37 @@ function finalAngle(item, cfg, root, targets) {
   if (cfg.mode === "area") return normalFromCenter(cfg.normalCenter, root) + (item.offset ?? 0);
   const curve = cfg.mode === "curve" ? cfg.curve : targets?.find((t) => t.id === item.owner)?.curve;
   if (!curve) return item.offset ?? 0;
-  return outwardNormal(curve.tangentAt(item.t), root, cfg.normalCenter) + (item.offset ?? 0);
+  const flip = item.side === -1 ? 180 : 0;
+  return outwardNormal(curve.tangentAt(item.t), root, cfg.normalCenter) + flip + (item.offset ?? 0);
+}
+
+// Бік бутона на гілці: 1 — назовні (як на тілі), -1 — всередину. Задає його
+// палець: з якого боку лінії відпустив, туди бутон і дивиться (власник,
+// 26.09.2026). На основній дузі тіла бік один — назовні, тому там поля
+// немає. Коли палець майже на самій лінії, бік лишається попереднім: інакше
+// бутон перекидався б від тремтіння пальця.
+const SIDE_DEADZONE = 6;
+
+function sideAt(target, t, point, cfg, prev) {
+  if (target.id === "body") return undefined;
+  const root = target.curve.pointAt(t);
+  const a = rad(outwardNormal(target.curve.tangentAt(t), root, cfg.normalCenter));
+  const along = Math.cos(a) * (point.x - root.x) + Math.sin(a) * (point.y - root.y);
+  if (Math.abs(along) < SIDE_DEADZONE) return prev ?? 1;
+  return along > 0 ? 1 : -1;
+}
+
+// Найближча крива до пальця — і хазяїн бутона, і позиція на ній, і бік.
+function budAt(point, cfg, targets, prev = {}) {
+  let best = null;
+  for (const target of targets) {
+    const hit = target.curve.nearestT(point);
+    if (!best || hit.distance < best.distance) best = { ...hit, target };
+  }
+  const t = clampT(best.t, cfg.edgeBlock);
+  const keep = prev.owner === best.target.id ? prev.side : undefined;
+  const side = sideAt(best.target, t, point, cfg, keep);
+  return { owner: best.target.id, t, ...(side === undefined ? {} : { side }) };
 }
 
 // Авторський запис → те, що малює рушій (center-anchored).
@@ -124,12 +154,7 @@ export function createAt(point, cfg, { skin = 1, targets } = {}) {
     return { skin, t: clampT(t, cfg.edgeBlock), offset: cfg.rotation.default, scale: cfg.scale.default };
   }
   // Бутон: жест одночасно обирає й хазяїна (найближчу криву), і позицію.
-  let best = null;
-  for (const target of targets) {
-    const hit = target.curve.nearestT(point);
-    if (!best || hit.distance < best.distance) best = { ...hit, owner: target.id };
-  }
-  return { owner: best.owner, t: clampT(best.t, cfg.edgeBlock), offset: cfg.rotation.default, scale: cfg.scale.default };
+  return { ...budAt(point, cfg, targets), offset: cfg.rotation.default, scale: cfg.scale.default };
 }
 
 // Перетягування вже поставленого елемента.
@@ -141,10 +166,6 @@ export function moveTo(item, point, cfg, targets) {
   if (cfg.mode === "curve") {
     return { ...item, t: clampT(cfg.curve.nearestT(point).t, cfg.edgeBlock) };
   }
-  let best = null;
-  for (const target of targets) {
-    const hit = target.curve.nearestT(point);
-    if (!best || hit.distance < best.distance) best = { ...hit, owner: target.id };
-  }
-  return { ...item, owner: best.owner, t: clampT(best.t, cfg.edgeBlock) };
+  const { side, ...rest } = item;
+  return { ...rest, ...budAt(point, cfg, targets, item) };
 }

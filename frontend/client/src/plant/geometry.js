@@ -203,8 +203,10 @@ export function smoothD(p, closed) {
   return d + (closed ? "Z" : "");
 }
 
-// Рамка, у яку камера має вмістити і зону, і сам кущ.
-export function fitCamera(points, viewport, pad = 26) {
+// Рамка, у яку камера має вмістити і зону, і сам кущ. align: "top" кладе
+// вміст під верхній край рамки, а не по центру — тоді зайва висота лишається
+// знизу, і зміна нижньої межі не рухає картинку.
+export function fitCamera(points, viewport, pad = 26, { align = "center" } = {}) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const p of points) {
     x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y);
@@ -215,6 +217,6 @@ export function fitCamera(points, viewport, pad = 26) {
   return {
     k,
     tx: viewport.x + viewport.w / 2 - ((x0 + x1) / 2) * k,
-    ty: viewport.y + viewport.h / 2 - ((y0 + y1) / 2) * k,
+    ty: align === "top" ? viewport.y - y0 * k : viewport.y + viewport.h / 2 - ((y0 + y1) / 2) * k,
   };
 }

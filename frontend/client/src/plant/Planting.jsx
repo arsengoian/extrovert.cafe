@@ -12,7 +12,7 @@ import { api, errText } from "../api.js";
 import { plural } from "../ui/plural.js";
 import { Scene } from "./Scene.jsx";
 import { usePlantAssets } from "./assets.js";
-import { W0, fitCamera, growthFactor, smoothD } from "./geometry.js";
+import { FRUIT_FOREGROUND_Z, W0, fitCamera, growthFactor, smoothD } from "./geometry.js";
 import { ANCHOR, baseInstances, playerInstances } from "./scene.js";
 import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } from "./placement.js";
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
@@ -52,11 +52,41 @@ const PHASE = {
   },
   bud: {
     label: "Бутони", introTitle: "Час для бутонів",
+    // Третій рядок — які саме бутони садимо зараз (budsNow): він залежить
+    // від уже посадженого, тож збирається на льоту.
     intro: ["Бутон чіпляється до тіла або будь-якої посадженої гілки.",
-            "Просто тягни його – він сам розташується, де потрібно.",
-            "Усього їх буде 7, по 1–2 за раз на кожній стадії росту."],
+            "Просто тягни його – він сам розташується, де потрібно. На гілці – з того боку, де відпустиш."],
   },
 };
+
+// Бутони йдуть 1, 2, 2, 2 за стадію (routes/planting.js), тож «які саме»
+// видно з того, скільки вже посаджено.
+const ORDINAL = ["перший", "другий", "третій", "четвертий", "п'ятий", "шостий", "сьомий"];
+const budsNow = (planted, n) => {
+  const which = ORDINAL.slice(planted, planted + n);
+  return which.length > 1
+    ? `Зараз потрібно посадити ${which.join(" та ")} бутони із семи.`
+    : `Зараз потрібно посадити ${which[0] ?? "останній"} бутон із семи.`;
+};
+
+// Камера посадки. Раніше кадр вміщав і зону, і все розставлене, і
+// перераховувався на кожен рух пальця: повів листок до краю — сцена
+// зменшилась, повів далі — ще раз. Власник: «дуже вже смикає» (26.09.2026).
+// Тепер кадр рахується з того, що за крок не змінюється (зона, кущ, посаджене
+// на минулих стадіях); стеження за чернеткою лишилось і вмикається тут.
+// Крайні листки при цьому можуть трохи вилазити за край — це прийнятно.
+const CAMERA_FOLLOWS_DRAFT = false;
+
+// Кадр прив'язаний до верху й завжди лишає знизу місце під найвищу робочу
+// панель — редагування з обраним елементом. Раніше нижня межа кадру йшла за
+// висотою поточної панелі, тож обрав листок — кущ стрибнув угору, зняв вибір
+// — униз (власник, 26.09.2026). Число — від низу екрана до верху кошика над
+// тією панеллю (260 px, заміряно в браузері), щоб і він не ліз на кущ.
+const CAMERA_TOP = 40;           // під лічильником
+const CAMERA_PANEL_ROOM = 262;
+
+// Біле коло навколо обраного — воно ж і зона дотику (частка ширини спрайта).
+const ringOf = (phase) => (phase === "bud" ? 0.42 : 0.44);
 
 // Іконка лічильника й її розмір — як у кадрах.
 const ICON = {
@@ -105,9 +135,7 @@ export function Planting({ ctx, plantId, title, resume }) {
   const [skipFg, setSkipFg] = useState(false);        // «пропустити» листя на чолі
   const [busy, setBusy] = useState(false);
   const rootRef = useRef(null);
-  const sheetRef = useRef(null);
   const [box, setBox] = useState({ w: 390, h: 602 });
-  const [sheetH, setSheetH] = useState(220);
   const [host, setHost] = useState(null);
   useEffect(() => setHost(document.querySelector(".app")), []);
   // Щойно посаджений елемент: виростає з bounce, навколо — іскорки.
@@ -137,20 +165,19 @@ export function Planting({ ctx, plantId, title, resume }) {
       .catch((e) => setError(errText(e)));
   }, [id]);
 
-  // Кадр підганяється під реальний розмір сцени й панелі: у браузері на ПК і
-  // на телефоні це різні числа, а панель у кожного кроку своєї висоти.
+  // Кадр підганяється під реальний розмір сцени: у браузері на ПК і на
+  // телефоні це різні числа. Висота панелі сюди вже не входить — див.
+  // CAMERA_PANEL_ROOM.
   useLayoutEffect(() => {
     const measure = () => {
       const r = rootRef.current?.getBoundingClientRect();
       if (r) setBox({ w: r.width, h: r.height });
-      if (sheetRef.current) setSheetH(sheetRef.current.offsetHeight);
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (rootRef.current) ro.observe(rootRef.current);
-    if (sheetRef.current) ro.observe(sheetRef.current);
     return () => ro.disconnect();
-  }, [data, sheet, selected, phase]);
+  }, [data, assets, phase]);   // .pl з'являється лише разом з асетами й кроком
 
   const cfg = useMemo(() => (assets && phase ? config(assets, phase) : null), [assets, phase]);
   const stage = data?.state?.to ?? 2;
@@ -174,20 +201,37 @@ export function Planting({ ctx, plantId, title, resume }) {
     return list.map((it) => resolve(it, { assets, cfg, targets }));
   }, [list, cfg, assets, targets]);
 
+  // Фонове листя, розставлене на попередньому кроці. Воно ще чернетка —
+  // сервер його не бачив, тож playerInstances про нього не знає, і на кроці
+  // «листя на чолі» кущ стояв голий (власник, 26.09.2026). А саме по ньому
+  // й видно, що закриваєш передніми листками.
+  const earlier = useMemo(() => {
+    if (!assets || phase !== "leafFg") return [];
+    const c = config(assets, "leafBg");
+    return (items.bg ?? []).map((it) => resolve(it, { assets, cfg: c }));
+  }, [assets, phase, items.bg]);
+
   // Сцена: кущ цільової стадії + уже посаджене + чернетка поверх.
   const instances = useMemo(() => {
     if (!assets || !data || !cfg) return [];
     const base = baseInstances(assets.layout, stage, "healthy")
       .map((i) => (i.group === "platform" ? { ...i, scale: i.scale * 0.72 } : i));
     const planted = playerInstances(data.appearance, stage, "healthy");
-    const drafts = resolved.map((it, n) => ({
+    const draft = (it, kind, z) => ({
       ...toStage(it), scale: it.scale * f, rotation: it.rotation,
-      group: groupFor(phase === "leafFg" ? "leafBg" : phase), sprite: spriteFor(phase, it),
-      z: cfg.z + n * 0.001,
+      group: groupFor(kind), sprite: spriteFor(kind, it), z, draft: true,
+    });
+    const before = earlier.map((it, n) => draft(it, "leafBg", 18 + n * 0.001));
+    // Нові бутони після посадки лягають поверх уже посаджених (FRUIT_FOREGROUND_Z
+    // + порядковий номер, scene.js) — у чернетці так само, інакше прев'ю
+    // показувало б їх під старими.
+    const budsBefore = data.appearance?.buds?.length ?? 0;
+    const drafts = resolved.map((it, n) => ({
+      ...draft(it, phase, phase === "bud" ? FRUIT_FOREGROUND_Z + budsBefore + n : cfg.z + n * 0.001),
       pop: pop?.n === n,
     }));
-    return [...base, ...planted, ...drafts].sort((a, b) => a.z - b.z);
-  }, [assets, data, stage, resolved, phase, cfg, f, toStage, pop]);
+    return [...base, ...planted, ...before, ...drafts].sort((a, b) => a.z - b.z);
+  }, [assets, data, stage, resolved, earlier, phase, cfg, f, toStage, pop]);
 
   // Підсвічені зони й криві — у тих самих координатах, що й сцена.
   const zones = useMemo(() => {
@@ -208,10 +252,8 @@ export function Planting({ ctx, plantId, title, resume }) {
     }));
   }, [cfg, assets, targets, list, selected, toStage]);
 
-  // Камера — як у макеті: зона й кущ (радіус 0.42 спрайта) з полями 26 у
-  // прямокутнику над панеллю. Верх — під лічильником (40), на «як це
-  // працює» лічильника нема (24), у чернетці рамка ширша (16).
-  const vp = sheet === "resume" ? { x: 12, y: 16 } : sheet === "intro" ? { x: 10, y: 24 } : { x: 10, y: 40 };
+  // Камера — як у макеті: зона й кущ (радіус 0.42 спрайта) з полями 26, але
+  // рамка одна на всі панелі (CAMERA_PANEL_ROOM) і прив'язана до верху.
   const camera = useMemo(() => {
     if (!cfg) return { k: 0.45, tx: 0, ty: 0 };
     const pts = [];
@@ -221,11 +263,13 @@ export function Planting({ ctx, plantId, title, resume }) {
     if (cfg.kind === "bud") for (const t of targets) for (const p of t.curve.source) pts.push(toStage(p));
     for (const i of instances) {
       if (!i.sprite || i.group === "platform" || i.group === "ground_shadow") continue;
+      if (i.draft && !CAMERA_FOLLOWS_DRAFT) continue;
       const r = W0 * i.scale * 0.42;
       pts.push({ x: i.x - r, y: i.y - r }, { x: i.x + r, y: i.y + r });
     }
-    return fitCamera(pts, { x: vp.x, y: vp.y, w: box.w - 2 * vp.x, h: box.h - vp.y - sheetH - 8 }, 26);
-  }, [cfg, assets, targets, instances, box, sheetH, toStage, vp.x, vp.y]);
+    const room = { x: 10, y: CAMERA_TOP, w: box.w - 20, h: box.h - CAMERA_TOP - CAMERA_PANEL_ROOM };
+    return fitCamera(pts, room, 26, { align: "top" });
+  }, [cfg, assets, targets, instances, box, toStage]);
 
   // ── робота з елементами ───────────────────────────────────────────────
   const setList = (next) => setItems((prev) => ({ ...prev, [FIELD[phase]]: next }));
@@ -238,16 +282,25 @@ export function Planting({ ctx, plantId, title, resume }) {
 
   const dragging = useRef(false);
 
+  // Елемент під пальцем — той, у чиє біле коло влучив дотик: коло, що
+  // підсвічує вибір, і є зоною дотику. Раніше брався найближчий КОРІНЬ у
+  // радіусі 55 — листок обирався тапом під собою, а по краю ні, а коли
+  // стояли всі 40, будь-який тап у порожнечу хапав найближчий (власник,
+  // 26.09.2026). Кола в зрілих координатах, як і точка дотику. З кількох —
+  // верхнє, бо саме його видно.
+  const hitAt = (point) => {
+    for (let i = resolved.length - 1; i >= 0; i--) {
+      const it = resolved[i];
+      if (Math.hypot(it.x - point.x, it.y - point.y) <= W0 * it.scale * ringOf(phase)) return i;
+    }
+    return -1;
+  };
+
   const onDown = (e) => {
     if (!cfg || sheet === "confirm" || sheet === "intro" || sheet === "resume") return;
     const point = sceneAt(e);
-    // Спершу шукаємо, чи не влучив палець у вже поставлений елемент.
-    let hit = -1, hitD = Infinity;
-    resolved.forEach((it, i) => {
-      const d = Math.hypot(it.root.x - point.x, it.root.y - point.y);
-      if (d < hitD) { hitD = d; hit = i; }
-    });
-    if (hitD < 55) {
+    const hit = hitAt(point);
+    if (hit >= 0) {
       setSelected(hit);
     } else if (list.length < max) {
       const skin = list[selected]?.skin ?? 1;
@@ -256,7 +309,7 @@ export function Planting({ ctx, plantId, title, resume }) {
       const box = rootRef.current.getBoundingClientRect();
       setPop({ n: list.length, x: e.clientX - box.left, y: e.clientY - box.top, id: Date.now() });
     } else {
-      setSelected(hit >= 0 ? hit : null);
+      setSelected(null);   // усі поставлено, а тап у порожнечу — просто зняти вибір
       return;
     }
     setSheet("edit");
@@ -413,7 +466,7 @@ export function Planting({ ctx, plantId, title, resume }) {
           {item && sheet !== "confirm" && (() => {
             const r = resolved[selected];
             const p = toStage({ x: r.x, y: r.y });
-            return <circle cx={p.x} cy={p.y} r={W0 * r.scale * f * (phase === "bud" ? 0.42 : 0.44)}
+            return <circle cx={p.x} cy={p.y} r={W0 * r.scale * f * ringOf(phase)}
                            fill="rgba(255,255,255,.22)" stroke="rgba(255,255,255,.72)" strokeWidth={sw * 0.5} />;
           })()}
         </svg>
@@ -429,7 +482,7 @@ export function Planting({ ctx, plantId, title, resume }) {
       )}
 
       {sheet !== "confirm" && (
-        <div className="pl-sheet" data-kind={sheet} ref={sheetRef}>
+        <div className="pl-sheet" data-kind={sheet}>
           {sheet === "resume" && (
             <>
               <b className="pl-sheet-title">Ти вже почав садити {what.verb}</b>
@@ -449,7 +502,7 @@ export function Planting({ ctx, plantId, title, resume }) {
           {sheet === "intro" && (
             <>
               <b className="pl-title">{PHASE[phase].introTitle}</b>
-              <Steps items={PHASE[phase].intro} />
+              <Steps items={phase === "bud" ? [...PHASE.bud.intro, budsNow(planted, min)] : PHASE[phase].intro} />
               <button className="pl-btn go" onClick={() => setSheet("edit")}>Почати!</button>
             </>
           )}
@@ -480,15 +533,17 @@ export function Planting({ ctx, plantId, title, resume }) {
                     <div className="pl-ranges">
                       <RangeRow label="Розмір" value={item.scale} display={item.scale.toFixed(2)}
                                 min={cfg.scale.min} max={cfg.scale.max} onChange={(v) => patch({ scale: v })} />
-                      <ZOrderRow index={selected} total={list.length} offset={planted} of={phase === "bud" ? BUDS_TOTAL : undefined} onChange={reorder} />
+                      {/* «з N» — скільки їх уже є разом із цими, а не 7 за життя:
+                          переставляти можна лише серед посаджених, і перший
+                          бутон на «1 з 7» не мав куди рухатись (власник, 26.09.2026). */}
+                      <ZOrderRow index={selected} total={list.length} offset={planted} onChange={reorder} />
                     </div>
                   </div>
                 </>
               ) : (
-                <p>
-                  {cfg.mode === "area" ? "Доторкнися до підсвіченої зони, щоб посадити." : "Доторкнися до підсвіченої лінії, щоб посадити."}
-                  {" "}Треба {min === max ? min : `від ${min} до ${max}`}, поставлено {list.length}.
-                </p>
+                // Скільки треба й скільки поставлено — у лічильнику вгорі;
+                // тут це дублювалось (власник, 26.09.2026).
+                <p>{cfg.mode === "area" ? "Доторкнися до підсвіченої зони, щоб посадити." : "Доторкнися до підсвіченої лінії, щоб посадити."}</p>
               )}
               {error && <p style={{ color: "var(--accent-text)" }}>{error}</p>}
               {mainButton()}
