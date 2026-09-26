@@ -3,6 +3,7 @@
 // посадки), тіні й підфарбовування настрою — як у рушії дизайну.
 import { useEffect, useRef, useState } from "react";
 import { FILTER_KEY, STAGE_H, STAGE_W } from "./geometry.js";
+import { usePlantAssets } from "./assets.js";
 
 const DEFAULT_SHADOW = { enabled: true, offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8 };
 const DEFAULT_FACE_SHADOW = { enabled: true, offset: 5, blur: 0.8, opacity: 0.41 };
@@ -17,6 +18,41 @@ const isGroundShadow = (g) => g === "ground_shadow";
 // з обличчям — кожне своїм ритмом; саму анімацію вмикає data-idle сцени.
 const swayOf = (g) => (isLeaf(g) ? "leaf" : isBranch(g) ? "branch" : isFace(g) || /body_stage/.test(g || "") ? "crown" : undefined);
 
+// Метадані спрайта (корінь + природний розмір) лежать лише для базового
+// варіанта, а сцена малює й сумний/зів'ялий — геометрія в них та сама,
+// різниться колір. Тому суфікс настрою знімаємо перед пошуком:
+// leaves_batch_sad:leaf_skin1_sad.png → leaves_batch_normal:leaf_skin1_normal.png,
+// branch_skins_custom_withered:…_withered.png → branch_skins_custom:….png.
+function metaOf(sprites, group, sprite) {
+  if (!sprites || !group || !sprite) return null;
+  const g = group.replace(/_(very_sad|sad|withered)$/, "");
+  const f = sprite.replace(/_(very_sad|sad|withered)\.png$/, ".png");
+  const gk = g === "leaves_batch" ? "leaves_batch_normal" : g;
+  const fk = /^leaf_skin\d+\.png$/.test(f) ? f.replace(".png", "_normal.png") : f;
+  return sprites[`${group}:${sprite}`] ?? sprites[`${gk}:${fk}`] ?? null;
+}
+
+// Гойдання навколо КОРЕНЯ, а не кута (власник, 26.09.2026: «листки
+// повертаються не навколо своєї точки кореня а навколо якогось кутка»).
+//
+// Раніше погойдування робила властивість `rotate`, а вона обертає навколо
+// transform-origin — центру коробки спрайта ДО зсуву translate(-50%,-50%).
+// Після зсуву ця точка стоїть у правому нижньому куті намальованого листка:
+// кожен листок гойдався навколо кута, а його центр ходив туди-сюди на 1,9 px
+// (заміряно). Двадцять листків у різних фазах — «усе повзе в різні боки».
+//
+// Тепер гойдання — кут --sway усередині ланцюжка трансформацій:
+// translate(корінь) rotate(гойдання) translate(−корінь), де корінь — точка
+// кріплення в локальних координатах спрайта (з метаданих). Статичний
+// поворот і розстановка не змінюються: без гойдання --sway = 0.
+// Немає метаданих (крона, обличчя) — обертання навколо власного центру.
+function pivotOf(meta, w) {
+  if (!meta?.root || !meta?.natural) return [0, 0];
+  const [nw, nh] = meta.natural;
+  const F = w / nw;
+  return [meta.root.x * F - w / 2, meta.root.y * F - (nh * F) / 2];
+}
+
 const filterCss = (cfg) => {
   if (!cfg) return "";
   const sat = Number(cfg.saturate), bri = Number(cfg.brightness);
@@ -24,6 +60,7 @@ const filterCss = (cfg) => {
 };
 
 export function Scene({ instances, layout, mood = "healthy", camera, idle, style, children }) {
+  const assets = usePlantAssets();
   // «Поза екраном анімація ставиться на паузу» (дошка «Анімації»): гойдання
   // вмикається, лише поки сцену видно.
   const root = useRef(null);
@@ -85,16 +122,20 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
           if (side) parts.push(`drop-shadow(0px ${side * faceShadow.offset}px ${faceShadow.blur}px rgba(8,28,10,${faceShadow.opacity}))`);
         }
 
+        const sway = swayOf(inst.group);
+        const [px, py] = sway ? pivotOf(metaOf(assets?.sprites, inst.group, inst.sprite), w) : [0, 0];
         return (
           <img
             key={`l${n}`}
             src={`/assets/sprites/${inst.group}/${inst.sprite}`}
             alt=""
-            data-sway={swayOf(inst.group)}
+            data-sway={sway}
             data-pop={inst.pop || undefined}
             style={{
               position: "absolute", left: inst.x, top: inst.y, width: w, height: "auto",
-              transform: `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
+              transform: sway
+                ? `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg) translate(${px}px, ${py}px) rotate(var(--sway, 0deg)) translate(${-px}px, ${-py}px)`
+                : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
               zIndex: inst.z, filter: parts.join(" ") || "none",
               opacity: inst.opacity ?? 1,
             }}
