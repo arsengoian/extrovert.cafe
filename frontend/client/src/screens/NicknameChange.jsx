@@ -71,7 +71,7 @@ export function NicknameChange({ ctx }) {
       <div className="field">
         <div className="profile-label">Новий нікнейм</div>
         <label className="nick-field compact" data-tone={free === false || (trimmed && !valid) ? "bad" : "ok"}>
-          <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off"
+          <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off" readOnly={Boolean(locked)}
                  onChange={(e) => { setValue(e.target.value.replace(/\s/g, "")); setError(null); }} />
           {free && (
             <span>
@@ -86,7 +86,7 @@ export function NicknameChange({ ctx }) {
           {trimmed && !valid && <span>3–24 символи</span>}
         </label>
         <div className="nick-tools">
-          <button onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
+          <button disabled={Boolean(locked)} onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 11.5A8 8 0 1 0 12 20" /><path d="M20 5v6.5h-6" /></svg>
             Згенерувати
           </button>
@@ -104,7 +104,13 @@ export function NicknameChange({ ctx }) {
             повільний зв'язок), «Зберегти» лишалось мертвим назавжди —
             запит на збереження не йшов узагалі. Останнє слово однаково за
             api: він відповість nickname_taken. */}
-        <button disabled={busy || !valid || (!unchanged && (locked || free === false))} onClick={save}>{busy ? "…" : "Зберегти"}</button>
+        {/* Нікнейм змінювали менше ніж 30 днів тому — поле закрите, а
+            кнопка прямо каже, з якого дня можна. Раніше вона просто
+            сіріла, і це виглядало як «Зберегти не шле запит» (власник,
+            27.09.2026: акаунт змінив нікнейм 23.09, наступна зміна — 23.10). */}
+        <button disabled={busy || !valid || Boolean(locked) || (!unchanged && free === false)} onClick={save}>
+          {busy ? "…" : locked ? `Можна з ${next.toLocaleDateString("uk-UA")}` : "Зберегти"}
+        </button>
       </div>
     </ConfirmSheet>
   );
