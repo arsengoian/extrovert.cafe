@@ -47,7 +47,13 @@ export function BeatScale({ history }) {
   const from = history?.from ?? 0;
   const len = (history?.line ?? "").length;
   if (!len) return null;
-  const at = (i) => new Date(from + i * step).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
+  // До півтори доби підписуємо годинами: на смужці за 6 годин три
+  // однакові дати нічого не кажуть.
+  const short = len * step <= 36 * 3600_000;
+  const at = (i) => {
+    const d = new Date(from + i * step);
+    return short ? d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
+  };
   return (
     <div className="beat-scale">
       <span>{at(0)}</span>

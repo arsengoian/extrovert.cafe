@@ -32,36 +32,82 @@ const TARGETS = [
   ["backup", "components", "бекап бази", "дамп у R2 за добу"],
 ];
 
-const BUCKET_MS = 30 * 60_000;
+// Періоди графіків в адмінці: 6 годин, доба, 3 дні, тиждень, місяць
+// (власник, 27.09.2026; за замовчуванням тиждень). Крок — півгодинне відро
+// overseer, а на місяці — дві години: 1440 квадратиків у смужці не
+// розрізнити. Відро при цьому те саме, лише зібране по чотири: червоне,
+// якщо впало хоч одне з них.
+const RANGES = {
+  "6h": { hours: 6, stepMin: 30 },
+  "1d": { hours: 24, stepMin: 30 },
+  "3d": { hours: 72, stepMin: 30 },
+  "7d": { hours: 168, stepMin: 30 },
+  "30d": { hours: 720, stepMin: 120 },
+};
+const rangeOf = (key) => ({ key: RANGES[key] ? key : "7d", ...(RANGES[key] ?? RANGES["7d"]) });
 
-// Ряд відер за тиждень одним рядком: «1» — усе гаразд, «0» — падало,
-// «?» — проб не було. Відсутнє відро саме «не знаємо», а не «зелено»: так
-// видно, що збирач не працював. Рядок замість масиву обʼєктів — це
-// 337 символів проти десятків кілобайтів на кожну ціль, а екран малює
-// смужку саме посимвольно.
-function series(rows, now = Date.now()) {
-  const byBucket = new Map(rows.map((r) => [new Date(r.bucket_start).getTime(), r]));
-  const last = Math.floor(now / BUCKET_MS) * BUCKET_MS;
-  const first = last - 7 * 24 * 3600_000;
+// Ряд відер одним рядком: «1» — усе гаразд, «0» — падало, «?» — проб не
+// було. Відсутнє відро саме «не знаємо», а не «зелено»: так видно, що
+// збирач не працював. Рядок замість масиву обʼєктів — сотні символів
+// проти десятків кілобайтів на кожну ціль, а екран малює смужку саме
+// посимвольно.
+function series(rows, range, now = Date.now()) {
+  const step = range.stepMin * 60_000;
+  const byBucket = new Map();
+  for (const r of rows) {
+    const t = Math.floor(new Date(r.bucket_start).getTime() / step) * step;
+    const cur = byBucket.get(t);
+    if (!cur || (cur.ok && !r.ok)) byBucket.set(t, { ok: r.ok, detail: r.ok ? null : r.detail });
+  }
+  const last = Math.floor(now / step) * step;
+  const first = last - range.hours * 3600_000;
   let line = "";
   const fails = [];
-  for (let t = first; t <= last; t += BUCKET_MS) {
+  for (let t = first; t <= last; t += step) {
     const row = byBucket.get(t);
     line += row ? (row.ok ? "1" : "0") : "?";
     if (row && !row.ok) fails.push({ t, detail: row.detail });
   }
   // Деталі — лише для червоних відер: у тултіпі показувати нема чого, коли
   // все гаразд.
-  return { from: first, step: BUCKET_MS, line, fails: fails.slice(-40) };
+  return { from: first, step, line, fails: fails.slice(-40) };
+}
+
+// Проби малини приходять раз на пʼять хвилин: за місяць — 8640 рядків на
+// джерело, а графікам стільки не треба. Довші за тиждень періоди зводимо
+// у відра кроку періоду: числа — середнє, так/ні — «так», лише якщо так
+// було в усіх пробах відра (як і смужки overseer: одна погана проба
+// фарбує відро), решта — останнє значення.
+function thin(rows, stepMs) {
+  const buckets = new Map();
+  for (const r of rows) {
+    const t = Math.floor(new Date(r.measured_at).getTime() / stepMs) * stepMs;
+    const key = `${r.source}:${t}`;
+    if (!buckets.has(key)) buckets.set(key, { source: r.source, t, list: [] });
+    buckets.get(key).list.push(r.metrics ?? {});
+  }
+  return [...buckets.values()].sort((a, b) => a.t - b.t).map(({ source, t, list }) => {
+    const metrics = {};
+    for (const k of new Set(list.flatMap((m) => Object.keys(m)))) {
+      const vals = list.map((m) => m[k]).filter((v) => v !== undefined && v !== null);
+      if (!vals.length) continue;
+      if (vals.every((v) => typeof v === "boolean")) metrics[k] = vals.every(Boolean);
+      else if (vals.every((v) => Number.isFinite(Number(v)) && v !== "")) metrics[k] = Math.round((vals.reduce((s, v) => s + Number(v), 0) / vals.length) * 100) / 100;
+      else metrics[k] = vals.at(-1);
+    }
+    return { source, measured_at: new Date(t).toISOString(), metrics };
+  });
 }
 
 export default async function routes(app) {
   app.get("/admin/health", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const range = rangeOf(req.query?.range);
 
     const rows = await many(
       `select target, bucket_start, ok, detail, ms_total, ms_count from health_samples
-        where bucket_start > now() - interval '7 days' order by bucket_start`
+        where bucket_start > now() - make_interval(hours => $1) order by bucket_start`,
+      [range.hours]
     );
     const byTarget = new Map();
     for (const r of rows) {
@@ -81,7 +127,7 @@ export default async function routes(app) {
         detail: last?.detail ?? null,
         at: last?.bucket_start ?? null,
         ms: timed ? Math.round(Number(timed.ms_total) / timed.ms_count) : null,
-        history: series(list),
+        history: series(list, range),
       };
     };
 
@@ -119,6 +165,7 @@ export default async function routes(app) {
     };
 
     return {
+      range: range.key,
       updated_at: rows.at(-1)?.bucket_start ?? null,
       services: items.filter((i) => i.group === "services"),
       frontends: items.filter((i) => i.group === "frontends"),
@@ -133,13 +180,13 @@ export default async function routes(app) {
           const rows = byTarget.get(`point:${p.id}:${suffix}`) ?? [];
           if (!rows.length) return null;
           const tail = rows.at(-1);
-          return { ok: tail.ok, detail: tail.detail ?? null, history: series(rows) };
+          return { ok: tail.ok, detail: tail.detail ?? null, history: series(rows, range) };
         };
         return {
           ...p,
           ok: last ? last.ok : null,
           detail: last?.detail ?? null,
-          history: series(list),
+          history: series(list, range),
           monitor: extra("monitor"),
           video: extra("video"),
           telemetry: bySource.get(p.id) ?? {},
@@ -153,6 +200,7 @@ export default async function routes(app) {
   // measured_at, а не за часом отримання.
   app.get("/admin/points/:id", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const range = rangeOf(req.query?.range);
     const point = await one(
       `select id, name, address, short_address, status, last_seen_at, checkbox_branch_id,
               key_hash is not null as has_key, key_revoked_at
@@ -167,16 +215,20 @@ export default async function routes(app) {
         order by source, measured_at desc`,
       [point.id]
     );
-    const history = await many(
+    const raw = await many(
       `select source, measured_at, metrics from device_telemetry
-        where point_id = $1 and measured_at > now() - interval '7 days'
+        where point_id = $1 and measured_at > now() - make_interval(hours => $2)
         order by measured_at`,
-      [point.id]
+      [point.id, range.hours]
     );
+    // До тижня — самі проби, як і раніше; місяць — зведений у відра.
+    const history = range.hours > 168 ? thin(raw, range.stepMin * 60_000) : raw;
+    // Таблиця під графіками — останні проби як є, не зведені.
+    const recent = raw.slice(-50).reverse();
     const health = await many(
       `select bucket_start, ok, detail from health_samples
-        where target = $1 and bucket_start > now() - interval '7 days' order by bucket_start`,
-      [`point:${point.id}`]
+        where target = $1 and bucket_start > now() - make_interval(hours => $2) order by bucket_start`,
+      [`point:${point.id}`, range.hours]
     );
     const uptime = health.length ? health.filter((h) => h.ok).length / health.length : null;
     const receipts = await one(
@@ -186,11 +238,14 @@ export default async function routes(app) {
     );
 
     return {
+      range: range.key,
+      window: { hours: range.hours, step: range.stepMin * 60_000 },
       point,
       latest,
       history,
-      health: series(health),
-      uptime_7d: uptime,
+      recent,
+      health: series(health, range),
+      uptime,
       receipts,
     };
   });

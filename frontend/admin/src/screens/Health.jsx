@@ -7,7 +7,7 @@ import { Fragment } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { BeatRow, BeatScale } from "../charts.jsx";
-import { Card, Empty, Kpi, METRIC_LABELS, fmt, metricValue, useData } from "../ui.jsx";
+import { Card, Empty, Kpi, METRIC_LABELS, RangePicker, fmt, metricValue, rangeLabel, useData, useRange } from "../ui.jsx";
 
 // Підсумок по точці: зелена крапка лише тоді, коли зелене все, що ми вміємо
 // перевірити. Дивитись доводилось у пʼять рядків одразу — тепер відповідь
@@ -46,7 +46,7 @@ const first = (s) => (s?.bad?.length ? s.bad[0] : "усе відповідає")
 // (docs/admin_panel.md, «телеметрія кожної POS»).
 const num = (v, digits = 0) =>
   v === null || v === undefined || v === "" || Number.isNaN(Number(v)) ? null : Number(v).toFixed(digits);
-const bits = (...parts) => parts.filter(Boolean).join(" · ") || null;
+const bits = (...parts) => parts.filter(Boolean).join(", ") || null;
 
 // Один рядок даних під точкою. Смужки тут немає навмисно — історію цих
 // чисел малює сторінка точки, — але колонки ті самі, що в рядків зі
@@ -58,7 +58,7 @@ const DataRow = ({ label, ok, value, at, note }) => (
       {/* Свіжість проби ховається, поки вона свіжа: інакше кожен рядок
           тягнув би за собою «2 хв тому» і числа тонули б у датах. */}
       {at && Date.now() - new Date(at).getTime() > 15 * 60_000 && (
-        <span className="muted"> · проба {fmt.ago(at)}</span>
+        <span className="muted">, проба {fmt.ago(at)}</span>
       )}
     </span>
   </BeatRow>
@@ -135,7 +135,7 @@ function PointTelemetry({ point }) {
         // а підписи зʼявляться в METRIC_LABELS, коли стане видно, що він шле.
         value={jet
           ? Object.entries(jet.metrics ?? {}).slice(0, 6)
-              .map(([k, v]) => `${METRIC_LABELS[k] ?? k}: ${metricValue(k, v)}`).join(" · ")
+              .map(([k, v]) => `${METRIC_LABELS[k] ?? k}: ${metricValue(k, v)}`).join(", ")
           : "телеметрії ще немає"}
       />
     </>
@@ -143,7 +143,9 @@ function PointTelemetry({ point }) {
 }
 
 export function Health() {
-  const { data, error, loading, reload } = useData(() => api.health());
+  const [range, setRange] = useRange();
+  const { data, error, loading, reload } = useData(() => api.health(range), [range]);
+  const span = `за ${rangeLabel(range) === "доба" ? "добу" : rangeLabel(range)}`;
 
   if (loading && !data) return <Empty>вантажимо…</Empty>;
   if (error) return <Empty>не вдалось прочитати стан: {error.message}</Empty>;
@@ -157,11 +159,11 @@ export function Health() {
         <div>
           <h1>Дашборд здоровʼя</h1>
           <p>
-            Оновлено {fmt.ago(data.updated_at)} · історія за 7 днів із кроком 30 хв
-            {!data.updated_at && " · проб ще не було: їх збирає overseer"}
+            {data.updated_at ? `Оновлено ${fmt.ago(data.updated_at)}, історія ${span}` : "Проб ще не було: їх збирає overseer"}
           </p>
         </div>
         <div className="right">
+          <RangePicker value={range} onChange={setRange} />
           <button className="btn" onClick={reload}>Оновити</button>
           <span className="env"><i />prod</span>
         </div>
@@ -182,19 +184,19 @@ export function Health() {
       {/* Одна колонка: у дві смужка пульсу стискалась до нечитабельного,
           а поруч із нею ще й назва та затримка. */}
       <div className="stack">
-        <Card title="Мікросервіси" note="останні 7 днів">
+        <Card title="Мікросервіси" note={span}>
           {data.services.map((s) => (
             <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
           ))}
           <BeatScale history={data.services[0]?.history} />
         </Card>
-        <Card title="Фронтенди" note="7 днів · відповідь">
+        <Card title="Фронтенди" note={`${span}, час відповіді`}>
           {data.frontends.map((s) => (
             <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
           ))}
           <BeatScale history={data.frontends[0]?.history} />
         </Card>
-        <Card title="Компоненти" note="7 днів">
+        <Card title="Компоненти" note={span}>
           {data.components.map((s) => (
             <BeatRow key={s.target} ok={s.ok} name={s.title} note={s.note} history={s.history} ms={s.ms ?? null} value={s.detail ?? s.note} />
           ))}
@@ -202,7 +204,7 @@ export function Health() {
         </Card>
       </div>
 
-      <Card title="Телеметрія POS" note="7 днів · крок 30 хв" className="" style={{ marginTop: 12 }}>
+      <Card title="Телеметрія POS" note={`${span}, крок ${range === "30d" ? "2 год" : "30 хв"}`} className="" style={{ marginTop: 12 }}>
         {data.points.length === 0 ? (
           <Empty>жодної живої точки в базі</Empty>
         ) : (

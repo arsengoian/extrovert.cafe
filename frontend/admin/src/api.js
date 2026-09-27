@@ -89,8 +89,8 @@ export const api = {
     : null,
 
   overview: () => request("/admin/overview"),
-  health: () => request("/admin/health"),
-  point: (id) => request(`/admin/points/${encodeURIComponent(id)}`),
+  health: (range) => request(`/admin/health${qs({ range })}`),
+  point: (id, range) => request(`/admin/points/${encodeURIComponent(id)}${qs({ range })}`),
   stats: (p) => request(`/admin/stats${qs(p)}`),
   quizzes: (p) => request(`/admin/quizzes${qs(p)}`),
   quizResponses: () => request("/admin/quiz-responses"),

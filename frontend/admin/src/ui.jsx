@@ -52,6 +52,29 @@ export const metricValue = (key, value) => {
   return typeof value === "boolean" ? (value ? "так" : "ні") : String(value);
 };
 
+// Період графіків телеметрії (власник, 27.09.2026). Один на всю адмінку й
+// запам'ятовується: відкрив «Здоров'я» за добу — і сторінка точки теж за
+// добу, а не знову за тиждень.
+export const RANGES = [["6h", "6 годин"], ["1d", "доба"], ["3d", "3 дні"], ["7d", "тиждень"], ["30d", "місяць"]];
+export const rangeLabel = (key) => RANGES.find(([k]) => k === key)?.[1] ?? "тиждень";
+const RANGE_KEY = "admin.range";
+
+export function useRange() {
+  const [range, setRange] = useState(() => {
+    try { return RANGES.some(([k]) => k === localStorage.getItem(RANGE_KEY)) ? localStorage.getItem(RANGE_KEY) : "7d"; } catch { return "7d"; }
+  });
+  const pick = (next) => { setRange(next); try { localStorage.setItem(RANGE_KEY, next); } catch { /* приватний режим */ } };
+  return [range, pick];
+}
+
+export const RangePicker = ({ value, onChange }) => (
+  <div className="chips">
+    {RANGES.map(([k, label]) => (
+      <button key={k} className={`pill${value === k ? " on" : ""}`} onClick={() => onChange(k)}>{label}</button>
+    ))}
+  </div>
+);
+
 export const Card = ({ title, note, children, className = "", ...rest }) => (
   <section className={`card ${className}`} {...rest}>
     {(title || note) && (
@@ -114,8 +137,10 @@ export function useData(load, deps = []) {
 // foot — рядок під таблицею, у тій самій картці: там живуть підказки про
 // незбережений стан, які мусять бути притулені до рядків, а не висіти
 // окремим блоком десь поруч.
-export const Table = ({ columns, rows, onRow, empty = "порожньо", foot = null }) => (
-  <div className="table-card">
+// scroll — таблиця ширша за картку (кожна метрика — своя колонка): гортати
+// вбік усередині картки, а не розсувати сторінку.
+export const Table = ({ columns, rows, onRow, empty = "порожньо", foot = null, scroll = false }) => (
+  <div className={`table-card${scroll ? " scroll" : ""}`}>
     <table>
       <thead>
         <tr>{columns.map((c) => <th key={c.key} className={c.num ? "num" : ""} style={c.width ? { width: c.width } : undefined}>{c.title}</th>)}</tr>

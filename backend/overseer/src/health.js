@@ -13,7 +13,9 @@ import { presign } from "@extrovert/lib/r2.js";
 import { checkWebhook, silenceLimit } from "./checks.js";
 
 const TIMEOUT_MS = 8000;
-const KEEP_DAYS = 7;
+// Місяць із запасом: адмінка вміє показати смужки за місяць (27.09.2026),
+// і з тижневим зберіганням цей період був би на три чверті сірим.
+const KEEP_DAYS = 31;
 
 // Сервіси: за іменами в мережі compose, бо overseer живе поруч. Caddy
 // перевіряємо ззовні, справжньою адресою — так проба заразом каже, що живі
