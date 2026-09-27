@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 811fb53</p>
+  <p class="eyebrow">extrovert.cafe · джерело d5dddef</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2056,7 +2056,7 @@ erDiagram
     HEALTH_SAMPLES {
         bigserial id PK
         text target &quot;service:api|frontend:client|check:webhook|point:kyiv-01&quot;
-        timestamptz bucket_start &quot;півгодини, місяць історії&quot;
+        timestamptz bucket_start &quot;5 хвилин, місяць історії&quot;
         boolean ok
         text detail &quot;тултіп в адмінці&quot;
         bigint ms_total &quot;сума затримок HTTP-проб у відрі&quot;
@@ -2145,7 +2145,7 @@ erDiagram
 </article>
 <article class="entity" id="t-health_samples">
   <header><h4>health_samples</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">target</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">service:api|frontend:client|check:webhook|point:kyiv-01</td></tr><tr><td class="c-name">bucket_start</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">півгодини, місяць історії</td></tr><tr><td class="c-name">ok</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">detail</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">тултіп в адмінці</td></tr><tr><td class="c-name">ms_total</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note">сума затримок HTTP-проб у відрі</td></tr><tr><td class="c-name">ms_count</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">скільки з них були з відповіддю</td></tr><tr><td class="c-name">samples</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">target</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">service:api|frontend:client|check:webhook|point:kyiv-01</td></tr><tr><td class="c-name">bucket_start</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">5 хвилин, місяць історії</td></tr><tr><td class="c-name">ok</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">detail</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">тултіп в адмінці</td></tr><tr><td class="c-name">ms_total</td><td class="c-type">bigint</td><td class="c-keys"></td><td class="c-note">сума затримок HTTP-проб у відрі</td></tr><tr><td class="c-name">ms_count</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">скільки з них були з відповіддю</td></tr><tr><td class="c-name">samples</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   
 </article>
 <article class="entity" id="t-problem_reports">
@@ -2206,10 +2206,12 @@ erDiagram
 відповісти на просте «чи є докази до цієї події» — довелося б лістити
 бакет. Кадрів до того ж буває різна кількість, а бакет приватний: адмінці
 потрібні точні ключі, щоб видати на них підписане посилання. <code>HEALTH_SAMPLES</code> одразу зберігається
-півгодинними відрами: адмінка просить до місяця історії з такою
-гранулярністю (на місяці сама збирає відра по чотири), і зберігати сирі
-проби, щоб потім їх агрегувати, немає навіщо — старше за місяць
-(<code>KEEP_DAYS = 31</code> в overseer) усе одно затирається.</p>
+п&#39;ятихвилинними відрами (проба раз на дві хвилини — дві-три в
+відрі): адмінка просить до місяця історії, довші кроки (пів години, дві
+години) збирає з цих відер сама, і зберігати сирі проби немає навіщо —
+старше за місяць (<code>KEEP_DAYS = 31</code> в overseer) усе одно затирається. До
+27.09.2026 відро було півгодинне, і смужка за 6 годин мала 12 квадратиків;
+зміна не потребувала міграції — у рядку лише час початку відра.</p>
 <p><strong>Адміна не видаляють, а вимикають</strong> (20.09.2026). На <code>admin_users</code>
 посилаються деплої цін, розсилки в чат кавенятка й відповіді підтримки —
 видалений рядок забрав би з історії того, хто це зробив. <code>disabled_at</code> гасить
@@ -10671,10 +10673,10 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <h3 id="admin-panel-дашборд-здоров-я-за-замовчанням"><a class="anchor" href="#admin-panel-дашборд-здоров-я-за-замовчанням" aria-hidden="true">#</a>Дашборд здоров&#39;я - за замовчанням</h3>
 <p>історія старіша за місяць затирається</p>
 <ul>
-<li>здоров&#39;я мікросервісів на обох серверах + історія з гранулярністю півгодини, закешована</li>
-<li>доступність фронтендів + історія з гранулярністю півгодини, закешована</li>
-<li>перевірка функціонування всіх програмних компонентів + історія з гранулярністю півгодини, закешована</li>
-<li>період історії обирається тут і на сторінці точки: 6 годин, доба, 3 дні, тиждень (за замовчуванням), місяць (рішення власника 27.09.2026). Вибір один на всю адмінку й запам&#39;ятовується в браузері. На місяці відра зібрані по чотири — крок дві години, бо 1440 квадратиків у смужці не розрізнити; червоне таке відро, якщо впало хоч одне з чотирьох. Проби малини за місяць зводяться так само: числа — середнє, так/ні — «так» лише коли так було в усіх пробах</li>
+<li>здоров&#39;я мікросервісів на обох серверах + історія з гранулярністю 5 хвилин, закешована</li>
+<li>доступність фронтендів + історія з гранулярністю 5 хвилин, закешована</li>
+<li>перевірка функціонування всіх програмних компонентів + історія з гранулярністю 5 хвилин, закешована</li>
+<li>період історії обирається тут і на сторінці точки: 6 годин, доба, 3 дні, тиждень (за замовчуванням), місяць (рішення власника 27.09.2026). Вибір один на всю адмінку й запам&#39;ятовується в браузері. Крок росте з періодом, щоб у смужці була сотня-друга квадратиків: 6 годин — по 5 хвилин, доба — по 10, три дні й тиждень — по пів години, місяць — по дві години. Довге відро збирається з п&#39;ятихвилинних: червоне, якщо впало хоч одне з них. Проби малини за місяць зводяться так само: числа — середнє, так/ні — «так» лише коли так було в усіх пробах</li>
 <li>на сторінці точки остання півсотня проб — таблицею, кожна метрика окремою колонкою (раніше — одним рядком тексту на пробу)<ul>
 <li>по всіх пунктах - успіх або помилка з тултіпом деталей</li>
 <li>відео пишеться, </li>
@@ -11873,7 +11875,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел 811fb53 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел d5dddef — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

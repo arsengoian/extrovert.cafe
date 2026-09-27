@@ -1,11 +1,14 @@
 // Проби здоровʼя для дашборда адмінки (docs/admin_panel.md, «Дашборд
 // здоровʼя»).
 //
-// Пишемо не кожну пробу, а **півгодинні відра** — так і задумано в схемі
-// (`health_samples`, unique (target, bucket_start)): за тиждень це 336
-// рядків на ціль, і графік малюється одним запитом. Відро «зелене» лише
-// тоді, коли зелені всі проби в ньому: аварію на три хвилини видно, а не
-// згладжено середнім. Історія старша за тиждень затирається тут же.
+// Пишемо не кожну пробу, а **п'ятихвилинні відра** (`health_samples`,
+// unique (target, bucket_start)): проба йде раз на дві хвилини, тож у
+// відрі їх дві-три. Відро «зелене» лише тоді, коли зелені всі проби в ньому:
+// аварію на три хвилини видно, а не згладжено середнім. Довші кроки
+// (півгодини на тижні, дві години на місяці) адмінка збирає з цих відер
+// сама. Раніше відро було півгодинне, і смужка за 6 годин мала лише 12
+// квадратиків (власник, 27.09.2026). Історія старша за місяць затирається
+// тут же.
 //
 // Overseer, а не api: перевірка — це фонова робота, і робити її в процесі,
 // який відповідає гравцям, означає ділити з ними таймаути.
@@ -179,13 +182,13 @@ export async function sampleHealth({ pool, redis, log }) {
     }
   }
 
-  // Відро — півгодини: 00:00–00:29 і 00:30–00:59.
+  // Відро — п'ять хвилин: 00:00–00:04, 00:05–00:09…
   const D = "$";
   const values = targets.map((_, i) => `(${D}${i * 4 + 1}, ${D}${i * 4 + 2}, ${D}${i * 4 + 3}, ${D}${i * 4 + 4})`).join(", ");
   const params = targets.flatMap(([target, ok, detail, ms = null]) => [target, ok, detail, ms]);
   await pool.query(
     `insert into health_samples (target, bucket_start, ok, detail, ms_total, ms_count)
-     select v.target, date_trunc('hour', now()) + make_interval(mins => (extract(minute from now())::int / 30) * 30),
+     select v.target, date_trunc('hour', now()) + make_interval(mins => (extract(minute from now())::int / 5) * 5),
             v.ok::boolean, v.detail,
             coalesce(v.ms::bigint, 0), case when v.ms is null then 0 else 1 end
        from (values ${values}) as v(target, ok, detail, ms)

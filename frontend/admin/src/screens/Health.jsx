@@ -204,7 +204,7 @@ export function Health() {
         </Card>
       </div>
 
-      <Card title="Телеметрія POS" note={`${span}, крок ${range === "30d" ? "2 год" : "30 хв"}`} className="" style={{ marginTop: 12 }}>
+      <Card title="Телеметрія POS" note={`${span}, крок ${data.step >= 3600_000 ? `${data.step / 3600_000} год` : `${(data.step ?? 1800_000) / 60_000} хв`}`} className="" style={{ marginTop: 12 }}>
         {data.points.length === 0 ? (
           <Empty>жодної живої точки в базі</Empty>
         ) : (
