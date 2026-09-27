@@ -38,7 +38,9 @@ export function PlantName({ plant, ctx }) {
     if (!app || !stage) return;
     const a = app.getBoundingClientRect();
     const s = stage.getBoundingClientRect();
-    setBox({ top: s.top - a.top, bottom: a.bottom - s.bottom });
+    // І по боках теж: у ландшафті тіло екрана — між двома смугами меню,
+    // і небо має лягти саме на нього, лишивши смуги видимими.
+    setBox({ top: s.top - a.top, bottom: a.bottom - s.bottom, left: s.left - a.left, right: a.right - s.right });
   }, []);
 
   const save = async () => {

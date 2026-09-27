@@ -4,6 +4,7 @@
 // теж ідуть під розмиття, як у макеті.
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLandscape } from "./landscape.js";
 
 // Картка стоїть на фіксованій відстані від верху тіла екрана, а не
 // посередині: так у макеті (top 96–110 від початку контенту), і так її не
@@ -22,11 +23,14 @@ function useStageTop(offset) {
 // просто закрити («На склад»); side — відступ картки від країв.
 export function ResultPopup({ art, glow = 96, decor, title, children, action = "Готово", onAction, onClose, offset = 110, side = 18, gap }) {
   const top = useStageTop(offset);
+  // У ландшафті картка стоїть посередині екрана (theme.css), тож відступи
+  // з портретного макета їй не ставимо — інакше вони перебили б центр.
+  const wide = useLandscape();
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onClose} />
-      <div className="result-card" style={{ top, left: side, right: side, gap }}>
+      <div className="result-card" style={wide ? { gap } : { top, left: side, right: side, gap }}>
         {decor}
         {art && <div className="result-glow" style={{ width: glow, height: glow }}>{art}</div>}
         <div className="result-title">{title}</div>
@@ -53,11 +57,12 @@ export function useStageBottom(offset) {
 // closable — кругла «×» у куті, як у «Попап · не вистачає монет».
 export function ConfirmSheet({ children, onCancel, closable = false, gap, padding }) {
   const bottom = useStageBottom(14);
+  const wide = useLandscape();   // у ландшафті — картка посередині, як і ResultPopup
   const host = document.querySelector(".app") ?? document.body;
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
-      <div className="confirm-sheet" style={{ bottom, gap, padding }}>
+      <div className="confirm-sheet" style={wide ? { gap, padding } : { bottom, gap, padding }}>
         {closable && (
           <button className="sheet-x" title="Закрити" aria-label="Закрити" onClick={onCancel}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

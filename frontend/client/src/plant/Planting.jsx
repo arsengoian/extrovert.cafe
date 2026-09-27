@@ -17,6 +17,7 @@ import { ANCHOR, baseInstances, playerInstances } from "./scene.js";
 import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } from "./placement.js";
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
+import { useLandscape } from "../ui/landscape.js";
 
 // Іскорки посадки — одна механіка, різний масштаб часток (дошка «Анімації»).
 const POP_SPARKS = { leafBg: "leaf", leafFg: "leaf", branch: "branch", bud: "bud" };
@@ -85,6 +86,12 @@ const CAMERA_FOLLOWS_DRAFT = false;
 const CAMERA_TOP = 40;           // під лічильником
 const CAMERA_PANEL_ROOM = 262;
 
+// У ландшафті панель стоїть праворуч (theme.css, .pl-sheet), і кадр
+// займає все ліворуч від неї на повну висоту: знизу тоді резерв не
+// потрібен, а висота — саме те, чого в ландшафті бракує. Ширина панелі
+// разом із відступом від краю — та сама, що в CSS.
+const CAMERA_PANEL_SIDE = 340;
+
 // Біле коло навколо обраного — воно ж і зона дотику (частка ширини спрайта).
 const ringOf = (phase) => (phase === "bud" ? 0.42 : 0.44);
 
@@ -145,6 +152,7 @@ export function Planting({ ctx, plantId, title, resume }) {
   const [busy, setBusy] = useState(false);
   const rootRef = useRef(null);
   const [box, setBox] = useState({ w: 390, h: 602 });
+  const wide = useLandscape();
   const [host, setHost] = useState(null);
   useEffect(() => setHost(document.querySelector(".app")), []);
   // Щойно посаджений елемент: виростає з bounce, навколо — іскорки.
@@ -289,9 +297,11 @@ export function Planting({ ctx, plantId, title, resume }) {
       const r = W0 * i.scale * 0.42;
       pts.push({ x: i.x - r, y: i.y - r }, { x: i.x + r, y: i.y + r });
     }
-    const room = { x: 10, y: CAMERA_TOP, w: box.w - 20, h: box.h - CAMERA_TOP - CAMERA_PANEL_ROOM };
+    const room = wide
+      ? { x: 10, y: CAMERA_TOP, w: box.w - CAMERA_PANEL_SIDE - 20, h: box.h - CAMERA_TOP - 10 }
+      : { x: 10, y: CAMERA_TOP, w: box.w - 20, h: box.h - CAMERA_TOP - CAMERA_PANEL_ROOM };
     return fitCamera(pts, room, 26, { align: "top" });
-  }, [cfg, assets, targets, instances, box, toStage]);
+  }, [cfg, assets, targets, instances, box, toStage, wide]);
 
   // ── робота з елементами ───────────────────────────────────────────────
   const setList = (next) => setItems((prev) => ({ ...prev, [FIELD[phase]]: next }));

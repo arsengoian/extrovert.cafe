@@ -227,7 +227,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
       replace: (name, props = {}) => setGuest({ name, props }),
     };
     return (
-      <div className="app">
+      <div className="app shell">
         <TopbarBack title={guestTitle} onBack={() => setGuest(null)} />
         <div className="stage" key={guest.name}>
           <Guest {...(def.props ?? {})} {...(guest.props ?? {})} ctx={guestCtx} />
@@ -265,7 +265,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // «Назад» — передумав входити: виходимо на стартовий екран.
   if (!me.consent) {
     return (
-      <div className="app">
+      <div className="app shell">
         <Onboarding me={me} onDone={refreshMe} onCancel={() => api.logout().finally(() => setMe(null))} />
       </div>
     );
@@ -287,7 +287,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   const title = typeof topScreen?.title === "function" ? topScreen.title(top?.props ?? {}) : topScreen?.title;
 
   return (
-    <div className="app">
+    <div className="app shell">
       {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} onSupport={support} />}
       <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
         {/* props із реєстру — значення за замовчуванням: ними один компонент

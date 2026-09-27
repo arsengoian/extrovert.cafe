@@ -12,9 +12,16 @@ import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
 import { Sparks, Typewriter, calm } from "../ui/fx.jsx";
+import { isLandscape } from "../ui/landscape.js";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
+
+// Ландшафт: відступ над композицією, її висота від верху хмаринки до низу
+// видимої платформи (точки макета) і стеля масштабу.
+const LAND_TOP = 8;
+const LAND_HEIGHT = 441;
+const LAND_MAX_PF = 1.6;
 
 // Бажання в хмаринці: картинка, її місце всередині хмаринки й підпис.
 const WAITING_LINE = "Росту далі завтра – одна стадія на добу";
@@ -382,6 +389,14 @@ export function Plant({ ctx }) {
   // Ref-функцією, а не useRef + useEffect: до завантаження кавенятка екран
   // повертає заглушку, і на момент ефекту вузла ще немає — спостерігач
   // чіплявся до null і множник назавжди лишався одиницею.
+  //
+  // У ландшафті межа — висота: за шириною композиція вийшла б утричі
+  // вищою за екран. Тоді вміщаємо її від верху хмаринки й полиці (17 точок
+  // макета від верху) до низу видимої платформи (60 точок під композицією,
+  // bottom у theme.css, розділ «ландшафт») — 441 точка. Ім'я вгорі лягає
+  // на небо над кроною: хмаринка й полиця по боках, а крона починається
+  // нижче. Дії в ландшафті збоку, тож резерву під них знизу немає. Стеля
+  // 1.6 — щоб на великому моніторі кущ не ставав мультяшно велетенським.
   const [pf, setPf] = useState(1);
   const watch = useRef(null);
   const layer = useCallback((el) => {
@@ -389,7 +404,10 @@ export function Plant({ ctx }) {
     if (!el) return;
     // Спостерігача тримаємо в ref: без посилання на нього він переживав
     // перший вимір і зникав, тож поворот екрана вже нічого не міняв.
-    watch.current = new ResizeObserver(([e]) => setPf(e.contentRect.width / 390));
+    watch.current = new ResizeObserver(([e]) => {
+      const { width, height } = e.contentRect;
+      setPf(isLandscape() ? Math.min(width / 390, (height - LAND_TOP) / LAND_HEIGHT, LAND_MAX_PF) : width / 390);
+    });
     watch.current.observe(el);
   }, []);
   const [fx, setFx] = useState(null);                 // перехід стадії: попередня сцена й куди виросло

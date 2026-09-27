@@ -7,6 +7,7 @@ import { api, errText } from "../api.js";
 import { Coins2 } from "../ui/Coins.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { useStageBottom } from "../ui/Popup.jsx";
+import { useLandscape } from "../ui/landscape.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
@@ -24,6 +25,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const bottom = useStageBottom(16);
+  const wide = useLandscape();   // у ландшафті картка посередині (theme.css)
   const host = document.querySelector(".app") ?? document.body;
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onClose} />
-      <div className="care-card" style={{ bottom }}>
+      <div className="care-card" style={wide ? undefined : { bottom }}>
         <div className="care-card-head">
           <img src={`/assets/ui/${k.src}.png`} alt="" style={{ width: Math.round(44 * k.ratio), height: 44 }} />
           <b>Не вистачає {k.of}</b>
