@@ -124,6 +124,14 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
 
         const sway = swayOf(inst.group);
         const [px, py] = sway ? pivotOf(metaOf(assets?.sprites, inst.group, inst.sprite), w) : [0, 0];
+        // Висота — наперед, із природного розміру (sizes.json). Спрайт
+        // центрується зсувом на −50% власної висоти, і з height: auto до
+        // завантаження вона нульова: листок стояв нижче свого місця й
+        // підскакував, щойно картинка доїжджала — кущ «стрибав», поки
+        // промальовувався (власник, 27.09.2026). Розміру немає (новий
+        // спрайт, маніфест не оновили) — ховаємо картинку до завантаження:
+        // краще з'явитись із запізненням, ніж підстрибнути.
+        const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
         return (
           <img
             key={`l${n}`}
@@ -131,8 +139,10 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
             alt=""
             data-sway={sway}
             data-pop={inst.pop || undefined}
+            onLoad={size ? undefined : (e) => { e.currentTarget.style.visibility = "visible"; }}
             style={{
-              position: "absolute", left: inst.x, top: inst.y, width: w, height: "auto",
+              position: "absolute", left: inst.x, top: inst.y, width: w, height: size ? (w * size[1]) / size[0] : "auto",
+              visibility: size ? undefined : "hidden",
               transform: sway
                 ? `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg) translate(${px}px, ${py}px) rotate(var(--sway, 0deg)) translate(${-px}px, ${-py}px)`
                 : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,

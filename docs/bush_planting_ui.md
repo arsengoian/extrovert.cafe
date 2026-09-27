@@ -313,6 +313,7 @@ z=28, що лежав явно глибше решти) — тобто зона 
 | Зони, криві, діапазони | `frontend/client/public/assets/planting/placement.json` — копія `planting_placement.json` із Кроку 3.2 |
 | Кореневі точки спрайтів | `frontend/client/public/assets/planting/points.json` (Крок 1) |
 | Природний кут спрайту | `frontend/client/public/assets/planting/sprites.json` — `bun run planting:data`, рахує `scripts/build-planting-data.mjs` |
+| Природні розміри всіх спрайтів куща | `frontend/client/public/assets/sprites/sizes.json` — `bun run sprites:sizes` після заміни спрайтів: без розміру спрайт до завантаження має нульову висоту й підскакує, коли доїде |
 | Математика (корінь↔центр, криві, зони, камера) | `frontend/client/src/plant/geometry.js` |
 | Правила типів і жести | `frontend/client/src/plant/placement.js` |
 | Складання сцени з макета + appearance | `frontend/client/src/plant/scene.js`, малювання — `Scene.jsx` |
