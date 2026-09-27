@@ -290,7 +290,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
 
   return (
     <div className="app shell">
-      {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} onSupport={support} />}
+      {top && !asSheet && !keepChrome ? <TopbarBack title={title} onBack={pop} /> : <Hud me={me} onOpen={push} onWallet={() => openTab("wallet")} onSupport={support} />}
       <div className="stage" key={top && !asSheet ? `${top.name}:${stack.length}` : tab}>
         {/* props із реєстру — значення за замовчуванням: ними один компонент
             обслуговує кілька екранів (умови, приватність, підтримка). */}

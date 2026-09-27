@@ -19,7 +19,7 @@ function useCoinFlight(value, iconRef, src) {
   }, [value]);
 }
 
-export function Hud({ me, onOpen, onSupport }) {
+export function Hud({ me, onOpen, onWallet, onSupport }) {
   const b = me?.balances ?? {};
   const silverRef = useRef(null);
   const goldRef = useRef(null);
@@ -31,8 +31,10 @@ export function Hud({ me, onOpen, onSupport }) {
       {/* Плашка з балансами — кнопка: дивишся на числа, тиснеш на них і
           потрапляєш у гаманець, де вони розписані. Іконки праворуч мають
           свої дії, тому в кнопку загорнута саме плашка, а не весь топбар
-          (прохання власника 26.09.2026). */}
-      <button className="hud-pill" aria-label="Гаманець" onClick={() => onOpen("wallet")}>
+          (прохання власника 26.09.2026). Гаманець — вкладка, тож саме
+          перемикаємо на неї: відкритий поверх як окремий екран, він мав
+          порожній заголовок, а в меню світилась попередня вкладка. */}
+      <button className="hud-pill" aria-label="Гаманець" onClick={onWallet}>
         <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.png" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
         <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.png" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
         <span className="hud-val"><img src="/assets/ui/bean.png" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
