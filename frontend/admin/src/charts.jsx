@@ -123,7 +123,11 @@ function segments(points, gapMs) {
 // повторює її вдруге.
 // gapMs — з якого проміжку між точками вважати, що даних не було. За
 // замовчуванням рахується з самого ряду (див. segments вище).
-export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true, gapMs = 0 }) {
+// domain — [від, до] у мс: вісь часу на весь обраний період, а не від
+// першої до останньої проби. Інакше три дні даних у «місяці» розтягувались
+// на всю ширину, і не було видно, що решту часу точка мовчала (власник,
+// 27.09.2026). Без domain вісь, як і раніше, по самих даних.
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true, gapMs = 0, domain = null }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -140,7 +144,12 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
   const padL = 34, padB = 16, padT = 8;
   const innerW = Math.max(40, w - padL - 6);
   const innerH = height - padB - padT;
-  const x = (t) => padL + (xs.length < 2 ? innerW / 2 : (innerW * (+new Date(t) - xs[0])) / (xs.at(-1) - xs[0]));
+  const [x0, x1] = domain ?? [xs[0], xs.at(-1)];
+  const x = (t) => padL + (domain || xs.length > 1 ? (innerW * (+new Date(t) - x0)) / (x1 - x0 || 1) : innerW / 2);
+  // Підписи осі: до півтори доби — години, довше — дати.
+  const tick = (t) => (x1 - x0 <= 36 * 3600_000
+    ? new Date(t).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })
+    : fmt.day(t));
   const y = (v) => padT + innerH - (innerH * v) / max;
   const cut = series.map((s) => ({ ...s, runs: segments(s.points, gapMs) }));
 
@@ -183,8 +192,8 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
                 />
               )
             )))}
-            {xs.length > 1 && [xs[0], xs.at(-1)].map((t, i) => (
-              <text key={t} className="axis" x={i ? w - 30 : padL} y={height - 3}>{fmt.day(t)}</text>
+            {(domain || xs.length > 1) && [x0, x1].map((t, i) => (
+              <text key={i} className="axis" x={i ? w - 6 : padL} y={height - 3} textAnchor={i ? "end" : "start"}>{domain && i ? "зараз" : tick(t)}</text>
             ))}
           </svg>
           {legend && (

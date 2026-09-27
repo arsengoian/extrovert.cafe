@@ -99,6 +99,9 @@ export function Pos({ id }) {
 
   const ping = series("ping_ms");
   const jitter = series("jitter_ms");
+  // Вісь графіків — увесь обраний період: години без проб лишаються
+  // порожнім місцем, а не зникають.
+  const domain = [Date.now() - (data.window?.hours ?? 168) * 3600_000, Date.now()];
 
   return (
     <>
@@ -162,7 +165,7 @@ export function Pos({ id }) {
         <div className="stack">
         <Card title="Ping і jitter" note={`${span}, за часом виміру`}>
           {ping.length || jitter.length ? (
-            <Line series={[
+            <Line domain={domain} series={[
               ...(ping.length ? [{ name: "ping, мс", color: "#FE810B", points: ping }] : []),
               ...(jitter.length ? [{ name: "jitter, мс", color: "#3FBF6F", points: jitter }] : []),
             ]} />
@@ -184,7 +187,7 @@ export function Pos({ id }) {
                 <div key={h.key}>
                   <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>{h.name}</div>
                   {points.length
-                    ? <Line series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} legend={false} />
+                    ? <Line domain={domain} series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} legend={false} />
                     : <Empty>проб немає</Empty>}
                 </div>
               );
