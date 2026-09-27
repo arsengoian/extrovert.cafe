@@ -53,12 +53,20 @@ export default async function routes(app) {
   // просто бере участь у завтрашньому жеребкуванні. Раніше тут стояв
   // фіксований ковбойський комплект (власник, 26.09.2026: «мають бути
   // закешовані рандомні товари»).
+  //
+  // Три речі — з трьох різних слотів: трійка з трьох шапок виглядала б як
+  // збій, а не як «у моді» (власник, 27.09.2026). Спершу жеребкуємо по
+  // одній речі на кожен слот, потім — які три слоти показати, тим самим
+  // добовим md5.
   app.get("/catalog/featured", async () => {
     const rows = await many(
-      `select code, name, collection, description_md, slot, tier, sprite_id
-         from item_defs
-        where active
-        order by md5(to_char(now() at time zone 'Europe/Kyiv', 'YYYY-MM-DD') || code)
+      `with day as (select to_char(now() at time zone 'Europe/Kyiv', 'YYYY-MM-DD') as d)
+       select code, name, collection, description_md, slot, tier, sprite_id
+         from (select distinct on (i.slot) i.*, md5(day.d || i.slot) as slot_rank
+                 from item_defs i, day
+                where i.active
+                order by i.slot, md5(day.d || i.code)) per_slot
+        order by slot_rank
         limit 3`
     );
     return { items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier) })) };
