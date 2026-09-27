@@ -45,11 +45,15 @@ const STOCK = {
   water: (c) => `у відрі ${c.water_liters} л`,
   compost: (c) => `на поличці ${c.compost_kg} кг`,
   fertilizer: (c) => `на поличці ${c.fertilizer_kg} кг`,
-  insecticide: (c) => `на поличці ${c.insecticide_bottles} пл.`,
+  insecticide: (c) => `на поличці ${c.insecticide_bottles} шт`,
 };
 
+const UNIT = { water: "л", compost: "кг", fertilizer: "кг", insecticide: "шт" };
+
 const DONE = {
-  care: (r) => `Додано ${r.added}. Тепер на поличці ${r.have}.`,
+  // Скільки додалось — з одиницею; скільки тепер усього, видно на полиці
+  // (власник, 27.09.2026: «Додано 3 кг», без «тепер на поличці»).
+  care: (r, item) => `Додано ${r.added} ${UNIT[item?.code] ?? ""}`.trim(),
   sapling: () => "Саджанець твій – знайди його на головному екрані.",
   exchange: (r) => `Обміняно ${r.beans} на ${r.coins} монет.`,
   pos_discount: (r) => `Код ${r.code} на ${r.amount_uah} грн. Він уже в чаті кавенятка.`,
@@ -104,7 +108,7 @@ export function ShopItem({ item, ctx }) {
       ctx.notify(
         <ResultPopup art={<img src={`/${target.icon}`} alt="" style={{ width: 62, height: 62, objectFit: "contain" }} />}
                      title="Готово" onClose={close}>
-          <div className="result-note">{DONE[r.kind]?.(r) ?? "Покупка вже твоя."}</div>
+          <div className="result-note">{DONE[r.kind]?.(r, target) ?? "Покупка вже твоя."}</div>
         </ResultPopup>
       );
     } catch (e) {
