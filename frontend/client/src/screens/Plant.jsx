@@ -13,6 +13,7 @@ import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
 import { Sparks, Typewriter, calm } from "../ui/fx.jsx";
 import { isLandscape } from "../ui/landscape.js";
+import { takeHandoff } from "../plant/handoff.js";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -425,6 +426,23 @@ export function Plant({ ctx }) {
     return () => clearTimeout(t);
   }, [pour]);
 
+  // Препарат для посадки (компост, добриво, інсектицид на переходах 1→7)
+  // спершу грає свою дію над кущем, а екран посадки відкривається, коли
+  // вона скінчилась: раніше до цих анімацій справа не доходила зовсім
+  // (власник, 27.09.2026). Будь-який перехід за цей час скасовує
+  // відкриття: інша вкладка чи екран розмонтовують кавенятко, шторка
+  // (Профіль) змінює ctx.depth, меню дій чи інше кавенятко — popup/index.
+  const plantingSoon = useRef(null);
+  const cancelPlanting = () => { clearTimeout(plantingSoon.current); plantingSoon.current = null; };
+  useEffect(() => cancelPlanting, []);
+  useEffect(cancelPlanting, [ctx.depth, index, popup]);
+
+  // Повернення з посадки: кущ, яким був до неї, препарат над ним — і лише
+  // тоді новий, звичним переходом стадії. Записку лишає Planting.jsx.
+  const [replay, setReplay] = useState(null);
+  const [oldScene, setOldScene] = useState(null);
+  useEffect(() => { const h = takeHandoff(); if (h) setReplay(h); }, []);
+
   // Кавенят може бути скільки завгодно (gamification_ui §MVP): стрілка
   // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
   const reload = () => api.get("/me/plants").then((r) => {
@@ -436,6 +454,22 @@ export function Plant({ ctx }) {
   useEffect(() => { setNote(null); setPopup(null); }, [index]);
 
   const plant = plants?.[index] ?? null;
+
+  useEffect(() => {
+    if (!replay || !assets || !plant) return undefined;
+    if (plant.id !== replay.plantId) { setReplay(null); return undefined; }
+    const prev = buildScene({ layout: assets.layout, appearance: replay.appearance, stage: replay.from, mood: plant.mood, worn: plant.worn })
+      .filter((i) => i.group !== "platform");
+    setOldScene(prev);
+    setPour({ id: Date.now(), kind: replay.kind });
+    const t = setTimeout(() => {
+      setOldScene(null);
+      setFx({ id: Date.now(), prev, from: replay.from, to: replay.to });
+      setNote(`Я підріс! Тепер стадія ${replay.to}`);
+      setReplay(null);
+    }, calm() ? 0 : CARE_FX_MS);
+    return () => clearTimeout(t);
+  }, [replay, assets, plant?.id]);
   // Нове кавенятко (купив саджанець чи скосив старе) спершу отримує ім'я.
   //
   // «Уже пропонували» памʼятає sessionStorage, а не ref: коли попап
@@ -479,7 +513,8 @@ export function Plant({ ctx }) {
     : waiting ? "time"
     : growth.need;
   // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
-  const want = !onSale && !shelfEmpty && !popup ? WANT[need] : null;
+  // Поки грає перехід після посадки, хмаринка не просить наступного.
+  const want = !onSale && !shelfEmpty && !popup && !oldScene ? WANT[need] : null;
   const line = note
     ?? (waiting && plant.mood === "healthy" ? WAITING_LINE
       : plant.mood === "withered" ? WITHERED_LINE
@@ -495,6 +530,17 @@ export function Plant({ ctx }) {
     ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка", resume: Boolean(plant.draft?.count) });   // лише чернетка поточної посадки (liveDraft)
   };
 
+  // Посадка після дії препарату над кущем (див. plantingSoon вище). Гейт
+  // перевіряємо до анімації: «приходь завтра» не варте сипання компосту.
+  const plantAfterCare = (kind) => {
+    if (plantingSoon.current) return;   // уже сиплеться — другий тап нічого не додає
+    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
+    if (calm()) { openPlanting(); return; }
+    setNote(null);
+    setPour({ id: Date.now(), kind });
+    plantingSoon.current = setTimeout(() => { plantingSoon.current = null; openPlanting(); }, CARE_FX_MS);
+  };
+
   // Один тап по банці = одне застосування. Сервер вирішує, чи це рухає
   // стадію, чи кущ просто попив, чи час відкривати екран посадки.
   // bought — препарат щойно куплено в попапі, а care у цьому рендері ще старий.
@@ -502,7 +548,7 @@ export function Plant({ ctx }) {
     if (onSale) { setNote("Поки я на ринку, доглядати за мною не можна"); return; }
     const item = SHELF.find((s) => s.kind === kind);
     if (!bought && (care[item?.key] ?? 0) <= 0) { setPopup(`supply:${kind}`); return; }
-    if (growth.planting && kind === growth.need) { openPlanting(); return; }
+    if (growth.planting && kind === growth.need) { plantAfterCare(kind); return; }
     setNote(null);
     const prev = instances;
     const from = plant.growth_stage;
@@ -579,7 +625,7 @@ export function Plant({ ctx }) {
                 <div className="fx-fade-out" key={`o${fx.id}`}><Scene instances={fx.prev} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} /></div>
                 <div className="fx-fade-in" key={`i${fx.id}`}><Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle /></div>
               </>
-            ) : <Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
+            ) : <Scene instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
           <Shelf care={care} onApply={apply} need={need} />
           <CareFx pour={pour} areaRef={area} />

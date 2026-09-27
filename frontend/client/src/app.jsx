@@ -207,9 +207,11 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
 
   // «Підтримка» звідусіль веде в Telegram-бот, а не на екран застосунку.
   const support = useCallback(() => openSupport(setNotice), []);
+  // depth — скільки екранів лежить поверх вкладки: так екран знає, що
+  // його накрили шторкою (Профіль), хоч він і лишився змонтованим.
   const ctx = useMemo(
-    () => ({ me, rev, refreshMe, push, pop, replace, openTab, tab, notify: setNotice, support }),
-    [me, rev, refreshMe, push, pop, replace, openTab, tab, support]
+    () => ({ me, rev, refreshMe, push, pop, replace, openTab, tab, notify: setNotice, support, depth: stack.length }),
+    [me, rev, refreshMe, push, pop, replace, openTab, tab, support, stack.length]
   );
 
   if (booting) return <div className="app" />;

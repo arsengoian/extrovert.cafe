@@ -18,6 +18,7 @@ import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } fr
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
 import { useLandscape } from "../ui/landscape.js";
+import { leaveHandoff } from "./handoff.js";
 
 // Іскорки посадки — одна механіка, різний масштаб часток (дошка «Анімації»).
 const POP_SPARKS = { leafBg: "leaf", leafFg: "leaf", branch: "branch", bud: "bud" };
@@ -419,6 +420,8 @@ export function Planting({ ctx, plantId, title, resume }) {
       // кавенятко знову просило б «продовжити незавершену посадку».
       clearTimeout(saveDraft.current);
       pendingDraft.current = null;
+      // Екран кавенятка покаже перехід: старий кущ, препарат над ним, новий.
+      leaveHandoff({ plantId: id, kind: need, from: data.state.from, to: data.state.to, appearance: data.appearance });
       await ctx.refreshMe();
       ctx.pop();
     } catch (e) {
