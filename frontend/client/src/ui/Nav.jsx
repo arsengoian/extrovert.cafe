@@ -15,7 +15,7 @@ export function Nav({ tab, onTab, badges = {} }) {
         t.center ? (
           <button key={t.id} className="nav-center" data-active={String(tab === t.id)} onClick={() => onTab(t.id)}>
             <span className="bubble"><img src="/assets/ui/sprout.png" alt="" /></span>
-            <span style={{ fontSize: 11, fontWeight: 700 }}>{t.label}</span>
+            <span className="nav-center-label">{t.label}</span>
           </button>
         ) : (
           <button key={t.id} className="nav-item" data-active={String(tab === t.id)} onClick={() => onTab(t.id)}>
