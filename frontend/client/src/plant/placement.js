@@ -166,6 +166,7 @@ export function moveTo(item, point, cfg, targets) {
   if (cfg.mode === "curve") {
     return { ...item, t: clampT(cfg.curve.nearestT(point).t, cfg.edgeBlock) };
   }
-  const { side, ...rest } = item;
+  // Бік рахується наново від пальця (budAt), старий не тягнемо.
+  const { side: _side, ...rest } = item;
   return { ...rest, ...budAt(point, cfg, targets, item) };
 }
