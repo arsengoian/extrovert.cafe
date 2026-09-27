@@ -557,7 +557,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         text network "з Referer першого переходу, часто null"
-        text redirect_token UK "слаг у посиланні extrovert.cafe/r/…"
+        text redirect_token UK "код у r.extrovert.cafe/…: id гравця й спроба в base36"
         timestamptz clicked_at
         timestamptz verified_at "null = посилання видали, перехід ще не зарахував"
         int coins_awarded

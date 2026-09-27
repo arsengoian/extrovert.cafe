@@ -20,17 +20,26 @@ const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
 const REPOST_ORIGIN = process.env.REPOST_ORIGIN || APP_ORIGIN;
 const DAY = 24 * 60 * 60 * 1000;
 
-// Слаг у посиланні — нікнейм гравця: саме його людина бачить у сторіс, і
-// саме він робить посилання впізнаваним. Якщо нікнейм уже стоїть у чиємусь
-// токені (гравець перейменувався, а ім'я перехопили), додаємо суфікс:
-// токен мусить лишатись унікальним, інакше перехід зарахується не тому.
-async function freeToken(nickname) {
-  for (const suffix of ["", "-2", "-3", "-4", "-5"]) {
-    const candidate = `${nickname}${suffix}`;
+// Код у посиланні — закодований id гравця і номер спроби, а не нікнейм
+// (власник, 27.09.2026: «так надійніше»). Нікнейм був кирилицею, і саме
+// через неї воркер r.extrovert.cafe роками вів би на головну; до того ж
+// нікнейм міняється, а посилання в чужій сторіс живе довше. Код — лише
+// малі латинські літери й цифри (base36): такий переживе і сторіс, і
+// месенджер, і людину, яка передрукує його руками, — регістр ніде не
+// загубиться. Номер спроби — щоб кожен репост мав власне посилання: клік
+// за старим, уже зарахованим, нового репоста не дає.
+const ATTEMPTS = 64n;
+const repostCode = (userId, attempt) =>
+  (BigInt(`0x${userId.replace(/-/g, "")}`) * ATTEMPTS + BigInt(attempt)).toString(36);
+const isCode = (token) => /^[0-9a-z]{20,}$/.test(token);
+
+async function freeCode(userId, from) {
+  for (let attempt = from; attempt < Number(ATTEMPTS); attempt++) {
+    const candidate = repostCode(userId, attempt);
     const taken = await one("select 1 from repost_verifications where redirect_token = $1", [candidate]);
     if (!taken) return candidate;
   }
-  return `${nickname}-${Math.random().toString(36).slice(2, 7)}`;
+  throw new Error("немає вільного коду репоста");
 }
 
 function referrerHost(referer) {
@@ -78,10 +87,17 @@ export default async function routes(app) {
     );
     const state = status(rows);
 
-    let token = rows.find((r) => !r.verified_at)?.redirect_token ?? null;
+    const open = rows.find((r) => !r.verified_at) ?? null;
+    let token = open?.redirect_token ?? null;
+    if (open && !isCode(token)) {
+      // Відкрите посилання ще з нікнеймом (видане до 27.09.2026) — міняємо
+      // на код. Жодне таке посилання не спрацювало (воркер вів їх на
+      // головну), тож ламати нема чого.
+      token = await freeCode(user.id, state.counted);
+      await query("update repost_verifications set redirect_token = $2 where id = $1", [open.id, token]);
+    }
     if (!token && !state.limit_reached) {
-      const me = await one("select nickname from users where id = $1", [user.id]);
-      token = await freeToken(me.nickname);
+      token = await freeCode(user.id, state.counted);
       await query("insert into repost_verifications (user_id, redirect_token) values ($1, $2)", [user.id, token]);
     }
 
@@ -96,7 +112,8 @@ export default async function routes(app) {
   // Відповідь однакова для всіх випадків — хто перейшов, не має дізнаватись
   // ні скільки в гравця репостів, ні чи зарахувався саме його клік.
   app.post("/repost/visit/:token", async (req, reply) => {
-    const token = String(req.params.token ?? "");
+    // Коди малими літерами; якщо хтось передрукував великими — те саме.
+    const token = String(req.params.token ?? "").toLowerCase();
     const row = await one(
       `select id, user_id, verified_at from repost_verifications where redirect_token = $1`,
       [token]
