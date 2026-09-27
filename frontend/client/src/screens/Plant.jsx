@@ -13,6 +13,10 @@ import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
 import { Sparks, Typewriter, calm } from "../ui/fx.jsx";
 import { isLandscape } from "../ui/landscape.js";
+import {
+  AFTER_CARE, BARREL, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
+  stageLines, wrongCare,
+} from "../plant/lines.js";
 import { takeHandoff } from "../plant/handoff.js";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
@@ -25,7 +29,6 @@ const LAND_HEIGHT = 441;
 const LAND_MAX_PF = 1.6;
 
 // Бажання в хмаринці: картинка, її місце всередині хмаринки й підпис.
-const WAITING_LINE = "Росту далі завтра – одна стадія на добу";
 
 const WANT = {
   water: { src: "want_water", at: [29, 17.5, 24, 33], title: "Хоче води" },
@@ -54,37 +57,7 @@ const PLANTING_TITLE = { leaves: "Посадка листя", branches: "Пос�
 
 // Репліка — за стадією, як у макеті: кавенятко пояснює, навіщо йому саме
 // цей препарат, а не просто називає його.
-const WISH_LINE = [
-  "Мене щойно посадили. Полий мене, будь ласка",
-  "Дай компост – і піде листя",
-  "Ще компосту – і вижену гілки",
-  "Добриво – і будуть перші бутони",
-  "Перший бутон є. Ще добрива – буде три",
-  "Три бутони. Цього разу випало добриво – буде п'ять",
-  "П'ять бутонів, і хтось гризе листя. Оприскай",
-  "Сім бутонів. Оприскай – і я зацвіту",
-  "Я цвіту. Оприскай, щоб квіти стали бобами",
-  "Боби зелені. Ще оприскування – і достигнуть",
-  "Боби достигли. Тепер одягни мене!",
-];
-// Стадії 5 і 6 — ті два переходи, де препарат не заданий, а випадає для
-// кожного куща свій (economy.json: «fertilizer|insecticide», сервер обирає в
-// pickNeed). Таблиця вище знала лише один варіант на стадію, тож кавенятко
-// казало «випало добриво», коли насправді просило інсектицид (власник,
-// 26.09.2026) — і так само навпаки на шостій. Тут обидва варіанти.
-const WISH_BY_NEED = {
-  5: { fertilizer: "Три бутони. Цього разу випало добриво – буде п'ять",
-       insecticide: "Три бутони. Цього разу випав інсектицид – оприскай, і буде п'ять" },
-  6: { fertilizer: "П'ять бутонів. Ще добрива – і буде сім",
-       insecticide: "П'ять бутонів, і хтось гризе листя. Оприскай" },
-};
-const wishLine = (stage, need) => WISH_BY_NEED[stage]?.[need] ?? WISH_LINE[stage];
-const DRESSED_LINE = "Комплект на мені. Хочу ще один скін";
-const SAD_LINE = "Три дні без поливу. Полий мене, будь ласка";
-const WITHERED_LINE = "Мене не поливали тиждень. Води, будь ласка";
-const EMPTY_LINE = "Поличка порожня. Купи хоч води – я хочу пити";
-// Бочка статична (bush_graphics_customization §10.15 #17): тап лише каже, навіщо вона.
-const BARREL_LINE = "Мої боби – мій скарб, але я охоче подарую їх в обмін на комплект одягу";
+// Репліки в хмарці — у plant/lines.js: там тексти власника з варіантами.
 
 const Lock = ({ size, title }) => (
   <span className="plant-lock" title={title}>
@@ -373,12 +346,39 @@ function ScytheSheet({ plant, onClose, onDone }) {
   );
 }
 
+// Хмарка з реплікою. Варіант обирається випадково, коли ситуація
+// з'являється (інший масив чи нова мітка замітки), і тримається, поки вона
+// та сама, — а не тасується на кожен рендер. Тап показує інший варіант;
+// якщо варіант один, тап, як і раніше, відкриває чат (власник, 27.09.2026:
+// «при повторному кліку можна зробити ролл»).
+const randomIndex = (n) => Math.floor(Math.random() * n);
+const otherIndex = (n, cur) => (n < 2 ? 0 : (cur + 1 + randomIndex(n - 1)) % n);
+
+function Bubble({ name, lines, stamp, onSingle }) {
+  const [pick, setPick] = useState(() => ({ lines, stamp, i: randomIndex(lines.length) }));
+  let i = pick.i;
+  if (pick.lines !== lines || pick.stamp !== stamp) {
+    i = randomIndex(lines.length);
+    setPick({ lines, stamp, i });
+  }
+  const tap = () => (lines.length > 1 ? setPick((p) => ({ ...p, i: otherIndex(lines.length, p.i) })) : onSingle());
+  return (
+    <button className="plant-bubble" onClick={tap}>
+      <b>{name}</b>
+      <Typewriter text={lines[i] ?? lines[0]} />
+    </button>
+  );
+}
+
 export function Plant({ ctx }) {
   const assets = usePlantAssets();
   const [plants, setPlants] = useState(() => api.peek("/me/plants")?.plants ?? null);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState(null);
-  const [note, setNote] = useState(null);
+  const [note, setNote] = useState(null);             // щойно сказане: { lines, at }
+  // Мітка часу — щоб той самий масив двічі поспіль (полив, ще полив) дав
+  // нову репліку, а не лишив стару.
+  const say = (lines) => setNote({ lines, at: Date.now() });
   const [popup, setPopup] = useState(null);           // menu | gift | scythe | supply:<препарат>
   const touch = useRef(null);
   // Уся сцена на платформі (кущ, полиця, хмаринка, бульбашка, бочка)
@@ -465,7 +465,7 @@ export function Plant({ ctx }) {
     const t = setTimeout(() => {
       setOldScene(null);
       setFx({ id: Date.now(), prev, from: replay.from, to: replay.to });
-      setNote(`Я підріс! Тепер стадія ${replay.to}`);
+      say(AFTER_CARE[replay.kind] ?? MORE);
       setReplay(null);
     }, calm() ? 0 : CARE_FX_MS);
     return () => clearTimeout(t);
@@ -515,18 +515,18 @@ export function Plant({ ctx }) {
   // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
   // Поки грає перехід після посадки, хмаринка не просить наступного.
   const want = !onSale && !shelfEmpty && !popup && !oldScene ? WANT[need] : null;
-  const line = note
-    ?? (waiting && plant.mood === "healthy" ? WAITING_LINE
-      : plant.mood === "withered" ? WITHERED_LINE
-      : plant.mood === "sad" ? SAD_LINE
-      : shelfEmpty ? EMPTY_LINE
-      : plant.growth_stage >= 10 && dressed ? DRESSED_LINE
-      : wishLine(plant.growth_stage, growth.need) ?? "Хочу уваги");
+  const lines = note?.lines
+    ?? (waiting && plant.mood === "healthy" ? WAITING
+      : plant.mood === "withered" ? WITHERED
+      : plant.mood === "sad" ? SAD
+      : shelfEmpty ? EMPTY
+      : plant.growth_stage >= 10 && dressed ? DRESSED
+      : stageLines(plant.growth_stage, growth.need));
 
   const openPlanting = () => {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
     // двадцять листків і лише на «Посадити» дізнається, що зарано.
-    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
+    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { say(TOO_SOON); return; }
     ctx.push("planting", { plantId: plant.id, title: PLANTING_TITLE[growth.planting] ?? "Посадка", resume: Boolean(plant.draft?.count) });   // лише чернетка поточної посадки (liveDraft)
   };
 
@@ -534,7 +534,7 @@ export function Plant({ ctx }) {
   // перевіряємо до анімації: «приходь завтра» не варте сипання компосту.
   const plantAfterCare = (kind) => {
     if (plantingSoon.current) return;   // уже сиплеться — другий тап нічого не додає
-    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { setNote("Одна стадія на добу – приходь завтра"); return; }
+    if (growth.ready_at && new Date(growth.ready_at) > new Date()) { say(TOO_SOON); return; }
     if (calm()) { openPlanting(); return; }
     setNote(null);
     setPour({ id: Date.now(), kind });
@@ -545,7 +545,7 @@ export function Plant({ ctx }) {
   // стадію, чи кущ просто попив, чи час відкривати екран посадки.
   // bought — препарат щойно куплено в попапі, а care у цьому рендері ще старий.
   const apply = async (kind, bought = false) => {
-    if (onSale) { setNote("Поки я на ринку, доглядати за мною не можна"); return; }
+    if (onSale) { say(ON_SALE); return; }
     const item = SHELF.find((s) => s.kind === kind);
     if (!bought && (care[item?.key] ?? 0) <= 0) { setPopup(`supply:${kind}`); return; }
     if (growth.planting && kind === growth.need) { plantAfterCare(kind); return; }
@@ -558,16 +558,17 @@ export function Plant({ ctx }) {
       await ctx.refreshMe();
       await reload();
       if (r.grown) setFx({ id: Date.now(), prev, from, to: r.stage });
-      if (r.grown) setNote(`Я підріс! Тепер стадія ${r.stage}`);
-      else if (r.progress) setNote(`Дякую! Ще ${r.applications - r.progress} – і підросту`);
+      // Кущ дякує своїм словом на кожен препарат — і коли підріс, і коли
+      // просто попив; «ще трохи» — коли переходу треба кілька доглядів.
+      say(!r.grown && r.progress ? MORE : AFTER_CARE[kind] ?? MORE);
     } catch (e) {
       const code = e.body?.error;
       if (code === "needs_planting") openPlanting();
-      else if (code === "wrong_care") setNote(WANT[e.body.need] ? `${WANT[e.body.need].title.replace("Хоче", "Хочу")}, а не це` : "Мені зараз потрібне інше");
-      else if (code === "too_soon") setNote("Одна стадія на добу – приходь завтра");
+      else if (code === "wrong_care") say(wrongCare(e.body.need));
+      else if (code === "too_soon") say(TOO_SOON);
       else if (code === "no_supply") setPopup(`supply:${kind}`);
-      else if (code === "fully_grown") setNote("Я вже дорослий – одягни мене");
-      else setNote(e.message);
+      else if (code === "fully_grown") say(GROWN);
+      else if (!e.offline) say(OOPS);   // про обрив звʼязку вже каже тост
     }
   };
 
@@ -578,7 +579,7 @@ export function Plant({ ctx }) {
   // каже це словами.
   const wish = () => {
     if (need === "outfit") return ctx.push("wardrobe", { plant });
-    if (need === "time") return setNote(WAITING_LINE);
+    if (need === "time") return say(WAITING);
     return apply(need);
   };
   const [cx, cy] = CLOUD_AT[Math.min(10, plant.growth_stage)] ?? CLOUD_AT[10];
@@ -613,10 +614,8 @@ export function Plant({ ctx }) {
             </button>
           )}
           {!onSale && (
-            <button className="plant-bubble" onClick={() => !lock && ctx.push("chat", { plant })}>
-              <b>{plant.name || "Кавенятко"}</b>
-              <Typewriter text={line} />
-            </button>
+            <Bubble name={plant.name || "Кавенятко"} lines={lines} stamp={note?.at ?? 0}
+                    onSingle={() => !lock && ctx.push("chat", { plant })} />
           )}
           <div className="plant-scene">
             {assets && (fx ? (
@@ -630,7 +629,7 @@ export function Plant({ ctx }) {
           <Shelf care={care} onApply={apply} need={need} />
           <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
-            <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => setNote(BARREL_LINE)}>
+            <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => say(BARREL)}>
               <img src="/assets/ui/barrel.png" alt="" />
             </button>
           )}
