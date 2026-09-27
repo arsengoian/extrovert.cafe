@@ -375,7 +375,7 @@ function ScytheSheet({ plant, onClose, onDone }) {
 
 export function Plant({ ctx }) {
   const assets = usePlantAssets();
-  const [plants, setPlants] = useState(null);
+  const [plants, setPlants] = useState(() => api.peek("/me/plants")?.plants ?? null);
   const [index, setIndex] = useState(0);
   const [error, setError] = useState(null);
   const [note, setNote] = useState(null);

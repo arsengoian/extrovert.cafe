@@ -53,9 +53,9 @@ function Task({ badge, reward, title, note, action, onClick, off, children }) {
 
 export function Wallet({ ctx }) {
   const b = ctx.me?.balances ?? {};
-  const [profile, setProfile] = useState(null);
-  const [drink, setDrink] = useState(null);
-  const [repost, setRepost] = useState(null);
+  const [profile, setProfile] = useState(() => api.peek("/quiz/profile") ?? null);
+  const [drink, setDrink] = useState(() => api.peek("/quiz/drink") ?? null);
+  const [repost, setRepost] = useState(() => api.peek("/repost") ?? null);
   const [step, setStep] = useState(draftStep);
 
   useEffect(() => {

@@ -74,8 +74,8 @@ function BeanRow({ item, onOpen }) {
 }
 
 export function Shop({ ctx }) {
-  const [shop, setShop] = useState(null);
-  const [clothes, setClothes] = useState([]);
+  const [shop, setShop] = useState(() => api.peek("/shop") ?? null);
+  const [clothes, setClothes] = useState(() => api.peek("/catalog/featured")?.items ?? []);
   // Вкладка переживає перехід на інший екран і перезавантаження: людина
   // купує за зерна й повертається саме за зерна (скарга власника
   // 23.09.2026). Той самий прийом, що з вкладкою внизу (app.jsx).

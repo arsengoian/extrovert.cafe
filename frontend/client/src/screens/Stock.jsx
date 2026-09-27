@@ -15,9 +15,9 @@ import { openStockCrate } from "./Crate.jsx";
 const SLOTS = ["head", "body", "pants", "feet", "acc_1"];
 
 export function Stock({ ctx }) {
-  const [items, setItems] = useState(null);
-  const [crates, setCrates] = useState(0);
-  const [lots, setLots] = useState([]);
+  const [items, setItems] = useState(() => api.peek("/me/items")?.items ?? null);
+  const [crates, setCrates] = useState(() => api.peek("/me/items")?.crates ?? 0);
+  const [lots, setLots] = useState(() => api.peek("/me/listings")?.listings ?? []);
 
   const loadItems = () => api.get("/me/items").then((r) => { setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setItems([]));
   useEffect(() => {

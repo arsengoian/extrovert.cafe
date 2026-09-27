@@ -10,7 +10,7 @@ const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic:
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
 export function Catalog({ ctx }) {
-  const [items, setItems] = useState(null);
+  const [items, setItems] = useState(() => api.peek("/catalog/items")?.items ?? null);
 
   useEffect(() => { api.get("/catalog/items").then((r) => setItems(r.items)).catch(() => setItems([])); }, []);
 

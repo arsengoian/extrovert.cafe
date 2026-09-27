@@ -12,11 +12,20 @@ const TOKEN_KEY = "extrovert.token";
 let token = localStorage.getItem(TOKEN_KEY) || null;
 let refreshing = null;              // спільна обіцянка: паралельні 401 чекають одну
 
+// Останні відповіді GET за шляхом. Вкладки й екрани розмонтовуються при
+// кожному переході, і кожен приходив зі скелетом, а за мить дані
+// розсували його — «розділ відкривається до того, як усе промальовується»
+// (власник, 26.09.2026). Тепер екран, куди повертаються, починає з
+// попередньої відповіді (api.peek), а свіжа заміняє її на місці —
+// здебільшого без жодної різниці на око. Лише в памʼяті сторінки:
+// перезавантаження чи вихід з акаунта — і тут порожньо.
+const recent = new Map();
+
 export const getToken = () => token;
 export function setToken(next) {
   token = next;
   if (next) localStorage.setItem(TOKEN_KEY, next);
-  else localStorage.removeItem(TOKEN_KEY);
+  else { localStorage.removeItem(TOKEN_KEY); recent.clear(); }   // чужі дані наступному не показуємо
 }
 
 // Токен, придатний просто зараз. Потрібен там, де 401 не допоможе: ws
@@ -118,7 +127,9 @@ async function request(path, { method = "GET", body, auth = true, retry = true }
 }
 
 export const api = {
-  get: (path) => request(path),
+  get: (path) => request(path).then((data) => { recent.set(path, data); return data; }),
+  // Остання відповідь на цей GET або undefined — для початкового стану екрана.
+  peek: (path) => recent.get(path),
   post: (path, body) => request(path, { method: "POST", body }),
   patch: (path, body) => request(path, { method: "PATCH", body }),
   put: (path, body) => request(path, { method: "PUT", body }),

@@ -10,6 +10,14 @@
          їде за край (скарга власника 23.09.2026). -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, interactive-widget=resizes-visual" />
     <meta name="theme-color" content="#0C0E11" />
+    <!-- Шрифти — одразу з HTML, а не коли їх попросить CSS: інакше перший
+         кадр малюється системним шрифтом, і текст потім «перестрибує» на
+         Extro іншої ширини (власник, 26.09.2026: плашки підстрибують).
+         Чотири файли по 32 КБ, далі їх тримає кеш (public/_headers). -->
+    <link rel="preload" href="/assets/fonts/Extro400.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Extro600.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Extro700.ttf" as="font" type="font/ttf" crossorigin />
+    <link rel="preload" href="/assets/fonts/Extro900.ttf" as="font" type="font/ttf" crossorigin />
     <title>extrovert.cafe</title>
     <!-- Фавікон — лише «О» з променями (design/assets/icon.svg): цілий
          логотип у 16 пікселях перетворюється на кашу. -->

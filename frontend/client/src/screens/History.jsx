@@ -19,8 +19,11 @@ const Check = () => (
 );
 
 export function History({ ctx }) {
-  const [data, setData] = useState(null);
-  const [quiz, setQuiz] = useState({ credits: 0, reward: 40 });
+  const [data, setData] = useState(() => api.peek("/me/history") ?? null);
+  const [quiz, setQuiz] = useState(() => {
+    const r = api.peek("/quiz/drink");
+    return { credits: r?.credits ?? 0, reward: r?.reward ?? 40 };
+  });
 
   useEffect(() => {
     api.get("/me/history").then(setData).catch(() => setData({ receipts: [], totals: { drinks: 0, coins: 0 } }));
