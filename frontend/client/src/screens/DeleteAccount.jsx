@@ -4,6 +4,7 @@
 // другої сторони угоди.
 import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
+import { useConfirmWord } from "../ui/confirmWord.js";
 
 const WORD = "видалити";
 
@@ -11,6 +12,7 @@ export function DeleteAccount({ ctx }) {
   const [state, setState] = useState(null);
   const [word, setWord] = useState("");
   const [busy, setBusy] = useState(false);
+  const check = useConfirmWord(word, WORD);
   const [done, setDone] = useState(null);
   const [error, setError] = useState(null);
 
@@ -33,6 +35,7 @@ export function DeleteAccount({ ctx }) {
   if (!state) return <div className="stage-pad"><div className="skeleton" /></div>;
 
   const remove = async () => {
+    if (!check.ok()) return;
     setBusy(true);
     setError(null);
     try {
@@ -56,13 +59,14 @@ export function DeleteAccount({ ctx }) {
       </p>
       {/* Власний клас, а не .price-input: у колонковому флексі його
           flex: 1 0% стискав поле по висоті майже в нитку. */}
-      <input className="confirm-input" value={word}
-             placeholder={WORD} onChange={(e) => setWord(e.target.value)} />
+      <input ref={check.ref} className="confirm-input" value={word} data-invalid={check.invalid || undefined}
+             placeholder={WORD} onChange={(e) => { setWord(e.target.value); check.reset(); }} />
+      {check.invalid && <p className="confirm-hint">Напиши «{WORD}», щоб підтвердити</p>}
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <button className="btn btn-danger" style={{ marginTop: 12 }}
-              disabled={busy || word.trim().toLowerCase() !== WORD} onClick={remove}>
+              disabled={busy} onClick={remove}>
         {busy ? "Видаляємо…" : "Видалити акаунт назавжди"}
       </button>
     </div>

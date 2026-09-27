@@ -252,6 +252,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font: inherit; font-size: 15px;
 }
 
+/* Тап по «Скосити» / «Видалити» без слова: поле червоніє й трусонеться
+   (ui/confirmWord.js), під ним — підказка. */
+.confirm-input[data-invalid] { border-color: rgb(255, 107, 122); box-shadow: 0 0 0 3px rgba(255, 77, 94, .18); outline: 0 }
+.confirm-hint, .plant-sheet p.confirm-hint { margin: 0; font-size: 12.5px; line-height: 1.4; color: rgb(255, 107, 122) }
+
 .price-input {
   flex: 1; min-width: 0; height: 44px; padding: 0 12px; border-radius: 12px;
   border: 1px solid var(--line); background: var(--panel2); color: var(--ink);

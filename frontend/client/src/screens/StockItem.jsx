@@ -85,7 +85,8 @@ export function StockItemSheet({ item, ctx, onClose }) {
       {done
         ? (
           <>
-            <div className="short-note">У примірочній «{done.name || "Кавенятко"}». Подарувати можна лише повний комплект.</div>
+            {/* Ім'я кавенятка без лапок — скрізь (власник, 27.09.2026). */}
+            <div className="short-note">{done.name ? `У примірочній ${done.name}.` : "У примірочній кавенятка."}</div>
             <div className="stock-item-actions">
               <button className="cta wide" onClick={onClose}>Готово</button>
               <button className="cta wide ghost" onClick={() => { onClose(); ctx.push("wardrobe", { plant: done }); }}>
@@ -161,7 +162,7 @@ export function WearSheet({ item, plants, ctx, onClose }) {
       {done
         ? (
           <>
-            <div className="short-note">У примірочній «{done.name || "Кавенятко"}».</div>
+            <div className="short-note">{done.name ? `У примірочній ${done.name}.` : "У примірочній кавенятка."}</div>
             <div className="stock-item-actions">
               <button className="cta wide" onClick={onClose}>Готово</button>
               <button className="cta wide ghost" onClick={() => { onClose(); ctx.push("wardrobe", { plant: done }); }}>

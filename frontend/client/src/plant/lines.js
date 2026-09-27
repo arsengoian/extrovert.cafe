@@ -18,12 +18,23 @@ export const AFTER_CARE = {
 // Переходу потрібно кілька доглядів, а зроблено ще не всі.
 export const MORE = ["Дякую! Ще трохи, будь ласка!"];
 
-// Дали не той препарат. Перша репліка називає, чого кущ хоче насправді.
+// Дали не той препарат. Перший тап — репліка, що називає, чого кущ хоче
+// насправді; повтори — варіанти з його поточного стану (state — той самий
+// масив, що хмарка показує без дій: DRESSED, SAD, stageLines…). Раніше
+// повтори крутили «Ти щось не то клацаєш» (власник, 27.09.2026). Якщо в
+// стані одна репліка, до неї додається перша, щоб повтори чергувались.
 const WANTED = { water: "води", compost: "компосту", fertilizer: "добрива", insecticide: "оприскування", outfit: "одягу" };
-const OTHER = ["Це не те, що я просив...", "Ти щось не то клацаєш"];
-const wrongCache = {};
-export const wrongCare = (need) =>
-  (wrongCache[need] ??= WANTED[need] ? [`Хочу ${WANTED[need]}, а не оце`, ...OTHER] : ["Мені зараз потрібне інше", ...OTHER]);
+const firstCache = {};
+export const wrongFirst = (need) =>
+  (firstCache[need] ??= [WANTED[need] ? `Хочу ${WANTED[need]}, а не оце` : "Мені зараз потрібне інше"]);
+const moreCache = new WeakMap();
+export const wrongMore = (first, state) => {
+  if (state.length > 1) return state;
+  let byFirst = moreCache.get(state);
+  if (!byFirst) moreCache.set(state, (byFirst = new Map()));
+  if (!byFirst.has(first)) byFirst.set(first, [...state, ...first]);
+  return byFirst.get(first);
+};
 
 // Одна стадія на добу — сказано у відповідь на дію.
 export const TOO_SOON = ["Мені треба трохи часу, щоб підрости", "Росту собі... Приходь завтра"];

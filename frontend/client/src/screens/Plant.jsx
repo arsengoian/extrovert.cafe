@@ -11,13 +11,14 @@ import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
-import { Sparks, Typewriter, calm } from "../ui/fx.jsx";
+import { Sparks, Typewriter, calm, markCoinSource } from "../ui/fx.jsx";
 import { isLandscape } from "../ui/landscape.js";
 import {
   AFTER_CARE, BARREL, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
-  stageLines, wrongCare,
+  stageLines, wrongFirst, wrongMore,
 } from "../plant/lines.js";
 import { takeHandoff } from "../plant/handoff.js";
+import { useConfirmWord } from "../ui/confirmWord.js";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -324,8 +325,9 @@ const SCYTHE_WORD = "скосити";
 function ScytheSheet({ plant, onClose, onDone }) {
   const [error, setError] = useState(null);
   const [word, setWord] = useState("");
-  const confirmed = word.trim().toLowerCase() === SCYTHE_WORD;
+  const check = useConfirmWord(word, SCYTHE_WORD);
   const scythe = async () => {
+    if (!check.ok()) return;
     try { const r = await api.post(`/me/plants/${plant.id}/scythe`, { confirm: word.trim().toLowerCase() }); onDone(r.plant_id); }
     catch (e) { setError(e.body?.error === "confirm_required" ? `Напиши «${SCYTHE_WORD}», щоб підтвердити` : errText(e)); }
   };
@@ -337,12 +339,13 @@ function ScytheSheet({ plant, onClose, onDone }) {
       </div>
       <p style={{ lineHeight: 1.5 }}>Використовуй цю опцію лише якщо кавенятко зовсім негарне вдалося і хочеш виростити нове. Ресурси, витрачені на кавенятко, та подаровані комплекти буде втрачено.</p>
       <div className="scythe-keep"><img src="/assets/ui/sprout.png" alt="" /><b>Ти отримаєш лише: 1 саджанець</b></div>
-      <input className="confirm-input" value={word} placeholder={`напиши «${SCYTHE_WORD}»`}
-             autoComplete="off" spellCheck={false} onChange={(e) => setWord(e.target.value)} />
+      <input ref={check.ref} className="confirm-input" value={word} placeholder={`напиши «${SCYTHE_WORD}»`} data-invalid={check.invalid || undefined}
+             autoComplete="off" spellCheck={false} onChange={(e) => { setWord(e.target.value); check.reset(); }} />
+      {check.invalid && <p className="confirm-hint">Напиши «{SCYTHE_WORD}», щоб підтвердити</p>}
       {error && <p style={{ color: "var(--accent-text)" }}>{error}</p>}
       <div className="scythe-btns">
         <button onClick={onClose}>Я передумав</button>
-        <button disabled={!confirmed} onClick={scythe}>Скосити</button>
+        <button onClick={scythe}>Скосити</button>
       </div>
     </div>
   );
@@ -443,7 +446,16 @@ export function Plant({ ctx }) {
   // тоді новий, звичним переходом стадії. Записку лишає Planting.jsx.
   const [replay, setReplay] = useState(null);
   const [oldScene, setOldScene] = useState(null);
-  useEffect(() => { const h = takeHandoff(); if (h) setReplay(h); }, []);
+  // Подарований комплект (Wardrobe.jsx): тут показуємо саме те
+  // кавенятко, а боби з його бочки летять у баланс у шапці.
+  const [gift, setGift] = useState(null);
+  const [giftFx, setGiftFx] = useState(null);
+  const barrel = useRef(null);
+  useEffect(() => {
+    const h = takeHandoff();
+    if (h?.kind === "gift") setGift(h);
+    else if (h) setReplay(h);
+  }, []);
 
   // Кавенят може бути скільки завгодно (gamification_ui §MVP): стрілка
   // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
@@ -454,6 +466,27 @@ export function Plant({ ctx }) {
   });
   useEffect(() => { reload().catch((e) => setError(e.message)); }, []);
   useEffect(() => { setNote(null); setPopup(null); }, [index]);
+
+  // Спершу гортаємо до подарованого кавенятка, а коли воно на екрані й
+  // бочка намальована — позначаємо бочку джерелом і оновлюємо баланс:
+  // шапка побачить приріст зерен і пустить їх звідти (Hud.jsx).
+  useEffect(() => {
+    if (!gift || !plants) return undefined;
+    const at = plants.findIndex((p) => p.id === gift.plantId);
+    if (at >= 0 && at !== index) { setIndex(at); return undefined; }
+    const t = setTimeout(() => {
+      markCoinSource(barrel.current);
+      setGiftFx(Date.now());
+      setGift(null);
+      ctx.refreshMe();
+    }, 450);
+    return () => clearTimeout(t);
+  }, [gift, plants, index]);
+  useEffect(() => {
+    if (!giftFx) return undefined;
+    const t = setTimeout(() => setGiftFx(null), 1800);
+    return () => clearTimeout(t);
+  }, [giftFx]);
 
   const plant = plants?.[index] ?? null;
 
@@ -517,13 +550,23 @@ export function Plant({ ctx }) {
   // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
   // Поки грає перехід після посадки, хмаринка не просить наступного.
   const want = !onSale && !shelfEmpty && !popup && !oldScene ? WANT[need] : null;
-  const lines = note?.lines
-    ?? (waiting && plant.mood === "healthy" ? WAITING
-      : plant.mood === "withered" ? WITHERED
-      : plant.mood === "sad" ? SAD
-      : shelfEmpty ? EMPTY
-      : plant.growth_stage >= 10 && dressed ? DRESSED
-      : stageLines(plant.growth_stage, growth.need));
+  const idle = waiting && plant.mood === "healthy" ? WAITING
+    : plant.mood === "withered" ? WITHERED
+    : plant.mood === "sad" ? SAD
+    : shelfEmpty ? EMPTY
+    : plant.growth_stage >= 10 && dressed ? DRESSED
+    : stageLines(plant.growth_stage, growth.need);
+  const lines = note?.lines ?? idle;
+
+  // Не той препарат. Перший тап називає, чого кущ хоче; повтори — репліки
+  // з його поточного стану: вдягнений каже «в чому сенс бути кущем без
+  // нового комплекту», сумний просить пити. Раніше повтори крутили «ти
+  // щось не то клацаєш» (власник, 27.09.2026).
+  const wrong = (want) => {
+    const first = wrongFirst(want);
+    const more = wrongMore(first, idle);
+    say(note?.lines === first || note?.lines === more ? more : first);
+  };
 
   const openPlanting = () => {
     // Добовий гейт видно ще до відкриття екрана: інакше гравець розставить
@@ -566,7 +609,7 @@ export function Plant({ ctx }) {
     } catch (e) {
       const code = e.body?.error;
       if (code === "needs_planting") openPlanting();
-      else if (code === "wrong_care") say(wrongCare(e.body.need));
+      else if (code === "wrong_care") wrong(e.body.need);
       else if (code === "too_soon") say(TOO_SOON);
       else if (code === "no_supply") setPopup(`supply:${kind}`);
       else if (code === "fully_grown") say(GROWN);
@@ -629,14 +672,15 @@ export function Plant({ ctx }) {
             ) : <Scene instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
           <Shelf care={care} onApply={apply} need={need}
-                 onWrong={() => say(onSale ? ON_SALE : need === "time" ? TOO_SOON : wrongCare(need))} />
+                 onWrong={() => (onSale ? say(ON_SALE) : need === "time" ? say(TOO_SOON) : wrong(need))} />
           <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
-            <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => say(BARREL)}>
-              <img src="/assets/ui/barrel.png" alt="" />
+            <button ref={barrel} className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => say(BARREL)}>
+              <img src="/assets/ui/barrel.png" alt="" className={giftFx ? "fx-pulse" : undefined} />
             </button>
           )}
           {fx && <GrowthFx fx={fx} instances={instances} />}
+          {giftFx && <Sparks key={giftFx} kind="barrel" x={BARREL_AT.x} y={BARREL_AT.y} />}
         </div>
 
         <div className="plant-top">

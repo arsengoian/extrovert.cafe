@@ -109,9 +109,10 @@ export function ItemCard({ item, ctx }) {
         {item.description_md ? renderMarkdown(item.description_md) : null}
         {item.collection && (
           <div>
+            {/* Без двокрапки й пояснення про найслабший предмет
+                (власник, 27.09.2026). */}
             У тебе вже {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {SET_BEANS[item.tier] ?? 3}{" "}
-            <img src="/assets/ui/bean.png" alt="кавових зерна" />: рідкість рахується за найслабшим предметом
-            {item.tier === "common" ? ", а всі пʼять тут Common (Uncommon – 6, Rare – 9, Epic – 15)." : "."}
+            <img src="/assets/ui/bean.png" alt="кавових зерна" />
           </div>
         )}
       </div>

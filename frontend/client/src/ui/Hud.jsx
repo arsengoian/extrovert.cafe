@@ -8,13 +8,13 @@ import { RollingNumber, flyCoins } from "./fx.jsx";
 // звідки їм летіти (markCoinSource).
 const FLY_AFTER_MS = 250;
 
-function useCoinFlight(value, iconRef, src) {
+function useCoinFlight(value, iconRef, src, opts) {
   const last = useRef(value);
   useEffect(() => {
     const before = last.current;
     last.current = value;
     if (before == null || value == null || value <= before) return undefined;
-    const t = setTimeout(() => flyCoins(iconRef.current, src), FLY_AFTER_MS);
+    const t = setTimeout(() => flyCoins(iconRef.current, src, 6, opts), FLY_AFTER_MS);
     return () => clearTimeout(t);
   }, [value]);
 }
@@ -23,8 +23,12 @@ export function Hud({ me, onOpen, onWallet, onSupport }) {
   const b = me?.balances ?? {};
   const silverRef = useRef(null);
   const goldRef = useRef(null);
+  const beanRef = useRef(null);
   useCoinFlight(b.silver, silverRef, "/assets/ui/coin_silver.png");
   useCoinFlight(b.yellow, goldRef, "/assets/ui/coin_gold.png");
+  // Зерна летять лише звідти, де їх позначили джерелом, — з бочки після
+  // подарованого комплекту (Plant.jsx).
+  useCoinFlight(b.beans, beanRef, "/assets/ui/bean.png", { onlyFromSource: true });
 
   return (
     <div className="hud">
@@ -37,7 +41,7 @@ export function Hud({ me, onOpen, onWallet, onSupport }) {
       <button className="hud-pill" aria-label="Гаманець" onClick={onWallet}>
         <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.png" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
         <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.png" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
-        <span className="hud-val"><img src="/assets/ui/bean.png" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
+        <span className="hud-val"><img ref={beanRef} src="/assets/ui/bean.png" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
       </button>
       <button className="icon-btn" aria-label="Повідомити про проблему" onClick={() => onOpen("problem")}>
         <img src="/assets/ui/nav_problem.png" alt="" style={{ width: 24, height: 23 }} />

@@ -10,7 +10,8 @@ import { api, errText } from "../api.js";
 import { PlantView } from "../plant/PlantView.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { ConfirmSheet } from "../ui/Popup.jsx";
-import { beans, plural } from "../ui/plural.js";
+import { plural } from "../ui/plural.js";
+import { leaveHandoff } from "../plant/handoff.js";
 
 // Місце слота в примірочній 328×199, картинки слота й листкової рамки.
 const SLOTS = {
@@ -56,9 +57,12 @@ export function Wardrobe({ ctx, plant }) {
   const gift = () => run(async () => {
     try {
       const r = await api.post(`/me/plants/${id}/wardrobe/gift`);
-      await ctx.refreshMe();
-      await load();
-      setNote(`Кавенятко в захваті: +${beans(r.beans)}`);
+      // Замість рядка «Кавенятко в захваті» — головний екран із цим
+      // кавенятком, і боби летять із його бочки в баланс (власник,
+      // 27.09.2026). Баланс оновлює вже головний екран: тут шапки немає,
+      // і приріст, який вона мала б показати, просто пропав би.
+      leaveHandoff({ kind: "gift", plantId: id, beans: r.beans });
+      ctx.openTab("plant");
     } catch (e) {
       if (e.body?.error === "incomplete") throw Object.assign(e, { body: { error: "Спершу заповни всі п'ять слотів" } });
       if (e.body?.error === "not_grown") throw Object.assign(e, { body: { error: "Кавенятко ще росте – подарувати комплект можна дорослому" } });

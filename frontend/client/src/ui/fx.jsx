@@ -150,12 +150,16 @@ export function markCoinSource(el) {
   source = { rect: el.getBoundingClientRect(), at: Date.now() };
 }
 
-export function flyCoins(target, src = "/assets/ui/coin_gold.png", count = 6) {
+// onlyFromSource — летіти лише з позначеного місця: зерна приходять і
+// там, де своя анімація вже є (боби дугою в бочку на 10-й стадії), і
+// політ «знизу екрана» поверх неї лише плутав би.
+export function flyCoins(target, src = "/assets/ui/coin_gold.png", count = 6, { onlyFromSource = false } = {}) {
   if (!target || calm()) return;
   const host = document.querySelector(".app") ?? document.body;
   const hb = host.getBoundingClientRect();
   const to = target.getBoundingClientRect();
   const fresh = source && Date.now() - source.at < 2500 ? source.rect : null;
+  if (onlyFromSource && !fresh) return;
   const from = fresh
     ? { x: fresh.left + fresh.width / 2, y: fresh.top + fresh.height / 2 }
     : { x: hb.left + hb.width / 2, y: hb.top + hb.height * 0.7 };
