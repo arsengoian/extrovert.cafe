@@ -184,7 +184,7 @@ function CareFx({ pour, areaRef }) {
   return <div ref={host} className="care-fx" aria-hidden="true" />;
 }
 
-function Shelf({ care, onApply, need }) {
+function Shelf({ care, onApply, onWrong, need }) {
   const shown = useRef(care);
   useEffect(() => { shown.current = care; });
   return (
@@ -198,13 +198,15 @@ function Shelf({ care, onApply, need }) {
                style={{ left: x, top: y, width: w, height: h, transform: s.mirror ? "scaleX(-1)" : undefined }} />
         );
         const changed = (shown.current[s.key] ?? 0) !== n;
-        // Вимкнено все, крім потрібного зараз. Порожню банку потрібного
+        // Застосувати можна лише потрібне зараз. Порожню банку потрібного
         // препарату лишаємо активною: тап по ній відкриває «не вистачає» —
-        // це єдиний шлях докупити.
+        // це єдиний шлях докупити. Тап по непотрібному нічого не витрачає,
+        // але кущ відповідає («Хочу води, а не оце»): мертва кнопка
+        // виглядала зламаною (власник, 27.09.2026).
         const off = Boolean(need) && need !== s.kind;
         return (
-          <button key={s.key} className="shelf-item" data-kind={s.kind} data-off={off || undefined} disabled={off}
-                  onClick={() => onApply(s.kind)}
+          <button key={s.key} className="shelf-item" data-kind={s.kind} data-off={off || undefined} aria-disabled={off || undefined}
+                  onClick={() => (off ? onWrong(s.kind) : onApply(s.kind))}
                   style={{ left: s.box[0], top: s.box[1], width: s.box[2], height: s.box[3] }}>
             {s.crop ? <span className="shelf-crop">{img}</span>
               : img}
@@ -347,23 +349,23 @@ function ScytheSheet({ plant, onClose, onDone }) {
 }
 
 // Хмарка з реплікою. Варіант обирається випадково, коли ситуація
-// з'являється (інший масив чи нова мітка замітки), і тримається, поки вона
-// та сама, — а не тасується на кожен рендер. Тап показує інший варіант;
-// якщо варіант один, тап, як і раніше, відкриває чат (власник, 27.09.2026:
-// «при повторному кліку можна зробити ролл»).
+// з'являється, і тримається, поки вона та сама, — а не тасується на кожен
+// рендер. Іншу репліку дає повтор того, що її викликало (ще раз полити,
+// ще раз тапнути бочку чи непотрібну банку): та сама ситуація з новою
+// міткою — і вже гарантовано інший варіант. Тап по самій хмарці, як і
+// раніше, відкриває чат (власник, 27.09.2026).
 const randomIndex = (n) => Math.floor(Math.random() * n);
 const otherIndex = (n, cur) => (n < 2 ? 0 : (cur + 1 + randomIndex(n - 1)) % n);
 
-function Bubble({ name, lines, stamp, onSingle }) {
+function Bubble({ name, lines, stamp, onOpen }) {
   const [pick, setPick] = useState(() => ({ lines, stamp, i: randomIndex(lines.length) }));
   let i = pick.i;
   if (pick.lines !== lines || pick.stamp !== stamp) {
-    i = randomIndex(lines.length);
+    i = pick.lines === lines ? otherIndex(lines.length, pick.i) : randomIndex(lines.length);
     setPick({ lines, stamp, i });
   }
-  const tap = () => (lines.length > 1 ? setPick((p) => ({ ...p, i: otherIndex(lines.length, p.i) })) : onSingle());
   return (
-    <button className="plant-bubble" onClick={tap}>
+    <button className="plant-bubble" onClick={onOpen}>
       <b>{name}</b>
       <Typewriter text={lines[i] ?? lines[0]} />
     </button>
@@ -615,7 +617,7 @@ export function Plant({ ctx }) {
           )}
           {!onSale && (
             <Bubble name={plant.name || "Кавенятко"} lines={lines} stamp={note?.at ?? 0}
-                    onSingle={() => !lock && ctx.push("chat", { plant })} />
+                    onOpen={() => !lock && ctx.push("chat", { plant })} />
           )}
           <div className="plant-scene">
             {assets && (fx ? (
@@ -626,7 +628,8 @@ export function Plant({ ctx }) {
               </>
             ) : <Scene instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
-          <Shelf care={care} onApply={apply} need={need} />
+          <Shelf care={care} onApply={apply} need={need}
+                 onWrong={() => say(onSale ? ON_SALE : need === "time" ? TOO_SOON : wrongCare(need))} />
           <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
             <button className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => say(BARREL)}>
