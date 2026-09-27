@@ -4,6 +4,7 @@ import { many, one, query, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { generateNickname } from "../nickname.js";
 import { TERMS_VERSION } from "./legal.js";
+import { SET_ORDER, SLOT_ORDER, TIER_ORDER } from "./catalog.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
 
@@ -80,8 +81,13 @@ export default async function routes(app) {
          join item_defs d on d.id = ui.item_def_id
         where ui.user_id = $1
         group by d.code, d.name, d.collection, d.slot, d.tier, d.sprite_id, d.description_md
-        order by d.collection, d.slot`,
-      [user.id]
+        -- Комплекти — у тому ж порядку, що «Весь одяг» у Магазині: за
+        -- рідкістю, усередині — за таблицею концептів (catalog.js). До
+        -- 27.09.2026 тут була абетка, і склад із магазином не збігались.
+        order by array_position($2::text[], d.tier),
+                 coalesce(array_position($3::text[], d.collection), 1000), d.collection,
+                 array_position($4::text[], d.slot)`,
+      [user.id, TIER_ORDER, SET_ORDER, SLOT_ORDER]
     );
     // Невідкриті скриньки — картка «Щасливі скриньки» над комплектами.
     const crates = await one(

@@ -7,13 +7,13 @@ import { economy, priceForTier } from "../economy.js";
 // звичайного до епічного, усередині — як у таблиці концептів
 // bush_graphics_customization.md §7.1, а не за абеткою. Набір, якого тут ще
 // немає, стає в кінець свого тіру. Слоти — в порядку примірочної.
-const TIER_ORDER = ["common", "uncommon", "rare", "epic"];
-const SET_ORDER = [
+export const TIER_ORDER = ["common", "uncommon", "rare", "epic"];
+export const SET_ORDER = [
   "Ковбой", "Тропічний серфер", "Кав'ярний хіпстер", "Строгий бариста", "Спортивний", "Студент",
   "Дощовий Київ", "Скейтер", "Кавовий ковбой Deluxe", "DJ/Клубер", "Ретро-геймер", "Мандрівник",
   "Пірат Кавових морів", "Космічний бариста", "Кавовий магнат",
 ];
-const SLOT_ORDER = ["head", "body", "pants", "feet", "acc_1"];
+export const SLOT_ORDER = ["head", "body", "pants", "feet", "acc_1"];
 const ORDER_BY = `array_position($3::text[], tier),
                coalesce(array_position($4::text[], collection), 1000), collection,
                array_position($5::text[], slot)`;

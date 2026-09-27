@@ -106,7 +106,7 @@ export default async function routes(app) {
       );
       const { rows: me } = await client.query("select nickname from users where id = $1", [user.id]);
       // Чат щойно очищено — це перший рядок у ньому, і він саме про цей кущ.
-      await notifyPlant(target.id, `${me[0].nickname} подарував тобі кавенятко «${plant.name || "без імені"}».`, { client, plantId: plant.id });
+      await notifyPlant(target.id, `${me[0].nickname} подарував тобі кавенятко ${plant.name || "без імені"}.`, { client, plantId: plant.id });
       return { ok: true, to: target.nickname };
     });
   });
