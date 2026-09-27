@@ -328,7 +328,7 @@ function GiftSheet({ plant, onClose, onDone }) {
           <input value={nickname} placeholder="нікнейм" spellCheck={false}
                  onChange={(e) => setNickname(e.target.value.replace(/\s/g, "").slice(0, 24))} />
           {ok && <span>знайдено</span>}
-          {found && !found.found && <span>немає</span>}
+          {found && !found.found && <span>не знайдено</span>}
           {found?.self && <span>це ти</span>}
         </label>
       </div>

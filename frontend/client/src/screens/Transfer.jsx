@@ -81,7 +81,7 @@ export function Transfer({ ctx }) {
                  onChange={(e) => setNickname(e.target.value.replace(/\s/g, "").slice(0, 24))} />
           {found?.found && !found.self && <span style={{ color: "#3FBF6F" }}>знайдено</span>}
           {found?.self && <span className="muted">це ти</span>}
-          {found && !found.found && <span className="muted">немає</span>}
+          {found && !found.found && <span className="muted">не знайдено</span>}
         </div>
       </div>
 
