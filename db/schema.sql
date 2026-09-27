@@ -992,42 +992,6 @@ COMMENT ON COLUMN public.points.machine_letter IS 'Літера машини д�
 
 
 --
--- Name: pos_discount_codes; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.pos_discount_codes (
-    id bigint NOT NULL,
-    ledger_entry_id bigint NOT NULL,
-    user_id uuid NOT NULL,
-    code text NOT NULL,
-    amount_uah numeric(10,2) NOT NULL,
-    issued_at timestamp with time zone DEFAULT now() NOT NULL,
-    used_at timestamp with time zone,
-    receipt_id bigint,
-    CONSTRAINT pos_discount_codes_amount_uah_check CHECK ((amount_uah > (0)::numeric))
-);
-
-
---
--- Name: pos_discount_codes_id_seq; Type: SEQUENCE; Schema: public; Owner: -
---
-
-CREATE SEQUENCE public.pos_discount_codes_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: pos_discount_codes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
---
-
-ALTER SEQUENCE public.pos_discount_codes_id_seq OWNED BY public.pos_discount_codes.id;
-
-
---
 -- Name: problem_reports; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1900,13 +1864,6 @@ ALTER TABLE ONLY public.plant_stage_transitions ALTER COLUMN id SET DEFAULT next
 
 
 --
--- Name: pos_discount_codes id; Type: DEFAULT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes ALTER COLUMN id SET DEFAULT nextval('public.pos_discount_codes_id_seq'::regclass);
-
-
---
 -- Name: problem_reports id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2319,22 +2276,6 @@ ALTER TABLE ONLY public.plants
 
 ALTER TABLE ONLY public.points
     ADD CONSTRAINT points_pkey PRIMARY KEY (id);
-
-
---
--- Name: pos_discount_codes pos_discount_codes_code_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes
-    ADD CONSTRAINT pos_discount_codes_code_key UNIQUE (code);
-
-
---
--- Name: pos_discount_codes pos_discount_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes
-    ADD CONSTRAINT pos_discount_codes_pkey PRIMARY KEY (id);
 
 
 --
@@ -2850,13 +2791,6 @@ CREATE INDEX plants_owner_id_created_at_idx ON public.plants USING btree (owner_
 
 
 --
--- Name: pos_discount_codes_user_id_issued_at_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX pos_discount_codes_user_id_issued_at_idx ON public.pos_discount_codes USING btree (user_id, issued_at DESC);
-
-
---
 -- Name: problem_reports_status_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3292,30 +3226,6 @@ ALTER TABLE ONLY public.plants
 
 
 --
--- Name: pos_discount_codes pos_discount_codes_ledger_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes
-    ADD CONSTRAINT pos_discount_codes_ledger_entry_id_fkey FOREIGN KEY (ledger_entry_id) REFERENCES public.ledger_entries(id);
-
-
---
--- Name: pos_discount_codes pos_discount_codes_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes
-    ADD CONSTRAINT pos_discount_codes_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id);
-
-
---
--- Name: pos_discount_codes pos_discount_codes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.pos_discount_codes
-    ADD CONSTRAINT pos_discount_codes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
-
-
---
 -- Name: problem_reports problem_reports_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3619,4 +3529,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260927010000'),
     ('20260927120000'),
     ('20260927180000'),
-    ('20260927200000');
+    ('20260927200000'),
+    ('20260927220000');

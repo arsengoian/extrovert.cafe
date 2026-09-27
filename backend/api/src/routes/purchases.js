@@ -1,5 +1,5 @@
 // Покупки в Магазині, які не потребують доставки: препарати, саджанець,
-// одяг напряму, обмін зерен і знижка на POS.
+// одяг напряму й обмін зерен. Знижка на POS поки не продається — див. нижче.
 //
 // Усе через один роут: списання, видача й запис у журнал відрізняються
 // лише кількома рядками, а спільними лишаються правила — ціна з
@@ -12,7 +12,7 @@ import { one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
-import { flushNotices, notifyPlant } from "../notify.js";
+import { flushNotices } from "../notify.js";
 
 const CARE = {
   water: { column: "water_liters", amount: economy.care.water.batch_liters, price: economy.care.water.price_coins },
@@ -60,9 +60,6 @@ async function spendCoins(client, userId, amount, reason, meta) {
   );
   return { fromSilver, fromYellow, ledgerId: entry[0].id };
 }
-
-const discountCode = () =>
-  `EX${Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("")}`;
 
 export default async function routes(app) {
   app.post("/shop/buy", async (req, reply) => {
@@ -123,23 +120,14 @@ export default async function routes(app) {
     }
 
     // ── знижка на POS ────────────────────────────────────────────────
-    if (code === "pos_discount") {
-      const { beans, uah, available } = economy.shop_beans.pos_discount;
-      // На автоматі поки немає куди ввести код, і ніщо його не погашає
-      // (pos_discount_codes.used_at ніхто не пише). Продавати код, який не
-      // можна застосувати, — це просто забрати зерна (власник, 27.09.2026).
-      if (!available) fail(409, "not_available");
-      return tx(async (client) => {
-        const spent = await spend(client, user.id, "beans", beans, "pos_discount", { uah });
-        const value = discountCode();
-        await client.query(
-          "insert into pos_discount_codes (ledger_entry_id, user_id, code, amount_uah) values ($1, $2, $3, $4)",
-          [spent.ledgerId, user.id, value, uah]
-        );
-        await notifyPlant(user.id, `Код знижки ${value} на ${uah} грн — введи його на точці перед оплатою.`, { client });
-        return { ok: true, kind: "pos_discount", code: value, amount_uah: uah };
-      });
-    }
+    // Знижка — не код, а тимчасова ціна на обраній точці: у чергу
+    // menu_deployments стають два деплойменти для цієї точки, спершу
+    // знижений на 20 ₴, потім звичайний (gamification_economy.md §6). Це
+    // працює, лише коли ціна швидко доїжджає до автомата Jetinno, а цілі
+    // jetinno поки немає (services.md, «Деплой цін і акцій»). Досі тут
+    // генерувався код, який на точці нікуди ввести, — тобто зерна просто
+    // зникали (власник, 27.09.2026). Тож поки що — відмова.
+    if (code === "pos_discount") fail(409, "not_available");
 
     // ── одяг напряму ─────────────────────────────────────────────────
     if (code === "item") {

@@ -248,7 +248,7 @@ erDiagram
     }
     MENU_DEPLOYMENTS {
         bigserial id PK
-        jsonb payload "знімок цін і акції"
+        jsonb payload "привід: prices або pos_discount (знижка на точці)"
         text status "queued|deploying|done|partial|failed"
         uuid created_by FK
         timestamptz scheduled_at
@@ -366,7 +366,6 @@ erDiagram
     MARKET_LISTINGS ||--o| MARKET_TRADES : "угода"
     CRATE_OPENINGS ||--o| USER_ITEMS : "що випало"
     RECEIPT_ITEMS ||--o| QUIZ_DRINK_RESPONSES : "про яке замовлення"
-    LEDGER_ENTRIES ||--o| POS_DISCOUNT_CODES : "знижка на POS"
     LEDGER_ENTRIES ||--o| REDEMPTIONS : "списання зерен за доставку"
     REDEMPTIONS ||--o{ REDEMPTION_EVENTS : "історія статусів"
     NP_CITIES ||--o{ NP_WAREHOUSES : "відділення й поштомати"
@@ -526,16 +525,6 @@ erDiagram
         text status "неробочі не показуємо"
         timestamptz synced_at
     }
-    POS_DISCOUNT_CODES {
-        bigserial id PK
-        bigint ledger_entry_id FK
-        uuid user_id FK
-        text code UK
-        numeric amount_uah
-        timestamptz issued_at
-        timestamptz used_at
-        bigint receipt_id FK
-    }
     QUIZ_PROFILE_RESPONSES {
         bigserial id PK
         uuid user_id FK "unique: анкета одноразова"
@@ -575,8 +564,7 @@ erDiagram
 
 **`redemptions` — лише те, що їде Новою Поштою** (17.09.2026). Раніше таблиця
 дублювала журнал: знижка на POS, саджанець, обмін на монети — це просто
-рядки `ledger_entries` з відповідним `reason` (для знижки ще й код у
-`pos_discount_codes`). Окремий рядок потрібен лише там, де є фізичний світ:
+рядки `ledger_entries` з відповідним `reason`. Окремий рядок потрібен лише там, де є фізичний світ:
 отримувач, відділення, ТТН і статуси, які змінюють адмін і трекінг НП.
 `redemption_events` — історія цих статусів: з неї екран «Мої замовлення»
 малює стрічку, а `user_seen_at` дає лічильник на кнопці (`gamification_ui.md`).

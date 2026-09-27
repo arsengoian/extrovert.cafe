@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
-import { beans as beansText, coins as coinsText, days } from "../ui/plural.js";
+import { beans as beansText, coins as coinsText } from "../ui/plural.js";
 
 const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
 const Coins2 = () => (
@@ -36,13 +36,13 @@ const ABOUT = {
   ],
 };
 ABOUT.sapling_beans = ABOUT.sapling;
-// Знижка — рівно стільки гривень і рівно стільки днів, скільки в
-// economy.json, а не «≈» й «обмежений час» (власник, 27.09.2026). Поки на
-// автоматі немає де ввести код, купити її не можна — і текст каже це
-// прямо, а не обіцяє «код прийде в чат».
+// Знижка — рівно стільки гривень, скільки в economy.json, а не «≈». І без
+// коду: на обраній точці ціни ненадовго падають, а напій купується як
+// завжди (власник, 27.09.2026). Поки автомат не вміє швидко міняти ціни,
+// купити її не можна — і текст каже це прямо.
 ABOUT.pos_discount = (item) => [
-  `Рівно ${item.amount_uah} ₴ знижки на один напій на точці. Код одноразовий і діє ${days(item.valid_days ?? 14)} від покупки.`,
-  ...(item.available ? [] : ["Поки що купити не можна: на автоматі ще немає де ввести код. Щойно з'явиться – знижка відкриється тут, а доти зерна не списуються."]),
+  `Рівно ${item.amount_uah} ₴ знижки на напій. Обираєш точку – і ціни на її автоматі ненадовго стають на ${item.amount_uah} ₴ нижчими, а ти купуєш як завжди. Жодних кодів.`,
+  ...(item.available ? [] : ["Поки що купити не можна: автомат ще не вміє швидко міняти ціни. Щойно навчиться – знижка відкриється тут, а доти зерна не списуються."]),
 ];
 
 // Чашка й футболка друкуються з кавенятка гравця — «тільки твоє». Раніше
@@ -107,7 +107,6 @@ const DONE = {
   care: (r, item) => `Додано ${r.added} ${UNIT[item?.code] ?? ""}`.trim(),
   sapling: () => "Саджанець твій – знайди його на головному екрані.",
   exchange: (r) => `Обміняно ${beansText(r.beans)} на ${coinsText(r.coins)}.`,
-  pos_discount: (r) => `Код ${r.code} на ${r.amount_uah} грн. Він уже в чаті кавенятка.`,
 };
 
 function Hero({ item }) {
