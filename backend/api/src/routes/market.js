@@ -293,7 +293,8 @@ export default async function routes(app) {
         );
       } else {
         await client.query(
-          "update plants set owner_id = $2, listing_id = null, worn_set_id = null where id = $1",
+          // Чернетку посадки продавця покупцю не передаємо — як і в подарунку (plants.js).
+          "update plants set owner_id = $2, listing_id = null, worn_set_id = null, appearance = appearance - 'draft' where id = $1",
           [listing.plant_id, user.id]
         );
       }

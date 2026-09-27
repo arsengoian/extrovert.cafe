@@ -97,7 +97,13 @@ export default async function routes(app) {
       );
       // Розмови лишаються тому, хто їх вів: новому власнику — чистий чат.
       await client.query("delete from chat_messages where plant_id = $1", [plant.id]);
-      await client.query("update plants set owner_id = $2, chat_seen_at = null where id = $1", [plant.id, target.id]);
+      // Недосаджена чернетка — розстановка попереднього власника: новий
+      // побачив би «Ти вже почав садити» з чужим листям (власник,
+      // 27.09.2026). Препарат за неї не списувався, тож губити нічого.
+      await client.query(
+        "update plants set owner_id = $2, chat_seen_at = null, appearance = appearance - 'draft' where id = $1",
+        [plant.id, target.id]
+      );
       const { rows: me } = await client.query("select nickname from users where id = $1", [user.id]);
       // Чат щойно очищено — це перший рядок у ньому, і він саме про цей кущ.
       await notifyPlant(target.id, `${me[0].nickname} подарував тобі кавенятко «${plant.name || "без імені"}».`, { client, plantId: plant.id });
