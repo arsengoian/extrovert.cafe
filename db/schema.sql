@@ -930,6 +930,7 @@ CREATE TABLE public.plants (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     stage_progress smallint DEFAULT 0 NOT NULL,
     chat_seen_at timestamp with time zone,
+    harvest_at timestamp with time zone,
     CONSTRAINT plants_cycle_phase_check CHECK ((cycle_phase = ANY (ARRAY['initial'::text, 'regrowth'::text]))),
     CONSTRAINT plants_growth_stage_check CHECK (((growth_stage >= 0) AND (growth_stage <= 10))),
     CONSTRAINT plants_lifetime_beans_gifted_check CHECK ((lifetime_beans_gifted >= 0)),
@@ -942,6 +943,13 @@ CREATE TABLE public.plants (
 --
 
 COMMENT ON COLUMN public.plants.chat_seen_at IS 'Останнє відкриття чату гравцем; репліки кавенятка й системи після нього — непрочитані';
+
+
+--
+-- Name: COLUMN plants.harvest_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.plants.harvest_at IS 'Коли виплачено 7 зерен за перший повний ріст; null — ще не виріс або виріс до цього поля';
 
 
 --
@@ -3609,4 +3617,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923171000'),
     ('20260924070000'),
     ('20260927010000'),
-    ('20260927120000');
+    ('20260927120000'),
+    ('20260927180000');

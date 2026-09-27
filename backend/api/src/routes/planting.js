@@ -104,6 +104,29 @@ async function advance(client, plant, state, { consumed, appearance }) {
      values ($1, $2, $3, $4, $5)`,
     [plant.id, state.from, state.to, consumed, 0]
   );
+  return harvest(client, plant, state);
+}
+
+// Врожай: кущ уперше виріс до кінця — власник отримує зерна, по одному на
+// кожен посаджений бутон (economy §3.1). Один раз на кущ (plants.harvest_at):
+// подарований чи куплений дорослий кущ удруге не платить. Раніше цього
+// кроку не було зовсім — перший кущ на проді виріс 26.09.2026 без жодного
+// зерна (доплату зробила міграція 20260927180000).
+async function harvest(client, plant, state) {
+  if (transitionFrom(state.to)) return 0;           // далі ще є куди рости
+  const beans = economy.harvest?.beans ?? 0;
+  const { rows } = await client.query(
+    `update plants set harvest_at = now(), lifetime_beans_gifted = lifetime_beans_gifted + $2
+      where id = $1 and harvest_at is null returning owner_id`,
+    [plant.id, beans]
+  );
+  if (!rows.length || !beans) return 0;
+  await client.query("update users set beans = beans + $2 where id = $1", [rows[0].owner_id, beans]);
+  await client.query(
+    "insert into ledger_entries (user_id, delta_beans, reason, meta) values ($1, $2, 'harvest', $3)",
+    [rows[0].owner_id, beans, { plant_id: plant.id }]
+  );
+  return beans;
 }
 
 export default async function routes(app) {
@@ -149,8 +172,8 @@ export default async function routes(app) {
         return { ok: true, grown: false, progress, applications: state.applications, left: spent[0].left };
       }
 
-      await advance(client, plant, state, { consumed: kind });
-      return { ok: true, grown: true, stage: state.to, left: spent[0].left };
+      const beans = await advance(client, plant, state, { consumed: kind });
+      return { ok: true, grown: true, stage: state.to, left: spent[0].left, harvest: beans };
     });
   });
 
@@ -235,8 +258,8 @@ export default async function routes(app) {
       const INTO = { bg: "leaves_bg", fg: "leaves_fg", branches: "branches", buds: "buds" };
       for (const key of Object.keys(state.limits)) append(INTO[key], items[key]);
 
-      await advance(client, plant, state, { consumed: state.need, appearance });
-      return { ok: true, stage: state.to, left: spent[0].left };
+      const beans = await advance(client, plant, state, { consumed: state.need, appearance });
+      return { ok: true, stage: state.to, left: spent[0].left, harvest: beans };
     });
   });
 }

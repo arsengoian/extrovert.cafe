@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело bf1cf8f</p>
+  <p class="eyebrow">extrovert.cafe · джерело 811fb53</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1912,7 +1912,8 @@ erDiagram
         smallint stage_progress &quot;скільки разів уже застосували препарат цього переходу&quot;
         timestamptz last_watered_at &quot;mood рахується, не зберігається&quot;
         text cycle_phase &quot;initial|regrowth&quot;
-        int lifetime_beans_gifted
+        int lifetime_beans_gifted &quot;зерна від куща: врожай + подаровані комплекти&quot;
+        timestamptz harvest_at &quot;7 зерен за перший повний ріст виплачено&quot;
         uuid worn_set_id FK
         bigint listing_id FK &quot;заморожене на маркеті&quot;
         timestamptz chat_seen_at &quot;останнє відкриття чату: після нього — непрочитані&quot;
@@ -1956,8 +1957,8 @@ erDiagram
     }</pre></div>
 </figure>
 <div class="dict"><article class="entity" id="t-plants">
-  <header><h4>plants</h4><span class="entity-count">15 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">останнє відкриття чату: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>plants</h4><span class="entity-count">16 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">зерна від куща: врожай + подаровані комплекти</td></tr><tr><td class="c-name">harvest_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">7 зерен за перший повний ріст виплачено</td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">останнє відкриття чату: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
 </article>
 <article class="entity" id="t-plant_stage_transitions">
@@ -6614,9 +6615,13 @@ Telegram тощо, ми просто виконуємо технічний тр�
 <p><strong>Тригери видачі зерен</strong> (перелік із v1, не вичерпний — можна розширювати):</p>
 <ul>
 <li>кавенятко <strong>ПОВНІСТЮ виросло</strong> (досягло фінальної стадії 10, розділ 3.1)
-🔄 — одноразово 7 зерен за весь цикл, НЕ по частинах на кожному переході
+🔄 — одноразово 7 зерен, НЕ по частинах на кожному переході
 (так було в попередній версії; змінено 12.09.2026, щоб зерна видавались
-лише за завершений урожай, а не за проміжні кроки росту);</li>
+лише за завершений урожай, а не за проміжні кроки росту). <strong>Один раз на
+кущ — за перший повний ріст</strong> (власник, 27.09.2026): подарований чи
+куплений дорослий кущ удруге не платить (<code>plants.harvest_at</code>). У коді
+цього кроку спершу не було зовсім: перший кущ на проді виріс 26.09.2026
+без зерен, доплату зробила міграція <code>20260927180000_plant_harvest</code>;</li>
 <li><strong>зібрано й ПОДАРОВАНО</strong> кавенятку повний комплект одягу (усі 5 слотів
 заповнені, дарування — окрема явна дія гравця, не сам факт збірки;
 деталь уточнена в <a class="doclink" href="#bush-graphics-customization"><code>bush_graphics_customization.md</code></a> §6) — кількість
@@ -11868,7 +11873,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел bf1cf8f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 811fb53 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

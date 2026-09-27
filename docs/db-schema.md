@@ -617,7 +617,8 @@ erDiagram
         smallint stage_progress "скільки разів уже застосували препарат цього переходу"
         timestamptz last_watered_at "mood рахується, не зберігається"
         text cycle_phase "initial|regrowth"
-        int lifetime_beans_gifted
+        int lifetime_beans_gifted "зерна від куща: врожай + подаровані комплекти"
+        timestamptz harvest_at "7 зерен за перший повний ріст виплачено"
         uuid worn_set_id FK
         bigint listing_id FK "заморожене на маркеті"
         timestamptz chat_seen_at "останнє відкриття чату: після нього — непрочитані"
