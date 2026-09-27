@@ -18,7 +18,7 @@ export function Users() {
       <div className="head">
         <div>
           <h1>Користувачі</h1>
-          <p>{fmt.int(data.counts.total)} акаунтів · показуємо перші 200 за останньою появою</p>
+          <p>{fmt.int(data.counts.total)} акаунтів – показуємо перші 200 за останньою появою</p>
         </div>
         <div className="right">
           <form className="field" style={{ width: 240 }} onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>

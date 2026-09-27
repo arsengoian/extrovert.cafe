@@ -153,6 +153,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .tag-rare { color: rgb(var(--tier-rare)) } .tag-epic { color: rgb(var(--tier-epic)) }
 
 .price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800 }
+/* Роздільник двох частин у рядку («1 кг | посадити», «дата | сума») —
+   тонка риска замість «·»: крапка посеред рядка читається як розділовий
+   знак, а тут потрібна саме пауза між двома різними речами (власник,
+   27.09.2026: «·» лишати лише там, де він справді найкращий). */
+.vsep { display: inline-block; width: 1px; height: .95em; margin: 0 .55em; background: currentColor; opacity: .32; vertical-align: -.12em }
 .price img { width: 18px; height: 19px }
 
 .sheet-backdrop { position: absolute; inset: 0; background: rgba(6, 8, 10, .52); backdrop-filter: blur(7px); z-index: 150 }

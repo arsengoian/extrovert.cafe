@@ -86,7 +86,7 @@ export function ItemCard({ item, ctx }) {
         <h2>{item.name}</h2>
         <div className="item-meta">
           <span className={`tier-chip tier-${item.tier}`}>{tierOf(item.tier)}</span>
-          <span>{SLOT_OF[item.slot] ?? item.slot}{item.collection ? ` · комплект «${item.collection}»` : ""}</span>
+          <span>{SLOT_OF[item.slot] ?? item.slot}{item.collection ? `, комплект «${item.collection}»` : ""}</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export function ItemCard({ item, ctx }) {
                 <div className="offer-main">
                   <b>{lot.item?.name ?? item.name}</b>
                   <small>продає {lot.seller}</small>
-                  <em>{cheaper ? `дешевше за магазин на ${price - lot.price}` : `${tierOf(lot.item?.tier ?? item.tier)} · ${SLOT_OF[lot.item?.slot ?? item.slot]}`}</em>
+                  <em>{cheaper ? `дешевше за магазин на ${price - lot.price}` : `${tierOf(lot.item?.tier ?? item.tier)}, ${(SLOT_OF[lot.item?.slot ?? item.slot] ?? "").toLowerCase()}`}</em>
                 </div>
                 <div className="offer-buy">
                   <b><img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />{lot.price}</b>

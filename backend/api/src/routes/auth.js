@@ -87,7 +87,7 @@ function nap(key, ms) {
 }
 const wakeWaiter = (waitHash) => redis.publish(`login:wake:${waitHash.toString("hex")}`, "1").catch(() => {});
 
-// «Chrome · Android» із user-agent — щоб людина впізнала на екрані «Це ти
+// «Chrome на Android» із user-agent — щоб людина впізнала на екрані «Це ти
 // входиш?» свій пристрій. Точність не потрібна: досить, щоб чужий телефон
 // не виглядав як свій ноутбук.
 function deviceOf(ua = "") {
@@ -95,7 +95,7 @@ function deviceOf(ua = "") {
     : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : null;
   const browser = /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Firefox|FxiOS/.test(ua) ? "Firefox"
     : /OPR\//.test(ua) ? "Opera" : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : null;
-  return [browser, os].filter(Boolean).join(" · ") || "невідомий пристрій";
+  return browser && os ? `${browser} на ${os}` : browser || os || "невідомий пристрій";
 }
 
 // ── вхід через Google ───────────────────────────────────────────────────

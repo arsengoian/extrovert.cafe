@@ -24,7 +24,7 @@ const Coins2 = () => (
 const lotFacts = (p) => {
   const tail = p.full_sets ? `${p.full_sets} ${plural(p.full_sets, "повний комплект", "повні комплекти", "повних комплектів")}`
     : p.growth_stage < 3 ? "початок" : "без одягу";
-  return `Стадія ${p.growth_stage} · ${tail}`;
+  return `Стадія ${p.growth_stage}, ${tail}`;
 };
 
 export function PlantMarket({ ctx }) {

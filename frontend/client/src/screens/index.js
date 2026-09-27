@@ -64,7 +64,7 @@ export const SCREENS = {
   quizDrink: {
     component: QuizDrink,
     title: (p) => p.item
-      ? `${p.item.name} · ${new Date(p.item.fiscal_date).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" })}`
+      ? `${p.item.name}, ${new Date(p.item.fiscal_date).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" })}`
       : "Опитування про напій",
     hideNav: true,
   },

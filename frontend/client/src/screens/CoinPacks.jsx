@@ -96,7 +96,7 @@ export function CoinPacks({ ctx }) {
         const isBest = best?.code === pack.code;
         return (
           <button key={pack.code} className={`pack${isBest ? " best" : ""}`} disabled={Boolean(busy)} onClick={() => setPicked(pack)}>
-            {isBest && <span className="pack-flag">Найкраща ціна{off > 0 ? ` · −${off}%` : ""}</span>}
+            {isBest && <span className="pack-flag">Найкраща ціна{off > 0 ? ` −${off}%` : ""}</span>}
             <img src={`/assets/ui/${art.src}.png`} alt="набір монет" style={{ width: art.w, height: art.h }} />
             <span className="pack-main">
               <span className="pack-name">

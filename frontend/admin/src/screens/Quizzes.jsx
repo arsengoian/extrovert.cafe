@@ -87,7 +87,7 @@ export function Quizzes() {
       <div className="head">
         <div>
           <h1>Дашборд опитувань</h1>
-          <p>{fmt.dayFull(data.from)} — {fmt.dayFull(data.to)} · бонусні копії рахуються з основними</p>
+          <p>{fmt.dayFull(data.from)} — {fmt.dayFull(data.to)}, бонусні копії рахуються з основними</p>
         </div>
         <div className="right"><DateRange value={range} onChange={setRange} /></div>
       </div>
@@ -112,7 +112,7 @@ export function Quizzes() {
       <div className="stack">
         <div className="sect">
           <b>Профіль</b>
-          <span>анкета «Розкажи про себе» · {fmt.int(profile.filled)} {fmt.plural(profile.filled, "заповнена", "заповнені", "заповнених")}</span>
+          <span>анкета «Розкажи про себе», {fmt.int(profile.filled)} {fmt.plural(profile.filled, "заповнена", "заповнені", "заповнених")}</span>
           <i />
         </div>
 
@@ -154,7 +154,7 @@ export function Quizzes() {
             <button className={`pill${drink ? "" : " on"}`} onClick={() => setDrink("")}>Всі напої</button>
             {shown.map((d) => (
               <button key={d.slot} className={`pill${drink === d.slot ? " on" : ""}`} onClick={() => setDrink(d.slot)}>
-                {d.name} · {d.n}
+                {d.name} ({d.n})
               </button>
             ))}
             {drinks.per_drink.length > CHIPS && (
@@ -172,7 +172,7 @@ export function Quizzes() {
             {SCALES.map(([id, color], n) => {
               const q = find(drinks.questions, id);
               return (
-                <Card key={id} title={q?.title ?? id} note={n === 0 ? `${title} · ${answers(drinks.total)}` : ""}>
+                <Card key={id} title={q?.title ?? id} note={n === 0 ? `${title}, ${answers(drinks.total)}` : ""}>
                   {q ? <Shares q={q} color={color} label={88} /> : <Empty>немає відповідей</Empty>}
                 </Card>
               );
@@ -181,10 +181,10 @@ export function Quizzes() {
         )}
 
         <div className="cols">
-          <Card title="Влучань у норму за добу" note={`${title} · частка «як має бути»`} style={{ flex: 1.3 }}>
+          <Card title="Влучань у норму за добу" note={`${title}, частка «як має бути»`} style={{ flex: 1.3 }}>
             <Line series={series} max={1} height={128} format={(v) => `${Math.round(v * 100)}%`} />
           </Card>
-          <Card title="Текстові відповіді" note={`${title} · ${fmt.int(drinks.texts_total)} з ${fmt.int(drinks.total)}`} style={{ flex: 1.2 }}>
+          <Card title="Текстові відповіді" note={`${title}, ${fmt.int(drinks.texts_total)} з ${fmt.int(drinks.total)}`} style={{ flex: 1.2 }}>
             {drinks.texts.length === 0 ? (
               <Empty>відкритих відповідей немає</Empty>
             ) : (
@@ -193,7 +193,7 @@ export function Quizzes() {
                   <div className="quote" key={`${t.at}-${t.text}`}>
                     {/* Напій у рядку — лише коли дивимось усі разом: інакше
                         він повторює підпис картки в кожному рядку. */}
-                    <p>{t.text}{!drink && <span className="muted"> · {t.drink}</span>}</p>
+                    <p>{t.text}{!drink && <span className="muted"> – {t.drink}</span>}</p>
                     <time>{fmt.day(t.at)}</time>
                   </div>
                 ))}

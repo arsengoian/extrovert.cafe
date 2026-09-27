@@ -72,7 +72,7 @@ export function History({ ctx }) {
       <div className="orders-head">
         <h1>Замовлення кави</h1>
         <span>
-          {drinks} {plural(drinks, "напій", "напої", "напоїв")} · {fmt(coins)}
+          {drinks} {plural(drinks, "напій", "напої", "напоїв")}<i className="vsep" />{fmt(coins)}
           <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
         </span>
       </div>
@@ -95,7 +95,7 @@ export function History({ ctx }) {
                   <b>{o.name}</b>
                   <small>
                     {date === today ? <em>{date}</em> : date}
-                    {(date === today || date === yesterday) && `, ${timeOf(o.at)}`} · {fmt(o.sum)} ₴
+                    {(date === today || date === yesterday) && `, ${timeOf(o.at)}`}<i className="vsep" />{fmt(o.sum)} ₴
                   </small>
                   {bonus && <strong>Бонусний напій</strong>}
                 </div>

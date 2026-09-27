@@ -41,8 +41,8 @@ function LotTile({ lot }) {
 
 const lotName = (lot) => (lot.kind === "item" ? lot.item?.name : lot.plant?.name || "Кавенятко");
 const lotKind = (lot) => (lot.kind === "item"
-  ? `${TIER_LABEL[lot.item?.tier] ?? ""} · ${SLOT_OF[lot.item?.slot] ?? ""}`
-  : `кавенятко · стадія ${lot.plant?.growth_stage ?? 0}`);
+  ? `${TIER_LABEL[lot.item?.tier] ?? ""}, ${(SLOT_OF[lot.item?.slot] ?? "").toLowerCase()}`
+  : `кавенятко, стадія ${lot.plant?.growth_stage ?? 0}`);
 
 const Price = ({ lot }) => (
   <b className="lot-price-b">

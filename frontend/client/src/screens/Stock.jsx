@@ -40,7 +40,7 @@ export function Stock({ ctx }) {
         <h1>Склад</h1>
         <span>
           {total} {plural(total, "предмет", "предмети", "предметів")}
-          {crates > 0 && ` · ${crates} ${plural(crates, "скринька", "скриньки", "скриньок")}`}
+          {crates > 0 && `, ${crates} ${plural(crates, "скринька", "скриньки", "скриньок")}`}
         </span>
       </div>
 

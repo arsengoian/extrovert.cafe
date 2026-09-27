@@ -103,8 +103,8 @@ export function Stats() {
         <div>
           <h1>Дашборд статистики</h1>
           <p>
-            Розріз у добу · {fmt.dayFull(data.from)} — {fmt.dayFull(data.to)}
-            {data.cached_at ? ` · кеш оновлено о ${fmt.time(data.cached_at)}` : ""}
+            Розріз у добу: {fmt.dayFull(data.from)} — {fmt.dayFull(data.to)}
+            {data.cached_at ? `, кеш оновлено о ${fmt.time(data.cached_at)}` : ""}
           </p>
         </div>
         <div className="right"><DateRange value={range} onChange={setRange} /></div>

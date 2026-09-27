@@ -55,8 +55,8 @@ export function SellItem({ item, ctx }) {
         </span>
         <div className="lot-body">
           <b className="sell-name">{item.name}</b>
-          <strong className={`tier-text tier-${item.tier}`}>{TIER_LABEL[item.tier]} · {SLOT_OF[item.slot]}</strong>
-          <small className="sell-stock">на складі {item.owned ?? 1} · {freeWord(item.free ?? 0)}</small>
+          <strong className={`tier-text tier-${item.tier}`}>{TIER_LABEL[item.tier]}, {(SLOT_OF[item.slot] ?? "").toLowerCase()}</strong>
+          <small className="sell-stock">на складі {item.owned ?? 1}, {freeWord(item.free ?? 0)}</small>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export function SellItem({ item, ctx }) {
         </div>
         <label className="sell-price">
           <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 6))} />
-          <span>комісія {pct}% · {commission} <Gold /></span>
+          <span>комісія {pct}% ({commission} <Gold />)</span>
         </label>
         <div className="sell-note">Одяг продається лише за <Gold w={13} h={14} />. Мінімальна ціна – {min}.</div>
         {similar && (

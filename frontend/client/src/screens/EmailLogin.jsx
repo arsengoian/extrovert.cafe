@@ -110,7 +110,7 @@ export function EmailLogin({ next = "/", ctx }) {
         </div>
         {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
         <button className="cta send start-cta" disabled={wait > 0 || busy} onClick={() => send(sent.email)}>
-          {busy ? "Надсилаємо…" : wait > 0 ? `Надіслати ще раз · ${mmss(wait)}` : "Надіслати ще раз"}
+          {busy ? "Надсилаємо…" : wait > 0 ? `Надіслати ще раз через ${mmss(wait)}` : "Надіслати ще раз"}
         </button>
         <button className="btn" onClick={() => { clearLoginWait(); setSent(null); setError(null); setEmail(sent.email); }}>
           Змінити пошту

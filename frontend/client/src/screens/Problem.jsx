@@ -89,7 +89,7 @@ export function Problem({ ctx }) {
       <div className="field">
         <div className="sectionTitle">Точка</div>
         <div className="select-field">
-          <span>{point ? `${point.name} · ${point.short_address ?? point.address}` : "—"}</span>
+          <span>{point ? `${point.name}, ${point.short_address ?? point.address}` : "—"}</span>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
             <path d="M6 9.5 12 15.5 18 9.5" />
           </svg>
@@ -99,7 +99,7 @@ export function Problem({ ctx }) {
       <div className="field">
         {/* Поки нічого не обрано, кнопка «Надіслати» неактивна — кажемо чому
             тут, біля списку, а не помилкою після натискання. */}
-        <div className="sectionTitle">Що саме{picked.length ? "" : " · оберіть хоч одне"}</div>
+        <div className="sectionTitle">Що саме{picked.length ? "" : " – оберіть хоч одне"}</div>
         <div className="list-card">
           {CATEGORIES.map((c) => {
             const on = picked.includes(c.id);
@@ -133,7 +133,7 @@ export function Problem({ ctx }) {
             <img src={photo.preview} alt="" />
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
               <b>{photo.name}</b>
-              <small>{mb(photo.size)} МБ · завантажено</small>
+              <small>{mb(photo.size)} МБ, завантажено</small>
             </div>
             <button aria-label="Прибрати фото" onClick={() => setPhoto(null)}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

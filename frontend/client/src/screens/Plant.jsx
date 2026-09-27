@@ -663,7 +663,7 @@ export function Plant({ ctx }) {
           <div className="plant-sale">
             <span>
               <img src={plant.listing.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />
-              На продажу · {new Intl.NumberFormat("uk-UA").format(plant.listing.price)}
+              На продажу за {new Intl.NumberFormat("uk-UA").format(plant.listing.price)}
             </span>
           </div>
         )}

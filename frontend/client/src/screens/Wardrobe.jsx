@@ -83,7 +83,7 @@ export function Wardrobe({ ctx, plant }) {
         <div className="wr-info">
           <div className="sectionTitle">Одягнено</div>
           <b>{complete ? (gifted ? "Подарований комплект" : "Повний комплект") : "Комплект збирається"}</b>
-          <small>{data.plant.name} · {data.filled} з {data.total} слотів</small>
+          <small>{data.plant.name}, {data.filled} з {data.total} слотів</small>
           <button disabled={busy || !data.filled} onClick={takeOff}>{complete ? "Зняти комплект" : "Зняти все"}</button>
         </div>
       </div>

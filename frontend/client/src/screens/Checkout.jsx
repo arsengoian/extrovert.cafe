@@ -36,7 +36,7 @@ const whTitle = (w) => `${KIND_TITLE[w.category] ?? "Відділення"} №$
 const whSub = (w) => {
   const street = (w.address ?? w.description ?? "").replace(/^[^:]*:\s*/, "");
   const close = w.schedule?.[DAYS[new Date().getDay()]]?.split("-")[1];
-  return close ? `${street} · до ${close}` : street;
+  return close ? `${street}, до ${close}` : street;
 };
 
 export function Checkout({ item, ctx }) {
@@ -276,7 +276,7 @@ function WarehousePicker({ city, kind, product, current, onPick, onClose }) {
 
   const list = (data?.warehouses ?? []).filter((w) => w.category === kind);
   return (
-    <PickSheet title={`${KIND_TITLE[kind]} · ${city.name}`} placeholder="Номер або вулиця" query={q} onQuery={setQ}
+    <PickSheet title={`${KIND_TITLE[kind]}: ${city.name}`} placeholder="Номер або вулиця" query={q} onQuery={setQ}
                onClose={onClose} action={chosen ? `Обрати №${chosen.number}` : null} onAction={() => onPick(chosen)}>
       {list.map((w) => (
         <PickRow key={w.ref} on={chosen?.ref === w.ref} title={whTitle(w)} sub={whSub(w)} onClick={() => setChosen(w)} />

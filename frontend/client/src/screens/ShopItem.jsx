@@ -142,7 +142,7 @@ export function ShopItem({ item, ctx }) {
             <p><Bean /> списуються одразу після підтвердження. Далі – доставка Новою Поштою у відділення або поштомат; статус видно в «Моїх замовленнях».</p>
             <div className="how-balance">
               <span>Твій баланс <Bean w={15} h={17} /></span>
-              <b>{beansHave} <Bean />{lack > 0 ? ` · не вистачає ${lack}` : ""}</b>
+              <b>{beansHave} <Bean />{lack > 0 ? `, не вистачає ${lack}` : ""}</b>
             </div>
           </div>
           <div className="earn-beans">

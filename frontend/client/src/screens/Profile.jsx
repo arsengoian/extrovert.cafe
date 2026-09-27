@@ -29,10 +29,10 @@ export function Profile({ ctx }) {
         <img src="/assets/ui/nav_profile.png" alt="" />
         <div>
           <b>{me?.nickname}</b>
-          <small>
-            {PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}
-            {me?.identity?.email ? ` · ${me.identity.email}` : ""}
-          </small>
+          {/* Пошта — окремим рядком: довга адреса поруч зі способом входу
+              через «·» ламалась посередині. */}
+          <small>{PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}</small>
+          {me?.identity?.email && <small className="selectable">{me.identity.email}</small>}
         </div>
       </div>
 

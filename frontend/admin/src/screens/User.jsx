@@ -26,10 +26,10 @@ export function User({ id }) {
     <>
       <div className="head">
         <div>
-          <h1>{user.nickname}{user.deleted_at && <span className="muted"> · видалений</span>}</h1>
+          <h1>{user.nickname}{user.deleted_at && <span className="muted"> (видалений)</span>}</h1>
           <p>
-            {user.email ?? "без пошти"} · вхід: {identities.map((i) => i.provider).join(", ") || "дев"} ·
-            {" "}з нами з {fmt.dayFull(user.created_at)} · остання поява {user.last_seen_at ? fmt.ago(user.last_seen_at) : "—"}
+            {user.email ?? "без пошти"}; вхід: {identities.map((i) => i.provider).join(", ") || "дев"};
+            {" "}з нами з {fmt.dayFull(user.created_at)}; остання поява {user.last_seen_at ? fmt.ago(user.last_seen_at) : "—"}
           </p>
         </div>
         <div className="right"><button className="btn" onClick={() => go("users")}>← до списку</button></div>
@@ -82,7 +82,7 @@ export function User({ id }) {
           <Card title="Кавенята">
             {plants.length === 0 ? <Empty>ще не посадив</Empty> : plants.map((p) => (
               <div key={p.id} className="row" style={{ justifyContent: "space-between", padding: "6px 0", fontSize: 12 }}>
-                <span><b>{p.name ?? "без імені"}</b> <span className="muted">стадія {p.growth_stage} · {p.cycle_phase}</span></span>
+                <span><b>{p.name ?? "без імені"}</b> <span className="muted">стадія {p.growth_stage}, {p.cycle_phase}</span></span>
                 <span className="muted">{p.last_watered_at ? `полив ${fmt.ago(p.last_watered_at)}` : "не поливали"}</span>
               </div>
             ))}
@@ -99,8 +99,8 @@ export function User({ id }) {
           <Card title="Скриньки" note={`${crates.length} відкриттів`}>
             {crates.length === 0 ? <Empty>ще не відкривав</Empty> : crates.slice(0, 12).map((c) => (
               <div key={c.id} className="row" style={{ justifyContent: "space-between", padding: "5px 0", fontSize: 11.5 }}>
-                <span>{c.item ?? `${fmt.int(c.result_coins)} монет`} {c.was_duplicate && <span className="muted">· дубль</span>}</span>
-                <span className="muted">{c.rolled_tier} · {fmt.ago(c.opened_at)}</span>
+                <span>{c.item ?? `${fmt.int(c.result_coins)} монет`} {c.was_duplicate && <span className="muted">(дубль)</span>}</span>
+                <span className="muted">{c.rolled_tier}, {fmt.ago(c.opened_at)}</span>
               </div>
             ))}
           </Card>
@@ -110,7 +110,7 @@ export function User({ id }) {
               <div className="scroll" style={{ maxHeight: 220 }}>
                 {[...chat].reverse().map((m) => (
                   <div key={m.id} style={{ padding: "5px 0", fontSize: 11.5 }}>
-                    <span className="muted">{m.role === "user" ? "гравець" : "кавенятко"} · {fmt.time(m.created_at)}</span>
+                    <span className="muted">{m.role === "user" ? "гравець" : "кавенятко"}, {fmt.time(m.created_at)}</span>
                     <div>{m.body}</div>
                   </div>
                 ))}
@@ -122,7 +122,7 @@ export function User({ id }) {
             <Card title="Замовлення">
               {orders.map((o) => (
                 <div key={o.id} className="row" style={{ justifyContent: "space-between", padding: "5px 0", fontSize: 11.5 }}>
-                  <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`orders/${o.id}`)}>№{o.id} · {o.product}</button>
+                  <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`orders/${o.id}`)}>№{o.id} – {o.product}</button>
                   <span className="muted">{o.status}</span>
                 </div>
               ))}

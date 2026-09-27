@@ -66,7 +66,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <b>{item.name}</b>
           <small>
-            {item.point_name} · {when.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })} · {price} ₴
+            {item.point_name}, {when.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}<i className="vsep" />{price} ₴
           </small>
         </div>
         {paid && <span><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>}

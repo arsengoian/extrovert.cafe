@@ -22,7 +22,7 @@ export function Receipts() {
       <div className="head">
         <div>
           <h1>Покупки з Checkbox</h1>
-          <p>{fmt.dayFull(data.from)} — {fmt.dayFull(data.to)} · чек, позиції, бонус і хто його забрав</p>
+          <p>{fmt.dayFull(data.from)} — {fmt.dayFull(data.to)}: чек, позиції, бонус і хто його забрав</p>
         </div>
         <div className="right"><DateRange value={range} onChange={setRange} /></div>
       </div>

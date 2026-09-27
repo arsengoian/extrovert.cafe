@@ -26,8 +26,8 @@ export const ttnOf = (t) => String(t ?? "").replace(/(\d{4})(?=\d)/g, "$1 ");
 const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
 
 function statusLine(o) {
-  if (o.status === "shipped" && o.ttn) return `${o.status_label} · ТТН ${ttnOf(o.ttn)}`;
-  if (o.status === "received") return `${o.status_label} · ${day(o.status_changed_at)}`;
+  if (o.status === "shipped" && o.ttn) return `${o.status_label}, ТТН ${ttnOf(o.ttn)}`;
+  if (o.status === "received") return `${o.status_label} ${day(o.status_changed_at)}`;
   if (o.status === "arrived" && o.kind === "postomat") return "Прибуло в поштомат";
   return o.status_label;
 }
@@ -66,7 +66,7 @@ export function Orders({ ctx }) {
                 <img src={src} alt="" style={{ width: w, height: h }} />
                 <div className="order-row-main">
                   <div className="order-row-title">
-                    <b>№{o.id} · {o.name}</b>
+                    <b>№{o.id}<i className="vsep" />{o.name}</b>
                     {o.unseen && <i>1</i>}
                   </div>
                   <small>{o.place}</small>

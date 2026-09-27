@@ -61,7 +61,7 @@ export function Legal({ doc = "terms", ctx }) {
             ...sec.paragraphs.map((p, i) => <Rich key={`${sec.heading}-${i}`} text={p} onSupport={toSupport} />),
           ])}
           <div className="doc-foot">
-            Редакція від {data.updated} · <button className="doc-link" onClick={toSupport}>підтримка</button>
+            Редакція від {data.updated}<i className="vsep" /><button className="doc-link" onClick={toSupport}>підтримка</button>
           </div>
         </div>
       )}

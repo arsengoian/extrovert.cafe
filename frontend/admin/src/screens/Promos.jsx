@@ -90,7 +90,7 @@ export function Promos() {
     <>
       <div className="head">
         <h1>Акції</h1>
-        <p>панель на екрані точки · поточна міняється тут і одразу</p>
+        <p>панель на екрані точки – поточна міняється тут і одразу</p>
       </div>
 
       <div className="wrap-cols">
@@ -168,7 +168,7 @@ export function Promos() {
                     {p.kind !== "none" && <Badge tone="warn">{(KINDS.find(([v]) => v === p.kind) ?? [])[1]}</Badge>}
                     <b>{p.head1} {p.head2}</b>
                   </div>
-                  <small>{p.sub || "—"}{p.fine ? ` · ${p.fine}` : ""}{p.drink_name ? ` · ${p.drink_name}` : ""}</small>
+                  <small>{p.sub || "—"}{p.fine ? `, ${p.fine}` : ""}{p.drink_name ? `, ${p.drink_name}` : ""}</small>
                   {p.used_at && <small className="muted">викотили {new Date(p.used_at).toLocaleDateString("uk-UA")}</small>}
                 </div>
                 <div className="promo-acts">

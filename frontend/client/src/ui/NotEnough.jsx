@@ -89,7 +89,7 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
           {ways.pack && (
             <Way accent primary icon={<img src="/assets/ui/coin_gold.png" alt="" style={{ width: 30, height: 31 }} />}
                  title="Купити набір монет"
-                 sub={<>{fmt(ways.pack.coins)} <Gold /> за {fmt(ways.pack.price_uah)} ₴ · одразу</>}
+                 sub={<>{fmt(ways.pack.coins)} <Gold /> за {fmt(ways.pack.price_uah)} ₴, одразу</>}
                  pill="Купити" onClick={go(() => ctx.push("coinPacks"))} />
           )}
           <Way primary off={!ways.quiz.credits} icon={<Silver w={28} h={29} />}

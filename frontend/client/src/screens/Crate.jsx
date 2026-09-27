@@ -191,7 +191,7 @@ export function CratePreview({ item, ctx }) {
           {busy ? "…" : price}
         </button>
         <button className="cta ghost" disabled={busy} onClick={buyMono}>
-          {item?.price_uah ?? 99} ₴ · mono
+          {item?.price_uah ?? 99} ₴ через mono
         </button>
       </div>
     </div>

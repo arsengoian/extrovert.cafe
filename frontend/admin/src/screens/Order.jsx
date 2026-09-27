@@ -43,7 +43,7 @@ export function Order({ id }) {
       <div className="head">
         <div>
           <h1>Замовлення №{order.id}</h1>
-          <p>{fmt.time(order.created_at)} · {order.product} · {order.nickname}</p>
+          <p>{fmt.time(order.created_at)}, {order.product}, {order.nickname}</p>
         </div>
         <div className="right">
           {orderBadge(order.status)}

@@ -74,7 +74,7 @@ export function StockItemSheet({ item, ctx, onClose }) {
         </span>
         <div>
           <b className={`tier-text tier-${item.tier}`}>{TIER_LABEL[item.tier]}</b>
-          <span>{slotName(item.slot)}{item.collection ? ` · комплект «${item.collection}»` : ""}</span>
+          <span>{slotName(item.slot)}{item.collection ? `, комплект «${item.collection}»` : ""}</span>
           <div className="stock-item-count">
             <i>×{item.owned ?? 1} на складі</i>
             <small>{item.free ?? 0} {plural(item.free ?? 0, "вільна", "вільні", "вільних")}</small>

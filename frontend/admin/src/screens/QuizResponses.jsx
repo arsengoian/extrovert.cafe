@@ -7,7 +7,7 @@ import { Badge, Empty, Table, fmt, useData } from "../ui.jsx";
 const answers = (a) =>
   Object.entries(a ?? {})
     .map(([q, v]) => `${q}: ${Array.isArray(v) ? v.join(", ") : v}`)
-    .join(" · ");
+    .join("; ");
 
 export function QuizResponses() {
   const { data, error, reload } = useData(() => api.quizResponses());
@@ -19,7 +19,7 @@ export function QuizResponses() {
       <div className="head">
         <div>
           <h1>Відповіді на опитування</h1>
-          <p>останні 200 · анкета профілю й відгуки про напої</p>
+          <p>останні 200 – анкета профілю й відгуки про напої</p>
         </div>
         <div className="right"><button className="btn" onClick={reload}>Оновити</button></div>
       </div>

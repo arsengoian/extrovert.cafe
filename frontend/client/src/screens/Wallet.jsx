@@ -93,7 +93,7 @@ export function Wallet({ ctx }) {
             badge="/assets/ui/coin_silver.png"
             reward={profile?.reward ?? 150}
             title="Розкажи про себе"
-            note={profile?.done ? "Пройдено" : inProgress ? `Крок ${step} з ${steps} · відповіді збережено` : "Одноразово"}
+            note={profile?.done ? "Пройдено" : inProgress ? `Крок ${step} з ${steps}, відповіді збережено` : "Одноразово"}
             action={profile?.done
               ? { label: "Готово", kind: "off" }
               : { label: inProgress ? "Продовжити" : "Пройти", kind: "primary" }}
@@ -118,7 +118,7 @@ export function Wallet({ ctx }) {
             badge="/assets/ui/coin_silver.png"
             reward={drink?.reward ?? 40}
             title="Опитування про напій"
-            note={drink?.credits ? `доступно ${drink.credits} · про будь-який напій` : "Поки недоступне"}
+            note={drink?.credits ? `доступно ${drink.credits}, про будь-який напій` : "Поки недоступне"}
             action={drink?.credits ? { label: "Обрати" } : { label: "Недоступно", kind: "off" }}
             // «Обрати» — про який напій: вибір у «Покупках», на картці напою.
             onClick={drink?.credits ? () => ctx.openTab("history") : undefined}
@@ -130,10 +130,10 @@ export function Wallet({ ctx }) {
             reward={repost?.reward ?? 80}
             title="Репост у соцмережі"
             note={repost?.limit_reached
-              ? `${repost.counted} з ${repost.max} · більше не рахується`
+              ? `${repost.counted} з ${repost.max}, більше не рахується`
               : repost?.days_left
-                ? `${repost.counted} з ${repost.max} · ще ${days(repost.days_left)} до наступного`
-                : `${repost?.counted ?? 0} з ${repost?.max ?? 5} · можна зараз`}
+                ? `${repost.counted} з ${repost.max}, ще ${days(repost.days_left)} до наступного`
+                : `${repost?.counted ?? 0} з ${repost?.max ?? 5}, можна зараз`}
             action={repost && !repost.limit_reached && !repost.days_left
               ? { label: "Поділитись", kind: "primary" }
               : { label: "Пізніше", kind: "off" }}

@@ -35,8 +35,8 @@ export function SellPlant({ plant, ctx }) {
   const skins = new Set([...(appearance.leaves_bg ?? []), ...(appearance.leaves_fg ?? [])].map((l) => l.skin)).size;
   const branches = (appearance.branches ?? []).length;
   const sets = (wardrobe?.ready?.length ?? 0) + (wardrobe?.set?.gifted ? 1 : 0);
-  const facts = [`Стадія ${plant.growth_stage}`, sets ? `${sets} ${plural(sets, "повний комплект", "повні комплекти", "повних комплектів")}` : null].filter(Boolean).join(" · ");
-  const look = [skins ? `${skins} ${plural(skins, "скін", "скіни", "скінів")} листя` : null, branches ? `${branches} ${plural(branches, "гілка", "гілки", "гілок")}` : null].filter(Boolean).join(" · ");
+  const facts = [`Стадія ${plant.growth_stage}`, sets ? `${sets} ${plural(sets, "повний комплект", "повні комплекти", "повних комплектів")}` : null].filter(Boolean).join(", ");
+  const look = [skins ? `${skins} ${plural(skins, "скін", "скіни", "скінів")} листя` : null, branches ? `${branches} ${plural(branches, "гілка", "гілки", "гілок")}` : null].filter(Boolean).join(", ");
 
   const list = async () => {
     setBusy(true);
@@ -77,7 +77,7 @@ export function SellPlant({ plant, ctx }) {
         </div>
         <label className="sell-price">
           <input inputMode="numeric" value={value ? fmt(value) : ""} onChange={(e) => setPrice(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))} />
-          <span>комісія {pct}% · {fmt(commission)} <Coin /></span>
+          <span>комісія {pct}% ({fmt(commission)} <Coin />)</span>
         </label>
         <div className="sell-note">Мінімальна ціна – {min.yellow} <Gold w={13} h={14} /> або {min.beans} <Bean />.</div>
       </div>

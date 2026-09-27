@@ -116,8 +116,8 @@ export function Prices() {
     <>
       <div className="head">
         <div>
-          <h1>Ціни · чернетка деплою</h1>
-          <p>{data.drinks.length} позицій меню · зміни котяться на точки й у Checkbox одним деплойментом</p>
+          <h1>Ціни – чернетка деплою</h1>
+          <p>{data.drinks.length} позицій меню – зміни котяться на точки й у Checkbox одним деплойментом</p>
         </div>
         <div className="right">
           <label className="field">
@@ -173,7 +173,7 @@ export function Prices() {
                 );
               },
             },
-            { key: "name", title: "напій", render: (d) => <span><b>{d.name}</b><small>{d.slot} · {d.vol ?? "—"}</small></span> },
+            { key: "name", title: "напій", render: (d) => <span><b>{d.name}</b><small>{d.slot}, {d.vol ?? "—"}</small></span> },
             {
               key: "price_uah", title: "ціна, ₴", num: true, render: (d) => (
                 <input
@@ -219,7 +219,7 @@ export function Prices() {
               {last.targets.length === 0 && <Empty>цілей немає</Empty>}
               {last.targets.map((t) => (
                 <div key={`${t.point_id}-${t.kind}`} className="row" style={{ justifyContent: "space-between", padding: "5px 0", fontSize: 11.5 }}>
-                  <span>{t.name} <span className="muted">· {t.kind}</span></span>
+                  <span>{t.name} <span className="muted">({t.kind})</span></span>
                   <span className="row" style={{ gap: 7 }}>
                     {t.error && <span className="muted" title={t.error}>помилка</span>}
                     {badge(t.status)}

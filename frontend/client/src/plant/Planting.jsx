@@ -468,7 +468,7 @@ export function Planting({ ctx, plantId, title, resume }) {
       : phase === "bud" ? `посадити ${list.length}` : "посадити";
     const plant = (
       <button className="pl-btn" disabled={!enough} onClick={() => setSheet("confirm")}>
-        <CareIcon need={need} h={phase === "bud" ? 21 : 20} />{unit} · {label}
+        <CareIcon need={need} h={phase === "bud" ? 21 : 20} />{unit}<i className="vsep" />{label}
       </button>
     );
     if (phase !== "leafFg") return plant;

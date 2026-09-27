@@ -41,8 +41,8 @@ export function Order({ id, ctx }) {
   const sub = (s) => {
     const e = event(s);
     if (!e) return null;
-    if (s === "new") return <>{when(e.created_at)} · <Bean /> списано</>;
-    if (s === "packing") return `${when(e.created_at)} · скасувати вже не можна`;
+    if (s === "new") return <>{when(e.created_at)} – <Bean /> списано</>;
+    if (s === "packing") return `${when(e.created_at)} – скасувати вже не можна`;
     return when(e.created_at);
   };
 
@@ -52,7 +52,7 @@ export function Order({ id, ctx }) {
         <img src={src} alt="" style={{ width: w, height: h }} />
         <div className="co-name plain">
           <b>{order.name}</b>
-          <small className="order-meta">{order.beans} <Bean /> · {order.place}</small>
+          <small className="order-meta">{order.beans} <Bean /><i className="vsep" />{order.place}</small>
         </div>
       </div>
 

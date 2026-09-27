@@ -18,7 +18,7 @@ export function Deployments() {
       <div className="head">
         <div>
           <h1>Історія деплойментів</h1>
-          <p>останні 50 · ціни їдуть у публічний бакет, звідки їх бере точка</p>
+          <p>останні 50 – ціни їдуть у публічний бакет, звідки їх бере точка</p>
         </div>
         <div className="right"><button className="btn" onClick={reload}>Оновити</button></div>
       </div>
@@ -34,7 +34,7 @@ export function Deployments() {
               <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                 {(d.targets ?? []).map((t) => (
                   <span key={`${t.point_id}-${t.kind}`} title={t.error ?? ""}>
-                    <Badge tone={STATUS[t.status]?.[0] ?? ""}>{t.name} · {t.kind}</Badge>
+                    <Badge tone={STATUS[t.status]?.[0] ?? ""}>{t.name} ({t.kind})</Badge>
                   </span>
                 ))}
                 {!d.targets?.length && <span className="muted">—</span>}

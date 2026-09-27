@@ -79,7 +79,7 @@ function Thread({ id, onChanged }) {
         <div>
           <b>{who(t)}</b>
           <div className="muted small">
-            {t.telegram_username ? `@${t.telegram_username} · ` : ""}
+            {t.telegram_username ? `@${t.telegram_username}, ` : ""}
             {t.nickname ? "акаунт привʼязаний" : "без акаунта — людина знайшла бота сама"}
           </div>
         </div>
@@ -92,7 +92,7 @@ function Thread({ id, onChanged }) {
           <div key={m.id} className={`msg ${m.direction}`}>
             {m.body && <div>{m.body}</div>}
             {(m.attachments ?? []).map((f) => <Attachment key={f.file_id} file={f} />)}
-            <div className="muted small">{time(m.created_at)}{m.direction === "out" ? ` · ${m.admin_email ?? "бот"}` : ""}</div>
+            <div className="muted small">{time(m.created_at)}{m.direction === "out" ? `, ${m.admin_email ?? "бот"}` : ""}</div>
           </div>
         ))}
       </div>
@@ -133,11 +133,11 @@ export function Support({ id = null }) {
     <section>
       <div className="head">
         <div>
-          <h1>Підтримка · Telegram</h1>
+          <h1>Підтримка в Telegram</h1>
           <p>
             {list && !list.connected
               ? "Бот не підключений: без SUPPORT_BOT_TOKEN повідомлення не приходять і відповіді не йдуть"
-              : "розмови з бота · відповідь іде користувачу в Telegram від імені бота"}
+              : "розмови з бота – відповідь іде користувачу в Telegram від імені бота"}
           </p>
         </div>
         <div className="right">
