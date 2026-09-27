@@ -58,6 +58,17 @@ export function Wallet({ ctx }) {
   const [repost, setRepost] = useState(() => api.peek("/repost") ?? null);
   const [step, setStep] = useState(draftStep);
 
+  // «Обміняти» — одразу екран обміну поверх Магазину на вкладці «За
+  // зерна», а не головна Магазину, де обмін ще треба шукати (власник,
+  // 27.09.2026). «Назад» з обміну веде саме туди.
+  const openExchange = async () => {
+    try { sessionStorage.setItem("extrovert.shop", "beans"); } catch { /* приватний режим */ }
+    const shop = api.peek("/shop") ?? await api.get("/shop").catch(() => null);
+    const item = shop?.beans?.find((i) => i.code === "beans_to_coins");
+    ctx.openTab("shop");
+    if (item) ctx.push("shopProduct", { item });
+  };
+
   useEffect(() => {
     api.get("/quiz/profile").then(setProfile).catch(() => {});
     api.get("/quiz/drink").then(setDrink).catch(() => {});
@@ -151,7 +162,7 @@ export function Wallet({ ctx }) {
           </span>
           <span>Переказати</span>
         </button>
-        <button className="tile" onClick={() => ctx.openTab("shop")}>
+        <button className="tile" onClick={openExchange}>
           <img src="/assets/ui/beans_to_coins.png" alt="" style={{ width: 45, height: 48 }} />
           <span>Обміняти</span>
         </button>

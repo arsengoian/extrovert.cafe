@@ -75,9 +75,13 @@ export default async function routes(app) {
         code: "pos_discount",
         kind: "discount",
         title: beans.pos_discount.label,
-        subtitle: `≈${beans.pos_discount.uah} ₴ знижки на будь-який напій`,
+        // Рівно, а не «≈»: знижка фіксована в гривнях (власник, 27.09.2026).
+        subtitle: `${beans.pos_discount.uah} ₴ знижки на один напій`,
         icon: "assets/ui/pos_discount.png",
         price: beans.pos_discount.beans,
+        amount_uah: beans.pos_discount.uah,
+        valid_days: beans.pos_discount.valid_days,
+        available: Boolean(beans.pos_discount.available),
         currency: "beans",
       },
       {
@@ -96,7 +100,7 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Чашка з принтом",
         name: product("merch_cup")?.name ?? "Чашка з принтом",
-        subtitle: "з принтом extrovert.cafe",
+        subtitle: "Принт із твого кавенятка",
         icon: "assets/ui/merch.png",
         price: beans.merch_cup.beans,
         currency: "beans",
@@ -107,7 +111,7 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Футболка з принтом",
         name: product("custom_print")?.name ?? "Футболка з принтом",
-        subtitle: "Тільки твій, унікальний вигляд",
+        subtitle: "Принт із твого кавенятка",
         icon: "assets/ui/custom_print.png",
         price: beans.custom_print.beans,
         // Ціна ще в коридорі (§6), і вітрина чесно показує «36-45».

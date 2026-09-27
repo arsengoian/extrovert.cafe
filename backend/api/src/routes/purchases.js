@@ -104,8 +104,12 @@ export default async function routes(app) {
     }
 
     // ── обмін зерен на монети ────────────────────────────────────────
+    // Скільки завгодно зерен за раз, аж до всіх, що є (власник, 27.09.2026).
+    // Верхньої межі, крім балансу, немає: spend() сам відмовить, якщо
+    // зерен менше. Раніше межа була 100, а «abc» у amount давало NaN монет.
     if (code === "beans_to_coins") {
-      const beans = Math.max(1, Math.min(100, Number(req.body?.amount ?? 1)));
+      const beans = Math.floor(Number(req.body?.amount ?? 1));
+      if (!Number.isFinite(beans) || beans < 1) fail(400, "bad_amount");
       const coins = beans * economy.beans.rate_coins;
       return tx(async (client) => {
         await spend(client, user.id, "beans", beans, "exchange", { beans, coins });
@@ -120,7 +124,11 @@ export default async function routes(app) {
 
     // ── знижка на POS ────────────────────────────────────────────────
     if (code === "pos_discount") {
-      const { beans, uah } = economy.shop_beans.pos_discount;
+      const { beans, uah, available } = economy.shop_beans.pos_discount;
+      // На автоматі поки немає куди ввести код, і ніщо його не погашає
+      // (pos_discount_codes.used_at ніхто не пише). Продавати код, який не
+      // можна застосувати, — це просто забрати зерна (власник, 27.09.2026).
+      if (!available) fail(409, "not_available");
       return tx(async (client) => {
         const spent = await spend(client, user.id, "beans", beans, "pos_discount", { uah });
         const value = discountCode();

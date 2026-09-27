@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
+import { beans as beansText, coins as coinsText, days } from "../ui/plural.js";
 
 const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
 const Coins2 = () => (
@@ -29,16 +30,66 @@ const ABOUT = {
     "Крихітний паросток на власній платформі. Ім'я, характер і зовнішність – усе з нуля: жодне кавенятко не виростає таким, як попереднє.",
     "Росте паралельно з рештою й хоче свій догляд. Склад, відро й поличка спільні на всіх – препарати ділиш між кавенятками сам.",
   ],
-  pos_discount: [
-    "Код одноразовий і діє обмежений час: бери його перед самою покупкою на точці.",
-    "Код приходить у чат кавенятка, щоб не загубився.",
-  ],
   beans_to_coins: [
     "Обмін односторонній: монети назад у зерна не перетворюються.",
     "Зерна варті більше – обмінюй, лише коли монети потрібні тут і зараз.",
   ],
 };
 ABOUT.sapling_beans = ABOUT.sapling;
+// Знижка — рівно стільки гривень і рівно стільки днів, скільки в
+// economy.json, а не «≈» й «обмежений час» (власник, 27.09.2026). Поки на
+// автоматі немає де ввести код, купити її не можна — і текст каже це
+// прямо, а не обіцяє «код прийде в чат».
+ABOUT.pos_discount = (item) => [
+  `Рівно ${item.amount_uah} ₴ знижки на один напій на точці. Код одноразовий і діє ${days(item.valid_days ?? 14)} від покупки.`,
+  ...(item.available ? [] : ["Поки що купити не можна: на автоматі ще немає де ввести код. Щойно з'явиться – знижка відкриється тут, а доти зерна не списуються."]),
+];
+
+// Чашка й футболка друкуються з кавенятка гравця — «тільки твоє». Раніше
+// це була плашка на вітрині під плитками, а на самій чашці стояло сухе «з
+// принтом extrovert.cafe» (власник, 27.09.2026).
+const UNIQUE = {
+  merch_cup: "Другої такої чашки ні в кого не буде.",
+  custom_print: "Другої такої футболки ні в кого не буде.",
+};
+function Unique({ code }) {
+  return (
+    <div className="unique">
+      <span className="unique-badge">тільки твоє</span>
+      <p>Принт малюється з твого кавенятка – з його одягом, скінами й плодами на момент замовлення. {UNIQUE[code]}</p>
+    </div>
+  );
+}
+
+// Обмін — будь-яка кількість зерен, аж до всіх (власник, 27.09.2026).
+// Число можна і натискати, і вписати; «Максимум» — усе, що на рахунку.
+function ExchangePicker({ amount, setAmount, have, rate }) {
+  const max = Math.max(1, have);
+  const clamp = (n) => Math.max(1, Math.min(max, Number.isFinite(n) ? Math.floor(n) : 1));
+  return (
+    <div className="exch">
+      <div className="exch-head">
+        <b>Скільки обміняти</b>
+        <span>у тебе {have} <Bean w={14} h={16} /></span>
+      </div>
+      <div className="exch-row">
+        <button className="exch-step" aria-label="менше" disabled={amount <= 1} onClick={() => setAmount(clamp(amount - 1))}>−</button>
+        <label className="exch-val">
+          <input inputMode="numeric" value={amount} disabled={have < 1} aria-label="кількість зерен"
+                 onChange={(e) => { const d = e.target.value.replace(/\D/g, ""); setAmount(d ? Math.min(max, Number(d)) : ""); }}
+                 onBlur={() => setAmount(clamp(Number(amount)))} />
+          <Bean w={17} h={19} />
+        </label>
+        <button className="exch-step" aria-label="більше" disabled={amount >= max} onClick={() => setAmount(clamp(Number(amount) + 1))}>+</button>
+        <button className="exch-max" data-on={amount === max && have > 0} disabled={have < 1} onClick={() => setAmount(max)}>Максимум</button>
+      </div>
+      <div className="exch-sum">
+        Отримаєш <b>{coinsText((Number(amount) || 0) * rate)}</b>
+        <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 17, height: 18 }} />
+      </div>
+    </div>
+  );
+}
 
 // Скільки вже є — чип праворуч від назви, як «у відрі 2 л» у макеті.
 const STOCK = {
@@ -55,7 +106,7 @@ const DONE = {
   // (власник, 27.09.2026: «Додано 3 кг», без «тепер на поличці»).
   care: (r, item) => `Додано ${r.added} ${UNIT[item?.code] ?? ""}`.trim(),
   sapling: () => "Саджанець твій – знайди його на головному екрані.",
-  exchange: (r) => `Обміняно ${r.beans} на ${r.coins} монет.`,
+  exchange: (r) => `Обміняно ${beansText(r.beans)} на ${coinsText(r.coins)}.`,
   pos_discount: (r) => `Код ${r.code} на ${r.amount_uah} грн. Він уже в чаті кавенятка.`,
 };
 
@@ -80,6 +131,7 @@ export function ShopItem({ item, ctx }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [sapling, setSapling] = useState(null);
+  const [amount, setAmount] = useState(1);
 
   // Саджанець продається і за монети, і за зерна — у макеті обидві ціни
   // на одному превʼю, звідки б гравець не прийшов.
@@ -101,7 +153,9 @@ export function ShopItem({ item, ctx }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.post("/shop/buy", { code: target.code });
+      const r = await api.post("/shop/buy", target.kind === "exchange"
+        ? { code: target.code, amount: Math.max(1, Number(amount) || 1) }
+        : { code: target.code });
       await ctx.refreshMe();
       const close = () => ctx.notify(null);
       ctx.pop();
@@ -125,7 +179,9 @@ export function ShopItem({ item, ctx }) {
   const chip = delivery
     ? <span className="shop-chip price"><Bean w={20} h={22} />{item.price_range ? item.price_range.join("-") : item.price}</span>
     : STOCK[item.code] && ctx.me?.care ? <span className="shop-chip">{STOCK[item.code](ctx.me.care)}</span> : null;
-  const lack = Math.max(0, item.price - beansHave);
+  const exchange = item.kind === "exchange";
+  const lack = exchange ? 0 : Math.max(0, item.price - beansHave);
+  const about = typeof ABOUT[item.code] === "function" ? ABOUT[item.code](item) : ABOUT[item.code] ?? [];
 
   return (
     <div className="quiz">
@@ -138,6 +194,8 @@ export function ShopItem({ item, ctx }) {
         </div>
         {chip}
       </div>
+
+      {UNIQUE[item.code] && <Unique code={item.code} />}
 
       {delivery ? (
         <>
@@ -157,9 +215,11 @@ export function ShopItem({ item, ctx }) {
         </>
       ) : (
         <div className="item-text">
-          {(ABOUT[item.code] ?? []).map((line) => <div key={line}>{line}</div>)}
+          {about.map((line) => <div key={line}>{line}</div>)}
         </div>
       )}
+
+      {exchange && <ExchangePicker amount={amount} setAmount={setAmount} have={beansHave} rate={item.gives_coins ?? 15} />}
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
@@ -177,6 +237,12 @@ export function ShopItem({ item, ctx }) {
               <Bean w={19} h={21} />{sapling?.beans?.price ?? "…"}
             </button>
           </>
+        ) : exchange ? (
+          <button className="cta" disabled={busy || beansHave < 1} onClick={() => buy()}>
+            {beansHave < 1 ? "Зерен поки немає" : <>Обміняти {Number(amount) || 1} <Bean w={19} h={21} /></>}
+          </button>
+        ) : item.available === false ? (
+          <button className="cta" disabled>Скоро на точці</button>
         ) : item.currency === "beans" ? (
           <button className="cta" disabled={busy || lack > 0} onClick={() => buy()}>
             <Bean w={19} h={21} />{item.price}

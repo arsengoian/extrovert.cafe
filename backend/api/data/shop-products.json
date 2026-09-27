@@ -15,7 +15,7 @@
       "id": "merch_cup",
       "name": "Чашка з принтом",
       "short": "Чашка з принтом",
-      "description": "Чашка біла 330 мл з принтом extrovert.cafe",
+      "description": "Чашка біла 330 мл з принтом кавенятка",
       "packed": { "length_cm": 20, "width_cm": 15, "height_cm": 15, "weight_kg": 0.8 },
       "print_area_mm": { "wrap": [220, 85] },
       "supplier": {

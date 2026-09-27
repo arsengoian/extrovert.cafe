@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело ac61539</p>
+  <p class="eyebrow">extrovert.cafe · джерело 75eb4b1</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1772,7 +1772,7 @@ erDiagram
         bigserial id PK
         uuid user_id FK
         text network &quot;з Referer першого переходу, часто null&quot;
-        text redirect_token UK &quot;слаг у посиланні extrovert.cafe/r/…&quot;
+        text redirect_token UK &quot;код у r.extrovert.cafe/…: id гравця й спроба в base36&quot;
         timestamptz clicked_at
         timestamptz verified_at &quot;null = посилання видали, перехід ще не зарахував&quot;
         int coins_awarded
@@ -1861,7 +1861,7 @@ erDiagram
 </article>
 <article class="entity" id="t-repost_verifications">
   <header><h4>repost_verifications</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">network</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">з Referer першого переходу, часто null</td></tr><tr><td class="c-name">redirect_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">слаг у посиланні extrovert.cafe/r/…</td></tr><tr><td class="c-name">clicked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">verified_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">null = посилання видали, перехід ще не зарахував</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">network</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">з Referer першого переходу, часто null</td></tr><tr><td class="c-name">redirect_token</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">код у r.extrovert.cafe/…: id гравця й спроба в base36</td></tr><tr><td class="c-name">clicked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">verified_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">null = посилання видали, перехід ще не зарахував</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">репости</span></li></ul>
 </article></div>
 <p>Два правила економіки, які <strong>мають жити в схемі, а не лише в коді</strong>:</p>
@@ -6661,7 +6661,7 @@ Telegram тощо, ми просто виконуємо технічний тр�
 <p>Тобто максимум Silver-монет із цього джерела на акаунт — фіксована, кінцева
 сума (5 репостів), а не постійний дохід, як із квізом про напій.</p>
 <p>Як це працює в коді (<code>backend/api/src/routes/repost.js</code>, 20.09.2026): гравцю
-видається посилання <code>extrovert.cafe/r/&lt;нікнейм&gt;</code> — рядок у
+видається посилання <code>r.extrovert.cafe/&lt;код&gt;</code> — рядок у
 <code>REPOST_VERIFICATIONS</code> без <code>verified_at</code>. Репост зараховує <strong>перший чужий
 перехід</strong> за цим посиланням: своя ж сесія не рахується, інакше «репост»
 робився б в один тап. Клік під час кулдауну лишає спробу відкритою — вона
@@ -6675,14 +6675,25 @@ Telegram тощо, ми просто виконуємо технічний тр�
 звідки б він не прийшов. Список «підтримуваних мереж» за <code>Referer</code> дав би
 саме хибні негативи: вбудовані браузери Instagram і TikTok реферер часто не
 шлють, а воркер <code>r.extrovert.cafe</code> його ще й навмисно відрізає
-(<code>referrer-policy: no-referrer</code>, щоб нікнейм не тік далі). Колонка
-<code>network</code> — лише довідка, і майже завжди порожня.</p>
-<p>Посилання в сторіс — коротке, <code>r.extrovert.cafe/&lt;нікнейм&gt;</code> (воркер
-<code>frontend/redirect</code>, чистий 302 на <code>/r/&lt;нікнейм&gt;</code>). До 27.09.2026 воркер
-перевіряв нікнейм у ще закодованому вигляді (<code>%D1%81%D0%BC…</code>), знак <code>%</code>
-перевірку не проходив — і кожне посилання з кириличним нікнеймом, тобто
-практично кожне, вело на головну. Жоден репост до того дня не зарахувався:
-у базі було два посилання й нуль переходів.</p>
+(<code>referrer-policy: no-referrer</code>). Колонка <code>network</code> — лише довідка, і
+майже завжди порожня.</p>
+<p><strong>Код у посиланні — закодований id гравця й номер спроби</strong>, а не нікнейм
+(власник, 27.09.2026: «так надійніше»): <code>(uuid як 128-бітне число) × 64 + спроба</code>, записане в base36 — 26 малих латинських літер і цифр, наприклад
+<code>r.extrovert.cafe/5hngtcvzjj7p739dohvh41a7sx</code>. Чому так:</p>
+<ul>
+<li>нікнейм міняється, а посилання в чужій сторіс живе роками;</li>
+<li>лише малі латинські й цифри — нічого не перекодовується й не губиться в
+регістрі (api однаково зводить код до малих);</li>
+<li>номер спроби дає кожному репосту власне посилання: клік за старим, уже
+зарахованим, нового репоста не дає.</li>
+</ul>
+<p>До 27.09.2026 слагом був нікнейм, і воркер <code>frontend/redirect</code> перевіряв
+його в ще закодованому вигляді (<code>%D1%81%D0%BC…</code>): знак <code>%</code> перевірку не
+проходив, і кожне посилання з кириличним нікнеймом — тобто практично
+кожне — вело на головну. Жоден репост до того дня не зарахувався: у базі
+було два посилання й нуль переходів. Воркер тепер спершу розкодовує шлях, а
+відкриті посилання з нікнеймом api при першому ж відкритті екрана міняє на
+код.</p>
 <h2 id="gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу"><a class="anchor" href="#gamification-economy-3-скільки-стадій-росту-й-скільки-предметів-у-комплекті-одягу" aria-hidden="true">#</a>3. Скільки стадій росту й скільки предметів у комплекті одягу</h2>
 <h3 id="gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле"><a class="anchor" href="#gamification-economy-3-1-стадії-росту-кавенятка-11-станів-0-10-повністю-переробле" aria-hidden="true">#</a>3.1 Стадії росту кавенятка — 11 станів (0-10) 🔄 ПОВНІСТЮ ПЕРЕРОБЛЕНО</h3>
 <p><strong>Головна зміна: кавенятко &quot;впускає каву&quot; (видає Coffee Beans) ЛИШЕ коли
@@ -7331,8 +7342,8 @@ Common 465, Uncommon 945, Rare 2125, Epic 4250 монет — усі суттє�
 <tbody><tr>
 <td>Знижка на POS</td>
 <td>Дуже низька</td>
-<td><strong>6 зерен ≈ 20 грн знижки</strong> 🔄 (було 2)</td>
-<td>Свідомо гірший курс за базовий 20–23 грн/зерно — щоб не був найдешевшим шляхом монетизації зерен. Без обмежень на використання</td>
+<td><strong>6 зерен = рівно 20 грн знижки на один напій</strong>, код діє 14 днів 🔄 (було 2)</td>
+<td>Свідомо гірший курс за базовий 20–23 грн/зерно — щоб не був найдешевшим шляхом монетизації зерен. <strong>Поки не продається</strong> (<code>available: false</code> в economy.json, 27.09.2026): на автоматі немає де ввести код, і ніщо його не погашає — продавати таке означало б просто забрати зерна. Відкриється, коли буде спосіб застосувати код на точці</td>
 </tr>
 <tr>
 <td>Кава 250г (рівня Ballerina)</td>
@@ -7919,7 +7930,7 @@ Safari немає зовсім). Натомість у ландшафті вер
 </ul>
 <p>Секція Купити монети - 4 набори за гривню, кнопка веде на окремий екран нижче (gamification_economy.md §9.1)</p>
 <p>Переказ монет іншому гравцю (на нікнейм) - лише золотих (Yellow) монет, срібні (Silver) між гравцями не передаються (gamification_economy.md §2.1)
-Функція обміну бобів на монети.</p>
+Функція обміну бобів на монети. Плитка «Обміняти» відкриває одразу екран обміну поверх Магазину на вкладці «За зерна» - «Назад» веде туди (27.09.2026). На екрані обміну - кількість зерен: кроки −/+, вписати число або «Максимум» (усе, що на рахунку); під ним - скільки монет вийде, кнопка - «Обміняти N».</p>
 <h5 id="gamification-ui-екран-купівлі-монет"><a class="anchor" href="#gamification-ui-екран-купівлі-монет" aria-hidden="true">#</a>Екран купівлі монет</h5>
 <p>Кнопка назад зверху повертає в Гаманець</p>
 <p>4 картки наборів - Паросток / Кущик / Цвіт / Врожай (100 / 500 / 1 100 / 3 000 монет, gamification_economy.md §9.1), арт - стопки / купа зі стопками / наш крейт зі стопами / бочка монет зі стопами (bush_graphics_customization.md §10.18): кількість монет, ціна в грн, дрібним текстом ціна за монету, бейдж зі знижкою у % від базового набору. На найвигіднішому наборі (Врожай) - акцентний бейдж &quot;найкраща ціна&quot;. Тап по картці - чекаут через mono pay, без форми й без доставки (товар суто віртуальний) - лише підтвердження оплати. Після оплати - попап з короткою анімацією нарахування монет, баланс у шапці оновлюється одразу.</p>
@@ -7945,10 +7956,11 @@ Safari немає зовсім). Натомість у ландшафті вер
 </ul>
 <p><strong>За кавові боби (кожен пункт - чекаут з доставкою Новою Поштою, де застосовно):</strong></p>
 <ul>
-<li>Знижка на POS - 6 зерен ≈ 20 грн знижки, з тултипом &quot;X монет = Y% знижки&quot; (§9 economy-доки)</li>
+<li>Знижка на POS - 6 зерен = рівно 20 грн знижки на один напій, код діє 14 днів. Поки на автоматі немає де ввести код, у списку замість ціни «скоро», а кнопка на превʼю - «Скоро на точці» (27.09.2026)</li>
 <li>Кава 250г - ~30 зерен</li>
-<li>Чашка з принтом extrovert.cafe - ~15 зерен</li>
-<li>Кастомний принт кавенятка на футболці - ~36-45 зерен, з явним маркуванням &quot;тільки твій - унікальний вигляд саме твого кавенятка&quot; (§9 economy-доки)</li>
+<li>Чашка з принтом кавенятка - ~15 зерен (з 27.09.2026 чашка друкується з кавенятка гравця, як і футболка; раніше - з логотипом extrovert.cafe)</li>
+<li>Кастомний принт кавенятка на футболці - ~36-45 зерен</li>
+<li>На превʼю чашки й футболки - блок «тільки твоє»: принт малюється з кавенятка гравця, з його одягом, скінами й плодами на момент замовлення, і другої такої речі ні в кого не буде. На вітрині плашки під плитками й рамки навколо футболки немає - рамка нічого не пояснювала (27.09.2026)</li>
 <li>Новий саджанець кавенятка - 15 зерен</li>
 <li>Обмін бобів на монети (1 зерно → 13-17 монет) - дублює функцію з Гаманця</li>
 </ul>
@@ -7978,7 +7990,7 @@ Safari немає зовсім). Натомість у ландшафті вер
 <li><strong>Список:</strong> зверху ті, що в дорозі, нижче згорнутий архів (отримані, скасовані, повернені). У рядку - прев&#39;ю товару, дата, статус-чип, куди везти коротко. Замовлення з непереглянутою зміною статусу позначене крапкою.</li>
 <li><strong>Картка замовлення</strong> - стрічка статусів із датами:<ul>
 <li>Нове - можна скасувати, зерна повертаються одразу;</li>
-<li>Друкуємо - лише для товарів, які друкуються під замовлення (принт кавенятка на футболці, у постачальника від 3 днів); скасувати вже не можна;</li>
+<li>Друкуємо - лише для товарів, які друкуються під замовлення (принт кавенятка на футболці чи чашці, у постачальника від 3 днів); скасувати вже не можна;</li>
 <li>Пакуємо - скасувати вже не можна;</li>
 <li>Відправлено - номер ТТН із кнопкою &quot;скопіювати&quot; і кнопка &quot;відстежити&quot; (сторінка трекінгу НП);</li>
 <li>Прибуло у відділення / поштомат - адреса й графік;</li>
@@ -11887,7 +11899,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел ac61539 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 75eb4b1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

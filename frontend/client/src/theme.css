@@ -373,6 +373,34 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .note-chip > b { flex: none; padding: 4px 8px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 10px; font-weight: 800 }
 
+/* «Скоро» замість ціни — товар є, але купити його ще не можна. */
+.list-row .soon { flex: none; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--panel2); color: var(--muted); font-size: 11px; font-weight: 800 }
+
+/* «Тільки твоє» на чашці й футболці: принт із кавенятка гравця. */
+.unique {
+  flex: none; display: flex; flex-direction: column; gap: 8px; padding: 14px; border-radius: var(--radius);
+  border: 1px solid var(--accent); background: radial-gradient(120% 140% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 60%), var(--panel);
+}
+.unique-badge { align-self: flex-start; padding: 4px 10px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 11px; font-weight: 800; letter-spacing: .02em }
+.unique p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--ink); text-wrap: pretty }
+
+/* Обмін зерен: кількість кроками, вписуванням або «Максимум». */
+.exch { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel) }
+.exch-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px }
+.exch-head b { font-weight: 800 }
+.exch-head span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted) }
+.exch-row { display: flex; align-items: center; gap: 8px }
+.exch-step { flex: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel2); font-size: 20px; font-weight: 700; color: var(--ink) }
+.exch-step:disabled { opacity: .4 }
+.exch-val { flex: 1; min-width: 0; height: 44px; border-radius: 12px; border: 1px solid var(--accent); background: var(--panel2); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px }
+.exch-val input { width: 100%; min-width: 0; border: 0; outline: 0; background: none; color: var(--ink); font: inherit; font-size: 18px; font-weight: 800; text-align: right; padding: 0 }
+.exch-val img { flex: none }
+.exch-max { flex: none; height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); font-size: 13px; font-weight: 800; color: var(--accent-text) }
+.exch-max[data-on="true"] { background: var(--grad); border-color: transparent; color: var(--accent-ink) }
+.exch-max:disabled { opacity: .4 }
+.exch-sum { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted) }
+.exch-sum b { color: var(--ink); font-weight: 800 }
+
 /* Скринька — єдиний товар із акцентною рамкою: у макеті вона виділена. */
 .crate-row {
   width: 100%; text-align: left; border: 1px solid var(--accent); border-radius: var(--radius);

@@ -26,9 +26,9 @@ const price = (item) => (item.price_range ? item.price_range.join("-") : item.pr
 
 // Плитка товару: на відміну від вітрини одягу картинка не тягнеться на
 // всю висоту — вміст притиснутий догори, як у макеті.
-function Tile({ item, onOpen, accent }) {
+function Tile({ item, onOpen }) {
   return (
-    <button className={`card-item${accent ? " on" : ""}`} onClick={() => onOpen(item)}>
+    <button className="card-item" onClick={() => onOpen(item)}>
       <Art item={item} />
       <span className="name">{item.title}</span>
       <span className="cost"><Bean />{price(item)}</span>
@@ -62,7 +62,9 @@ function BeanRow({ item, onOpen }) {
           <small>{item.subtitle}</small>
         )}
       </span>
-      {exchange ? (
+      {item.available === false ? (
+        <span className="soon">скоро</span>
+      ) : exchange ? (
         <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" style={{ flex: "none" }}>
           <path d="M9.5 6 15.5 12 9.5 18" />
         </svg>
@@ -189,13 +191,10 @@ export function Shop({ ctx }) {
             <div className="section">
               <div className="sectionTitle">Реальні товари</div>
               <div className="cards">
-                {delivery.map((it) => (
-                  <Tile key={it.code} item={it} onOpen={open} accent={it.code === "custom_print"} />
-                ))}
-              </div>
-              <div className="note-chip">
-                <b>тільки твій</b>
-                Принт малюється з твого кавенятка – з його одягом, скінами й плодами на момент замовлення
+                {/* Без рамки на футболці й без плашки «тільки твій» під
+                    плитками: рамка нічого не пояснювала, а «тільки твоє»
+                    тепер на самих чашці й футболці (власник, 27.09.2026). */}
+                {delivery.map((it) => <Tile key={it.code} item={it} onOpen={open} />)}
               </div>
             </div>
           )}

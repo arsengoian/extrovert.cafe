@@ -28,8 +28,10 @@ export function Order({ id, ctx }) {
   if (error) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!order) return <div className="stage-pad"><div className="skeleton" /></div>;
 
-  // Друк є лише у футболки з принтом; поштомат — «прибуло в поштомат».
-  const steps = ["new", ...(order.product === "custom_print" ? ["printing"] : []), "packing", "shipped", "arrived", "received"];
+  // Друк — у товарів із принтом кавенятка: футболки й чашки (чашка
+  // друкується з кавенятка з 27.09.2026); поштомат — «прибуло в поштомат».
+  const printed = order.product === "custom_print" || order.product === "merch_cup";
+  const steps = ["new", ...(printed ? ["printing"] : []), "packing", "shipped", "arrived", "received"];
   const current = steps.indexOf(order.status);
   const event = (s) => order.events.find((e) => e.status === s);
   const [src, w, h] = ART[order.product] ?? ART.coffee_250g;

@@ -139,7 +139,7 @@ export function Checkout({ item, ctx }) {
           <div>
             <b>Нова Пошта</b>
             <small>
-              {productId === "custom_print" ? "Друк принта – тиждень, далі відправка. " : ""}Доставку оплачуєш при отриманні.
+              {productId === "custom_print" || productId === "merch_cup" ? "Друк принта – тиждень, далі відправка. " : ""}Доставку оплачуєш при отриманні.
             </small>
           </div>
         </div>
