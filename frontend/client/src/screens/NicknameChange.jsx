@@ -70,9 +70,22 @@ export function NicknameChange({ ctx }) {
 
       <div className="field">
         <div className="profile-label">Новий нікнейм</div>
-        <label className="nick-field compact" data-tone={free === false || (trimmed && !valid) ? "bad" : "ok"}>
-          <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off" readOnly={Boolean(locked)}
+        {/* Замкнене поле мусить і виглядати замкненим. Було readOnly з
+            помаранчевою рамкою, яскраве «Згенерувати» й кольорова кнопка —
+            усе мертве, і попап здавався зламаним: у поле не ставав курсор,
+            ніщо не натискалось (власник, 27.09.2026, акаунт із нікнеймом,
+            зміненим 23.09). Тепер поле disabled і сіре, із замочком і датою,
+            а генерації в цьому стані немає зовсім. */}
+        <label className="nick-field compact" data-locked={locked ? "" : undefined}
+               data-tone={free === false || (trimmed && !valid) ? "bad" : "ok"}>
+          <input value={value} maxLength={MAX} spellCheck={false} autoComplete="off" disabled={Boolean(locked)}
                  onChange={(e) => { setValue(e.target.value.replace(/\s/g, "")); setError(null); }} />
+          {locked && (
+            <span>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+              до {next.toLocaleDateString("uk-UA", { day: "numeric", month: "numeric" })}
+            </span>
+          )}
           {free && (
             <span>
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M5 12.5 10 17.5 19.5 7" /></svg>
@@ -85,13 +98,13 @@ export function NicknameChange({ ctx }) {
               того, щоб дописати літеру. */}
           {trimmed && !valid && <span>3–24 символи</span>}
         </label>
-        <div className="nick-tools">
-          <button disabled={Boolean(locked)} onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
+        {!locked && <div className="nick-tools">
+          <button onClick={() => api.get("/me/nickname/suggest").then((r) => setValue(r.nickname.slice(0, MAX))).catch(() => {})}>
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 11.5A8 8 0 1 0 12 20" /><path d="M20 5v6.5h-6" /></svg>
             Згенерувати
           </button>
           <span>{value.length} / {MAX}</span>
-        </div>
+        </div>}
       </div>
 
       <div className="nick-current"><span>Поточний</span><b>{current}</b></div>

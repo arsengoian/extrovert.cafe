@@ -7,6 +7,7 @@ import { api, errText } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { renderMarkdown } from "../ui/markdown.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
+import { ResultPopup } from "../ui/Popup.jsx";
 
 export const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
 export const SLOT_OF = { head: "слот голови", body: "слот тіла", pants: "слот штанів", feet: "слот взуття", acc_1: "слот аксесуара" };
@@ -17,7 +18,6 @@ export function ItemCard({ item, ctx }) {
   const [stock, setStock] = useState(null);
   const [all, setAll] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState(null);
   const [error, setError] = useState(null);
 
   const code = item?.code;
@@ -33,6 +33,21 @@ export function ItemCard({ item, ctx }) {
   const slotsOwned = new Set((stock ?? []).filter((i) => i.collection && i.collection === item.collection).map((i) => i.slot)).size;
   const price = item.price_coins;
   const tierOf = (t) => TIER_LABEL[t] ?? t;
+  const owned = (stock ?? []).find((i) => i.code === item.code)?.owned ?? 0;
+
+  // Успіх — попапом, а не рядком під кнопкою: рядок легко проґавити, а
+  // кнопка лишалась під пальцем — і людина купувала ту саму річ удруге й
+  // утретє (власник, 27.09.2026). Попап перериває, а плашка «уже на
+  // складі» над кнопкою лишається й після нього.
+  const bought = (text) => {
+    const close = () => ctx.notify(null);
+    ctx.notify(
+      <ResultPopup art={<ItemIcon sprite={item.sprite_id} size={62} alt={item.name} style={{ width: 62 }} />}
+                   title="Готово" action="На склад" onAction={() => { close(); ctx.openTab("stock"); }} onClose={close}>
+        <div className="result-note">{text}</div>
+      </ResultPopup>
+    );
+  };
 
   const short = (need) => {
     const b = ctx.me?.balances ?? {};
@@ -45,8 +60,8 @@ export function ItemCard({ item, ctx }) {
     try {
       const r = await api.post("/shop/buy", { code: "item", item: item.code });
       await ctx.refreshMe();
-      setNote(`«${r.name}» на складі.`);
       await load();
+      bought(`«${r.name}» уже на складі.`);
     } catch (e) {
       if (e.body?.error === "not_enough") short(price);
       else setError(errText(e));
@@ -61,8 +76,8 @@ export function ItemCard({ item, ctx }) {
     try {
       await api.post(`/market/listings/${lot.id}/buy`);
       await ctx.refreshMe();
-      setNote(`Куплено в ${lot.seller} за ${lot.price}.`);
       await load();
+      bought(`Куплено в ${lot.seller} за ${lot.price}. «${lot.item?.name ?? item.name}» уже на складі.`);
     } catch (e) {
       const c = e.body?.error;
       if (c === "not_enough" && lot.currency === "yellow") short(lot.price);
@@ -131,7 +146,12 @@ export function ItemCard({ item, ctx }) {
         </div>
       )}
 
-      {note && <div className="panel" style={{ borderColor: "var(--accent)", fontWeight: 700 }}>{note}</div>}
+      {owned > 0 && (
+        <div className="owned-note">
+          <b>Уже на складі: {owned} шт</b>
+          <span>Ще одна така річ піде в дублі – її можна продати на ринку.</span>
+        </div>
+      )}
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <div className="buy-row">

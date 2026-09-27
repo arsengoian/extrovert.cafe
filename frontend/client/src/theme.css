@@ -157,6 +157,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    тонка риска замість «·»: крапка посеред рядка читається як розділовий
    знак, а тут потрібна саме пауза між двома різними речами (власник,
    27.09.2026: «·» лишати лише там, де він справді найкращий). */
+/* «Уже на складі» над кнопкою купівлі одягу: річ уже є, і наступна покупка —
+   свідомий дубль, а не випадковий другий тап. */
+.owned-note { display: flex; flex-direction: column; gap: 3px; padding: 11px 13px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line) }
+.owned-note b { font-size: 13.5px; font-weight: 800 }
+.owned-note span { font-size: 12px; line-height: 1.4; color: var(--muted); text-wrap: pretty }
 .vsep { display: inline-block; width: 1px; height: .95em; margin: 0 .55em; background: currentColor; opacity: .32; vertical-align: -.12em }
 .price img { width: 18px; height: 19px }
 
@@ -674,6 +679,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .confirm-btns button { height: 48px; border-radius: 14px; font-size: 15px }
 .confirm-btns button:first-child { flex: 1; border: 1px solid var(--line); font-weight: 700; color: var(--muted) }
 .confirm-btns button:last-child { flex: 1.5; background: var(--grad); color: var(--accent-ink); font-weight: 800 }
+/* Вимкнена головна кнопка не може лишатись градієнтною: вона виглядала
+   готовою, а тап нічого не робив — «попап битий» (власник, 27.09.2026). */
+.confirm-btns button:disabled { cursor: default }
+.confirm-btns button:last-child:disabled { background: var(--panel2); border: 1px solid var(--line); color: var(--muted) }
 
 /* ── стартовий екран ───────────────────────────────────────────────────
    Кадри «Стартовий екран» і «· без бонусів». */
@@ -1178,6 +1187,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .nick-field.compact span { display: flex; align-items: center; gap: 5px; font-weight: 800 }
 .nick-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--muted) }
 .nick-tools button { display: flex; align-items: center; gap: 7px; font-weight: 700; color: var(--accent-text); font-size: 12px }
+/* Нікнейм змінювали менше ніж 30 днів тому: поле сіре й без рамки-акценту,
+   праворуч замочок із датою (NicknameChange.jsx). */
+.nick-field[data-locked] { border-color: var(--line) }
+.nick-field[data-locked] input { color: var(--muted); -webkit-text-fill-color: var(--muted); opacity: 1; cursor: default }
+.nick-field[data-locked] span { color: var(--muted) }
 .nick-current { display: flex; align-items: center; justify-content: space-between; padding: 12px 13px; border-radius: 14px; background: var(--panel2); font-size: 13px }
 .nick-current span { color: var(--muted) }
 .nick-current b { font-weight: 800 }
