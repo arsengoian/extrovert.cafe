@@ -138,6 +138,17 @@ export const api = {
   // Лист із посиланням для входу; next — куди повернутись після входу.
   emailLogin: (email, next) => request("/auth/email", { method: "POST", body: { email, next }, auth: false }),
 
+  // Вкладка, що просила лист, чекає підтвердження (довгий запит, до 20 с):
+  // сесія, { pending: true } або 410 — відхилили чи застаріло.
+  emailWait: (wait) =>
+    request("/auth/email/wait", { method: "POST", body: { wait }, auth: false }).then((r) => {
+      if (r?.token) setToken(r.token);
+      return r;
+    }),
+  // Посилання відкрили в іншому браузері: що саме підтверджуємо, і «ні, не я».
+  emailPeek: (token) => request("/auth/email/peek", { method: "POST", body: { token }, auth: false }),
+  emailReject: (token) => request("/auth/email/reject", { method: "POST", body: { token }, auth: false }),
+
   // Посилання з листа відкрите: токен із фрагмента міняємо на сесію.
   emailVerify: (token) =>
     request("/auth/email/verify", { method: "POST", body: { token }, auth: false }).then((r) => {

@@ -21,7 +21,10 @@ const FONT = "'Extro',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helveti
 
 export function loginEmail({ link, minutes, origin }) {
   const subject = "Посилання для входу в extrovert.cafe";
-  const note = `Посилання діє ${minutes} хвилин і спрацює один раз на тому пристрої, де ти його відкриєш.`;
+  // «Спрацює там, де відкриєш» більше не правда: вхід дістається й
+  // вкладці, яка просила лист (docs/services.md §3). Тому — лише строк і
+  // що робити, якщо входу не просив.
+  const note = `Посилання діє ${minutes} хвилин і спрацює один раз. Не просив входу – просто нічого не роби.`;
   const ignore = "Якщо лист прийшов без твого запиту, просто проігноруй його.";
 
   const text = [

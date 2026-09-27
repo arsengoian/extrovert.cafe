@@ -5,6 +5,7 @@
 // поле й кнопка внизу, — щоб не вигадувати для нього окремої мови.
 import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
+import { clearLoginWait, readLoginWait, saveLoginWait } from "../loginWait.js";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ERRORS = {
@@ -19,9 +20,12 @@ const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 // next — куди повернути після входу: бонус із QR кіоска, якщо людина прийшла
 // по нього. Посилання можуть відкрити й на іншому пристрої, тож шлях їде
 // разом із листом, а не лежить у localStorage цього браузера.
-export function EmailLogin({ next = "/" }) {
+export function EmailLogin({ next = "/", ctx }) {
+  // Прохання, на яке цей браузер уже чекає (сторінку перезавантажили) —
+  // одразу на «Лист уже летить».
+  const resumed = readLoginWait();
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(null);      // { email, minutes }
+  const [sent, setSent] = useState(resumed ? { email: resumed.email, minutes: resumed.minutes, wait: resumed.wait } : null);
   const [wait, setWait] = useState(0);         // секунд до «надіслати ще раз»
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -32,12 +36,48 @@ export function EmailLogin({ next = "/" }) {
     return () => clearTimeout(t);
   }, [wait]);
 
+  // Чекаємо, поки посилання відкриють і підтвердять — тут чи будь-де
+  // (screens/LoginConfirm.jsx). Довгий запит тримає сервер до 20 с, тож
+  // це кілька запитів на хвилину, а не опитування щосекунди. Обрив звʼязку
+  // (телефон приспав вкладку) — не кінець: пробуємо знову за кілька секунд.
+  useEffect(() => {
+    if (!sent?.wait) return undefined;
+    let alive = true;
+    (async () => {
+      while (alive) {
+        try {
+          const r = await api.emailWait(sent.wait);
+          if (!alive) return;
+          if (r?.token) {
+            clearLoginWait();
+            if (r.next && r.next !== "/") { window.location.replace(r.next); return; }
+            await ctx?.signedIn?.();
+            return;
+          }
+        } catch (e) {
+          if (!alive) return;
+          if (e.status === 410) {
+            clearLoginWait();
+            setError(e.body?.error === "login_rejected"
+              ? "Вхід відхилили з листа – якщо це був ти, надішли нове посилання"
+              : "Посилання застаріло – надішли нове");
+            setSent((cur) => (cur ? { ...cur, wait: null } : cur));
+            return;
+          }
+          await new Promise((ok) => setTimeout(ok, 3000));
+        }
+      }
+    })();
+    return () => { alive = false; };
+  }, [sent?.wait]);
+
   const send = async (to) => {
     setBusy(true);
     setError(null);
     try {
       const r = await api.emailLogin(to, next);
-      setSent({ email: to, minutes: r.minutes });
+      setSent({ email: to, minutes: r.minutes, wait: r.wait ?? null });
+      if (r.wait) saveLoginWait({ wait: r.wait, email: to, minutes: r.minutes, next, until: Date.now() + r.minutes * 60000 });
       setWait(r.cooldown);
     } catch (e) {
       // Про обрив звʼязку каже тост (ui/Net.jsx) — тут лишаються лише
@@ -61,6 +101,9 @@ export function EmailLogin({ next = "/" }) {
           <div className="lead14">
             Ми надіслали лінк для входу на <b>{sent.email}</b>. Посилання діє {sent.minutes} хвилин.
           </div>
+          {sent.wait && (
+            <div className="lead14 muted">Відкрий лист будь-де – хоч у пошті на телефоні: щойно підтвердиш вхід, ця сторінка пустить тебе сама.</div>
+          )}
         </div>
         <div className="consent">
           <div>Пройшло 5 хвилин, а листа немає? Зазирни в «Спам» чи «Реклама». А адреса взагалі правильно введена?</div>
@@ -69,7 +112,7 @@ export function EmailLogin({ next = "/" }) {
         <button className="cta send start-cta" disabled={wait > 0 || busy} onClick={() => send(sent.email)}>
           {busy ? "Надсилаємо…" : wait > 0 ? `Надіслати ще раз · ${mmss(wait)}` : "Надіслати ще раз"}
         </button>
-        <button className="btn" onClick={() => { setSent(null); setError(null); setEmail(sent.email); }}>
+        <button className="btn" onClick={() => { clearLoginWait(); setSent(null); setError(null); setEmail(sent.email); }}>
           Змінити пошту
         </button>
       </div>

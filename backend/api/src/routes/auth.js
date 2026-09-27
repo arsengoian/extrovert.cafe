@@ -50,6 +50,54 @@ async function issue(reply, user) {
 
 const redis = redisClient();
 
+// ── вхід із пошти в іншому браузері ────────────────────────────────────
+// Gmail відкриває посилання у своєму вікні, а на iPhone воно не ділить
+// сховище з Safari: людина «входила» всередині Gmail, а там, де просила
+// лист, лишалась поза акаунтом (власник, 27.09.2026). Тому вкладка-прохач
+// отримує секрет очікування і чекає: посилання, відкрите будь-де й
+// підтверджене людиною, дає їй власну сесію (docs/services.md §3).
+//
+// Чекає вона довгим запитом, а не опитуванням: сервер тримає запит до
+// WAIT_S секунд і відпускає одразу, щойно прийде сигнал із Redis. Сигнал
+// і база — два шляхи до тієї самої правди: сигнал будить, а що саме
+// сталось, щоразу читаємо з login_links.
+const WAIT_S = 20;
+const waiters = new Map();          // hex(wait_hash) → Set<wake>
+let sub = null;
+function listen() {
+  if (sub) return;
+  sub = redisClient();
+  sub.psubscribe("login:wake:*").catch(() => {});
+  sub.on("pmessage", (_p, channel) => {
+    const set = waiters.get(channel.slice("login:wake:".length));
+    if (set) for (const wake of set) wake();
+  });
+}
+function nap(key, ms) {
+  listen();
+  return new Promise((done) => {
+    const set = waiters.get(key) ?? new Set();
+    waiters.set(key, set);
+    const wake = () => { clearTimeout(t); set.delete(wake); if (!set.size) waiters.delete(key); done(); };
+    // Раз на кілька секунд перечитуємо базу й без сигналу: загублене
+    // повідомлення не має коштувати людині входу.
+    const t = setTimeout(wake, ms);
+    set.add(wake);
+  });
+}
+const wakeWaiter = (waitHash) => redis.publish(`login:wake:${waitHash.toString("hex")}`, "1").catch(() => {});
+
+// «Chrome · Android» із user-agent — щоб людина впізнала на екрані «Це ти
+// входиш?» свій пристрій. Точність не потрібна: досить, щоб чужий телефон
+// не виглядав як свій ноутбук.
+function deviceOf(ua = "") {
+  const os = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "Mac" : /Linux/.test(ua) ? "Linux" : null;
+  const browser = /EdgA?\//.test(ua) ? "Edge" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /Firefox|FxiOS/.test(ua) ? "Firefox"
+    : /OPR\//.test(ua) ? "Opera" : /Chrome|CriOS/.test(ua) ? "Chrome" : /Safari/.test(ua) ? "Safari" : null;
+  return [browser, os].filter(Boolean).join(" · ") || "невідомий пристрій";
+}
+
 // ── вхід через Google ───────────────────────────────────────────────────
 //
 // Звичайний authorization code flow, без бібліотек: два запити до Google і
@@ -124,12 +172,14 @@ export default async function routes(app) {
     if (recent.per_email >= LIMITS.perEmailHour || recent.per_ip >= LIMITS.perIpHour) fail(429, "too_many");
 
     // У базі лише хеш: посилання — це ключ від акаунта, і дамп таблиці не
-    // має давати змогу ним скористатись.
+    // має давати змогу ним скористатись. Так само й секрет очікування: його
+    // знає лише вкладка, яка просила лист.
     const token = randomBytes(32).toString("base64url");
+    const wait = randomBytes(24).toString("base64url");
     await query(
-      `insert into login_links (token_hash, email, next_path, expires_at, ip, user_agent)
-       values ($1, $2, $3, now() + make_interval(mins => $4), $5, $6)`,
-      [hash(token), email, next, LINK_TTL_MIN, ip, String(req.headers["user-agent"] ?? "").slice(0, 300)]
+      `insert into login_links (token_hash, email, next_path, expires_at, ip, user_agent, wait_hash)
+       values ($1, $2, $3, now() + make_interval(mins => $4), $5, $6, $7)`,
+      [hash(token), email, next, LINK_TTL_MIN, ip, String(req.headers["user-agent"] ?? "").slice(0, 300), hash(wait)]
     );
     // Прибирання дорогою: рядки живуть добу, для лімітів і розбору скарг
     // цього досить, а окрема робота в scheduler під це — зайва.
@@ -153,7 +203,68 @@ export default async function routes(app) {
         fail(502, "mail_failed");
       }
     }
-    return { ok: true, cooldown: LIMITS.cooldownS, minutes: LINK_TTL_MIN };
+    return { ok: true, cooldown: LIMITS.cooldownS, minutes: LINK_TTL_MIN, wait };
+  });
+
+  // Що саме підтверджує людина, відкривши посилання в іншому браузері:
+  // яка пошта й з якого пристрою просили вхід. Посилання не витрачає.
+  // waiting: false — прохання старе (до 27.09.2026) або вкладки-прохача не
+  // було: тоді сторінка просто входить, як раніше.
+  app.post("/auth/email/peek", async (req) => {
+    const token = String(req.body?.token ?? "");
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) fail(400, "bad_token");
+    const link = await one(
+      `select email, user_agent, created_at, wait_hash is not null as waiting
+         from login_links where token_hash = $1 and used_at is null and expires_at > now()`,
+      [hash(token)]
+    );
+    if (!link) fail(410, "link_expired");
+    return { email: link.email, device: deviceOf(link.user_agent ?? ""), requested_at: link.created_at, waiting: link.waiting };
+  });
+
+  // «Ні, не я»: посилання згоряє, і вкладка-прохач, якщо вона чужа,
+  // дізнається, що входу не буде.
+  app.post("/auth/email/reject", async (req) => {
+    const token = String(req.body?.token ?? "");
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) fail(400, "bad_token");
+    const link = await one(
+      `update login_links set used_at = now(), rejected_at = now()
+        where token_hash = $1 and used_at is null returning wait_hash`,
+      [hash(token)]
+    );
+    if (link?.wait_hash) await wakeWaiter(link.wait_hash);
+    return { ok: true };
+  });
+
+  // Вкладка-прохач чекає підтвердження. Відповідь: сесія (як у verify),
+  // { pending: true } — ще не підтвердили, спитай знову, або 410 —
+  // посилання відхилили чи воно застаріло.
+  app.post("/auth/email/wait", async (req, reply) => {
+    const wait = String(req.body?.wait ?? "");
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(wait)) fail(400, "bad_wait");
+    const h = hash(wait);
+    const key = h.toString("hex");
+    const until = Date.now() + WAIT_S * 1000;
+    for (;;) {
+      const claimed = await one(
+        `update login_links set claimed_at = now()
+          where wait_hash = $1 and approved_at is not null and claimed_at is null
+          returning email, next_path`,
+        [h]
+      );
+      if (claimed) {
+        const user = await userByEmail(claimed.email);
+        return { ...(await issue(reply, user)), next: claimed.next_path ?? "/" };
+      }
+      const link = await one(
+        "select rejected_at, claimed_at, expires_at > now() as alive from login_links where wait_hash = $1",
+        [h]
+      );
+      if (!link || link.rejected_at || link.claimed_at || (!link.alive)) fail(410, link?.rejected_at ? "login_rejected" : "link_expired");
+      const left = until - Date.now();
+      if (left <= 0) return { pending: true };
+      await nap(key, Math.min(left, 5000));
+    }
   });
 
   // Сторінка /login бере токен із фрагмента й надсилає сюди. Одноразовий:
@@ -221,15 +332,19 @@ export default async function routes(app) {
   app.post("/auth/email/verify", async (req, reply) => {
     const token = String(req.body?.token ?? "");
     if (!/^[A-Za-z0-9_-]{20,100}$/.test(token)) fail(400, "bad_token");
+    // Відкрите посилання — це й підтвердження для вкладки-прохача, якщо
+    // вона є: вона забере власну сесію через /auth/email/wait.
     const link = await one(
-      `update login_links set used_at = now()
+      `update login_links set used_at = now(), approved_at = case when wait_hash is null then null else now() end
         where token_hash = $1 and used_at is null and expires_at > now()
-        returning email, next_path`,
+        returning email, next_path, wait_hash`,
       [hash(token)]
     );
     if (!link) fail(410, "link_expired");
     const user = await userByEmail(link.email);
-    return { ...(await issue(reply, user)), next: link.next_path ?? "/" };
+    const session = await issue(reply, user);
+    if (link.wait_hash) await wakeWaiter(link.wait_hash);
+    return { ...session, next: link.next_path ?? "/", waiting: Boolean(link.wait_hash) };
   });
 
   // Девелоперський вхід: створює гравця з metadata.dev = true, щоб скрипти

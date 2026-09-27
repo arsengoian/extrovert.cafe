@@ -474,7 +474,11 @@ CREATE TABLE public.login_links (
     expires_at timestamp with time zone NOT NULL,
     used_at timestamp with time zone,
     ip inet,
-    user_agent text
+    user_agent text,
+    wait_hash bytea,
+    approved_at timestamp with time zone,
+    claimed_at timestamp with time zone,
+    rejected_at timestamp with time zone
 );
 
 
@@ -2726,6 +2730,13 @@ CREATE INDEX login_links_ip_created_idx ON public.login_links USING btree (ip, c
 
 
 --
+-- Name: login_links_wait_hash_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX login_links_wait_hash_idx ON public.login_links USING btree (wait_hash) WHERE (wait_hash IS NOT NULL);
+
+
+--
 -- Name: market_listings_kind_seller_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3597,4 +3608,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260923170000'),
     ('20260923171000'),
     ('20260924070000'),
-    ('20260927010000');
+    ('20260927010000'),
+    ('20260927120000');

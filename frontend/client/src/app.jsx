@@ -17,11 +17,13 @@ import { SCREENS, TAB_SCREEN } from "./screens/index.js";
 import { Start } from "./screens/Start.jsx";
 import { Onboarding } from "./screens/Onboarding.jsx";
 import { BonusPopup } from "./screens/Bonus.jsx";
+import { LoginConfirm } from "./screens/LoginConfirm.jsx";
+import { readLoginWait } from "./loginWait.js";
 import "./theme.js";
 
 const TAB_KEY = "extrovert.tab";
 
-export function App({ bonusToken = null, returningFromPayment = false, login = null, legalDoc = null, loginNote = null }) {
+export function App({ bonusToken = null, returningFromPayment = false, login = null, confirmLogin = null, legalDoc = null, loginNote = null }) {
   const [me, setMe] = useState(null);
   const [booting, setBooting] = useState(true);
   // Вкладка переживає перезавантаження: людина оновлює сторінку на «Складі»
@@ -61,6 +63,9 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Що сказати на стартовому екрані: посилання з листа не спрацювало чи
   // api не відповідає.
   const [bootNote, setBootNote] = useState(loginNote);
+  // Посилання з листа відкрили не там, де просили вхід: спершу «Це ти
+  // входиш?» (screens/LoginConfirm.jsx), застосунок — потім.
+  const [confirming, setConfirming] = useState(confirmLogin);
 
   useEffect(() => {
     if (me || !bonusToken) return;
@@ -214,6 +219,29 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     [me, rev, refreshMe, push, pop, replace, openTab, tab, support, stack.length]
   );
 
+  // Цей браузер просив лист і сторінку перезавантажили — повертаємось на
+  // «Лист уже летить» і чекаємо далі, а не губимо прохання (loginWait.js).
+  useEffect(() => {
+    const w = !booting && !me && !guest ? readLoginWait() : null;
+    if (w) setGuest({ name: "emailLogin", props: { next: w.next ?? "/" } });
+  }, [booting]);
+
+  if (confirming) {
+    return (
+      <div className="app">
+        <div className="stage">
+          <LoginConfirm token={confirming} onDone={async (r) => {
+            setConfirming(null);
+            if (!r) return;
+            if (r.next && r.next !== "/") { window.location.replace(r.next); return; }
+            await refreshMe().catch(() => {});
+          }} />
+        </div>
+        {notice}
+      </div>
+    );
+  }
+
   if (booting) return <div className="app" />;
 
   // Гостьовий екран — поза авторизацією: скарга, підтримка, умови,
@@ -225,6 +253,9 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     const guestTitle = typeof def.title === "function" ? def.title(guest.props ?? {}) : def.title;
     const guestCtx = {
       me: null, refreshMe, tab: null, openTab: () => setGuest(null), notify: setNotice, support,
+      // Вхід стався з гостьового екрана (пошту підтвердили з листа): далі
+      // звичайний застосунок, без гостьового екрана поверх.
+      signedIn: async () => { await refreshMe(); setGuest(null); },
       pop: () => setGuest(null), push: (name, props = {}) => setGuest({ name, props }),
       replace: (name, props = {}) => setGuest({ name, props }),
     };

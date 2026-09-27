@@ -4,6 +4,7 @@ import { App } from "./app.jsx";
 import { api } from "./api.js";
 import { RepostLanding } from "./RepostLanding.jsx";
 import { installTapFx } from "./ui/fx.jsx";
+import { readLoginWait } from "./loginWait.js";
 import "./theme.css";
 
 // Кільце тапу — один слухач на весь документ, а не обгортка кожної кнопки.
@@ -30,7 +31,12 @@ const returningFromPayment = new URLSearchParams(window.location.search).has("pa
 // рівно один раз: StrictMode запускає ефекти двічі, а посилання одноразове.
 const loginToken = window.location.pathname === "/login" ? window.location.hash.slice(1) : null;
 if (window.location.pathname === "/login") window.history.replaceState({}, "", "/");
-const login = loginToken ? api.emailVerify(loginToken) : null;
+// Лист просили з цього ж браузера (ПК: пошта в сусідній вкладці) — входимо
+// одразу. Інакше це, найімовірніше, вікно Gmail чи інший пристрій: там
+// спершу екран «Це ти входиш?», а вхід дістається вкладці, яка просила лист
+// (screens/LoginConfirm.jsx).
+const login = loginToken && readLoginWait() ? api.emailVerify(loginToken) : null;
+const confirmLogin = loginToken && !login ? loginToken : null;
 
 // Google повертає сюди з ?login=<причина>, якщо вхід не склався. Адресу
 // одразу чистимо, щоб перезавантаження не показувало те саме вдруге.
@@ -50,6 +56,6 @@ const legalDoc = { "/privacy-policy": "privacy", "/terms": "terms" }[window.loca
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} legalDoc={legalDoc} loginNote={loginNote} />}
+    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} confirmLogin={confirmLogin} legalDoc={legalDoc} loginNote={loginNote} />}
   </StrictMode>
 );
