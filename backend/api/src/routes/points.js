@@ -13,6 +13,7 @@ import { buildMenu } from "@extrovert/lib/menu.js";
 import { pool, query } from "../db.js";
 import { verifyToken } from "../auth.js";
 import { fail } from "../errors.js";
+import { restoreAcked } from "@extrovert/lib/deployments.js";
 
 const MAX_BATCH = 200;
 
@@ -107,7 +108,10 @@ export default async function routes(app) {
         where deployment_id = $1 and point_id = $2 and kind = 'r2'`,
       [id, authorized]
     );
-    return { ok: true, acked: res.rowCount };
+    // Підтвердив запізно (точка оживала, мережа гикнула) — ціль, яку
+    // overseer уже позначив «не на екрані», знову done.
+    const restored = res.rowCount ? await restoreAcked(pool, id, authorized) : false;
+    return { ok: true, acked: res.rowCount, restored };
   });
 
   app.post("/points/:id/telemetry", async (req, reply) => {

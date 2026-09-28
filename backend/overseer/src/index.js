@@ -14,7 +14,8 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
-import { checkDevices, checkPoints, checkWebhook, dailyReport, outageKind } from "./checks.js";
+import { checkDevices, checkMenuAcks, checkPoints, checkWebhook, dailyReport, outageKind } from "./checks.js";
+import { ACK_DEADLINE_MIN } from "@extrovert/lib/deployments.js";
 import { sampleHealth } from "./health.js";
 import { send } from "./telegram.js";
 
@@ -68,6 +69,16 @@ async function tick() {
   for (const d of await checkDevices(pool)) {
     const say = d.once ? await first(`device:${d.key}`) : await changed(`device:${d.key}`, d.state);
     if (say) lines.push(d.text);
+  }
+
+  // Нове меню не зʼявилось на екрані: кіоск не підтвердив за кілька хвилин.
+  // Нічого не відкочується — меню в бакеті, кіоск підхопить його сам, і
+  // тоді прийде «знову на екрані» (lib/deployments.js).
+  for (const m of await checkMenuAcks(pool)) {
+    if (!(await changed(`menu-ack:${m.id}`, m.state))) continue;
+    lines.push(m.state === "ok"
+      ? `✅ ${m.name}: меню на екрані знову актуальне`
+      : `🖥 ${m.name}: нове меню (деплой №${m.deployment}) не зʼявилось на екрані за ${ACK_DEADLINE_MIN} хв — кіоск не підтвердив`);
   }
 
   const webhook = await checkWebhook();

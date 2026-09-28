@@ -1,5 +1,7 @@
 // Перевірки overseer. Кожна повертає стан, а не текст алерту: вирішувати,
 // чи писати в чат, — справа виклику (алерт лише на зміну стану).
+import { UNACKED, markUnacked } from "@extrovert/lib/deployments.js";
+
 // Скільки точці можна мовчати — рахуємо з її ж ритму, а не з константи.
 //
 // 24.09.2026 тут стояло фіксовані 3 хвилини «бо малина шле щохвилини». Малина
@@ -329,6 +331,26 @@ export async function outageKind(pool, pointId) {
       : `малина не працювала ${human(hole / 60)}`;
   }
   return `не було інтернету ${human(outage / 60)}, малина працювала`;
+}
+
+// Меню на екрані чи ні: прострочені підтвердження кіоска — у failed
+// (lib/deployments.js), а стан точки — за її останньою ціллю r2. unacked,
+// доки кіоск не підтвердить; тоді api поверне ціль у done, і стан стане ok.
+export async function checkMenuAcks(pool) {
+  await markUnacked(pool);
+  const { rows } = await pool.query(
+    `select distinct on (t.point_id) t.point_id, p.name, t.deployment_id, t.status, t.error
+       from menu_deployment_targets t
+       join points p on p.id = t.point_id
+      where t.kind = 'r2' and t.status in ('done', 'failed') and p.status <> 'retired'
+      order by t.point_id, t.deployment_id desc`
+  );
+  return rows.map((r) => ({
+    id: r.point_id,
+    name: r.name,
+    deployment: Number(r.deployment_id),
+    state: r.status === "failed" && r.error === UNACKED ? "unacked" : "ok",
+  }));
 }
 
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який

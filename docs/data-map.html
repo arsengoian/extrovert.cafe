@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело d3abdab</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0f55964</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -807,6 +807,17 @@ API: <code>libwebsockets</code> у Stretch — 2.0 із 2016 року, і той
 </code></pre>
 <p>Статус у кожної цілі свій, тож одна офлайн-малина робить деплой <code>partial</code>,
 а не проваленим (<a class="doclink" href="#db"><code>db-schema.md</code></a> §1).</p>
+<p><strong>«У бакеті» ще не означає «на екрані»</strong> (28.09.2026). Кіоск підтверджує
+кожне меню, яке показав (<code>POST /points/&lt;id&gt;/menu/ack</code> → <code>acked_at</code>), — і
+за подією <code>menu.deployed</code>, і коли нове меню приїхало звичайним
+опитуванням: номер деплою лежить у самому <code>menu.json</code> (<code>deployment</code>).
+Якщо за 3 хвилини підтвердження немає, overseer позначає ціль <code>failed</code> з
+поясненням «кіоск не підтвердив, що показує це меню», деплой стає
+<code>partial</code> чи <code>failed</code>, і в Telegram іде «🖥 Точка: нове меню не
+зʼявилось на екрані». <strong>Нічого не відкочується</strong>: меню лишається в
+бакеті, кіоск перечитує його щохвилини, а коли підтвердить — хоч за
+годину, коли точка оживе, — api повертає ціль у <code>done</code>, і приходить «✅
+меню на екрані знову актуальне». Логіка — <code>backend/lib/src/deployments.js</code>.</p>
 <p><strong>Знижка в кав&#39;ярні (<code>pos_discount</code>) — теж деплой цін</strong> (27.09.2026). Гравець купує знижку за
 зерна для обраної точки, і в чергу стають два деплойменти цієї точки:
 знижений на 20 ₴ (<code>payload.reason = &quot;pos_discount&quot;</code>), а за ним
@@ -1437,7 +1448,7 @@ erDiagram
         text point_id FK &quot;чия ціна їде; для checkbox — чию філію оновлюємо&quot;
         text status &quot;queued|deploying|done|failed|skipped&quot;
         timestamptz done_at
-        timestamptz acked_at &quot;кіоск підтвердив, що показує (POST /points/:id/menu/ack)&quot;
+        timestamptz acked_at &quot;кіоск підтвердив, що показує; немає за 3 хв — ціль failed (lib/deployments.js)&quot;
         text error
     }
     BONUS_GRANTS {
@@ -1515,7 +1526,7 @@ erDiagram
 </article>
 <article class="entity" id="t-menu_deployment_targets">
   <header><h4>menu_deployment_targets</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">deployment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">r2|checkbox|jetinno</td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">чия ціна їде; для checkbox — чию філію оновлюємо</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">queued|deploying|done|failed|skipped</td></tr><tr><td class="c-name">done_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">acked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">кіоск підтвердив, що показує (POST /points/:id/menu/ack)</td></tr><tr><td class="c-name">error</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">deployment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">r2|checkbox|jetinno</td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">чия ціна їде; для checkbox — чию філію оновлюємо</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">queued|deploying|done|failed|skipped</td></tr><tr><td class="c-name">done_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">acked_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">кіоск підтвердив, що показує; немає за 3 хв — ціль failed (lib/deployments.js)</td></tr><tr><td class="c-name">error</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">яке меню стоїть</span></li><li><span class="rel-card">← 1</span><a href="#t-menu_deployments">menu_deployments</a><span class="rel-label">куди котимо</span></li></ul>
 </article>
 <article class="entity" id="t-bonus_grants">
@@ -10894,7 +10905,7 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 Оголошення / Новина / без плашки), два рядки заголовка, акцентний рядок,
 дрібний рядок і напій, зі спрайта якого береться картинка. На «Цінах»
 акцію обирають зі списку, і деплоймент везе її на точку, </li>
-<li>історія деплойментів цін (можуть бути queued, deploying, current, failed, history)</li>
+<li>історія деплойментів цін (можуть бути queued, deploying, current, failed, history). Ціль «впало» може означати й те, що меню в бакеті, але кіоск за 3 хвилини не підтвердив, що показує його (підказка на бейджі) — щойно підтвердить, ціль сама стане «готово» (services.md, «У бакеті ще не означає на екрані»)</li>
 <li>кнопка «Тестова знижка» над історією: ставить на всі точки ті самі два деплойменти, що й знижка на POS (знижені ціни й повернення через <code>window_s</code> секунд), — щоб побачити на кіоску білу плашку з відліком і іконки відсотка. Зерна не списуються, автомат про знижку не знає (gamification_economy.md §6)</li>
 </ul>
 <h3 id="admin-panel-помилки-показує-к-ть-непрочитаних"><a class="anchor" href="#admin-panel-помилки-показує-к-ть-непрочитаних" aria-hidden="true">#</a>Помилки (показує к-ть &quot;непрочитаних&quot;)</h3>
@@ -11977,7 +11988,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел d3abdab — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0f55964 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

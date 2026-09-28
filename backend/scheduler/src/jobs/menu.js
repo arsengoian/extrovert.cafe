@@ -62,6 +62,11 @@ async function deployNext(client, log) {
       );
       throw e;
     });
+    // Номер деплою — у самому меню: кіоск підтверджує його (menu/ack) і
+    // тоді, коли нове меню приїхало звичайним опитуванням, а не подією, —
+    // точка, яка була офлайн під час викоту, не лишається «не на екрані»
+    // назавжди (lib/deployments.js).
+    menu.deployment = Number(deployment.id);
     const body = Buffer.from(JSON.stringify(menu, null, 2) + "\n");
     return { menu, body };
   };
