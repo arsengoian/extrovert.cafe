@@ -54,7 +54,8 @@ async function deployNext(client, log) {
   // точки (points.machine_letter), а решта вмісту спільна. Тому будуємо
   // його всередині циклу по цілях, а не один раз на деплоймент.
   const menuFor = async (letter) => {
-    const menu = await buildMenu(client, letter).catch(async (e) => {
+    // payload.discount — знижка на точці (backend/api/src/discount.js).
+    const menu = await buildMenu(client, letter, deployment.payload ?? {}).catch(async (e) => {
       await client.query(
         "update menu_deployments set status = 'failed', finished_at = now() where id = $1",
         [deployment.id]

@@ -6,7 +6,9 @@
 // Справжній вхід (пошта з паролем із admin_users, або той самий Google)
 // зʼявиться разом із першими екранами — і тоді тут стане більше роутів, а
 // не більше сервісів.
-import { pool, one } from "../db.js";
+import { pool, one, tx } from "../db.js";
+import { economy } from "../economy.js";
+import { queueDiscount } from "../discount.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { requireAdmin, signToken } from "../auth.js";
 import { verifyPassword } from "../admin-auth.js";
@@ -106,6 +108,27 @@ export default async function routes(app) {
       );
     }
     return { ...deployment, points };
+  });
+
+  // Тестова знижка на точках: ті самі два деплойменти, що й купівля
+  // гравцем (discount.js), — щоб побачити на кіоску плашку з відліком і
+  // знижені ціни. Автомат про знижку поки не знає (цілей checkbox і jetinno
+  // немає), тож пробивати справжні чеки в цей час не варто.
+  app.post("/admin/menu/discount-test", async (req, reply) => {
+    const admin = requireAdmin(req, reply);
+    if (!admin) return;
+    const cfg = economy.shop_beans.pos_discount;
+    const seconds = Math.max(15, Math.min(900, Math.floor(Number(req.body?.seconds) || cfg.window_s || 120)));
+    const points = Array.isArray(req.body?.points) && req.body.points.length
+      ? req.body.points
+      : (await pool.query("select id from points where status <> 'retired' order by id")).rows.map((r) => r.id);
+    if (!points.length) return reply.code(400).send({ error: "no_points" });
+    const out = await tx(async (client) => {
+      let last = null;
+      for (const point of points) last = await queueDiscount(client, point, { uah: cfg.uah, seconds, createdBy: admin.id, meta: { test: true } });
+      return last;
+    });
+    return { until: out.until, seconds, uah: cfg.uah, points };
   });
 
   // Вхід адміна: пошта й пароль із admin_users. Форми «зареєструватися»

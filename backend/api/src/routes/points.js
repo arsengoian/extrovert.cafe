@@ -91,6 +91,25 @@ export default async function routes(app) {
     };
   });
 
+  // Кіоск підтверджує, що показав меню цього деплойменту (подія
+  // menu.deployed → перечитав → сюди). acked_at видно в адмінці поруч зі
+  // статусом цілі: «викотили в бакет» ще не означає «на екрані». До
+  // 27.09.2026 кіоск подію ігнорував, і acked_at не писав ніхто.
+  app.post("/points/:id/menu/ack", async (req, reply) => {
+    const authorized = pointFromRequest(req);
+    if (!authorized || authorized !== req.params.id) {
+      return reply.code(401).send({ error: "unauthorized" });
+    }
+    const id = Number(req.body?.deployment_id);
+    if (!Number.isInteger(id) || id <= 0) fail(400, "bad_deployment");
+    const res = await query(
+      `update menu_deployment_targets set acked_at = coalesce(acked_at, now())
+        where deployment_id = $1 and point_id = $2 and kind = 'r2'`,
+      [id, authorized]
+    );
+    return { ok: true, acked: res.rowCount };
+  });
+
   app.post("/points/:id/telemetry", async (req, reply) => {
     const authorized = pointFromRequest(req);
     if (!authorized || authorized !== req.params.id) {
