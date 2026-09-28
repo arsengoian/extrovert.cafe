@@ -61,6 +61,35 @@ export const WEAR_ERROR = {
   no_such_plant: "Кавенятка більше немає",
 };
 
+// Що з річчю зараз можна зробити. Вільна копія — і вдягнути, і продати;
+// копія в примірочній — перевдягнути. Якщо ж усі копії замкнені подарованим
+// комплектом або виставлені на продаж, дій немає зовсім (власник,
+// 28.09.2026): на клітинці — замок (усі в комплекті) чи цінник (хоч одна
+// на продажу), а в попапі замість кнопок — плашка з поясненням.
+export function stockState(item) {
+  const fitting = item.fitting?.length ?? 0;
+  const blocked = (item.free ?? 0) === 0 && fitting === 0;
+  if (!blocked) return { blocked: false };
+  return { blocked: true, badge: (item.listed ?? 0) > 0 ? "sale" : "lock" };
+}
+
+function blockedNote(item) {
+  const listed = item.listed ?? 0, locked = item.locked ?? 0;
+  const many = (item.owned ?? 1) > 1;
+  if (!listed) {
+    return many
+      ? "Усі екземпляри замкнені в подарованих комплектах – їх уже не можна ні продати, ні вдягнути ще раз."
+      : "Річ замкнена в подарованому комплекті – її вже не можна ні продати, ні вдягнути ще раз.";
+  }
+  const unlist = `Поки ${listed > 1 ? "лоти не знято" : "лот не знято"} (це в «На продаж» унизу Складу)`;
+  if (!locked) {
+    return many
+      ? `Усі екземпляри виставлені на продаж. ${unlist}, їх не можна ні вдягнути, ні продати ще раз.`
+      : `Річ виставлена на продаж. ${unlist}, її не можна ні вдягнути, ні продати ще раз.`;
+  }
+  return `Частина екземплярів замкнена в подарованих комплектах, решта – на продажу. ${unlist}, з річчю нічого не зробити.`;
+}
+
 export function StockItemSheet({ item, ctx, onClose, onChanged }) {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -116,14 +145,18 @@ export function StockItemSheet({ item, ctx, onClose, onChanged }) {
         </div>
       )}
       {error && <div className="short-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
-      <div className="stock-item-actions">
-        <button className="cta wide" disabled={!wearId || busy} onClick={wardrobe}>
-          {busy ? "…" : fitting.length ? "Перевдягнути" : "Додати до гардеробу"}
-        </button>
-        <button className="cta wide ghost" disabled={!item.free} onClick={() => { onClose(); ctx.push("sellItem", { item }); }}>
-          Продати іншому користувачу
-        </button>
-      </div>
+      {stockState(item).blocked
+        ? <div className="stock-fitting">{blockedNote(item)}</div>
+        : (
+          <div className="stock-item-actions">
+            <button className="cta wide" disabled={!wearId || busy} onClick={wardrobe}>
+              {busy ? "…" : fitting.length ? "Перевдягнути" : "Додати до гардеробу"}
+            </button>
+            <button className="cta wide ghost" disabled={!item.free} onClick={() => { onClose(); ctx.push("sellItem", { item }); }}>
+              Продати іншому користувачу
+            </button>
+          </div>
+        )}
     </ConfirmSheet>
   );
 }

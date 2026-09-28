@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
-import { StockItemSheet } from "./StockItem.jsx";
+import { StockItemSheet, stockState } from "./StockItem.jsx";
 import { openStockCrate } from "./Crate.jsx";
 
 // Порядок слотів у ряду — як у примірочній: голова, тіло, штани, взуття,
@@ -78,23 +78,29 @@ export function Stock({ ctx }) {
               {SLOTS.map((slot) => {
                 const it = bySlot[slot];
                 if (!it) return <div key={slot} className="cell empty" />;
-                // Усі копії на ринку — предмет заморожений: ні вдягнути, ні
-                // продати вдруге. Показуємо замок у куточку й ведемо одразу
-                // в «На продаж», де лот можна зняти (скарга власника
-                // 23.09.2026: на клітинці цього не було видно взагалі).
-                const frozen = (it.listed ?? 0) > 0 && (it.free ?? 0) === 0;
+                // З усіма копіями зараз нічого не зробити — клітинка
+                // приглушена, а в куточку видно чому: замок — усі в
+                // подарованих комплектах, цінник — хоч одна на продажу (скарги
+                // власника 23.09.2026 і 28.09.2026). Попап відкривається й
+                // тоді: замість кнопок у ньому плашка з поясненням.
+                const { blocked, badge } = stockState(it);
                 return (
-                  <button key={slot} className="cell" data-frozen={frozen || undefined}
-                          title={frozen ? "На продажу — заморожено" : it.name}
-                          onClick={() => (frozen
-                            ? ctx.push("listings")
-                            : ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} onChanged={loadItems} />))}>
+                  <button key={slot} className="cell" data-frozen={blocked || undefined}
+                          title={badge === "sale" ? "На продажу" : badge === "lock" ? "У подарованому комплекті" : it.name}
+                          onClick={() => ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} onChanged={loadItems} />)}>
                     <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: 36 }} />
                     {it.owned > 1 && <i>×{it.owned}</i>}
-                    {frozen && (
-                      <b className="cell-lock" aria-label="на продажу">
+                    {badge === "lock" && (
+                      <b className="cell-lock" aria-label="у подарованому комплекті">
                         <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                           <rect x="5" y="10.5" width="14" height="9.5" rx="2.2" /><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+                        </svg>
+                      </b>
+                    )}
+                    {badge === "sale" && (
+                      <b className="cell-lock" aria-label="на продажу">
+                        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3.5 12.2V4.6a1.1 1.1 0 0 1 1.1-1.1h7.6l8.3 8.3a1.6 1.6 0 0 1 0 2.2l-6.1 6.1a1.6 1.6 0 0 1-2.2 0z" /><circle cx="8.3" cy="8.3" r="1.2" fill="currentColor" stroke="none" />
                         </svg>
                       </b>
                     )}

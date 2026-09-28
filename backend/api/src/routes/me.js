@@ -73,6 +73,8 @@ export default async function routes(app) {
       `select d.code, d.name, d.collection, d.slot, d.tier, d.sprite_id, d.description_md,
               count(*)::int as owned,
               count(*) filter (where ui.listing_id is not null)::int as listed,
+              -- замкнені подарованим комплектом — назавжди: ні продати, ні вдягнути
+              count(*) filter (where ui.locked)::int as locked,
               -- «вільна» копія — та, яку можна продати чи вдягнути: не
               -- замкнена комплектом, не на маркеті й не в чужому наборі
               count(*) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null)::int as free,
