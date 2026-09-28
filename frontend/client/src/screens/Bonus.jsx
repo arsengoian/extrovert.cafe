@@ -16,28 +16,44 @@ const ERRORS = {
   no_such_bonus: "Такого бонусу немає",
 };
 
-export function BonusPopup({ token, ctx, onClose }) {
+// tokens — кілька бонусів разом: ті, що гість накопичив до входу
+// (bonusStash.js), плюс щойно відскановані. Показуємо суму монет і всі
+// предмети, «Отримати» зараховує кожен; уже забрані просто пропускаємо.
+export function BonusPopup({ tokens, ctx, onClose, onDone }) {
   const [state, setState] = useState(null);
+  const [live, setLive] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const enc = encodeURIComponent;
 
   useEffect(() => {
-    api.get(`/me/bonus/${encodeURIComponent(token)}`)
-      .then((s) => {
-        setState(s);
-        if (s.status === "redeemed") setError(s.mine ? ERRORS.already_yours : ERRORS.already_taken);
-        // Той самий сигнал кіоску, що й на стартовому екрані: бонус у
-        // телефоні, QR на точці більше не потрібен.
-        else api.post(`/bonus/${encodeURIComponent(token)}/seen`, {}).catch(() => {});
-      })
-      .catch((e) => setError(ERRORS[e.body?.error] ?? errText(e)));
-  }, [token]);
+    Promise.all(tokens.map((t) => api.get(`/me/bonus/${enc(t)}`).then((s) => ({ t, s })).catch((e) => ({ t, e }))))
+      .then((list) => {
+        const open = list.filter((x) => x.s && x.s.status !== "redeemed");
+        for (const x of open) api.post(`/bonus/${enc(x.t)}/seen`, {}).catch(() => {});   // QR на точці більше не потрібен
+        setLive(open.map((x) => x.t));
+        if (!open.length) {
+          const first = list[0];
+          setError(first?.s ? (first.s.mine ? ERRORS.already_yours : ERRORS.already_taken) : ERRORS[first?.e?.body?.error] ?? errText(first?.e));
+          onDone?.();
+          return;
+        }
+        setState({
+          coins: open.reduce((n, x) => n + (x.s.coins ?? 0), 0),
+          items: open.flatMap((x) => x.s.items ?? []),
+        });
+      });
+  }, [tokens.join(",")]);
 
   const take = async () => {
     if (error) return onClose();
     setBusy(true);
     try {
-      await api.post(`/me/bonus/${encodeURIComponent(token)}`);
+      for (const t of live) {
+        try { await api.post(`/me/bonus/${enc(t)}`); }
+        catch (e) { if (!["already_yours", "already_taken"].includes(e.body?.error)) throw e; }
+      }
+      onDone?.();
       await ctx.refreshMe();
       onClose();
     } catch (e) {
@@ -47,7 +63,7 @@ export function BonusPopup({ token, ctx, onClose }) {
     }
   };
 
-  const item = state?.items?.[0];
+  const items = state?.items ?? [];
   return (
     <ResultPopup title="Бонус зарахований" offset={96} gap={18} action={error ? "Зрозуміло" : busy ? "Отримуємо…" : "Отримати"}
                  onAction={take} onClose={onClose}>
@@ -57,15 +73,15 @@ export function BonusPopup({ token, ctx, onClose }) {
             <span className="fx-pop"><img ref={markCoinSource} src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
             <b>+{state.coins}</b>
           </div>
-          {item && (
-            <div className="loot-tile">
-              <span className={`tier-${item.tier} fx-pop`} style={{ position: "relative", animationDelay: "120ms" }}>
+          {items.map((item, n) => (
+            <div key={`${item.code ?? item.name}-${n}`} className="loot-tile">
+              <span className={`tier-${item.tier} fx-pop`} style={{ position: "relative", animationDelay: `${120 + n * 80}ms` }}>
                 <ItemIcon sprite={item.sprite_id} size={66} alt={`${item.name} «${item.collection}»`} style={{ width: 66 }} />
-                <Sparks kind={item.tier} x="50%" y="50%" delay={370} />
+                <Sparks kind={item.tier} x="50%" y="50%" delay={370 + n * 80} />
               </span>
               <small>{item.name}{item.collection && <><br />«{item.collection}»</>}</small>
             </div>
-          )}
+          ))}
         </div>
       )}
       <div className="loot-note">

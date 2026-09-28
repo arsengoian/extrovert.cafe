@@ -64,6 +64,8 @@ export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null,
             </div>
           </div>
 
+          {/* Усі бонуси, що чекають на вхід, разом: монети однією сумою, а
+              предмети плитками праворуч (bonusStash.js, власник 28.09.2026). */}
           {bonus && (
             <div className="start-bonus">
               <b>Увійди, щоб не втратити бонуси</b>
@@ -72,14 +74,14 @@ export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null,
                   <span><img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 42, height: 44, objectFit: "contain" }} /></span>
                   <b>+{bonus.coins}</b>
                 </div>
-                {bonus.item && (
-                  <div className="bonus-tile">
-                    <span className={`tier-${bonus.item.tier}`}>
-                      <ItemIcon sprite={bonus.item.sprite_id} size={48} alt={bonus.item.name} style={{ width: 48 }} />
+                {(bonus.items ?? []).map((item, n) => (
+                  <div key={`${item.code ?? item.name}-${n}`} className="bonus-tile">
+                    <span className={`tier-${item.tier}`}>
+                      <ItemIcon sprite={item.sprite_id} size={48} alt={item.name} style={{ width: 48 }} />
                     </span>
-                    <small>{bonus.item.name}{bonus.item.collection && <><br />«{bonus.item.collection}»</>}</small>
+                    <small>{item.name}{item.collection && <><br />«{item.collection}»</>}</small>
                   </div>
-                )}
+                ))}
               </div>
             </div>
           )}

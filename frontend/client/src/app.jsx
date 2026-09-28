@@ -20,6 +20,7 @@ import { BonusPopup } from "./screens/Bonus.jsx";
 import { LoginConfirm } from "./screens/LoginConfirm.jsx";
 import { readLoginWait } from "./loginWait.js";
 import { ResultPopup } from "./ui/Popup.jsx";
+import { clearBonuses, dropBonus, isStashed, stashBonus, stashedBonuses } from "./bonusStash.js";
 import { beans as beansText } from "./ui/plural.js";
 import "./theme.js";
 
@@ -69,17 +70,34 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // входиш?» (screens/LoginConfirm.jsx), застосунок — потім.
   const [confirming, setConfirming] = useState(confirmLogin);
 
+  // Бонуси гостя накопичуються на пристрої (bonusStash.js): новий QR додає
+  // свій токен до вже збережених, а стартовий екран показує всі разом —
+  // суму монет і кожен предмет. Новий токен беремо, лише якщо його ще ніхто
+  // не забрав; уже збережений тримаємо, доки його не зарахують.
   useEffect(() => {
-    if (me || !bonusToken) return;
-    api.get(`/bonus/${encodeURIComponent(bonusToken)}/preview`)
-      .then((b) => {
-        if (!b.available) return;
-        setPendingBonus({ coins: b.coins, item: b.items?.[0] ?? null });
-        // Бонус у телефоні — кіоску час прибрати QR з екрана. Кажемо про це
-        // окремим запитом і саме тут: вміст ми вже маємо на руках.
-        api.post(`/bonus/${encodeURIComponent(bonusToken)}/seen`, {}).catch(() => {});
-      })
-      .catch(() => {});
+    if (me) return;
+    const enc = encodeURIComponent;
+    const fresh = bonusToken && !isStashed(bonusToken) ? bonusToken : null;
+    const tokens = [...new Set([...stashedBonuses(), ...(fresh ? [fresh] : [])])];
+    if (!tokens.length) { setPendingBonus(null); return; }
+    Promise.all(tokens.map((t) => api.get(`/bonus/${enc(t)}/preview`).then((b) => ({ t, b })).catch((e) => ({ t, b: null, gone: e.status === 404 }))))
+      .then((list) => {
+        const live = [];
+        for (const { t, b, gone } of list) {
+          if (gone || b?.redeemed || (t === fresh && b && !b.available)) { if (t !== fresh) dropBonus(t); continue; }
+          if (!b) continue;   // мережа — лишаємо, спробуємо наступного разу
+          live.push(b);
+          if (t === fresh) {
+            stashBonus(t);
+            // Бонус у телефоні — кіоску час прибрати QR з екрана.
+            api.post(`/bonus/${enc(t)}/seen`, {}).catch(() => {});
+          }
+        }
+        setPendingBonus(live.length ? {
+          coins: live.reduce((n, b) => n + (b.coins ?? 0), 0),
+          items: live.flatMap((b) => b.items ?? []),
+        } : null);
+      });
   }, [me, bonusToken]);
 
   // rev зростає на кожному оновленні «мене». Екрани, що тримають власні
@@ -147,10 +165,15 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // кавенятко (рішення власника 23.09.2026: перше, що бачить людина після
   // входу, — її кущ, а не список покупок). Токен прибираємо з адреси, щоб
   // оновлення сторінки не намагалось забрати його ще раз.
+  // Разом із бонусами, що гість накопичив до входу (bonusStash.js): після
+  // входу всі зараховуються одним попапом.
   useEffect(() => {
-    if (!bonusToken || !me?.consent) return;
+    if (!me?.consent) return;
+    const tokens = [...new Set([bonusToken, ...stashedBonuses()].filter(Boolean))];
+    if (!tokens.length) return;
     openTab("plant");
-    setNotice(<BonusPopup token={bonusToken} ctx={{ me, refreshMe }} onClose={() => setNotice(null)} />);
+    setNotice(<BonusPopup tokens={tokens} ctx={{ me, refreshMe }}
+                          onDone={clearBonuses} onClose={() => setNotice(null)} />);
     window.history.replaceState({}, "", "/");
   }, [bonusToken, Boolean(me?.consent)]);
 
