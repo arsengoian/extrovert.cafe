@@ -76,11 +76,19 @@ export default async function routes(app) {
               -- «вільна» копія — та, яку можна продати чи вдягнути: не
               -- замкнена комплектом, не на маркеті й не в чужому наборі
               count(*) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null)::int as free,
-              min(ui.id) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null) as user_item_id
+              min(ui.id) filter (where not ui.locked and ui.listing_id is null and ui.set_id is null) as user_item_id,
+              -- У чиїй примірочній лежить копія цієї речі: попап предмета
+              -- каже «у примірочній кавенятка Барні», а кнопка — «Перевдягнути»
+              -- (власник, 28.09.2026).
+              coalesce((select json_agg(json_build_object('plant_id', p.id, 'plant_name', p.name, 'user_item_id', f.id) order by f.id)
+                          from user_items f
+                          join wardrobe_sets ws on ws.id = f.set_id and not ws.gifted
+                          join plants p on p.id = ws.plant_id
+                         where f.user_id = $1 and f.item_def_id = d.id), '[]') as fitting
          from user_items ui
          join item_defs d on d.id = ui.item_def_id
         where ui.user_id = $1
-        group by d.code, d.name, d.collection, d.slot, d.tier, d.sprite_id, d.description_md
+        group by d.id, d.code, d.name, d.collection, d.slot, d.tier, d.sprite_id, d.description_md
         -- Комплекти — у тому ж порядку, що «Весь одяг» у Магазині: за
         -- рідкістю, усередині — за таблицею концептів (catalog.js). До
         -- 27.09.2026 тут була абетка, і склад із магазином не збігались.

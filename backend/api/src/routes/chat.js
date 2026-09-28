@@ -19,6 +19,13 @@ import { complete, hasKey, modelName, offlineAnswer } from "../chat/model.js";
 const HISTORY_LIMIT = 40;          // скільки реплік показуємо
 const CONTEXT_MESSAGES = 10;       // скільки з них віддаємо моделі
 
+// Хмаринка з головного екрана дублюється в чат (власник, 28.09.2026), але
+// лише коли людина давно не писала (ECHO_QUIET_MS) і лише доти, доки три
+// останні репліки не стали всі від кавенятка: далі воно мовчить, поки
+// людина не відповість, — інакше чат перетворився б на стрічку сповіщень.
+const ECHO_QUIET_MS = 2 * 60 * 60 * 1000;
+const ECHO_MAX_STREAK = 3;
+
 const view = (m) => ({
   id: m.id, role: m.role, body: m.body,
   coins_charged: m.coins_charged, created_at: m.created_at,
@@ -110,6 +117,33 @@ export default async function routes(app) {
       blocked: mood !== "healthy" ? "mood" : plant.listing_id ? "on_sale" : null,
       model: hasKey() ? modelName : "offline",
     };
+  });
+
+  // Репліка з хмаринки — у чат як повідомлення кавенятка (див. ECHO_* вище).
+  // Відповідь однакова й тоді, коли не продублювали: клієнту досить знати,
+  // чи оновити лічильник непрочитаних.
+  app.post("/me/plants/:id/chat/echo", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const text = String(req.body?.text ?? "").trim();
+    if (!text || text.length > 300) fail(400, "bad_text");
+    const plant = await one("select id from plants where id = $1 and owner_id = $2", [req.params.id, user.id]);
+    if (!plant) fail(404, "no_such_plant");
+
+    const recent = await many(
+      "select role, body from chat_messages where plant_id = $1 order by id desc limit $2", [plant.id, ECHO_MAX_STREAK]);
+    const lastUser = await one(
+      "select max(created_at) as at from chat_messages where plant_id = $1 and role = 'user'", [plant.id]);
+    const quiet = !lastUser?.at || Date.now() - new Date(lastUser.at).getTime() >= ECHO_QUIET_MS;
+    const streak = recent.length >= ECHO_MAX_STREAK && recent.every((m) => m.role !== "user");
+    const repeat = recent[0] && recent[0].role !== "user" && recent[0].body === text;
+    if (!quiet || streak || repeat) return { echoed: false };
+
+    await one(
+      "insert into chat_messages (plant_id, user_id, role, body) values ($1, $2, 'plant', $3) returning id",
+      [plant.id, user.id, text]
+    );
+    return { echoed: true };
   });
 
   app.post("/me/plants/:id/chat", async (req, reply) => {

@@ -10,7 +10,7 @@ import { Badge, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const REASON = {
   purchase: "бонус за чек", care: "догляд", sapling: "саджанець", exchange: "обмін зерен",
-  pos_discount: "знижка на POS", crate: "скринька", crate_opening: "відкриття скриньки",
+  pos_discount: "знижка в кав'ярні", crate: "скринька", crate_opening: "відкриття скриньки",
   market: "ринок", transfer: "переказ", repost: "репост", chat: "чат", quiz: "опитування",
   delivery: "доставка", wardrobe_set: "комплект одягу",
 };

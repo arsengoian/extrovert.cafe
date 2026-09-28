@@ -1,5 +1,5 @@
 // Знижка на точці — не код, а два деплойменти цін для неї
-// (gamification_economy.md §6, «Знижка на POS — як працює»): спершу меню з
+// (gamification_economy.md §6, «Знижка в кав'ярні — як працює»): спершу меню з
 // ціною, нижчою на uah, а коли вікно закінчиться — звичайне. Черга
 // menu_deployments котить деплойменти по одному в порядку id і не раніше
 // scheduled_at, тож порядок «знижка, потім повернення» дає сама.
@@ -11,9 +11,10 @@
 // (raspberry/kiosk, menu_expire_discount).
 //
 // Поки що ціль лише r2 (меню на кіоску): цілей checkbox і jetinno ще
-// немає, а без них автомат пробиває звичайну ціну. Тому купити знижку
-// гравцю не можна (economy.json, available: false), а в адмінці є лише
-// тестовий запуск — подивитись, як це виглядає на точці.
+// немає, а без них автомат пробиває звичайну ціну. Гравцям знижка однаково
+// продається з 28.09.2026 (власник) — перед релізом її вимкнуть
+// (economy.json, available: false), якщо ціна не доїжджатиме до автомата.
+// Кличуть: купівля (routes/purchases.js) і тестовий запуск в адмінці.
 export async function queueDiscount(client, pointId, { uah, seconds, createdBy = null, meta = {} }) {
   const until = new Date(Date.now() + seconds * 1000);
   const insert = async (payload, scheduledAt) => {

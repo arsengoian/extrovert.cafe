@@ -199,7 +199,16 @@ export default async function routes(app) {
         if (item.slot !== slot) fail(400, "wrong_slot", { slot: item.slot });
         if (item.locked) fail(409, "item_locked");
         if (item.listing_id) fail(409, "item_on_market");
-        if (item.set_id && item.set_id !== setId) fail(409, "item_in_set");
+        // Річ у примірочній іншого кавенятка — «Перевдягнути»: забираємо її
+        // звідти й кладемо сюди (власник, 28.09.2026). Подарований комплект
+        // сюди не потрапляє — його речі замкнені (locked) вище.
+        if (item.set_id && String(item.set_id) !== String(setId)) {
+          const { rows: from } = await client.query("select gifted from wardrobe_sets where id = $1", [item.set_id]);
+          if (from[0]?.gifted) fail(409, "item_in_set");
+          await client.query("delete from wardrobe_set_items where user_item_id = $1", [itemId]);
+          await client.query("update user_items set set_id = null where id = $1", [itemId]);
+          await refresh(client, item.set_id);
+        }
 
         await client.query(
           "insert into wardrobe_set_items (set_id, slot, user_item_id) values ($1, $2, $3)",

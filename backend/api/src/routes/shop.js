@@ -76,10 +76,11 @@ export default async function routes(app) {
         kind: "discount",
         title: beans.pos_discount.label,
         // Рівно, а не «≈»: знижка фіксована в гривнях (власник, 27.09.2026).
-        subtitle: `${beans.pos_discount.uah} ₴ знижки на обраній точці`,
+        subtitle: `${beans.pos_discount.uah} ₴ з кожного напою на ${Math.round((beans.pos_discount.window_s ?? 120) / 60)} хв`,
         icon: "assets/ui/pos_discount.png",
         price: beans.pos_discount.beans,
         amount_uah: beans.pos_discount.uah,
+        window_s: beans.pos_discount.window_s ?? 120,
         available: Boolean(beans.pos_discount.available),
         currency: "beans",
       },

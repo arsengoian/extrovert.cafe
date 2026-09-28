@@ -1,5 +1,5 @@
 // Покупки в Магазині, які не потребують доставки: препарати, саджанець,
-// одяг напряму й обмін зерен. Знижка на POS поки не продається — див. нижче.
+// одяг напряму, обмін зерен і знижка в кавʼярні.
 //
 // Усе через один роут: списання, видача й запис у журнал відрізняються
 // лише кількома рядками, а спільними лишаються правила — ціна з
@@ -8,11 +8,12 @@
 //
 // Доставка Новою Поштою — окремий флоу (адреса, розміри, статуси), тому
 // сюди не входить.
-import { one, tx } from "../db.js";
+import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
+import { queueDiscount } from "../discount.js";
 
 const CARE = {
   water: { column: "water_liters", amount: economy.care.water.batch_liters, price: economy.care.water.price_coins },
@@ -119,15 +120,30 @@ export default async function routes(app) {
       });
     }
 
-    // ── знижка на POS ────────────────────────────────────────────────
-    // Знижка — не код, а тимчасова ціна на обраній точці: у чергу
-    // menu_deployments стають два деплойменти для цієї точки, спершу
-    // знижений на 20 ₴, потім звичайний (gamification_economy.md §6). Це
-    // працює, лише коли ціна швидко доїжджає до автомата Jetinno, а цілі
-    // jetinno поки немає (services.md, «Деплой цін і акцій»). Досі тут
-    // генерувався код, який на точці нікуди ввести, — тобто зерна просто
-    // зникали (власник, 27.09.2026). Тож поки що — відмова.
-    if (code === "pos_discount") fail(409, "not_available");
+    // ── знижка в кав'ярні ────────────────────────────────────────────
+    // Не код, а тимчасова ціна на точці: у чергу menu_deployments стають
+    // два деплойменти для неї — знижений на uah і звичайний через window_s
+    // (discount.js, gamification_economy.md §6). Точка — з запиту, а коли її
+    // не передали й точка одна, то вона. Продається з 28.09.2026 (власник):
+    // перед релізом вимкнемо (available: false), якщо ціна не доїжджатиме
+    // до автомата Jetinno — цілі jetinno поки немає.
+    if (code === "pos_discount") {
+      const cfg = economy.shop_beans.pos_discount;
+      if (!cfg.available) fail(409, "not_available");
+      const asked = req.body?.point ? String(req.body.point) : null;
+      const points = await many(
+        "select id, name from points where status <> 'retired' and ($1::text is null or id = $1) order by id", [asked]);
+      if (!points.length) fail(404, "no_such_point");
+      if (points.length > 1) fail(400, "point_required", { points: points.map((p) => ({ id: p.id, name: p.name })) });
+      const point = points[0];
+      return tx(async (client) => {
+        const spent = await spend(client, user.id, "beans", cfg.beans, "pos_discount", { uah: cfg.uah, point: point.id });
+        const q = await queueDiscount(client, point.id, {
+          uah: cfg.uah, seconds: cfg.window_s ?? 120, meta: { user_id: user.id, ledger_entry_id: spent.ledgerId },
+        });
+        return { ok: true, kind: "pos_discount", amount_uah: cfg.uah, point: point.id, point_name: point.name, until: q.until, seconds: cfg.window_s ?? 120 };
+      });
+    }
 
     // ── одяг напряму ─────────────────────────────────────────────────
     if (code === "item") {
