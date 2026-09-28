@@ -13,13 +13,26 @@ const W0 = 220;
 // кущ з'явиться, навіть якщо частина листя ще доїжджає.
 const REVEAL_MAX_MS = 1500;
 
+// Пориви вітру (варіант 3, власник 28.09.2026): майже весь час кущ стоїть
+// нерухомо, а раз на 8–15 секунд крізь крону проходить коротка хвиля —
+// листок відхиляється, вертається із загасанням, і хвиля котиться зліва
+// направо (GUST_TRAVEL_MS від лівого краю сцени до правого). Раніше листя
+// гойдалось безперервно, кожен листок своїм ритмом, і «усе рухалось
+// постійно». Сама хвиля — у theme.css (aGust*), тут лише коли вона йде.
+const GUST_EVERY_MS = [8000, 15000];
+const GUST_FIRST_MS = [3000, 7000];
+const GUST_TRAVEL_MS = 520;
+const GUST_MS = 3000;          // найдовша хвиля (2,2 с) + дорога крізь крону + запас
+const between = ([a, b]) => a + Math.random() * (b - a);
+const calm = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 const isLeaf = (g) => /leaf|leav/i.test(g || "");
 const isBranch = (g) => /branch/i.test(g || "");
 const isFruit = (g) => /^fruit_/.test(g || "");
 const isFace = (g) => /^face_setA/.test(g || "");
 const isGroundShadow = (g) => g === "ground_shadow";
 // Погойдування (bush_graphics_customization §10.16): листя, гілки й крона
-// з обличчям — кожне своїм ритмом; саму анімацію вмикає data-idle сцени.
+// з обличчям — кожне зі своєю силою; пориви вмикає data-gust сцени (нижче).
 const swayOf = (g) => (isLeaf(g) ? "leaf" : isBranch(g) ? "branch" : isFace(g) || /body_stage/.test(g || "") ? "crown" : undefined);
 
 // Метадані спрайта (корінь + природний розмір) лежать лише для базового
@@ -81,6 +94,22 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     return () => io.disconnect();
   }, [idle]);
 
+  // Порив: data-gust на корені на час однієї хвилі. Знімаємо атрибут після
+  // неї — тоді наступний порив запускає анімацію заново.
+  const [gust, setGust] = useState(false);
+  useEffect(() => {
+    if (!idle || !seen || calm()) return undefined;
+    let timer;
+    const next = (wait) => {
+      timer = setTimeout(() => {
+        setGust(true);
+        timer = setTimeout(() => { setGust(false); next(between(GUST_EVERY_MS)); }, GUST_MS);
+      }, wait);
+    };
+    next(between(GUST_FIRST_MS));
+    return () => { clearTimeout(timer); setGust(false); };
+  }, [idle, seen]);
+
   // До першого кадру: спрайти з кешу вже complete, і тоді кущ видно одразу —
   // без кадру прозорості й мигання після кожного переходу стадії.
   useLayoutEffect(() => {
@@ -113,6 +142,7 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     <div
       ref={root}
       data-idle={(idle && seen) || undefined}
+      data-gust={(idle && seen && gust) || undefined}
       style={{
         position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H,
         transformOrigin: "0 0",
@@ -176,6 +206,9 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
                 : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
               zIndex: inst.z, filter: parts.join(" ") || "none",
               opacity: inst.opacity ?? 1,
+              // Коли до цього спрайта дійде хвиля пориву: чим правіше, тим
+              // пізніше; крихітна розбіжність сусідам, щоб не рухались строєм.
+              ...(sway ? { "--gd": `${Math.round((inst.x / STAGE_W) * GUST_TRAVEL_MS + (n % 3) * 40)}ms` } : {}),
             }}
           />
         );

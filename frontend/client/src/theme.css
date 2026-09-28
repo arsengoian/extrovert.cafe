@@ -177,7 +177,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    картинку, від якої це налаштування й вмикають. */
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important }
-  .fx-sparks > i, .fx-pop, [data-idle] [data-sway] { animation: none !important }
+  .fx-sparks > i, .fx-pop, [data-gust] [data-sway] { animation: none !important }
   /* Стиснення кнопки в спокійному режимі малює CSS, бо весь ефект тапу
      вимкнений (fx.jsx, calm). Поза цим режимом правила тут немає навмисно:
      `:active` вмикається ДО того, як спрацює наш pointerdown, і кнопка з
@@ -1339,15 +1339,16 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    кута коробки (plant/Scene.jsx, pivotOf). @property потрібен, щоб кут
    плавно інтерполювався; де його немає, листя просто стоїть. */
 @property --sway { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-@keyframes aIdleLeaf { 0%, 100% { --sway: -2.4deg } 50% { --sway: 2.4deg } }
-@keyframes aIdleBranch { 0%, 100% { --sway: -1.3deg } 50% { --sway: 1.3deg } }
-@keyframes aIdleCrown { 0%, 100% { --sway: -.8deg } 50% { --sway: .8deg } }
-[data-idle] [data-sway="leaf"] { animation: aIdleLeaf 3.6s ease-in-out infinite }
-[data-idle] [data-sway="leaf"]:nth-of-type(3n) { animation-duration: 4.2s; animation-delay: -.7s }
-[data-idle] [data-sway="leaf"]:nth-of-type(3n+1) { animation-duration: 3.1s; animation-delay: -1.4s }
-[data-idle] [data-sway="branch"] { animation: aIdleBranch 4.8s ease-in-out infinite }
-[data-idle] [data-sway="branch"]:nth-of-type(2n) { animation-delay: -1.9s }
-[data-idle] [data-sway="crown"] { animation: aIdleCrown 5.2s ease-in-out infinite }
+/* Пориви (варіант 3, власник 28.09.2026): між ними все нерухоме, а
+   data-gust на сцені (plant/Scene.jsx) раз на 8–15 с пускає одну хвилю —
+   відхилення, відскок і загасання. --gd — коли хвиля доходить до цього
+   спрайта: зліва направо крізь крону. До цього листя гойдалось безперервно. */
+@keyframes aGustLeaf { 0% { --sway: 0deg } 22% { --sway: 3.2deg } 48% { --sway: -1.6deg } 72% { --sway: .7deg } 100% { --sway: 0deg } }
+@keyframes aGustBranch { 0% { --sway: 0deg } 24% { --sway: 1.6deg } 52% { --sway: -.8deg } 76% { --sway: .3deg } 100% { --sway: 0deg } }
+@keyframes aGustCrown { 0% { --sway: 0deg } 26% { --sway: .9deg } 56% { --sway: -.45deg } 80% { --sway: .2deg } 100% { --sway: 0deg } }
+[data-gust] [data-sway="leaf"] { animation: aGustLeaf 1.8s ease-in-out var(--gd, 0ms) both }
+[data-gust] [data-sway="branch"] { animation: aGustBranch 2s ease-in-out var(--gd, 0ms) both }
+[data-gust] [data-sway="crown"] { animation: aGustCrown 2.2s ease-in-out var(--gd, 0ms) both }
 /* «Ім'я нового кавенятка»: небо, картка знизу, паросток із подякою. */
 /* left/right — 0, top/bottom ставить PlantName за розміром .stage: попап
    портальний, і його межі більше не залежать від скролера. z-index вище за
