@@ -13,6 +13,11 @@ import { economy } from "../economy.js";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const quiz = JSON.parse(readFileSync(path.join(HERE, "..", "..", "data", "quiz.json"), "utf8"));
 
+// Шкали, про які для цього напою не питаємо: молоко в еспресо, лунго,
+// подвійному еспресо й американо (skip_for у quiz.json, власник 28.09.2026).
+export const skippedScales = (sprite) =>
+  (quiz.drink?.scales ?? []).filter((s) => sprite && (s.skip_for ?? []).includes(sprite)).map((s) => s.id);
+
 // Кредити на квіз: мілстоуни 1, 4, 10 і далі кожен 10-й напій.
 export function earnedCredits(drinks) {
   const { drink_credit_milestones: milestones, drink_credit_every: every } = economy.quiz;
@@ -70,7 +75,7 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
 
-    const answers = req.body?.answers ?? {};
+    const answers = { ...(req.body?.answers ?? {}) };
     const freeText = [answers.impression, answers.ideas].filter(Boolean).join("\n\n").trim() || null;
     if (!Object.keys(answers).length) return reply.code(400).send({ error: "empty_answers" });
 
@@ -143,6 +148,12 @@ export default async function routes(app) {
       [itemId, user.id]
     );
     if (!owns) return reply.code(404).send({ error: "no_such_item" });
+
+    // Про молоко в каві без молока не питали — і не зберігаємо, навіть якщо
+    // старий клієнт таки надіслав.
+    const drink = await one(
+      "select d.sprite from receipt_items ri left join drinks d on d.slot = ri.slot where ri.id = $1", [itemId]);
+    for (const id of skippedScales(drink?.sprite)) delete answers[id];
 
     // Кредити вирішують лише те, чи буде нагорода. Сам відгук приймаємо
     // завжди: якщо напій не сподобався, людина має де це сказати, а нам

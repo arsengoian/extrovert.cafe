@@ -505,6 +505,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px;
 }
 .order-cta img { width: 17px; height: 18px }
+.order-cta.plain { background: var(--panel2); border: 1px solid var(--line); color: var(--ink); font-weight: 700 }
 
 /* ── купити монети ─────────────────────────────────────────────────────
    Кадр «Купити монети»: пачки картками з радіусом 18 (не 16 — у макеті
@@ -765,7 +766,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hero-bubble b { display: block; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-text); margin-bottom: 4px }
 .start-bonus { align-self: stretch; display: flex; flex-direction: column; gap: 10px; align-items: center }
 .start-bonus > b { font-size: 13.5px; font-weight: 800; text-align: center }
-.bonus-row { display: flex; align-items: flex-start; justify-content: center; gap: 14px }
+/* Бонуси гостя накопичуються (bonusStash.js): монети першою плиткою, а
+   предмети праворуч — коли їх багато, ряд гортається вбік. */
+.bonus-row { display: flex; align-items: flex-start; justify-content: safe center; gap: 14px; max-width: 100%; overflow-x: auto; scrollbar-width: none }
+.bonus-row::-webkit-scrollbar { display: none }
 .bonus-tile { flex: none; width: 54px; display: flex; flex-direction: column; align-items: center; gap: 4px }
 .bonus-tile > span { width: 54px; height: 54px; border-radius: 13px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
 .tier-common { --t: var(--tier-common) }
@@ -967,7 +971,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* «Скриньку відкрито»: сяйво за карткою, плитки предмета й монет. */
 .crate-glow { position: absolute; left: 50%; top: -24px; width: 200px; height: 200px; margin-left: -100px; object-fit: contain; opacity: .55; pointer-events: none }
 .result-card > .result-title, .result-card > .loot, .result-card > .loot-note, .result-card > .cta { position: relative }
-.loot { display: flex; align-items: flex-start; justify-content: center; gap: 18px }
+.loot { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center; gap: 18px }
 .loot-tile { flex: none; width: 76px; display: flex; flex-direction: column; align-items: center; gap: 6px }
 .loot-tile > span { width: 76px; height: 76px; border-radius: 18px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center }
 .loot-tile > span > img { width: 58px; height: 61px; object-fit: contain }

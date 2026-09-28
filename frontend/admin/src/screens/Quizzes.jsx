@@ -169,7 +169,9 @@ export function Quizzes() {
           <Empty>{drink ? `про «${title}» ще не відповідали` : "відповідей про напої за цей період немає"}</Empty>
         ) : (
           <div className="cols">
-            {SCALES.map(([id, color], n) => {
+            {/* Обраний напій без молока (еспресо, лунго, подвійний, американо):
+                про молоко там не питаємо, тож і картки з нулями не показуємо. */}
+            {SCALES.filter(([id]) => !(drink && id === "milk" && !find(drinks.questions, id)?.answered)).map(([id, color], n) => {
               const q = find(drinks.questions, id);
               return (
                 <Card key={id} title={q?.title ?? id} note={n === 0 ? `${title}, ${answers(drinks.total)}` : ""}>

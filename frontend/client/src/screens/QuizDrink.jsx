@@ -74,7 +74,8 @@ export function QuizDrink({ item: picked = null, ctx }) {
 
       <div className="section" style={{ gap: 12 }}>
         <div className="sectionTitle">Як смакувало</div>
-        {data.scales.map((sc) => (
+        {/* Про молоко в каві без молока не питаємо (skip_for у quiz.json). */}
+        {data.scales.filter((sc) => !(sc.skip_for ?? []).includes(item.sprite)).map((sc) => (
           <div key={sc.id} className="scale">
             <b>{sc.title}</b>
             <div className="segs sm">

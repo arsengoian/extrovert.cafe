@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
-import { earnedCredits } from "./quiz.js";
+import { earnedCredits, skippedScales } from "./quiz.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 
 const redis = redisClient();
@@ -289,7 +289,7 @@ export default async function routes(app) {
       [from, to]
     );
     const rows = await many(
-      `select q.answers, q.free_text, q.created_at, i.slot, coalesce(d.name, i.name) as drink
+      `select q.answers, q.free_text, q.created_at, i.slot, coalesce(d.name, i.name) as drink, d.sprite
          from quiz_drink_responses q
          join receipt_items i on i.id = q.receipt_item_id
          left join drinks d on d.slot = i.slot
@@ -297,6 +297,14 @@ export default async function routes(app) {
         order by q.created_at`,
       [from, to]
     );
+
+    // Відповіді про молоко в каві без молока (еспресо, лунго, подвійний,
+    // американо) — не рахуються: тепер про нього там не питаємо, а старі
+    // такі відповіді лише псували б шкалу (власник, 28.09.2026).
+    for (const r of rows) {
+      const skip = skippedScales(r.sprite);
+      if (skip.length && r.answers) r.answers = Object.fromEntries(Object.entries(r.answers).filter(([k]) => !skip.includes(k)));
+    }
 
     // Бонусні копії напою рахуються разом з основними — так і просив док:
     // номер позиції в них той самий.
@@ -365,13 +373,17 @@ export default async function routes(app) {
           from quiz_profile_responses q join users u on u.id = q.user_id)
        union all
        (select 'drink' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, coalesce(d.name, i.name) as drink
+               u.id as user_id, u.nickname, coalesce(d.name, i.name) as drink, d.sprite
           from quiz_drink_responses q
           join users u on u.id = q.user_id
           join receipt_items i on i.id = q.receipt_item_id
           left join drinks d on d.slot = i.slot)
        order by created_at desc limit 200`
     );
+    for (const r of rows) {
+      const skip = skippedScales(r.sprite);
+      if (skip.length && r.answers) r.answers = Object.fromEntries(Object.entries(r.answers).filter(([k]) => !skip.includes(k)));
+    }
     return { responses: rows };
   });
 
