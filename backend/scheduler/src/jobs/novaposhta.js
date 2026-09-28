@@ -6,6 +6,7 @@
 // Без NP_API_KEY обидві роботи мовчки нічого не роблять: локально ключа
 // зазвичай немає, а сервіс має підніматись і без нього.
 import { readCursor, writeCursor } from "@extrovert/lib/jobs.js";
+import { notifyPlant } from "@extrovert/lib/notify.js";
 
 const API = "https://api.novaposhta.ua/v2.0/json/";
 const PAGE = 500;                          // НП більше за раз не віддає
@@ -145,15 +146,11 @@ export async function trackShipments({ pool, log }) {
              from redemptions where id = $1`,
           [row.id, next]
         );
-        await client.query(
-          `insert into chat_messages (plant_id, user_id, role, body)
-           select p.id, r.user_id, 'system', $2
-             from redemptions r
-             join plants p on p.owner_id = r.user_id
-            where r.id = $1
-            order by p.created_at limit 1`,
-          [row.id, `Замовлення: ${item.Status ?? next}.`]
-        );
+        // Той самий вибір куща, що й в інших сповіщеннях (lib/notify.js):
+        // чат, який гравець відкривав останнім, а не найстаріший кущ; без
+        // куща рядок чекає в pending_notices.
+        const { rows: owner } = await client.query("select user_id from redemptions where id = $1", [row.id]);
+        if (owner[0]) await notifyPlant(owner[0].user_id, `Замовлення: ${item.Status ?? next}.`, { client });
         await client.query("commit");
         moved += 1;
       } catch (e) {
