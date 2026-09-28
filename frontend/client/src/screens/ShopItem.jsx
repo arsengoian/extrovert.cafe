@@ -233,11 +233,14 @@ export function ShopItem({ item, ctx }) {
             Замовити за {item.price} <Bean w={18} h={20} />
           </button>
         ) : item.kind === "sapling" ? (
+          // Акцентна — кнопка тієї валюти, за яку саджанець відкрили: із
+          // зерен у Магазині — зерна, з монет — монети (власник, 28.09.2026).
+          // Раніше акцентними завжди були монети.
           <>
-            <button className="cta" disabled={busy || !sapling} onClick={() => buy(sapling.coins)}>
+            <button className={item.currency === "beans" ? "cta ghost" : "cta"} disabled={busy || !sapling} onClick={() => buy(sapling.coins)}>
               <Coins2 />{sapling?.coins?.price ?? "…"}
             </button>
-            <button className="cta ghost" disabled={busy || !sapling} onClick={() => buy(sapling.beans)}>
+            <button className={item.currency === "beans" ? "cta" : "cta ghost"} disabled={busy || !sapling} onClick={() => buy(sapling.beans)}>
               <Bean w={19} h={21} />{sapling?.beans?.price ?? "…"}
             </button>
           </>
