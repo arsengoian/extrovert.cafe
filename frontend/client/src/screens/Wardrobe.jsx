@@ -28,11 +28,40 @@ const SLOTS = {
 };
 
 // Мініатюри речей на плитці комплекту — розміри з макета: голова, торс і
-// штани стовпчиком, поруч взуття й аксесуар.
+// штани стовпчиком, поруч аксесуар над взуттям (власник, 28.09.2026: у
+// макеті взуття стояло зверху).
 const MINI = {
   head: [26, 16], body: [21, 22], pants: [18, 21], feet: [13, 23], acc_1: [21, 21],
 };
-const COLUMNS = [["head", "body", "pants"], ["feet", "acc_1"]];
+const COLUMNS = [["head", "body", "pants"], ["acc_1", "feet"]];
+
+// Плитка «Приміряти» — усі п'ять слотів примірочної тими самими
+// стовпчиками 3 + 2, що й у комплекту: річ, якщо вона вже лежить у слоті,
+// інакше порожній слот. Раніше тут був один силует торса (власник,
+// 28.09.2026). Вибрана — «приміряно», а не «одягнено»: подаровані
+// комплекти вдягають, а примірочну приміряють.
+const FIT_MINI = [20, 24];   // сторона значка: ліва колонка, права
+
+function FittingTile({ slots, worn, busy, onTry }) {
+  return (
+    <button className="wr-set" data-worn={worn || undefined} disabled={busy} onClick={worn ? undefined : onTry}>
+      <span className="wr-set-box fitting">
+        {COLUMNS.map((col, n) => (
+          <span key={n} className="wr-set-col" style={{ gap: 2 }}>
+            {col.map((slot) => {
+              const it = slots.find((s) => s.slot === slot)?.item;
+              const side = FIT_MINI[n];
+              return it
+                ? <ItemIcon key={slot} sprite={it.sprite_id} alt={it.name} size={side} style={{ width: side }} />
+                : <img key={slot} src={`/assets/ui/${SLOTS[slot].bg}.png`} alt="" style={{ width: side, height: side }} />;
+            })}
+          </span>
+        ))}
+      </span>
+      <span className="wr-set-label">{worn ? "приміряно" : "приміряти"}</span>
+    </button>
+  );
+}
 
 const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.png" alt="кавових зерен" style={{ width: w, height: h, display: "inline", verticalAlign: -4 }} />;
 
@@ -71,7 +100,9 @@ export function Wardrobe({ ctx, plant }) {
   const wornItems = worn.slots.filter((s) => s.item).map((s) => s.item);
   const complete = data.set?.complete;              // примірочна зібрана
   const free = data.total - data.filled;
-  const sets = data.sets ?? [];
+  // Новіші подаровані — зліва, старші відходять праворуч у скрол
+  // (власник, 28.09.2026); api віддає їх від найстарішого.
+  const sets = [...(data.sets ?? [])].sort((a, b) => new Date(b.gifted_at) - new Date(a.gifted_at));
   const fittingWorn = worn.kind === "fitting";
 
   const run = async (fn) => {
@@ -139,10 +170,7 @@ export function Wardrobe({ ctx, plant }) {
           </div>
           <div className="wr-strip">
             <div className="wr-strip-row">
-              <button className="wr-set" data-worn={fittingWorn || undefined} disabled={busy} onClick={fittingWorn ? undefined : tryOn}>
-                <span className="wr-set-box fitting"><img src="/assets/ui/slot_body.png" alt="" /></span>
-                <span className="wr-set-label">{fittingWorn ? "одягнено" : "приміряти"}</span>
-              </button>
+              <FittingTile slots={data.slots} worn={fittingWorn} busy={busy} onTry={tryOn} />
               {sets.map((set) => <SetTile key={set.id} set={set} onWear={() => wear(set.id)} />)}
             </div>
             <i className="wr-strip-fade" />

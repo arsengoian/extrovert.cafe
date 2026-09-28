@@ -1503,10 +1503,13 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wr-slot > img { position: absolute; left: 0; top: 0; width: 100px; height: 100px; object-fit: contain }
 .wr-slot > i { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 76px; height: 76px; border-radius: 999px; background: rgba(var(--t), .34); border: 1px solid rgba(var(--t), .5); backdrop-filter: blur(2px) }
 .wr-slot > i.tier-common { border-color: rgba(var(--t), .45) }
-.wr-gift { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px 13px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
-.wr-gift > img { flex: none; width: 20px; height: 22px }
-.wr-gift > div { flex: 1; font-size: 12px; color: var(--muted); text-wrap: pretty }
-.wr-gift > button { flex: none; padding: 8px 12px; border-radius: 999px; background: var(--grad); color: var(--accent-ink); font-size: 12px; font-weight: 800 }
+/* Плашка подарунка — два ряди: зерно з текстом на всю ширину, кнопка під
+   ними. В один ряд із кнопкою праворуч текст на 328 px стискався в
+   стовпчик 135 px на сім рядків (власник, 28.09.2026). */
+.wr-gift { margin-top: auto; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; padding: 12px 13px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
+.wr-gift > img { width: 20px; height: 22px }
+.wr-gift > div { font-size: 12px; line-height: 1.45; color: var(--muted); text-wrap: pretty }
+.wr-gift > button { grid-column: 1 / -1; height: 40px; border-radius: 999px; background: var(--grad); color: var(--accent-ink); font-size: 13px; font-weight: 800 }
 .wr-gift > button:disabled { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); opacity: .55 }
 .wr-note { font-size: 12.5px; line-height: 1.4; color: var(--muted) }
 /* Смуга «Комплекти»: «приміряти» (речі з примірочної) і подаровані
@@ -1522,7 +1525,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wr-set[data-worn] { border: 2px solid var(--accent) }
 .wr-set-box { align-self: stretch; height: 72px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(var(--t), .34); border: 1px solid rgba(var(--t), .5) }
 .wr-set-box.fitting { background: none; border: 1.5px dashed var(--accent) }
-.wr-set-box.fitting img { width: 50px; height: 50px; object-fit: contain }
+.wr-set-box.fitting img { object-fit: contain }
 .wr-set-col { display: flex; flex-direction: column; align-items: center }
 .wr-set-label { font-size: 11px; font-weight: 800; white-space: nowrap; color: var(--muted) }
 .wr-set[data-worn] .wr-set-label { color: var(--accent-text) }
