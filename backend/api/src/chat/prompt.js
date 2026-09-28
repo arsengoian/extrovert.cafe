@@ -19,7 +19,8 @@ const real = (obj) => Object.entries(obj).filter(([k]) => !k.startsWith("$"));
 
 const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (_m, key) => vars[key] ?? `{${key}}`);
 
-const MOOD = { healthy: "здорове", sad: "сумне, давно без поливу", withered: "зів'яле, дуже давно без поливу" };
+const MOOD = { healthy: "здоровий", sad: "сумний, давно без поливу", withered: "зів'ялий, дуже давно без поливу" };
+const POINT_STATUS = { live: "працює", paused: "тимчасово не працює", planned: "скоро відкриється" };
 const CARE_NAME = { water: "вода", compost: "компост", fertilizer: "добриво", insecticide: "інсектицид" };
 
 // Короткий зріз економіки: тільки те, про що реально питають.
@@ -32,7 +33,7 @@ function economyLines() {
     `одяг напряму: ${real(economy.clothing_direct_price_coins).map(([t, p]) => `${t} ${p}`).join(", ")} монет`,
     `зерна за комплект: ${real(economy.set.beans_by_tier).map(([t, b]) => `${t} ${b}`).join(", ")}`,
     `повідомлення в чаті: перші ${economy.chat.free_messages} безкоштовні, далі ${economy.chat.price_coins} монета`,
-    `репост: ${economy.repost.coins} срібних, раз на ${economy.repost.min_days_between} днів, максимум ${economy.repost.max_per_account} за акаунт`,
+    `пост у соцмережі: ${economy.repost.coins} срібних, раз на ${economy.repost.min_days_between} днів, максимум ${economy.repost.max_per_account} за акаунт`,
     `квіз: анкета ${economy.quiz.profile_coins} срібних, про напій ${economy.quiz.drink_coins}`,
   ];
 }
@@ -65,18 +66,21 @@ export function wardrobeLines(sets, wornSetId, nickname) {
 }
 
 // Факти про акаунт. Порядок навмисний: спершу те, про що питають найчастіше.
+// Про саме кавенятко — у другій особі («ти»): рядок «кавенятко хоче води»
+// модель повторювала як є й говорила про себе в третій особі (власник,
+// 28.09.2026).
 export function factLines({ user, plant, growth, care, counts, wardrobe, orders, lastDrinks }) {
   const lines = [
-    `нікнейм: ${user.nickname}`,
-    `баланси: ${user.coins_yellow} жовтих, ${user.coins_silver} срібних, ${user.beans} зерен`,
-    `кавенятко: «${plant.name ?? "без імені"}», стадія ${plant.growth_stage} з 10, ${MOOD[plant.mood] ?? plant.mood}`,
+    `нікнейм гравця: ${user.nickname}`,
+    `баланси гравця: ${user.coins_yellow} жовтих, ${user.coins_silver} срібних, ${user.beans} зерен`,
+    `ти: «${plant.name ?? "без імені"}», стадія ${plant.growth_stage} з 10, ${MOOD[plant.mood] ?? plant.mood}`,
   ];
 
-  if (growth?.done) lines.push("кавенятко доросле: далі врожай і новий цикл");
+  if (growth?.done) lines.push("ти вже дорослий: далі врожай і новий цикл");
   else if (growth) {
     const need = CARE_NAME[growth.need] ?? growth.need;
     const progress = growth.applications > 1 ? ` (застосовано ${growth.progress} з ${growth.applications})` : "";
-    lines.push(`хоче зараз: ${need}${progress}`);
+    lines.push(`ти хочеш зараз: ${need}${progress}`);
     if (growth.planting) lines.push(`наступний крок — посадка: ${growth.planting}`);
     if (growth.ready_at) lines.push(`наступна стадія відкриється ${new Date(growth.ready_at).toLocaleString("uk-UA")}`);
   }
@@ -95,7 +99,13 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
   return lines;
 }
 
-export function systemPrompt({ plant, user, facts, knowledge }) {
+// Точки з бази, а не з бази знань: адреса й статус міняються без релізу,
+// і кавенятко має знати їх усі, про що б не питали (власник, 28.09.2026).
+export function pointLines(points) {
+  return points.map((p) => `${p.name}: ${p.address ?? p.short_address ?? "адресу ще уточнюємо"} — ${POINT_STATUS[p.status] ?? p.status}`);
+}
+
+export function systemPrompt({ plant, user, facts, knowledge, points = [] }) {
   const vars = { plant_name: plant.name ?? "Кавенятко", nickname: user.nickname };
   const s = prompts.sections;
   const parts = [
@@ -104,6 +114,7 @@ export function systemPrompt({ plant, user, facts, knowledge }) {
     `${s.facts}:\n${facts.map((f) => `- ${f}`).join("\n")}`,
     `${s.economy}:\n${economyLines().map((l) => `- ${l}`).join("\n")}`,
   ];
+  if (points.length) parts.push(`${s.points}:\n${pointLines(points).map((l) => `- ${l}`).join("\n")}`);
   if (knowledge.length) {
     parts.push(`${s.knowledge}:\n${knowledge.map(({ doc }) => `### ${doc.title}\n${doc.body}`).join("\n\n")}`);
   }
@@ -112,9 +123,9 @@ export function systemPrompt({ plant, user, facts, knowledge }) {
 
 // Історія йде окремими репліками, а не злитим текстом: модель краще тримає
 // чергу «гравець — кавенятко», коли ролі розділені.
-export function buildMessages({ plant, user, facts, knowledge, history, message }) {
+export function buildMessages({ plant, user, facts, knowledge, points, history, message }) {
   return [
-    { role: "system", content: systemPrompt({ plant, user, facts, knowledge }) },
+    { role: "system", content: systemPrompt({ plant, user, facts, knowledge, points }) },
     ...history.map((m) => ({ role: m.role === "plant" ? "assistant" : "user", content: m.body })),
     { role: "user", content: message },
   ];

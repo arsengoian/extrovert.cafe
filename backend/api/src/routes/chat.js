@@ -200,8 +200,11 @@ export default async function routes(app) {
       [plant.id, saved.id, CONTEXT_MESSAGES]
     );
     const { lines: facts, nickname } = await gatherFacts(user, plant);
+    const points = await many(
+      "select name, address, short_address, status from points order by status = 'live' desc, created_at"
+    );
     const messages = buildMessages({
-      plant, user: { nickname }, facts, knowledge, history: history.reverse(), message: body,
+      plant, user: { nickname }, facts, knowledge, points, history: history.reverse(), message: body,
     });
 
     let answer = { text: "", tokens_in: null, tokens_out: null };
