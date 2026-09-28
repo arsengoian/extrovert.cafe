@@ -237,10 +237,18 @@ static void *menu_poll_thread(void *arg) {
      * весь процес — це давня особливість ядра, і тут вона якраз доречна. */
     if (setpriority(PRIO_PROCESS, 0, 10) != 0)
         fprintf(stderr, "main: не вийшло знизити пріоритет потоку меню\n");
+    /* Який деплой уже підтвердили api. Підтверджуємо той, з якого меню на
+     * екрані, — хоч прийшло воно подією, хоч опитуванням, хоч із кешу на
+     * старті. Не вдалось (мережа) — спробуємо на наступному колі. */
+    long long acked = 0;
     for (;;) {
         pthread_mutex_lock(&mp->mu);
         menu_t attempt = mp->last;
         pthread_mutex_unlock(&mp->mu);
+
+        if (attempt.deployment_id > 0 && attempt.deployment_id != acked &&
+            menu_ack(mp->ack_url, mp->token, attempt.deployment_id))
+            acked = attempt.deployment_id;
 
         /* Чекаємо refreshSec, перевіряючи stop кожні 100мс, а не суцільним
          * sleep(refresh_s) — інакше зупинка (SIGTERM) чекала б до хвилини. */
@@ -272,7 +280,6 @@ static void *menu_poll_thread(void *arg) {
             changed = menu_poll(url, &attempt);
             fprintf(stderr, "main: menu.deployed %lld — меню перечитано одразу (%s)\n",
                     poke, changed ? "нове" : menu_last_poll_ok() ? "те саме" : "не вдалось");
-            if (menu_last_poll_ok()) menu_ack(mp->ack_url, mp->token, poke);
         } else if (attempt.discount && (long long)time(NULL) >= attempt.discount_until) {
             changed = false;   /* нічого не питаємо — лише повертаємо повні ціни нижче */
         } else {
@@ -282,6 +289,10 @@ static void *menu_poll_thread(void *arg) {
          * запізнилась, кеш): тоді одразу повні ціни. */
         bool expired = menu_expire_discount(&attempt, (long long)time(NULL));
         if (expired) fprintf(stderr, "main: знижка скінчилась — повертаю повні ціни\n");
+        /* Нове меню з деплою — одразу підтверджуємо, не чекаючи кола. */
+        if (changed && attempt.deployment_id > 0 && attempt.deployment_id != acked &&
+            menu_ack(mp->ack_url, mp->token, attempt.deployment_id))
+            acked = attempt.deployment_id;
 
         if (changed || expired) {
             struct timespec t0, t1;

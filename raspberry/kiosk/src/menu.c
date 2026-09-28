@@ -186,11 +186,11 @@ static size_t discard_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
     return size * nmemb;
 }
 
-void menu_ack(const char *url, const char *token, long long deployment_id) {
-    if (!url || !url[0] || !token || !token[0] || deployment_id <= 0) return;
+bool menu_ack(const char *url, const char *token, long long deployment_id) {
+    if (!url || !url[0] || !token || !token[0] || deployment_id <= 0) return false;
     if (!ack_curl) {
         ack_curl = curl_easy_init();
-        if (!ack_curl) return;
+        if (!ack_curl) return false;
         curl_easy_setopt(ack_curl, CURLOPT_TIMEOUT, 10L);
         curl_easy_setopt(ack_curl, CURLOPT_WRITEFUNCTION, discard_cb);
         curl_easy_setopt(ack_curl, CURLOPT_USERAGENT, "raspberry/kiosk/0.1");
@@ -213,6 +213,7 @@ void menu_ack(const char *url, const char *token, long long deployment_id) {
     curl_slist_free_all(h);
     fprintf(stderr, "menu: деплой %lld підтверджено — %s (код %ld)\n",
             deployment_id, rc == CURLE_OK ? "ok" : curl_easy_strerror(rc), code);
+    return rc == CURLE_OK && code >= 200 && code < 300;
 }
 
 bool menu_expire_discount(menu_t *m, long long now) {
@@ -307,6 +308,9 @@ static bool parse_body(const char *data, size_t len, menu_t *out) {
 
 
     cJSON *j;
+    cJSON *dep = cJSON_GetObjectItemCaseSensitive(root, "deployment");
+    if (cJSON_IsNumber(dep) && dep->valuedouble > 0) next.deployment_id = (long long)dep->valuedouble;
+
     cJSON *disc = cJSON_GetObjectItemCaseSensitive(root, "discount");
     if (disc && cJSON_IsObject(disc)) {
         cJSON *u = cJSON_GetObjectItemCaseSensitive(disc, "uah");

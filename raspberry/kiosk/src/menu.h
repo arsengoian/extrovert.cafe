@@ -81,6 +81,10 @@ typedef struct {
     bool discount;
     int discount_uah;
     long long discount_until;
+    /* JSON-поле "deployment" — номер деплою, з якого це меню. Кіоск
+     * підтверджує його api (menu_ack), щойно показав, — чи то за подією
+     * menu.deployed, чи звичайним опитуванням. 0 — меню не з деплою. */
+    long long deployment_id;
     int refresh_sec;
     unsigned long hash;      /* FNV-1a по сирому тілу відповіді — як lastHash у app.js */
     bool valid;
@@ -139,6 +143,6 @@ bool menu_last_poll_ok(void);
 
 /* Підтвердити api, що меню деплою deployment_id на екрані
  * (POST <url> з токеном точки, docs/services.md §4). Лише з потоку меню. */
-void menu_ack(const char *url, const char *token, long long deployment_id);
+bool menu_ack(const char *url, const char *token, long long deployment_id);
 
 #endif
