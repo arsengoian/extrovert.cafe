@@ -5,8 +5,9 @@
 //   bun scripts/dev-plant.mjs --stage 1 --reset     # починаємо з листя
 //   bun scripts/dev-plant.mjs --stage 2             # лишити листя, садити гілки
 //   bun scripts/dev-plant.mjs --supply 9            # по 9 одиниць кожного
-//   bun scripts/dev-plant.mjs --skip                # «минула доба»
-//   bun scripts/dev-plant.mjs --skip 3              # «минуло три дні» — кущ засумує
+//   bun scripts/dev-plant.mjs --skip                # «минула доба» — для ВСІХ кавенят гравця
+//   bun scripts/dev-plant.mjs --skip 3              # «минуло три дні» — кущі засумують
+//   bun scripts/dev-plant.mjs --stage 3 --plant 2   # друге кавенятко (за часом посадки)
 //
 // Проти прод-бази запускається через scripts/prod-db.sh (make d-plant),
 // бо роута для цього немає й не буде: це пряма правка бази.
@@ -31,8 +32,17 @@ const [user] = email
   : await sql`select * from users where nickname = ${nickname} and deleted_at is null`;
 if (!user) throw new Error(`немає гравця ${email ?? nickname}`);
 
-const [plant] = await sql`select * from plants where owner_id = ${user.id} order by created_at limit 1`;
-if (!plant) throw new Error("у гравця немає кавенятка");
+// Кавенята гравця за часом посадки. --plant — номер (1, 2…) чи id; без
+// нього стадію й очищення міняємо першому, а --skip — усім: час минає для
+// всіх кавенят одразу. Раніше і --skip діяв лише на перше, і решта «не
+// просили їсти», хоч скільки разів його запускай (власник, 28.09.2026).
+const plants = await sql`select * from plants where owner_id = ${user.id} order by created_at`;
+if (!plants.length) throw new Error("у гравця немає кавенятка");
+const which = flag("plant", null);
+const plant = which === null ? plants[0]
+  : /^\d+$/.test(String(which)) ? plants[Number(which) - 1]
+  : plants.find((p) => p.id === String(which));
+if (!plant) throw new Error(`немає кавенятка ${which}: у гравця їх ${plants.length}`);
 
 const stage = flag("stage");
 const reset = flag("reset", false);
@@ -54,11 +64,14 @@ if (skipArg !== null && !(Number.isInteger(skipDays) && skipDays > 0)) {
 }
 
 if (skipDays) {
+  // Усім кавенятам гравця, а з --plant — лише тому.
+  const ids = which === null ? plants.map((p) => p.id) : [plant.id];
   await sql`
     update plants
        set last_stage_transition_at = last_stage_transition_at - make_interval(days => ${skipDays}),
            last_watered_at = last_watered_at - make_interval(days => ${skipDays})
-     where id = ${plant.id}`;
+     where id in ${sql(ids)}`;
+  console.log(`✓ минуло ${skipDays} дн. для ${ids.length} кавенят: ${plants.filter((p) => ids.includes(p.id)).map((p) => p.name || "без імені").join(", ")}`);
 }
 
 if (supply !== null) {
@@ -91,7 +104,7 @@ if (stage !== null || reset) {
 
 const [after] = await sql`select growth_stage, appearance from plants where id = ${plant.id}`;
 const [care] = await sql`select water_liters, compost_kg, fertilizer_kg, insecticide_bottles from users where id = ${user.id}`;
-console.log("✓ кавенятко:", {
+console.log(`✓ кавенятко ${plants.indexOf(plant) + 1} з ${plants.length} (${plant.name || "без імені"}):`, {
   стадія: after.growth_stage,
   листя: (after.appearance.leaves_bg ?? []).length,
   чоло: (after.appearance.leaves_fg ?? []).length,

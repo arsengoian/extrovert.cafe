@@ -38,6 +38,7 @@ NICK   ?=
 MAIL   ?=
 STAGE  ?=
 RESET  ?=
+PLANT  ?=
 SUPPLY ?= 9
 COINS  ?=
 SILVER ?=
@@ -49,8 +50,8 @@ d-help:
 	@echo   make d-list                    які напої є в сідах
 	@echo   make d-sale DRINK=a033 PAY=cash   покупка тестовим касиром - чек у прод
 	@echo   make d-sales EVERY=20 COUNT=20    випадковий напій раз на EVERY с, до COUNT штук або Ctrl+C
-	@echo   make d-plant MAIL=пошта STAGE=1 RESET=1   стадія кавенятка, з очищенням посадженого
-	@echo   make d-skip MAIL=пошта DAYS=3  «минуло N днів» (типово 1): гейт, полив, настрій
+	@echo   make d-plant MAIL=пошта STAGE=1 RESET=1 PLANT=2   стадія кавенятка (PLANT - номер, типово перше), з очищенням посадженого
+	@echo   make d-skip MAIL=пошта DAYS=3  «минуло N днів» (типово 1) для всіх кавенят: гейт, полив, настрій
 	@echo   make d-supply MAIL=пошта SUPPLY=9   насипати препаратів
 	@echo   make d-give MAIL=пошта COINS=500   монети/зерна: COINS, SILVER, BEANS
 	@echo   make d-user MAIL=пошта         баланси, кавенята, останні чеки
@@ -73,11 +74,11 @@ d-sales:
 
 d-plant:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-plant MAIL=пошта STAGE=1))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,) $(if $(PLANT),--plant $(PLANT),)
 
 d-skip:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-skip MAIL=пошта))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip $(if $(DAYS),$(DAYS),1)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip $(if $(DAYS),$(DAYS),1) $(if $(PLANT),--plant $(PLANT),)
 
 d-supply:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-supply MAIL=пошта))
