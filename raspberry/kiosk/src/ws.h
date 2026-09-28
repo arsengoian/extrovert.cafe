@@ -26,7 +26,8 @@
  * доставка «принаймні раз», тож та сама подія може прийти двічі. */
 typedef struct {
     long long id;             /* outbox.id */
-    char event[32];           /* поки лише "bonus_ready" */
+    char event[32];           /* "bonus_ready", "bonus_taken" або "menu.deployed" */
+    long long deployment_id;  /* menu.deployed: номер деплою — ним кіоск обходить кеш бакета */
     char code[32];            /* system_code напою: ключ до меню кіоска */
     char drink[64];           /* назва — запасний варіант, коли коду немає в меню */
     int coins;

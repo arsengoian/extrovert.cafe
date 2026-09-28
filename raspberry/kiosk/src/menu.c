@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>      /* getpid() — суфікс тимчасового файла кешу */
+#include <math.h>        /* lround — ціни округлюються до цілої гривні */
 
 /* FNV-1a — той самий клас перевірки, що JSON.stringify(d)===lastHash
  * в app.js, тільки без переалокації рядка щоразу. */
@@ -58,8 +59,12 @@ static void parse_drink(cJSON *item, drink_t *d) {
         snprintf(d->vol, MENU_STR, "%s", j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "cup")) && cJSON_IsString(j))
         snprintf(d->cup, sizeof(d->cup), "%s", j->valuestring);
+    /* Округлення, а не valueint (той відкидає дріб): знижена ціна — ціле
+     * число гривень, і на екрані має бути саме воно (власник, 27.09.2026). */
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "price")) && cJSON_IsNumber(j))
-        d->price = j->valueint;
+        d->price = (int)lround(j->valuedouble);
+    if ((j = cJSON_GetObjectItemCaseSensitive(item, "price_full")) && cJSON_IsNumber(j))
+        d->price_full = (int)lround(j->valuedouble);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "color")) && cJSON_IsString(j))
         snprintf(d->color, sizeof(d->color), "%s", j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "foam")) && cJSON_IsBool(j))
@@ -166,9 +171,60 @@ static void cache_store(const char *data, size_t len) {
  * Тут цього й немає — main.c кличе menu_poll() один раз до pthread_create,
  * а далі лише потік опитування. */
 static CURL *poll_curl = NULL;
+static bool last_poll_ok = false;
+static CURL *ack_curl = NULL;   /* той самий потік меню, окреме зʼєднання — з api, не з бакетом */
+
+bool menu_last_poll_ok(void) { return last_poll_ok; }
 
 void menu_poll_close(void) {
     if (poll_curl) { curl_easy_cleanup(poll_curl); poll_curl = NULL; }
+    if (ack_curl) { curl_easy_cleanup(ack_curl); ack_curl = NULL; }
+}
+
+static size_t discard_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
+    (void)ptr; (void)userdata;
+    return size * nmemb;
+}
+
+void menu_ack(const char *url, const char *token, long long deployment_id) {
+    if (!url || !url[0] || !token || !token[0] || deployment_id <= 0) return;
+    if (!ack_curl) {
+        ack_curl = curl_easy_init();
+        if (!ack_curl) return;
+        curl_easy_setopt(ack_curl, CURLOPT_TIMEOUT, 10L);
+        curl_easy_setopt(ack_curl, CURLOPT_WRITEFUNCTION, discard_cb);
+        curl_easy_setopt(ack_curl, CURLOPT_USERAGENT, "raspberry/kiosk/0.1");
+        curl_easy_setopt(ack_curl, CURLOPT_NOPROGRESS, 0L);
+        curl_easy_setopt(ack_curl, CURLOPT_XFERINFOFUNCTION, xfer_cb);
+    }
+    char auth[2200], body[64];
+    snprintf(auth, sizeof(auth), "authorization: Bearer %s", token);
+    snprintf(body, sizeof(body), "{\"deployment_id\":%lld}", deployment_id);
+    struct curl_slist *h = NULL;
+    h = curl_slist_append(h, auth);
+    h = curl_slist_append(h, "content-type: application/json");
+    curl_easy_setopt(ack_curl, CURLOPT_URL, url);
+    curl_easy_setopt(ack_curl, CURLOPT_HTTPHEADER, h);
+    curl_easy_setopt(ack_curl, CURLOPT_POSTFIELDS, body);
+    CURLcode rc = curl_easy_perform(ack_curl);
+    long code = 0;
+    curl_easy_getinfo(ack_curl, CURLINFO_RESPONSE_CODE, &code);
+    curl_easy_setopt(ack_curl, CURLOPT_HTTPHEADER, NULL);
+    curl_slist_free_all(h);
+    fprintf(stderr, "menu: деплой %lld підтверджено — %s (код %ld)\n",
+            deployment_id, rc == CURLE_OK ? "ok" : curl_easy_strerror(rc), code);
+}
+
+bool menu_expire_discount(menu_t *m, long long now) {
+    if (!m->discount || now < m->discount_until) return false;
+    for (int i = 0; i < m->drink_count; i++) {
+        drink_t *d = &m->drinks[i];
+        if (d->price_full > 0) { d->price = d->price_full; d->price_full = 0; }
+    }
+    m->discount = false;
+    m->discount_uah = 0;
+    m->discount_until = 0;
+    return true;
 }
 
 bool menu_poll(const char *url, menu_t *out) {
@@ -200,7 +256,8 @@ bool menu_poll(const char *url, menu_t *out) {
     long http_code = 0;
     curl_easy_getinfo(c, CURLINFO_RESPONSE_CODE, &http_code);
 
-    if (rc != CURLE_OK || http_code < 200 || http_code >= 300 || b.len == 0) {
+    last_poll_ok = !(rc != CURLE_OK || http_code < 200 || http_code >= 300 || b.len == 0);
+    if (!last_poll_ok) {
         fprintf(stderr, "menu_poll: http помилка (%s, код %ld)\n",
                 curl_easy_strerror(rc), http_code);
         free(b.data);
@@ -250,6 +307,17 @@ static bool parse_body(const char *data, size_t len, menu_t *out) {
 
 
     cJSON *j;
+    cJSON *disc = cJSON_GetObjectItemCaseSensitive(root, "discount");
+    if (disc && cJSON_IsObject(disc)) {
+        cJSON *u = cJSON_GetObjectItemCaseSensitive(disc, "uah");
+        cJSON *t = cJSON_GetObjectItemCaseSensitive(disc, "until_ts");
+        if (cJSON_IsNumber(t) && t->valuedouble > 0) {
+            next.discount = true;
+            next.discount_uah = cJSON_IsNumber(u) ? (int)lround(u->valuedouble) : 0;
+            next.discount_until = (long long)t->valuedouble;
+        }
+    }
+
     cJSON *ad = cJSON_GetObjectItemCaseSensitive(root, "ad");
     if (ad) {
         next.ad.valid = true;

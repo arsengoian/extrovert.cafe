@@ -41,4 +41,8 @@ void draw_text_vc_ellipsized(cairo_t *cr, double x, double y_center, const char 
  * текстуру. Прозорий фон: лягає поверх уже намальованого меню. */
 cairo_surface_t *render_update_banner(const char *label, double *out_w);
 
+/* Біла плашка знижки з відліком: «Знижка! Діє ще N секунд». Та сама
+ * геометрія, що в плашки оновлення (config.h). */
+cairo_surface_t *render_discount_banner(int seconds_left, double *out_w);
+
 #endif

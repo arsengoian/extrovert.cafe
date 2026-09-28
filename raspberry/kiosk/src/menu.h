@@ -17,6 +17,10 @@ typedef struct {
     char vol[MENU_STR];
     char cup[8];
     int price;
+    /* JSON-поле "price_full" — повна ціна, поки діє знижка на точці
+     * (menu_t.discount): у "price" тоді вже знижена. 0 — знижки немає.
+     * Кіоск повертає її сам, щойно знижка мине (menu_expire_discount). */
+    int price_full;
     char color[16];      /* "#rrggbb" як у JSON */
     bool foam;
     /* Ключ файлу в assets/drinks/ (без .png), напр. "cappuccino" —
@@ -70,6 +74,13 @@ typedef struct {
     cup_tier_t cups[MENU_MAX_CUPS];
     int cup_count;
     ad_t ad;
+    /* JSON-ключ "discount" — знижка на точці (власник, 27.09.2026): ціни
+     * напоїв у меню вже знижені, на екрані — біла плашка з відліком до
+     * discount_until і іконка відсотка на кожній картці. discount_until —
+     * секунди епохи (until_ts), рахуються від годинника малини. */
+    bool discount;
+    int discount_uah;
+    long long discount_until;
     int refresh_sec;
     unsigned long hash;      /* FNV-1a по сирому тілу відповіді — як lastHash у app.js */
     bool valid;
@@ -114,5 +125,20 @@ bool menu_load_cache(menu_t *out);
 void menu_set_abort_flag(volatile sig_atomic_t *flag);
 
 unsigned long menu_fnv1a(const char *data, size_t len);
+
+/* Знижка скінчилась (now >= discount_until): повертає повні ціни й
+ * прибирає discount. true — меню змінилось і його треба перемалювати.
+ * Хеш лишається від тіла зі знижкою: те саме тіло, прочитане знову, не
+ * поверне знижку назад, а нове (повернення цін) має інший хеш. */
+bool menu_expire_discount(menu_t *m, long long now);
+
+/* Чи вдалось останнє menu_poll() дістати тіло (незалежно від того,
+ * змінилось воно чи ні). Потрібно, щоб не підтверджувати деплой, якого ми
+ * насправді не бачили. */
+bool menu_last_poll_ok(void);
+
+/* Підтвердити api, що меню деплою deployment_id на екрані
+ * (POST <url> з токеном точки, docs/services.md §4). Лише з потоку меню. */
+void menu_ack(const char *url, const char *token, long long deployment_id);
 
 #endif

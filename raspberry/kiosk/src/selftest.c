@@ -193,6 +193,29 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     cairo_surface_t *banner_s = render_update_banner("ОНОВЛЕННЯ…", &banner_w);
     if (!surface_has_ink(banner_s, "update banner")) failures++;
 
+    /* Знижка — інший шлях підстановки в обох шаблонах карток (іконка
+     * відсотка, зсув бейджа) і власна плашка. */
+    menu_t md = m;
+    md.discount = true;
+    md.discount_uah = 20;
+    md.discount_until = (long long)time(NULL) + 120;
+    for (int i = 0; i < md.drink_count; i++) {
+        md.drinks[i].price_full = md.drinks[i].price;
+        md.drinks[i].price = md.drinks[i].price > 20 ? md.drinks[i].price - 20 : 0;
+    }
+    mark();
+    cairo_surface_t *menu_disc_s = render_menu(&md, assets_dir);
+    if (!surface_has_ink(menu_disc_s, "menu.svg зі знижкою")) failures++;
+    double disc_w = 0;
+    mark();
+    cairo_surface_t *disc_s = render_discount_banner(87, &disc_w);
+    if (!surface_has_ink(disc_s, "discount banner")) failures++;
+    const char *disc_png = getenv("SELFTEST_DISCOUNT_PNG");
+    if (disc_png && disc_png[0] && menu_disc_s && cairo_surface_status(menu_disc_s) == CAIRO_STATUS_SUCCESS)
+        cairo_surface_write_to_png(menu_disc_s, disc_png);
+    if (menu_disc_s) cairo_surface_destroy(menu_disc_s);
+    if (disc_s) cairo_surface_destroy(disc_s);
+
     if (out_png && menu_s && cairo_surface_status(menu_s) == CAIRO_STATUS_SUCCESS) {
         /* Знімок саме меню: це найбільша й найскладніша поверхня, і саме
          * на неї дивляться, коли розбирають "чому оновлення не пройшло". */

@@ -90,9 +90,13 @@ static void load_fonts(const char *assets_dir) {
  * хтось руками через scp. Меню з рекламою, без панелі бонусів і попапів:
  * вигадані QR у статичній картинці нікому не потрібні. Через .tmp і
  * rename — щоб знеструмлення посеред запису не лишило битий PNG. */
-static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, unsigned long hash) {
+static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, unsigned long hash, bool temporary) {
     const char *path = getenv("FALLBACK_PNG");
     if (!path || !path[0] || !menu_s) return;
+    /* Знижені ціни живуть хвилину-дві. Запасна картинка має показувати
+     * звичайні: якщо кіоск упаде посеред знижки, під ним висіли б ціни,
+     * яких уже немає. Повні ціни на неї потраплять, щойно знижка мине. */
+    if (temporary) { fprintf(stderr, "main: меню зі знижкою — запасну картинку не чіпаю\n"); return; }
     /* Поруч із картинкою лежить хеш меню, з якого її намальовано. Збігається
      * і сам файл на місці — писати нічого: та сама картинка вже там.
      * Коштує це 7,1 с на ARMv6 (заміряно на точці 25.09.2026), і платили ми
@@ -167,7 +171,7 @@ static void apply_menu(const menu_t *menu, const char *assets_dir,
     }
     gl_texture_destroy(ad_tex);
     if (a) *ad_tex = gl_texture_from_cairo(a);
-    write_fallback_png(m, a, menu->hash);
+    write_fallback_png(m, a, menu->hash, menu->discount);
     if (m) cairo_surface_destroy(m);
     if (a) cairo_surface_destroy(a);
 }
@@ -204,6 +208,16 @@ typedef struct {
     const char *url;
     const char *assets_dir;
     volatile sig_atomic_t stop;
+    /* Подія menu.deployed (головний потік кладе сюди номер деплою під
+     * мʼютексом): не чекати кінця хвилини, а перечитати меню одразу — з
+     * ?v=<номер>, щоб кеш бакета (max-age=30) не віддав старе тіло. 0 —
+     * поштовху немає. До 27.09.2026 кіоск цю подію відкидав, і нові ціни
+     * їхали на екран до півтори хвилини. */
+    long long poke;
+    /* Куди підтвердити, що меню деплою на екрані (acked_at в адмінці), і
+     * чим. Порожньо — не підтверджуємо (десктоп без токена). */
+    const char *ack_url;
+    const char *token;
 } menu_poller_t;
 
 static void *menu_poll_thread(void *arg) {
@@ -236,11 +250,40 @@ static void *menu_poll_thread(void *arg) {
          * хвилина порожнього кадру замість меню. */
         int refresh_s = !attempt.valid ? MENU_RETRY_S
                       : attempt.refresh_sec > 0 ? attempt.refresh_sec : 60;
-        for (int waited = 0; waited < refresh_s * 10 && !mp->stop; waited++)
+        /* Чекання обривається раніше у двох випадках: прийшла подія
+         * menu.deployed (poke) або скінчилась знижка — тоді ціни треба
+         * повернути, не чекаючи ні опитування, ні деплою повернення. */
+        long long poke = 0;
+        for (int waited = 0; waited < refresh_s * 10 && !mp->stop; waited++) {
+            pthread_mutex_lock(&mp->mu);
+            poke = mp->poke;
+            mp->poke = 0;
+            pthread_mutex_unlock(&mp->mu);
+            if (poke) break;
+            if (attempt.discount && (long long)time(NULL) >= attempt.discount_until) break;
             usleep(100000);
+        }
         if (mp->stop) break;
 
-        if (menu_poll(mp->url, &attempt)) {
+        bool changed;
+        if (poke) {
+            char url[1400];
+            snprintf(url, sizeof(url), "%s%sv=%lld", mp->url, strchr(mp->url, '?') ? "&" : "?", poke);
+            changed = menu_poll(url, &attempt);
+            fprintf(stderr, "main: menu.deployed %lld — меню перечитано одразу (%s)\n",
+                    poke, changed ? "нове" : menu_last_poll_ok() ? "те саме" : "не вдалось");
+            if (menu_last_poll_ok()) menu_ack(mp->ack_url, mp->token, poke);
+        } else if (attempt.discount && (long long)time(NULL) >= attempt.discount_until) {
+            changed = false;   /* нічого не питаємо — лише повертаємо повні ціни нижче */
+        } else {
+            changed = menu_poll(mp->url, &attempt);
+        }
+        /* Знижка могла вже минути — і в щойно прочитаному тілі теж (подія
+         * запізнилась, кеш): тоді одразу повні ціни. */
+        bool expired = menu_expire_discount(&attempt, (long long)time(NULL));
+        if (expired) fprintf(stderr, "main: знижка скінчилась — повертаю повні ціни\n");
+
+        if (changed || expired) {
             struct timespec t0, t1;
             /* Три заміри, а не один. Загальні 32,8 с у лозі точки нічого не
              * пояснювали: selftest тим часом малює те саме меню за 5,5 с, і
@@ -252,7 +295,7 @@ static void *menu_poll_thread(void *arg) {
             clock_gettime(CLOCK_MONOTONIC, &tm);
             cairo_surface_t *a = render_ad(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &ta);
-            write_fallback_png(m, a, attempt.hash);
+            write_fallback_png(m, a, attempt.hash, attempt.discount);
             clock_gettime(CLOCK_MONOTONIC, &t1);
 
             pthread_mutex_lock(&mp->mu);
@@ -356,6 +399,14 @@ int main(int argc, char **argv) {
         fprintf(stderr, "main: без POINT знімка стану не буде — лише події ws\n");
     }
 
+    /* Підтвердження меню деплою: той самий api і той самий токен точки. */
+    char ack_url[256] = {0};
+    if (api_url[0] && point && point[0]) {
+        size_t n = strlen(api_url);
+        snprintf(ack_url, sizeof(ack_url), "%s%spoints/%s/menu/ack",
+                 api_url, (n && api_url[n - 1] == '/') ? "" : "/", point);
+    }
+
     ws_client_t *ws = NULL;
     if (ws_token && ws_token[0]) {
         ws = ws_start(ws_url, ws_token, state_url);
@@ -408,6 +459,11 @@ int main(int argc, char **argv) {
      * оновлення важливіше — воно триває хвилину й саме зникне. */
     gl_texture_t offline_tex = {0};
     double offline_tex_w = 0;
+    /* Плашка знижки: той самий слот, перепікається, коли змінюється
+     * кількість секунд (раз на секунду), і має перевагу над двома іншими. */
+    gl_texture_t discount_tex = {0};
+    double discount_tex_w = 0;
+    int discount_shown = 0;
     double ws_down_since = -1;
     bool offline_shown = false;
 
@@ -422,6 +478,7 @@ int main(int argc, char **argv) {
      * малював би порожню сцену, і саме він потрапив би на fps-статистику. */
     if (menu_poll(url, &menu)) {
         fprintf(stderr, "main: меню завантажено, %d напоїв\n", menu.drink_count);
+        menu_expire_discount(&menu, (long long)time(NULL));
         apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
     } else if (menu_load_cache(&menu)) {
         /* Мережі немає — беремо вчорашню менюшку з диска. Без цього кіоску
@@ -432,6 +489,8 @@ int main(int argc, char **argv) {
          * живий: малює свій кадр, тримає сокет телеметрії й покаже QR, щойно
          * підніметься ws. */
         fprintf(stderr, "main: мережі немає — меню з кешу, %d напоїв\n", menu.drink_count);
+        /* Кеш міг лишитись від меню зі знижкою, яка давно минула. */
+        menu_expire_discount(&menu, (long long)time(NULL));
         apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
     } else {
         fprintf(stderr, "main: ні мережі, ні кешу (%s) — стартую з порожнім екраном\n", url);
@@ -445,6 +504,8 @@ int main(int argc, char **argv) {
     poller.last = menu;
     poller.url = url;
     poller.assets_dir = assets_dir;
+    poller.ack_url = ack_url;
+    poller.token = ws_token ? ws_token : "";
     /* Щоб SIGTERM під час оновлення не чекав на curl його повний таймаут —
      * деталі в menu.h. */
     menu_set_abort_flag(&poller.stop);
@@ -521,6 +582,20 @@ int main(int argc, char **argv) {
                 if (os) { offline_tex = gl_texture_from_cairo(os); cairo_surface_destroy(os); }
             }
         }
+        {
+            long long now_epoch = (long long)time(NULL);
+            int left = (menu.discount && now_epoch < menu.discount_until)
+                       ? (int)(menu.discount_until - now_epoch) : 0;
+            if (left != discount_shown) {
+                discount_shown = left;
+                gl_texture_destroy(&discount_tex);
+                discount_tex_w = 0;
+                if (left > 0) {
+                    cairo_surface_t *ds = render_discount_banner(left, &discount_tex_w);
+                    if (ds) { discount_tex = gl_texture_from_cairo(ds); cairo_surface_destroy(ds); }
+                }
+            }
+        }
         if (upd.dirty) {
             gl_texture_destroy(&update_tex);
             update_tex_w = 0;
@@ -577,6 +652,15 @@ int main(int argc, char **argv) {
             ws_event_t events[8];
             int n = ws_drain(ws, events, 8);
             for (int i = 0; i < n; i++) {
+                /* Нове меню на бакеті: поштовх потоку меню (номер деплою —
+                 * щоб обійти кеш; без нього — хоч id події). */
+                if (strcmp(events[i].event, "menu.deployed") == 0) {
+                    pthread_mutex_lock(&poller.mu);
+                    poller.poke = events[i].deployment_id ? events[i].deployment_id
+                                : events[i].id ? events[i].id : 1;
+                    pthread_mutex_unlock(&poller.mu);
+                    continue;
+                }
                 /* Телефон забрав бонус: рядок із панелі геть, а на екрані —
                  * коротка плашка замість QR (config.h, ANIM_POPUP_TAKEN_HOLD_S). */
                 if (strcmp(events[i].event, "bonus_taken") == 0) {
@@ -661,7 +745,10 @@ int main(int argc, char **argv) {
 
         if (have_menu) bonus_draw(&bonus, &comp);
 
-        if (upd.active && update_tex.id)
+        if (have_menu && discount_shown > 0 && discount_tex.id)
+            gl_draw_quad(&comp, &discount_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
+                         discount_tex_w, UPDATE_BANNER_H, 1.0);
+        else if (upd.active && update_tex.id)
             gl_draw_quad(&comp, &update_tex, UPDATE_BANNER_X, UPDATE_BANNER_Y,
                          update_tex_w, UPDATE_BANNER_H, 1.0);
         else if (offline_shown && offline_tex.id)
@@ -702,7 +789,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "main: SIGUSR2 -> знімок %s: %s\n", dump_path, ok ? "ok" : "провалився");
         }
 
-        if (desktop_frames > 0 && frame_no == desktop_frames / 2) {
+        if (desktop_frames > 0 && frame_no == desktop_frames / 2 && !getenv("NO_DEMO_POPUP")) {
             /* середина прогону — демо попапу без керування ззовні */
             g_popup_toggle = 1;
         }
@@ -730,6 +817,8 @@ int main(int argc, char **argv) {
     gl_texture_destroy(&dim_tex);
     popup_art_destroy(&popup_art);
     gl_texture_destroy(&update_tex);
+    gl_texture_destroy(&offline_tex);
+    gl_texture_destroy(&discount_tex);
     bonus_destroy(&bonus);
     platform_destroy(plat);
     menu_poll_close();   /* до curl_global_cleanup(): хендл ще живий */

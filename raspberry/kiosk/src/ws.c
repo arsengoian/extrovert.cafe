@@ -429,6 +429,9 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
     e.id = cJSON_IsNumber(id) ? (long long)id->valuedouble : 0;
     if (cJSON_IsString(ev)) snprintf(e.event, sizeof(e.event), "%s", ev->valuestring);
 
+    const cJSON *dep = cJSON_GetObjectItemCaseSensitive(root, "deployment_id");
+    e.deployment_id = cJSON_IsNumber(dep) ? (long long)dep->valuedouble : 0;
+
     const cJSON *code = cJSON_GetObjectItemCaseSensitive(root, "code");
     if (cJSON_IsString(code)) snprintf(e.code, sizeof(e.code), "%s", code->valuestring);
     const cJSON *drink = cJSON_GetObjectItemCaseSensitive(root, "drink");
@@ -446,9 +449,12 @@ static void handle_text(ws_client_t *w, const unsigned char *payload, size_t len
 
     cJSON_Delete(root);
 
-    /* Дві події з каналу точки: чек пробито (bonus_ready) і телефон забрав
-     * бонус (bonus_taken). Решта — не наша справа. */
-    if (strcmp(e.event, "bonus_ready") != 0 && strcmp(e.event, "bonus_taken") != 0) return;
+    /* Три події з каналу точки: чек пробито (bonus_ready), телефон забрав
+     * бонус (bonus_taken) і на бакеті нове меню (menu.deployed) — останню
+     * до 27.09.2026 кіоск відкидав, і нові ціни чекали хвилинного
+     * опитування плюс кеш бакета. Решта — не наша справа. */
+    if (strcmp(e.event, "bonus_ready") != 0 && strcmp(e.event, "bonus_taken") != 0 &&
+        strcmp(e.event, "menu.deployed") != 0) return;
     /* Доставка «принаймні раз» (backend/lib/src/outbox.js): повтор — норма, і саме
      * тому в події їде id. */
     if (e.id && already_seen(w, e.id)) {

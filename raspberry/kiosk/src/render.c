@@ -130,6 +130,9 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
         free(name_esc_raw);
         char *vol = svgtpl_esc(d->vol);
 
+        /* Знижка на точці: іконка відсотка в бейджі кожної картки, ціна в
+         * пігулці вже знижена й ціла (menu.c). */
+        const char *pct_display = menu->discount ? "inline" : "none";
         char txs[16], tys[16], price[24];
         snprintf(txs, sizeof(txs), "%.2f", tx);
         snprintf(tys, sizeof(tys), "%.2f", ty);
@@ -145,20 +148,24 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
             text_extents(badge_font, coins, &ctw, NULL);
             /* Дві іконки: подарунок і монета. Ширину рахуємо від
              * виміряного тексту, як і раніше, але місця тепер на обидві. */
-            double badge_w = CARD_BADGE_ICON_PAD_L + CARD_BADGE_GIFT_SIZE + CARD_BADGE_GIFT_GAP +
+            /* Під знижку в бейджі спереду ще іконка відсотка, а подарунок,
+             * монета й число зсуваються на її ширину. */
+            double pct_shift = menu->discount ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
+            double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift + CARD_BADGE_GIFT_SIZE + CARD_BADGE_GIFT_GAP +
                               CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
-            char badge_w_s[16];
+            char badge_w_s[16], pct_shift_s[16];
             snprintf(badge_w_s, sizeof(badge_w_s), "%.1f", badge_w);
+            snprintf(pct_shift_s, sizeof(pct_shift_s), "%.1f", pct_shift);
 
             const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL", "PRICE",
-                                    "ASSETS", "BONUS_COINS", "BADGE_W" };
+                                    "ASSETS", "BONUS_COINS", "BADGE_W", "PCT_DISPLAY", "PCT_SHIFT" };
             const char *vals[] = { txs, tys, img, name, vol, price,
-                                    assets_dir, coins, badge_w_s };
-            card = svgtpl_sub(card_bonus_tpl, keys, vals, 9);
+                                    assets_dir, coins, badge_w_s, pct_display, pct_shift_s };
+            card = svgtpl_sub(card_bonus_tpl, keys, vals, 11);
         } else {
-            const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL", "PRICE" };
-            const char *vals[] = { txs, tys, img, name, vol, price };
-            card = svgtpl_sub(card_tpl, keys, vals, 6);
+            const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL", "PRICE", "PCT_DISPLAY" };
+            const char *vals[] = { txs, tys, img, name, vol, price, pct_display };
+            card = svgtpl_sub(card_tpl, keys, vals, 7);
         }
         free(name);
         free(vol);
@@ -256,6 +263,46 @@ cairo_surface_t *render_ad(const menu_t *menu, const char *assets_dir) {
 }
 
 /* -------- попап: без дизайну поки що, лишається прямим Cairo -------- */
+
+/* -------- плашка знижки: прямий Cairo, як і плашка оновлення --------
+ * Біла, «Знижка!» — акцентним помаранчевим, відлік — темним. Секунди
+ * змінюються щосекунди, тож і плашка перепікається щосекунди: SVG-шаблон
+ * через librsvg на Pi 1 для цього задорогий, а кілька рядків Cairo —
+ * ні. Слово «секунд» узгоджується з числом, як у застосунку. */
+static const char *seconds_word(int n) {
+    int m10 = n % 10, m100 = n % 100;
+    if (m10 == 1 && m100 != 11) return "секунду";
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "секунди";
+    return "секунд";
+}
+
+cairo_surface_t *render_discount_banner(int seconds_left, double *out_w) {
+    char font[32];
+    snprintf(font, sizeof(font), FONT_700 " %dpx", DISCOUNT_BANNER_FONT_SIZE);
+    const char *head = "Знижка!";
+    char tail[64];
+    snprintf(tail, sizeof(tail), " Діє ще %d %s", seconds_left, seconds_word(seconds_left));
+
+    int hw = 0, tw = 0, th = 0;
+    text_extents(font, head, &hw, &th);
+    text_extents(font, tail, &tw, &th);
+    double w = hw + tw + 2 * UPDATE_BANNER_PAD_X;
+    if (w > UPDATE_BANNER_MAX_W) w = UPDATE_BANNER_MAX_W;
+    if (out_w) *out_w = w;
+
+    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)w, (int)UPDATE_BANNER_H);
+    cairo_t *cr = cairo_create(s);
+    rounded_rect(cr, 0, 0, w, UPDATE_BANNER_H, UPDATE_BANNER_R);
+    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_fill(cr);
+    draw_text_vc(cr, UPDATE_BANNER_PAD_X, UPDATE_BANNER_H / 2.0, font,
+                 BADGE_COLOR_R, BADGE_COLOR_G, BADGE_COLOR_B, head);
+    draw_text_vc_ellipsized(cr, UPDATE_BANNER_PAD_X + hw, UPDATE_BANNER_H / 2.0, font,
+                             0x0C / 255.0, 0x0E / 255.0, 0x11 / 255.0,
+                             tail, w - 2 * UPDATE_BANNER_PAD_X - hw);
+    cairo_destroy(cr);
+    return s;
+}
 
 /* -------- плашка "оновлення": прямий Cairo, як і попап --------
  * Шаблоном не робиться свідомо: це не частина макета, а службовий
