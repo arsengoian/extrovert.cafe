@@ -18,6 +18,7 @@ import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } fr
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
 import { useLandscape } from "../ui/landscape.js";
+import { selectedPlantId } from "./selected.js";
 import { leaveHandoff } from "./handoff.js";
 
 // Іскорки посадки — одна механіка, різний масштаб часток (дошка «Анімації»).
@@ -164,7 +165,7 @@ export function Planting({ ctx, plantId, title, resume }) {
     return () => clearTimeout(t);
   }, [pop]);
 
-  const id = plantId ?? ctx.me?.plants?.[0]?.id;
+  const id = plantId ?? selectedPlantId() ?? ctx.me?.plants?.[0]?.id;
 
   // Перший крок поточної стадії. Потрібен двом місцям: старту й «почати
   // заново», тож рахується один раз і з одного джерела.

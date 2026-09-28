@@ -90,7 +90,7 @@ export function Chat({ ctx, plant }) {
             </Fragment>
           );
         })}
-        {sending && <div className="chat-msg chat-plant chat-typing">думає…</div>}
+        {sending && <div className="chat-msg chat-plant chat-typing">думаю…</div>}
         <div ref={endRef} />
       </div>
 

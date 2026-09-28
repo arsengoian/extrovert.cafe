@@ -19,6 +19,7 @@ import {
 } from "../plant/lines.js";
 import { takeHandoff } from "../plant/handoff.js";
 import { useConfirmWord } from "../ui/confirmWord.js";
+import { rememberPlant, selectedIndex } from "../plant/selected.js";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -362,17 +363,22 @@ function ScytheSheet({ plant, onClose, onDone }) {
 const randomIndex = (n) => Math.floor(Math.random() * n);
 const otherIndex = (n, cur) => (n < 2 ? 0 : (cur + 1 + randomIndex(n - 1)) % n);
 
-function Bubble({ name, lines, stamp, onOpen }) {
+// onShow — хмаринка показала нову репліку (Plant кличе це лише для стану,
+// а не для відповіді на тап): вона дублюється в чат, коли людина давно не
+// писала (routes/chat.js, /chat/echo).
+function Bubble({ name, lines, stamp, onOpen, onShow }) {
   const [pick, setPick] = useState(() => ({ lines, stamp, i: randomIndex(lines.length) }));
   let i = pick.i;
   if (pick.lines !== lines || pick.stamp !== stamp) {
     i = pick.lines === lines ? otherIndex(lines.length, pick.i) : randomIndex(lines.length);
     setPick({ lines, stamp, i });
   }
+  const text = lines[i] ?? lines[0];
+  useEffect(() => { if (onShow && text) onShow(text); }, [text, Boolean(onShow)]);
   return (
     <button className="plant-bubble" onClick={onOpen}>
       <b>{name}</b>
-      <Typewriter text={lines[i] ?? lines[0]} />
+      <Typewriter text={text} />
     </button>
   );
 }
@@ -380,7 +386,8 @@ function Bubble({ name, lines, stamp, onOpen }) {
 export function Plant({ ctx }) {
   const assets = usePlantAssets();
   const [plants, setPlants] = useState(() => api.peek("/me/plants")?.plants ?? null);
-  const [index, setIndex] = useState(0);
+  // Обране кавенятко переживає зміну екранів і перезавантаження (plant/selected.js).
+  const [index, setIndex] = useState(() => selectedIndex(api.peek("/me/plants")?.plants));
   const [error, setError] = useState(null);
   const [note, setNote] = useState(null);             // щойно сказане: { lines, at }
   // Мітка часу — щоб той самий масив двічі поспіль (полив, ще полив) дав
@@ -463,11 +470,12 @@ export function Plant({ ctx }) {
   // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
   const reload = () => api.get("/me/plants").then((r) => {
     setPlants(r.plants);
-    setIndex((i) => Math.min(i, Math.max(0, r.plants.length - 1)));
+    setIndex(() => selectedIndex(r.plants));
     return r.plants;
   });
   useEffect(() => { reload().catch((e) => setError(e.message)); }, []);
   useEffect(() => { setNote(null); setPopup(null); }, [index]);
+  useEffect(() => { if (plants?.[index]) rememberPlant(plants[index].id); }, [plants, index]);
 
   // Спершу гортаємо до подарованого кавенятка, а коли воно на екрані й
   // бочка намальована — позначаємо бочку джерелом і оновлюємо баланс:
@@ -562,6 +570,14 @@ export function Plant({ ctx }) {
     : plant.growth_stage >= 10 && dressed ? DRESSED
     : stageLines(plant.growth_stage, growth.need);
   const lines = note?.lines ?? idle;
+  // Нова репліка стану — і в чат, якщо людина давно не писала (сервер
+  // вирішує сам: давність, не більше трьох реплік кавенятка поспіль, без
+  // повторів). Продублювали — оновлюємо лічильник непрочитаних на кнопці.
+  const echoToChat = (text) => {
+    api.post(`/me/plants/${plant.id}/chat/echo`, { text })
+      .then((r) => { if (r?.echoed) reload().catch(() => {}); })
+      .catch(() => {});
+  };
 
   // Не той препарат. Перший тап називає, чого кущ хоче; повтори — репліки
   // з його поточного стану: вдягнений каже «в чому сенс бути кущем без
@@ -666,7 +682,8 @@ export function Plant({ ctx }) {
           )}
           {!onSale && (
             <Bubble name={plant.name || "Кавенятко"} lines={lines} stamp={note?.at ?? 0}
-                    onOpen={() => !lock && ctx.push("chat", { plant })} />
+                    onOpen={() => !lock && ctx.push("chat", { plant })}
+                    onShow={note ? undefined : echoToChat} />
           )}
           <div className="plant-scene">
             {assets && (fx ? (

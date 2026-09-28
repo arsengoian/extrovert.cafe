@@ -60,9 +60,10 @@ export function PlantName({ plant, ctx }) {
   if (!host) return null;
   return createPortal(
     <>
-      {/* Клік по затемненню закриває: ім'я можна дати й пізніше, а екран,
-          з якого нема виходу, — гірше за кавенятко без імені. */}
-      <div className="sheet-backdrop" onClick={ctx.pop} />
+      {/* Ні «Пізніше», ні закриття по затемненню: дати ім'я потім було
+          ніде, і кавенятко лишалось безіменним назавжди (власник,
+          28.09.2026). */}
+      <div className="sheet-backdrop" />
       <div className="name-sky" style={box ?? undefined}>
       <div className="name-card">
         <div className="name-hero">
@@ -81,7 +82,6 @@ export function PlantName({ plant, ctx }) {
           </label>
           <p>{error ?? "Ім'я бачитимеш тільки ти – його можна змінити будь-коли."}</p>
           <button className="cta" disabled={busy || !name.trim()} onClick={save}>Готово</button>
-          <button className="name-later" onClick={ctx.pop}>Пізніше</button>
         </div>
       </div>
       </div>

@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ConfirmSheet } from "./Popup.jsx";
+import { preferSelected } from "../plant/selected.js";
 import { plural } from "./plural.js";
 
 // Слоти повного комплекту — ті самі, що в гардеробі (economy.set.slots).
@@ -131,8 +132,9 @@ export function NotEnoughBeans({ what, price, have, ctx, onClose }) {
       const plants = mine.plants ?? [];
       const slots = new Set((stock.items ?? []).filter((i) => i.free > 0).map((i) => i.slot));
       setWays({
-        plant: plants[0] ?? null,
-        stage: plants[0]?.growth_stage ?? 0,
+        // Обране кавенятко (plant/selected.js), а не перше в списку.
+        plant: preferSelected(plants),
+        stage: preferSelected(plants)?.growth_stage ?? 0,
         canDress: SET_SLOTS.every((slot) => slots.has(slot)),
         missing: SET_SLOTS.filter((slot) => !slots.has(slot)).length,
       });

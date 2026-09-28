@@ -206,10 +206,14 @@ export function wornInstances(layout, worn, body, mood = "healthy") {
   return out;
 }
 
+// Одяг видно лише на дорослому кавенятку (стадія 10): дарують його
+// дорослому, і на паростку чи кущі з бутонами речі з примірочної не
+// малюються (власник, 28.09.2026).
 export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [] }) {
   if (!layout) return [];
   const base = baseInstances(layout, stage, mood);
   const body = base.find((i) => /^body_stage1/.test(i.group));
-  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body, mood), ...extra]
+  const dressed = stage >= 10 ? worn : null;
+  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, dressed, body, mood), ...extra]
     .sort((a, b) => a.z - b.z);
 }

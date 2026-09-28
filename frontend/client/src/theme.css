@@ -1495,6 +1495,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Смуга «Комплекти»: «приміряти» (речі з примірочної) і подаровані
    комплекти кольору рідкості, прокрутка вбік до країв екрана, праворуч
    згасання — кадр «Гардероб» у макеті. */
+/* «Х – у примірочній кавенятка Y» у попапі предмета зі складу. */
+.stock-fitting { padding: 10px 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); font-size: 12.5px; line-height: 1.4; color: var(--ink); text-wrap: pretty }
 .wr-strip { position: relative; margin: 0 -14px }
 .wr-strip-row { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 0 14px }
 .wr-strip-row::-webkit-scrollbar { display: none }

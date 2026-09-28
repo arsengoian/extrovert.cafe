@@ -101,7 +101,7 @@ export function Wardrobe({ ctx, plant }) {
       ctx.openTab("plant");
     } catch (e) {
       if (e.body?.error === "incomplete") throw Object.assign(e, { body: { error: "Спершу заповни всі п'ять слотів" } });
-      if (e.body?.error === "not_grown") throw Object.assign(e, { body: { error: "Кавенятко ще росте – подарувати комплект можна дорослому" } });
+      if (e.body?.error === "not_grown") throw Object.assign(e, { body: { error: "Кавенятко ще росте – подарувати одяг можна лише дорослому" } });
       throw e;
     }
   });
@@ -185,7 +185,7 @@ export function Wardrobe({ ctx, plant }) {
               /* Комплект зібрано, але кущ ще росте. Кажемо це тут, а не
                  помилкою після натискання: предмети замикаються назавжди,
                  і людина має розуміти умову до того, як тисне. */
-              : "Подарувати можна лише дорослому кавенятку – спершу виростіть його до останнього етапу"}
+              : "Подарувати одяг можна лише дорослому кавенятку – спершу вирости його до останнього етапу"}
         </div>
         <button disabled={!data.gift.can || busy} onClick={gift}>Подарувати</button>
       </div>

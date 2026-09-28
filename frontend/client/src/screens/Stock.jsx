@@ -88,7 +88,7 @@ export function Stock({ ctx }) {
                           title={frozen ? "На продажу — заморожено" : it.name}
                           onClick={() => (frozen
                             ? ctx.push("listings")
-                            : ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} />))}>
+                            : ctx.notify(<StockItemSheet item={it} ctx={ctx} onClose={() => ctx.notify(null)} onChanged={loadItems} />))}>
                     <ItemIcon sprite={it.sprite_id} size={36} name={it.name} style={{ width: 36 }} />
                     {it.owned > 1 && <i>×{it.owned}</i>}
                     {frozen && (
