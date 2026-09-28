@@ -185,7 +185,7 @@ function CareFx({ pour, areaRef }) {
   return <div ref={host} className="care-fx" aria-hidden="true" />;
 }
 
-function Shelf({ care, onApply, onWrong, need }) {
+function Shelf({ care, onApply, onWrong, need, canWater }) {
   const shown = useRef(care);
   useEffect(() => { shown.current = care; });
   return (
@@ -204,7 +204,9 @@ function Shelf({ care, onApply, onWrong, need }) {
         // це єдиний шлях докупити. Тап по непотрібному нічого не витрачає,
         // але кущ відповідає («Хочу води, а не оце»): мертва кнопка
         // виглядала зламаною (власник, 27.09.2026).
-        const off = Boolean(need) && need !== s.kind;
+        // Воду можна дати й без прохання, коли минула доба від поливу
+        // (canWater): полити можна, але не обов'язково (власник, 27.09.2026).
+        const off = Boolean(need) && need !== s.kind && !(s.kind === "water" && canWater);
         return (
           <button key={s.key} className="shelf-item" data-kind={s.kind} data-off={off || undefined} aria-disabled={off || undefined}
                   onClick={() => (off ? onWrong(s.kind) : onApply(s.kind))}
@@ -550,6 +552,9 @@ export function Plant({ ctx }) {
   // Під попапом хмаринки немає (кадри меню й попапів у макеті), репліка лишається.
   // Поки грає перехід після посадки, хмаринка не просить наступного.
   const want = !onSale && !shelfEmpty && !popup && !oldScene ? WANT[need] : null;
+  // Полити можна раз на добу, навіть якщо кущ не просить (сервер тримає ту
+  // саму межу: water_too_soon).
+  const canWater = !onSale && (!plant.last_watered_at || Date.now() - new Date(plant.last_watered_at).getTime() >= 24 * 60 * 60 * 1000);
   const idle = waiting && plant.mood === "healthy" ? WAITING
     : plant.mood === "withered" ? WITHERED
     : plant.mood === "sad" ? SAD
@@ -610,6 +615,7 @@ export function Plant({ ctx }) {
       const code = e.body?.error;
       if (code === "needs_planting") openPlanting();
       else if (code === "wrong_care") wrong(e.body.need);
+      else if (code === "water_too_soon") wrong(need);
       else if (code === "too_soon") say(TOO_SOON);
       else if (code === "no_supply") setPopup(`supply:${kind}`);
       else if (code === "fully_grown") say(GROWN);
@@ -671,7 +677,7 @@ export function Plant({ ctx }) {
               </>
             ) : <Scene instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
-          <Shelf care={care} onApply={apply} need={need}
+          <Shelf care={care} onApply={apply} need={need} canWater={canWater}
                  onWrong={() => (onSale ? say(ON_SALE) : need === "time" ? say(TOO_SOON) : wrong(need))} />
           <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
