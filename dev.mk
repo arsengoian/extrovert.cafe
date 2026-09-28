@@ -27,7 +27,7 @@
 # і без CHECKBOX_TEST_* просто не працює), але чек летить у справжній
 # Checkbox, вебхук — у прод, і бонус з'являється на справжньому кіоску.
 
-.PHONY: d-help d-sale d-list d-plant d-skip d-supply d-give d-user d-db d-sql
+.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
@@ -42,16 +42,20 @@ SUPPLY ?= 9
 COINS  ?=
 SILVER ?=
 BEANS  ?=
+EVERY  ?= 20
+COUNT  ?= 20
 
 d-help:
 	@echo   make d-list                    які напої є в сідах
 	@echo   make d-sale DRINK=a033 PAY=cash   покупка тестовим касиром - чек у прод
+	@echo   make d-sales EVERY=20 COUNT=20    випадковий напій раз на EVERY с, до COUNT штук або Ctrl+C
 	@echo   make d-plant MAIL=пошта STAGE=1 RESET=1   стадія кавенятка, з очищенням посадженого
 	@echo   make d-skip MAIL=пошта DAYS=3  «минуло N днів» (типово 1): гейт, полив, настрій
 	@echo   make d-supply MAIL=пошта SUPPLY=9   насипати препаратів
 	@echo   make d-give MAIL=пошта COINS=500   монети/зерна: COINS, SILVER, BEANS
 	@echo   make d-user MAIL=пошта         баланси, кавенята, останні чеки
 	@echo   make d-db                      psql до прод-бази
+	@echo   make d-tunnel                  тунель до прод-бази на localhost:5455, доки не Ctrl+C
 
 d-list:
 	$(BUN) scripts/dev-sale.mjs --list
@@ -61,6 +65,11 @@ d-list:
 d-sale:
 	@$(if $(strip $(DRINK)),,$(error вкажи напій: make d-sale DRINK=a033 (список - make d-list)))
 	$(BUN) scripts/dev-sale.mjs --drink $(DRINK) --pay $(PAY)
+
+# Потік продажів: раз на EVERY секунд випадковий активний напій, до COUNT
+# штук (типово 20 раз на 20 с) або до Ctrl+C. Кожен — той самий d-sale.
+d-sales:
+	$(BUN) scripts/dev-sales.mjs --every $(EVERY) --count $(COUNT) --pay $(PAY)
 
 d-plant:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-plant MAIL=пошта STAGE=1))
@@ -91,6 +100,13 @@ d-user:
 # на порожньому вводі.
 d-db:
 	$(PRODDB) sh -c 'psql "$$DATABASE_URL"'
+
+# Тунель до прод-бази для власного клієнта (DBeaver, TablePlus): localhost:5455,
+# база extrovert, користувач extrovert, пароль — POSTGRES_PASSWORD у .env.prod
+# (у термінал його не друкуємо). Тримається, доки не Ctrl+C, і зникає разом
+# із командою — той самий prod-db.sh, що й решта d-*.
+d-tunnel:
+	$(PRODDB) sh -c 'echo "тунель відкритий: localhost:5455, база extrovert, користувач extrovert (пароль — POSTGRES_PASSWORD у .env.prod). Ctrl+C — закрити"; while :; do sleep 3600; done'
 
 # Довільний запит: make d-sql Q="select count(*) from users"
 d-sql:
