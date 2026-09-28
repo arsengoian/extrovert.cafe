@@ -146,12 +146,10 @@ export function SkinGrid({ count, value, onChange, src, wide }) {
   );
   const all = Array.from({ length: count }, (_, i) => i + 1);
   if (wide) return <div className="pl-skins wide">{all.map(tile)}</div>;
-  return (
-    <>
-      <div className="pl-skins">{all.slice(0, 5).map(tile)}</div>
-      {count > 5 && <div className="pl-skins">{all.slice(5).map(tile)}</div>}
-    </>
-  );
+  // Одна сітка на п'ять колонок, плитки стискаються: на 328 px два ряди
+  // 5 + 4, а не 4-1-4, як коли п'ятий не влазив у перший ряд (власник,
+  // 28.09.2026).
+  return <div className="pl-skins grid">{all.map(tile)}</div>;
 }
 
 export function Steps({ items }) {
