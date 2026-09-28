@@ -19,6 +19,8 @@ import { Onboarding } from "./screens/Onboarding.jsx";
 import { BonusPopup } from "./screens/Bonus.jsx";
 import { LoginConfirm } from "./screens/LoginConfirm.jsx";
 import { readLoginWait } from "./loginWait.js";
+import { ResultPopup } from "./ui/Popup.jsx";
+import { beans as beansText } from "./ui/plural.js";
 import "./theme.js";
 
 const TAB_KEY = "extrovert.tab";
@@ -174,6 +176,20 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     const stop = connectEvents(
       (msg) => {
         if (!msg.event || msg.event === "hello") return;
+        // Знижка в кав'ярні не спрацювала — знижене меню не доїхало до
+        // точки, і зерна повернулись самі (lib/discounts.js). Кажемо прямо,
+        // інакше людина бачила б лише, що зерна «зникли й з'явились».
+        if (msg.event === "discount_refunded") {
+          const close = () => setNotice(null);
+          setNotice(
+            <ResultPopup art={<img src="/assets/ui/pos_discount.png" alt="" style={{ width: 58, height: 58, objectFit: "contain" }} />}
+                         title="Знижка не спрацювала" onClose={close}>
+              <div className="result-note">
+                {`Знижені ціни не доїхали до автомата${msg.point_name ? ` у кав'ярні ${msg.point_name}` : ""}, тож зерна повернуто: +${beansText(msg.beans ?? 0)}.`}
+              </div>
+            </ResultPopup>
+          );
+        }
         clearTimeout(eventRefresh.current);
         eventRefresh.current = setTimeout(() => refreshMe().catch(() => {}), 200);
       },

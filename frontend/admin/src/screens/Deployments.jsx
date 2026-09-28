@@ -12,13 +12,15 @@ const badge = (s) => { const [tone, text] = STATUS[s] ?? ["", s]; return <Badge 
 export function Deployments() {
   const { data, error, reload } = useData(() => api.deployments());
   const [note, setNote] = useState(null);
-  // Тестова знижка: два деплойменти (знижені ціни й повернення) на всі
-  // точки — подивитись плашку з відліком на кіоску (discount.js в api).
+  // Тестова знижка: та сама черга знижок, що й купівля (lib/discounts.js),
+  // на всі точки — подивитись плашку з відліком на кіоску.
   const discount = async () => {
-    if (!confirm("Увімкнути тестову знижку на точках? Ціни на екрані кіоска на дві хвилини стануть нижчими, а автомат пробиватиме звичайні.")) return;
+    if (!confirm("Увімкнути тестову знижку на точках? Ціни на екрані кіоска на дві хвилини (або до першого чека) стануть нижчими, а автомат пробиватиме звичайні.")) return;
     try {
       const r = await api.discountTest({});
-      setNote(`Знижка ${r.uah} ₴ до ${new Date(r.until).toLocaleTimeString("uk-UA")}`);
+      setNote(r.status === "active"
+        ? `Знижка ${r.uah} ₴ до ${new Date(r.until).toLocaleTimeString("uk-UA")} або першого чека`
+        : `Знижка в черзі: перед нею ${r.ahead}`);
       reload();
     } catch (e) { setNote(`не вийшло: ${e.message}`); }
   };
