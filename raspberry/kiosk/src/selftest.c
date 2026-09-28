@@ -22,6 +22,7 @@ static const char *REQUIRED[] = {
     "fonts/Extro900.ttf", "fonts/Extro1000.ttf",
     "fonts/Poppins-Regular.ttf", "fonts/Poppins-SemiBold.ttf", "fonts/Poppins-Bold.ttf",
     "templates/menu.svg", "templates/card.svg", "templates/card_bonus.svg",
+    "templates/prices.svg", "templates/card_price.svg", "templates/card_bonus_price.svg",
     "templates/ad.svg", "templates/bonus_header.svg", "templates/bonus_empty.svg",
     "templates/bonus_row.svg", "templates/bonus_secret.svg",
     "templates/popup.svg", "templates/popup_bonus.svg", "templates/popup_secret.svg",
@@ -89,6 +90,24 @@ static bool surface_has_ink(cairo_surface_t *s, const char *what) {
     return true;
 }
 
+/* Знімок меню таким, яким його видно на екрані: основа + шар цін на
+ * PRICES_X/Y (з 28.09.2026 ціни — окрема поверхня, render_prices). */
+static bool write_stage_png(cairo_surface_t *menu_s, cairo_surface_t *prices_s, const char *path) {
+    if (!menu_s || cairo_surface_status(menu_s) != CAIRO_STATUS_SUCCESS) return false;
+    cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, STAGE_W, STAGE_H);
+    cairo_t *cr = cairo_create(s);
+    cairo_set_source_surface(cr, menu_s, 0, 0);
+    cairo_paint(cr);
+    if (prices_s && cairo_surface_status(prices_s) == CAIRO_STATUS_SUCCESS) {
+        cairo_set_source_surface(cr, prices_s, PRICES_X, PRICES_Y);
+        cairo_paint(cr);
+    }
+    cairo_destroy(cr);
+    bool ok = cairo_surface_write_to_png(s, path) == CAIRO_STATUS_SUCCESS;
+    cairo_surface_destroy(s);
+    return ok;
+}
+
 /* Синтетичне меню замість справжнього з мережі: перевірка має проходити
  * на пристрої, який щойно втратив звʼязок (оновлення могло приїхати
  * останнім успішним запитом), і має бути детермінованою — інакше
@@ -152,6 +171,10 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     if (!surface_has_ink(menu_s, "menu.svg")) failures++;
 
     mark();
+    cairo_surface_t *prices_s = render_prices(&m, assets_dir);
+    if (!surface_has_ink(prices_s, "prices.svg")) failures++;
+
+    mark();
     cairo_surface_t *ad_s = render_ad(&m, assets_dir);
     if (!surface_has_ink(ad_s, "ad.svg")) failures++;
 
@@ -193,7 +216,7 @@ int selftest_run(const char *assets_dir, const char *out_png) {
     cairo_surface_t *banner_s = render_update_banner("ОНОВЛЕННЯ…", &banner_w);
     if (!surface_has_ink(banner_s, "update banner")) failures++;
 
-    /* Знижка — інший шлях підстановки в обох шаблонах карток (іконка
+    /* Знижка — інший шлях підстановки в обох шаблонах шару цін (іконка
      * відсотка, зсув бейджа) і власна плашка. */
     menu_t md = m;
     md.discount = true;
@@ -204,25 +227,22 @@ int selftest_run(const char *assets_dir, const char *out_png) {
         md.drinks[i].price = md.drinks[i].price > 20 ? md.drinks[i].price - 20 : 0;
     }
     mark();
-    cairo_surface_t *menu_disc_s = render_menu(&md, assets_dir);
-    if (!surface_has_ink(menu_disc_s, "menu.svg зі знижкою")) failures++;
+    cairo_surface_t *prices_disc_s = render_prices(&md, assets_dir);
+    if (!surface_has_ink(prices_disc_s, "prices.svg зі знижкою")) failures++;
     double disc_w = 0;
     mark();
     cairo_surface_t *disc_s = render_discount_banner(87, &disc_w);
     if (!surface_has_ink(disc_s, "discount banner")) failures++;
     const char *disc_png = getenv("SELFTEST_DISCOUNT_PNG");
-    if (disc_png && disc_png[0] && menu_disc_s && cairo_surface_status(menu_disc_s) == CAIRO_STATUS_SUCCESS)
-        cairo_surface_write_to_png(menu_disc_s, disc_png);
-    if (menu_disc_s) cairo_surface_destroy(menu_disc_s);
+    if (disc_png && disc_png[0]) write_stage_png(menu_s, prices_disc_s, disc_png);
+    if (prices_disc_s) cairo_surface_destroy(prices_disc_s);
     if (disc_s) cairo_surface_destroy(disc_s);
 
     if (out_png && menu_s && cairo_surface_status(menu_s) == CAIRO_STATUS_SUCCESS) {
         /* Знімок саме меню: це найбільша й найскладніша поверхня, і саме
          * на неї дивляться, коли розбирають "чому оновлення не пройшло". */
-        cairo_status_t st = cairo_surface_write_to_png(menu_s, out_png);
-        if (st != CAIRO_STATUS_SUCCESS)
-            fprintf(stderr, "selftest: не зберігся знімок %s (%s)\n",
-                    out_png, cairo_status_to_string(st));
+        if (!write_stage_png(menu_s, prices_s, out_png))
+            fprintf(stderr, "selftest: не зберігся знімок %s\n", out_png);
         else
             fprintf(stderr, "selftest: знімок у %s\n", out_png);
     }
@@ -241,6 +261,7 @@ int selftest_run(const char *assets_dir, const char *out_png) {
         cairo_surface_write_to_png(taken_s, taken_png);
 
     if (menu_s) cairo_surface_destroy(menu_s);
+    if (prices_s) cairo_surface_destroy(prices_s);
     if (ad_s) cairo_surface_destroy(ad_s);
     if (popup_s) cairo_surface_destroy(popup_s);
     if (popup2_s) cairo_surface_destroy(popup2_s);

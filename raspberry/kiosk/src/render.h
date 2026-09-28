@@ -17,6 +17,12 @@
  * menu_poll() при мережевій помилці. */
 cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir);
 
+/* Шар цін (templates/prices.svg): пігулки з ціною, значки знижки й бейджі
+ * монет — поверхня PRICES_W×PRICES_H, лягає на PRICES_X/Y поверх меню.
+ * Окремо від render_menu, щоб знижка й нові ціни не чекали ~22 с
+ * перемальовування всього меню на Pi 1 (28.09.2026). */
+cairo_surface_t *render_prices(const menu_t *menu, const char *assets_dir);
+
 /* Рекламна картка (templates/ad.svg), окрема текстура PANEL_W×AD_H —
  * своя, бо композититься окремим квадом поруч із меню. NULL, якщо
  * menu->ad.valid==false (нема чого рендерити) або шаблон не знайдено. */

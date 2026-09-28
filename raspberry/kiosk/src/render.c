@@ -86,7 +86,11 @@ void draw_text_vc_ellipsized(cairo_t *cr, double x, double y_center, const char 
     draw_text_ellipsized(cr, x, y_center - h / 2.0, font_spec, r, g, b, text, max_w);
 }
 
-/* -------- меню: лого + сітка карток, зі справжнього SVG-шаблону -------- */
+/* -------- меню: лого + сітка карток, зі справжнього SVG-шаблону --------
+ * Без цін: пігулки, значки знижки й бейджі монет — окремий шар
+ * (render_prices нижче). Меню на Pi 1 малюється ~22 с, і доки ціна жила в
+ * ньому, знижка з'являлась на екрані із запізненням на ці ж 22 с, а
+ * повертались повні ціни теж пізно (28.09.2026). */
 
 cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
     char page_path[1024], card_path[1024], card_bonus_path[1024];
@@ -104,8 +108,6 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
 
     char name_font[32];
     snprintf(name_font, sizeof(name_font), FONT_700 " %dpx", CARD_NAME_FONT_SIZE);
-    char badge_font[32];
-    snprintf(badge_font, sizeof(badge_font), FONT_POPPINS " Bold %dpx", CARD_BADGE_FONT_SIZE);
 
     /* Конкатенація карток у {{CARDS}} сторінки. Верхня межа з запасом:
      * CARD_MAX карток по ~2 КБ найдовшого підставленого фрагмента. */
@@ -130,43 +132,13 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
         free(name_esc_raw);
         char *vol = svgtpl_esc(d->vol);
 
-        /* Знижка на точці: іконка відсотка в бейджі кожної картки, ціна в
-         * пігулці вже знижена й ціла (menu.c). */
-        const char *pct_display = menu->discount ? "inline" : "none";
-        char txs[16], tys[16], price[24];
+        char txs[16], tys[16];
         snprintf(txs, sizeof(txs), "%.2f", tx);
         snprintf(tys, sizeof(tys), "%.2f", ty);
-        snprintf(price, sizeof(price), "%d \xE2\x82\xB4", d->price);   /* "N ₴" */
 
-        char *card;
-        if (d->is_bonus) {
-            /* ширина бейджа — той самий принцип, що монетна пігулка рядка
-             * бонусу: рахуємо від виміряного тексту (config.h: CARD_BADGE_*) */
-            char coins[16];
-            snprintf(coins, sizeof(coins), "%d", d->coins);
-            int ctw;
-            text_extents(badge_font, coins, &ctw, NULL);
-            /* Ширину рахуємо від виміряного тексту. */
-            /* Під знижку в бейджі спереду ще значок відсотка, а монета й
-             * число зсуваються на його ширину. Подарунка в бейджі більше
-             * немає (власник, 28.09.2026) — лише монета й ціна в монетах. */
-            double pct_shift = menu->discount ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
-            double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift +
-                              CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
-            char badge_w_s[16], pct_shift_s[16];
-            snprintf(badge_w_s, sizeof(badge_w_s), "%.1f", badge_w);
-            snprintf(pct_shift_s, sizeof(pct_shift_s), "%.1f", pct_shift);
-
-            const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL", "PRICE",
-                                    "ASSETS", "BONUS_COINS", "BADGE_W", "PCT_DISPLAY", "PCT_SHIFT" };
-            const char *vals[] = { txs, tys, img, name, vol, price,
-                                    assets_dir, coins, badge_w_s, pct_display, pct_shift_s };
-            card = svgtpl_sub(card_bonus_tpl, keys, vals, 11);
-        } else {
-            const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL", "PRICE", "PCT_DISPLAY" };
-            const char *vals[] = { txs, tys, img, name, vol, price, pct_display };
-            card = svgtpl_sub(card_tpl, keys, vals, 7);
-        }
+        const char *keys[] = { "TX", "TY", "IMG", "NAME", "VOL" };
+        const char *vals[] = { txs, tys, img, name, vol };
+        char *card = svgtpl_sub(d->is_bonus ? card_bonus_tpl : card_tpl, keys, vals, 5);
         free(name);
         free(vol);
 
@@ -195,6 +167,109 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
     free(full);
     return surf;
 }
+
+/* -------- шар цін: пігулки, значки знижки, бейджі монет --------
+ * templates/prices.svg + card_price.svg / card_bonus_price.svg на кожну
+ * картку. Поверхня PRICES_W×PRICES_H — прямокутник сітки, лягає на
+ * PRICES_X/Y поверх меню. Тут немає картинок напоїв і назв, лише кілька
+ * фігур і рядків на картку, тож на Pi 1 це частка секунди проти ~22 с
+ * усього меню. */
+cairo_surface_t *render_prices(const menu_t *menu, const char *assets_dir) {
+    char page_path[1024], card_path[1024], card_bonus_path[1024];
+    snprintf(page_path, sizeof(page_path), "%s/templates/prices.svg", assets_dir);
+    snprintf(card_path, sizeof(card_path), "%s/templates/card_price.svg", assets_dir);
+    snprintf(card_bonus_path, sizeof(card_bonus_path), "%s/templates/card_bonus_price.svg", assets_dir);
+
+    char *page_tpl = svgtpl_load(page_path);
+    char *card_tpl = svgtpl_load(card_path);
+    char *card_bonus_tpl = svgtpl_load(card_bonus_path);
+    if (!page_tpl || !card_tpl || !card_bonus_tpl) {
+        free(page_tpl); free(card_tpl); free(card_bonus_tpl);
+        return NULL;
+    }
+
+    char badge_font[32];
+    snprintf(badge_font, sizeof(badge_font), FONT_POPPINS " Bold %dpx", CARD_BADGE_FONT_SIZE);
+
+    size_t cap = (size_t)CARD_MAX * 2048 + 1;
+    char *cards = malloc(cap);
+    cards[0] = 0;
+    size_t used = 0;
+
+    /* Знижка на точці: значок відсотка на кожній картці, ціна в пігулці
+     * вже знижена й ціла (menu.c). */
+    const char *pct_display = menu->discount ? "inline" : "none";
+
+    int n = menu->drink_count < CARD_MAX ? menu->drink_count : CARD_MAX;
+    for (int i = 0; i < n; i++) {
+        const drink_t *d = &menu->drinks[i];
+        int col = i % GRID_COLS, row = i / GRID_COLS;
+        double tx = GRID_X + col * (CARD_W + CARD_GAP_X);
+        double ty = GRID_Y + row * (CARD_H + CARD_GAP_Y);
+
+        char txs[16], tys[16], price[24];
+        snprintf(txs, sizeof(txs), "%.2f", tx);
+        snprintf(tys, sizeof(tys), "%.2f", ty);
+        snprintf(price, sizeof(price), "%d \xE2\x82\xB4", d->price);   /* "N ₴" */
+
+        char *card;
+        if (d->is_bonus) {
+            /* ширина бейджа — той самий принцип, що монетна пігулка рядка
+             * бонусу: рахуємо від виміряного тексту (config.h: CARD_BADGE_*) */
+            char coins[16];
+            snprintf(coins, sizeof(coins), "%d", d->coins);
+            int ctw;
+            text_extents(badge_font, coins, &ctw, NULL);
+            /* Під знижку в бейджі спереду ще значок відсотка, а монета й
+             * число зсуваються на його ширину. Подарунка в бейджі більше
+             * немає (власник, 28.09.2026) — лише монета й ціна в монетах. */
+            double pct_shift = menu->discount ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
+            double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift +
+                              CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
+            char badge_w_s[16], pct_shift_s[16];
+            snprintf(badge_w_s, sizeof(badge_w_s), "%.1f", badge_w);
+            snprintf(pct_shift_s, sizeof(pct_shift_s), "%.1f", pct_shift);
+
+            const char *keys[] = { "TX", "TY", "PRICE", "ASSETS", "BONUS_COINS",
+                                    "BADGE_W", "PCT_DISPLAY", "PCT_SHIFT" };
+            const char *vals[] = { txs, tys, price, assets_dir, coins,
+                                    badge_w_s, pct_display, pct_shift_s };
+            card = svgtpl_sub(card_bonus_tpl, keys, vals, 8);
+        } else {
+            const char *keys[] = { "TX", "TY", "PRICE", "PCT_DISPLAY" };
+            const char *vals[] = { txs, tys, price, pct_display };
+            card = svgtpl_sub(card_tpl, keys, vals, 4);
+        }
+
+        if (card) {
+            size_t clen = strlen(card);
+            if (used + clen + 1 <= cap) {
+                memcpy(cards + used, card, clen + 1);
+                used += clen;
+            }
+            free(card);
+        }
+    }
+    free(card_tpl);
+    free(card_bonus_tpl);
+
+    char ws[16], hs[16], oxs[16], oys[16];
+    snprintf(ws, sizeof(ws), "%d", PRICES_W);
+    snprintf(hs, sizeof(hs), "%d", PRICES_H);
+    snprintf(oxs, sizeof(oxs), "%.2f", -PRICES_X);
+    snprintf(oys, sizeof(oys), "%.2f", -PRICES_Y);
+    const char *pkeys[] = { "W", "H", "OX", "OY", "CARDS" };
+    const char *pvals[] = { ws, hs, oxs, oys, cards };
+    char *full = svgtpl_sub(page_tpl, pkeys, pvals, 5);
+    free(page_tpl);
+    free(cards);
+    if (!full) return NULL;
+
+    cairo_surface_t *surf = svgtpl_render(full, PRICES_W, PRICES_H, assets_dir);
+    free(full);
+    return surf;
+}
+
 
 /* -------- реклама: окремий SVG-шаблон -------- */
 

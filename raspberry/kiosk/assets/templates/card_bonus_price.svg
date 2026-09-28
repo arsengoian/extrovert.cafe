@@ -1,0 +1,7 @@
+<!-- Шар цін бонусної картки (card_bonus.svg): бейдж монет і ціна (28.09.2026): те, що міняється від знижки й нових цін,
+     окремо від картинки, назви й об'єму. На Pi 1 усе меню малюється ~22 с,
+     і знижка з'являлась на екрані лише з 20-ї секунди свого вікна, а
+     повертались повні ціни так само із запізненням. Цей шар малюється за
+     частку секунди й лягає поверх меню (render_prices, main.c). Координати
+     ті самі, що були в картці, — на екрані нічого не зсунулось. -->
+<g transform="translate({{TX}} {{TY}})"><rect x="12.5" y="12.5" width="{{BADGE_W}}" height="33" rx="16.5" ry="16.5" fill="#0C0E11" fill-opacity="0.62" stroke="#FE810B" stroke-opacity="0.5"></rect><text display="{{PCT_DISPLAY}}" x="30.5" y="34.8" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="16" fill="#FE810B">%</text><g transform="translate({{PCT_SHIFT}} 0)"><image x="22" y="18.5" width="20" height="21" preserveAspectRatio="xMidYMid meet" href="{{ASSETS}}/ui/coin_gold.png" xlink:href="{{ASSETS}}/ui/coin_gold.png"></image><text x="48" y="34.5" font-family="Poppins" font-weight="700" font-size="16" letter-spacing="0.5" fill="#FE810B">{{BONUS_COINS}}</text></g><rect x="168" y="251.67" width="78" height="32" rx="16" ry="16" fill="url(#pill)"></rect><text x="207" y="274.4" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="17" fill="#FFFFFF">{{PRICE}}</text></g>

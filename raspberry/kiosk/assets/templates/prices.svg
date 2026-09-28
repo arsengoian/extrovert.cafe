@@ -1,0 +1,9 @@
+<?xml version="1.0"?><!-- Сторінка шару цін: лише прямокутник сітки карток (config.h, PRICES_*),
+     а не весь екран — текстура менша, і заливати її швидше. Картки
+     зсунуті на -GRID_X/-GRID_Y, щоб лишитись на своїх місцях. -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{{W}}" height="{{H}}" viewBox="0 0 {{W}} {{H}}" fill="#F2EFE6">
+  <defs>
+    <linearGradient id="pill" x1="0" y1="0.5" x2="1" y2="0.42"><stop offset="0" stop-color="#FE810B"></stop><stop offset="1" stop-color="#FF2D6F"></stop></linearGradient>
+  </defs>
+  <g transform="translate({{OX}} {{OY}})">{{CARDS}}</g>
+</svg>

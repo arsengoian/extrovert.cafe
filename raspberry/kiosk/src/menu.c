@@ -228,6 +228,20 @@ bool menu_expire_discount(menu_t *m, long long now) {
     return true;
 }
 
+bool menu_same_look(const menu_t *a, const menu_t *b) {
+    if (!a->valid || !b->valid || a->drink_count != b->drink_count) return false;
+    for (int i = 0; i < a->drink_count; i++) {
+        const drink_t *x = &a->drinks[i], *y = &b->drinks[i];
+        if (strcmp(x->name, y->name) || strcmp(x->vol, y->vol) ||
+            strcmp(x->sprite, y->sprite) || x->is_bonus != y->is_bonus)
+            return false;
+    }
+    const ad_t *p = &a->ad, *q = &b->ad;
+    return p->valid == q->valid && !strcmp(p->promo_label, q->promo_label) &&
+           !strcmp(p->head1, q->head1) && !strcmp(p->head2, q->head2) &&
+           !strcmp(p->sub, q->sub) && !strcmp(p->fine, q->fine) && !strcmp(p->sprite, q->sprite);
+}
+
 bool menu_poll(const char *url, menu_t *out) {
     struct buf b = {0};
     if (!poll_curl) {

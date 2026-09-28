@@ -90,7 +90,8 @@ static void load_fonts(const char *assets_dir) {
  * хтось руками через scp. Меню з рекламою, без панелі бонусів і попапів:
  * вигадані QR у статичній картинці нікому не потрібні. Через .tmp і
  * rename — щоб знеструмлення посеред запису не лишило битий PNG. */
-static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, unsigned long hash, bool temporary) {
+static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, cairo_surface_t *prices_s,
+                               unsigned long hash, bool temporary) {
     const char *path = getenv("FALLBACK_PNG");
     if (!path || !path[0] || !menu_s) return;
     /* Знижені ціни живуть хвилину-дві. Запасна картинка має показувати
@@ -120,6 +121,7 @@ static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, u
     cairo_t *cr = cairo_create(s);
     cairo_set_source_surface(cr, menu_s, 0, 0);
     cairo_paint(cr);
+    if (prices_s) { cairo_set_source_surface(cr, prices_s, PRICES_X, PRICES_Y); cairo_paint(cr); }
     if (ad_s) { cairo_set_source_surface(cr, ad_s, PANEL_X, AD_Y); cairo_paint(cr); }
 
     /* Мітка «це запасна картинка»: чотири білі крапки по кутах.
@@ -159,11 +161,16 @@ static void write_fallback_png(cairo_surface_t *menu_s, cairo_surface_t *ad_s, u
     cairo_surface_destroy(s);
 }
 
-/* Перерендер меню й реклами в текстури — і на старті, і після оновлення. */
+/* Перший рендер меню, реклами й шару цін у текстури — на старті. Поверхні
+ * меню й реклами не знищуються, а віддаються через keep_*: потік меню
+ * тримає їх, щоб, коли зміняться лише ціни, скласти з ними запасну
+ * картинку без повторного рендеру всього меню. */
 static void apply_menu(const menu_t *menu, const char *assets_dir,
-                       gl_texture_t *menu_tex, gl_texture_t *ad_tex) {
+                       gl_texture_t *menu_tex, gl_texture_t *ad_tex, gl_texture_t *prices_tex,
+                       cairo_surface_t **keep_menu, cairo_surface_t **keep_ad) {
     cairo_surface_t *m = render_menu(menu, assets_dir);
     cairo_surface_t *a = render_ad(menu, assets_dir);
+    cairo_surface_t *p = render_prices(menu, assets_dir);
     if (m) {
         if (getenv("DEBUG_CAIRO_PNG")) cairo_surface_write_to_png(m, getenv("DEBUG_CAIRO_PNG"));
         gl_texture_destroy(menu_tex);
@@ -171,9 +178,12 @@ static void apply_menu(const menu_t *menu, const char *assets_dir,
     }
     gl_texture_destroy(ad_tex);
     if (a) *ad_tex = gl_texture_from_cairo(a);
-    write_fallback_png(m, a, menu->hash, menu->discount);
-    if (m) cairo_surface_destroy(m);
-    if (a) cairo_surface_destroy(a);
+    gl_texture_destroy(prices_tex);
+    if (p) *prices_tex = gl_texture_from_cairo(p);
+    write_fallback_png(m, a, p, menu->hash, menu->discount);
+    if (p) cairo_surface_destroy(p);
+    *keep_menu = m;
+    *keep_ad = a;
 }
 
 static double ease_out(double x) { return 1.0 - (1.0 - x) * (1.0 - x); }
@@ -205,6 +215,17 @@ typedef struct {
      * контекст у головного потоку, і ділити його ні з ким не можна. */
     cairo_surface_t *pending_menu;
     cairo_surface_t *pending_ad;
+    /* Шар цін — окремо (render_prices). pending_base: разом із ним
+     * приїхали й нові меню з рекламою; false — змінились лише ціни, і
+     * головний потік міняє тільки текстуру цін. */
+    cairo_surface_t *pending_prices;
+    bool pending_base;
+    /* Останні намальовані меню й реклама — лише для потоку меню (після
+     * старту): з ними й новим шаром цін складається запасна картинка,
+     * коли ціни змінились, а решта ні. Свої посилання (cairo_surface_reference),
+     * текстури з них головний потік уже залив. */
+    cairo_surface_t *base_menu;
+    cairo_surface_t *base_ad;
     const char *url;
     const char *assets_dir;
     volatile sig_atomic_t stop;
@@ -245,6 +266,9 @@ static void *menu_poll_thread(void *arg) {
         pthread_mutex_lock(&mp->mu);
         menu_t attempt = mp->last;
         pthread_mutex_unlock(&mp->mu);
+        /* Те, що зараз на екрані: з ним порівнюємо нове меню, щоб знати,
+         * чи досить перемалювати лише ціни. */
+        const menu_t shown = attempt;
 
         if (attempt.deployment_id > 0 && attempt.deployment_id != acked &&
             menu_ack(mp->ack_url, mp->token, attempt.deployment_id))
@@ -294,20 +318,56 @@ static void *menu_poll_thread(void *arg) {
             menu_ack(mp->ack_url, mp->token, attempt.deployment_id))
             acked = attempt.deployment_id;
 
-        if (changed || expired) {
+        /* Змінились лише ціни (знижка, її кінець, звичайна зміна цін) — і
+         * меню вже намальоване: перемальовуємо тільки шар цін. Так знижка
+         * з'являється за частку секунди, а не через ~22 с, які Pi 1 малює
+         * все меню (28.09.2026). */
+        if ((changed || expired) && mp->base_menu && menu_same_look(&shown, &attempt)) {
+            struct timespec t0, tp, t1;
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            cairo_surface_t *p = render_prices(&attempt, mp->assets_dir);
+            clock_gettime(CLOCK_MONOTONIC, &tp);
+            write_fallback_png(mp->base_menu, mp->base_ad, p, attempt.hash, attempt.discount);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+
+            pthread_mutex_lock(&mp->mu);
+            mp->last = attempt;
+            mp->pending = attempt;
+            /* Повне меню, яке головний потік ще не забрав, лишається в
+             * черзі (pending_base) — інакше загубилось би. */
+            if (mp->pending_prices) cairo_surface_destroy(mp->pending_prices);
+            mp->pending_prices = p;
+            mp->has_pending = true;
+            pthread_mutex_unlock(&mp->mu);
+
+            fprintf(stderr, "main: лише ціни у фоні за %.1f с (шар цін %.2f + запасний png %.1f)%s\n",
+                    span(t0, t1), span(t0, tp), span(tp, t1), attempt.discount ? " — знижка" : "");
+        } else if (changed || expired) {
             struct timespec t0, t1;
             /* Три заміри, а не один. Загальні 32,8 с у лозі точки нічого не
              * пояснювали: selftest тим часом малює те саме меню за 5,5 с, і
              * без розкладки не видно, чи винен rsvg, чи запис
              * 8-мегабайтної картинки в PNG на ARMv6 (25.09.2026). */
-            struct timespec tm, ta;
+            struct timespec tm, ta, tp;
             clock_gettime(CLOCK_MONOTONIC, &t0);
             cairo_surface_t *m = render_menu(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &tm);
             cairo_surface_t *a = render_ad(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &ta);
-            write_fallback_png(m, a, attempt.hash, attempt.discount);
+            cairo_surface_t *p = render_prices(&attempt, mp->assets_dir);
+            clock_gettime(CLOCK_MONOTONIC, &tp);
+            write_fallback_png(m, a, p, attempt.hash, attempt.discount);
             clock_gettime(CLOCK_MONOTONIC, &t1);
+
+            /* Свої посилання на меню й рекламу — для наступної зміни лише
+             * цін. Не вдалось намалювати меню — лишаємо попереднє: на
+             * екрані теж лишиться старе (головний потік NULL не заливає). */
+            if (m) {
+                if (mp->base_menu) cairo_surface_destroy(mp->base_menu);
+                if (mp->base_ad) cairo_surface_destroy(mp->base_ad);
+                mp->base_menu = cairo_surface_reference(m);
+                mp->base_ad = a ? cairo_surface_reference(a) : NULL;
+            }
 
             pthread_mutex_lock(&mp->mu);
             mp->last = attempt;
@@ -316,14 +376,17 @@ static void *menu_poll_thread(void *arg) {
              * інакше кожне друге оновлення меню лишало б по 8 МБ. */
             if (mp->pending_menu) cairo_surface_destroy(mp->pending_menu);
             if (mp->pending_ad) cairo_surface_destroy(mp->pending_ad);
+            if (mp->pending_prices) cairo_surface_destroy(mp->pending_prices);
             mp->pending_menu = m;
             mp->pending_ad = a;
+            mp->pending_prices = p;
+            mp->pending_base = true;
             mp->has_pending = true;
             pthread_mutex_unlock(&mp->mu);
 
             fprintf(stderr,
-                    "main: меню у фоні за %.1f с (меню %.1f + реклама %.1f + запасний png %.1f) — кадр не стояв\n",
-                    span(t0, t1), span(t0, tm), span(tm, ta), span(ta, t1));
+                    "main: меню у фоні за %.1f с (меню %.1f + реклама %.1f + ціни %.2f + запасний png %.1f) — кадр не стояв\n",
+                    span(t0, t1), span(t0, tm), span(tm, ta), span(ta, tp), span(tp, t1));
         }
     }
     return NULL;
@@ -440,6 +503,8 @@ int main(int argc, char **argv) {
     menu_t menu = {0};
     gl_texture_t menu_tex = {0};   /* лого + сітка карток — templates/menu.svg */
     gl_texture_t ad_tex = {0};     /* реклама — templates/ad.svg, окремий квад */
+    gl_texture_t prices_tex = {0}; /* шар цін — templates/prices.svg, поверх меню */
+    cairo_surface_t *base_menu = NULL, *base_ad = NULL;   /* віддаються потоку меню */
 
     gl_texture_t popup_tex = {0};
     /* Основа попапу рендериться зараз, а не на першому бонусі: на Pi 1 це
@@ -490,7 +555,7 @@ int main(int argc, char **argv) {
     if (menu_poll(url, &menu)) {
         fprintf(stderr, "main: меню завантажено, %d напоїв\n", menu.drink_count);
         menu_expire_discount(&menu, (long long)time(NULL));
-        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
+        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex, &prices_tex, &base_menu, &base_ad);
     } else if (menu_load_cache(&menu)) {
         /* Мережі немає — беремо вчорашню менюшку з диска. Без цього кіоску
          * нема чого малювати, шар лишається прозорим (gl_clear(!have_menu)),
@@ -502,7 +567,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "main: мережі немає — меню з кешу, %d напоїв\n", menu.drink_count);
         /* Кеш міг лишитись від меню зі знижкою, яка давно минула. */
         menu_expire_discount(&menu, (long long)time(NULL));
-        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex);
+        apply_menu(&menu, assets_dir, &menu_tex, &ad_tex, &prices_tex, &base_menu, &base_ad);
     } else {
         fprintf(stderr, "main: ні мережі, ні кешу (%s) — стартую з порожнім екраном\n", url);
     }
@@ -513,6 +578,8 @@ int main(int argc, char **argv) {
     menu_poller_t poller = {0};
     pthread_mutex_init(&poller.mu, NULL);
     poller.last = menu;
+    poller.base_menu = base_menu;
+    poller.base_ad = base_ad;
     poller.url = url;
     poller.assets_dir = assets_dir;
     poller.ack_url = ack_url;
@@ -548,11 +615,14 @@ int main(int argc, char **argv) {
         bool got_new_menu = false;
         menu_t new_menu;
         pthread_mutex_lock(&poller.mu);
-        cairo_surface_t *new_menu_surf = NULL, *new_ad_surf = NULL;
+        cairo_surface_t *new_menu_surf = NULL, *new_ad_surf = NULL, *new_prices_surf = NULL;
+        bool new_base = false;
         if (poller.has_pending) {
             new_menu = poller.pending;
             new_menu_surf = poller.pending_menu; poller.pending_menu = NULL;
             new_ad_surf = poller.pending_ad;     poller.pending_ad = NULL;
+            new_prices_surf = poller.pending_prices; poller.pending_prices = NULL;
+            new_base = poller.pending_base;      poller.pending_base = false;
             poller.has_pending = false;
             got_new_menu = true;
         }
@@ -566,12 +636,20 @@ int main(int argc, char **argv) {
                 menu_tex = gl_texture_from_cairo(new_menu_surf);
                 cairo_surface_destroy(new_menu_surf);
             }
-            gl_texture_destroy(&ad_tex);
-            if (new_ad_surf) {
-                ad_tex = gl_texture_from_cairo(new_ad_surf);
-                cairo_surface_destroy(new_ad_surf);
+            /* Лише ціни — реклама та сама, її текстуру не чіпаємо. */
+            if (new_base) {
+                gl_texture_destroy(&ad_tex);
+                if (new_ad_surf) {
+                    ad_tex = gl_texture_from_cairo(new_ad_surf);
+                    cairo_surface_destroy(new_ad_surf);
+                }
             }
-            fprintf(stderr, "main: меню оновлено, %d напоїв\n", menu.drink_count);
+            if (new_prices_surf) {
+                gl_texture_destroy(&prices_tex);
+                prices_tex = gl_texture_from_cairo(new_prices_surf);
+                cairo_surface_destroy(new_prices_surf);
+            }
+            fprintf(stderr, "main: %s, %d напоїв\n", new_base ? "меню оновлено" : "ціни оновлено", menu.drink_count);
         }
 
         /* Оновлення: апдейтер створює файл-прапорець перед підміною версії,
@@ -752,6 +830,7 @@ int main(int argc, char **argv) {
         bool have_menu = menu_tex.id != 0;
         gl_clear(!have_menu);
         if (have_menu) gl_draw_quad(&comp, &menu_tex, 0, 0, STAGE_W, STAGE_H, 1.0);
+        if (have_menu && prices_tex.id) gl_draw_quad(&comp, &prices_tex, PRICES_X, PRICES_Y, PRICES_W, PRICES_H, 1.0);
         if (have_menu && ad_tex.id) gl_draw_quad(&comp, &ad_tex, PANEL_X, AD_Y, PANEL_W, AD_H, 1.0);
 
         if (have_menu) bonus_draw(&bonus, &comp);
@@ -824,6 +903,12 @@ int main(int argc, char **argv) {
     telemetry_close(&tel);
     gl_texture_destroy(&menu_tex);
     gl_texture_destroy(&ad_tex);
+    gl_texture_destroy(&prices_tex);
+    if (poller.pending_menu) cairo_surface_destroy(poller.pending_menu);
+    if (poller.pending_ad) cairo_surface_destroy(poller.pending_ad);
+    if (poller.pending_prices) cairo_surface_destroy(poller.pending_prices);
+    if (poller.base_menu) cairo_surface_destroy(poller.base_menu);
+    if (poller.base_ad) cairo_surface_destroy(poller.base_ad);
     gl_texture_destroy(&popup_tex);
     gl_texture_destroy(&dim_tex);
     popup_art_destroy(&popup_art);
