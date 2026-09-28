@@ -49,7 +49,7 @@ export function budsForStage(stage) {
 
 // Настрій змінює спрайт, а не позицію: тіло, обличчя й руки мають власні
 // версії, листя ще й провисає під власною вагою.
-function moodBase(inst, mood) {
+function moodBase(inst, mood, layout) {
   if (mood === "healthy") return [{ ...inst }];
   const suffix = BODY_MOOD_SUFFIX[mood] ?? mood;
   const art = ART_SUFFIX[mood] ?? mood;
@@ -63,21 +63,20 @@ function moodBase(inst, mood) {
   if (inst.group === "face_setA_normal") {
     // У сумних наборах білок уже намальований у зіниці — окремого ока немає.
     if (inst.sprite.includes("_eye_")) return [];
-    return [{ ...inst, group: `face_setA_${art}`, sprite: inst.sprite.replace("A_normal_", `A_${art}_`) }];
+    const out = { ...inst, group: `face_setA_${art}`, sprite: inst.sprite.replace("A_normal_", `A_${art}_`) };
+    // Зіниця сумного набору стає на місце ока звичайного — інакше погляд
+    // «з'їжджає» (у макеті вони різного розміру). Підміняємо ДО зростання:
+    // раніше це робилось після, координатами дорослого макета, і на
+    // маленькому кавенятку очі сумного й зів'ялого висіли не там, де решта
+    // обличчя (власник, 28.09.2026).
+    if (inst.sprite.includes("_pupil_")) {
+      const side = inst.sprite.includes("_L") ? "L" : "R";
+      const eye = layout.instances.find((i) => i.group === "face_setA_normal" && i.sprite.includes(`_eye_${side}`));
+      if (eye) Object.assign(out, { x: eye.x, y: eye.y, scale: eye.scale });
+    }
+    return [out];
   }
   return [{ ...inst }];
-}
-
-// Зіниця сумного набору малюється на місці ока звичайного — інакше погляд
-// «з'їжджає» (у макеті вони різного розміру).
-function fixPupils(instances, layout, mood) {
-  if (mood === "healthy") return instances;
-  return instances.map((inst) => {
-    if (!inst.sprite?.includes("_pupil_")) return inst;
-    const side = inst.sprite.includes("_L") ? "L" : "R";
-    const eye = layout.instances.find((i) => i.group === "face_setA_normal" && i.sprite.includes(`_eye_${side}`));
-    return eye ? { ...inst, x: eye.x, y: eye.y, scale: eye.scale } : inst;
-  });
 }
 
 // Базові шари під потрібну стадію: стовбур свого тіру, тіло, обличчя, руки.
@@ -106,7 +105,7 @@ export function baseInstances(layout, stage, mood) {
   for (const inst of layout.instances) {
     if (!BASE_GROUPS.has(inst.group)) continue;
     if (inst.group === "branch_arms_fixed" && stage < 3) continue;
-    for (const m of moodBase(inst, mood)) {
+    for (const m of moodBase(inst, mood, layout)) {
       if (m.group === "platform") { out.push({ ...m }); continue; }
       if (m.group === "trunk_tiers") {
         if (tierFile) out.push(applyGrowth({ ...m, sprite: tierFile }, ANCHOR, f));
@@ -119,7 +118,7 @@ export function baseInstances(layout, stage, mood) {
       out.push(shifted);
     }
   }
-  return fixPupils(out, layout, mood);
+  return out;
 }
 
 // Те, що посадив гравець. Координати в appearance — у зрілій сцені, як у
