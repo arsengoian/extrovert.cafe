@@ -30,8 +30,10 @@ export function Profile({ ctx }) {
         <div>
           <b>{me?.nickname}</b>
           {/* Пошта — окремим рядком: довга адреса поруч зі способом входу
-              через «·» ламалась посередині. */}
-          <small>{PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}</small>
+              через «·» ламалась посередині. Вхід поштою не підписуємо
+              словом «Пошта» — адреса під ніком і так це каже (власник,
+              28.09.2026). */}
+          {me?.identity?.provider !== "email" && <small>{PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}</small>}
           {me?.identity?.email && <small className="selectable">{me.identity.email}</small>}
         </div>
       </div>

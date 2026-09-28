@@ -136,7 +136,15 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
           await refreshMe();
           return true;
         } catch (e) {
-          if (e.status === 401) return true;
+          // Сесії немає — після входу стартуємо з «Кавенятка», навіть якщо в
+          // цій вкладці до виходу був відкритий «Склад» чи «Гаманець»: вхід,
+          // зокрема нового гравця, — це початок, а не продовження (власник,
+          // 28.09.2026).
+          if (e.status === 401) {
+            try { sessionStorage.removeItem(TAB_KEY); } catch { /* приватний режим */ }
+            setTab("plant");
+            return true;
+          }
           if (attempt >= 2) {
             setBootNote("Немає зв'язку з сервером – спробуй трохи згодом");
             return true;
