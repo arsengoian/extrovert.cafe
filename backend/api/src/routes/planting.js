@@ -129,6 +129,8 @@ async function harvest(client, plant, state) {
   return beans;
 }
 
+const WATER_EVERY_MS = 24 * 60 * 60 * 1000;
+
 export default async function routes(app) {
   // Догляд: один препарат за раз. Якщо перехід вимагає ще й посадки —
   // нічого не списуємо й кажемо клієнту, який екран відкрити.
@@ -143,9 +145,17 @@ export default async function routes(app) {
       if (!plant) fail(404, "no_such_plant");
       if (plant.listing_id) fail(409, "on_sale");
 
-      // Полив — єдина дія, доступна завжди: сумний кущ п'є і поза переходом.
+      // Полив можливий і поза переходом — не лише сумному кущу, а будь-коли,
+      // як мине доба від попереднього (власник, 27.09.2026): полити можна, але
+      // не обов'язково, і не частіше за раз на добу. Для росту вода потрібна
+      // лише на 0 → 1, одним поливом, тож ріст ця межа не гальмує; сумний і
+      // зів'ялий кущ не пили щонайменше три дні.
       const state = growthState(plant);
       const watering = kind === "water";
+      if (watering && plant.last_watered_at) {
+        const next = new Date(new Date(plant.last_watered_at).getTime() + WATER_EVERY_MS);
+        if (next > new Date()) fail(409, "water_too_soon", { ready_at: next });
+      }
       if (!watering) {
         if (state.done) fail(409, "fully_grown");
         if (kind !== state.need) fail(409, "wrong_care", { need: state.need });

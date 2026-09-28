@@ -37,7 +37,7 @@ export default async function routes(app) {
         code: "sapling",
         kind: "sapling",
         title: "Новий саджанець",
-        subtitle: "Дай життя ще одному кавенятку",
+        subtitle: "Дай життя ще одному кавенятку!",
         icon: "assets/ui/sprout.png",
         price: e.sapling.price_coins,
         currency: "yellow",
@@ -123,9 +123,11 @@ export default async function routes(app) {
         code: "sapling_beans",
         kind: "sapling",
         title: "Новий саджанець",
-        subtitle: "найдешевший шлях до другого кавенятка",
+        subtitle: "Дай життя ще одному кавенятку!",
         icon: "assets/ui/sprout.png",
-        price: beans.sapling.beans,
+        // Ціна одна на купівлю й вітрину — economy.sapling (раніше вітрина
+        // читала окреме число з shop_beans, і воно могло розійтися).
+        price: e.sapling.price_beans,
         currency: "beans",
       },
       {
