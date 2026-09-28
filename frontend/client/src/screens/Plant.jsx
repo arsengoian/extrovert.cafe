@@ -96,8 +96,12 @@ const CARE_FX = {
   water: { tilt: 42, parts: "drop", turn: "" },                    // на полиці віддзеркалена
   compost: { tilt: 48, parts: "grain", color: "#6B4A2B" },
   fertilizer: { tilt: 48, parts: "grain", color: "#EDE7D6" },
-  insecticide: { tilt: 0, shake: true, parts: "mist", turn: "scaleX(-1)" },   // носик ліворуч
+  insecticide: { tilt: 0, shake: true, parts: "mist", turn: "scaleX(-1)", nozzle: [0.45, -0.37] },   // носик ліворуч
 };
+// Де носик відносно центру препарату (частки ширини й висоти, вже після
+// розвороту): лійка й мішки сиплють праворуч униз, розпилювач пирскає з
+// головки праворуч угорі.
+const SPOUT = [0.45, 0.25];
 
 const OVER = 1.6;
 
@@ -120,9 +124,19 @@ function CareFx({ pour, areaRef }) {
       right: Math.max(u.right, r.right), bottom: Math.max(u.bottom, r.bottom),
     }), { left: Infinity, top: Infinity, right: -Infinity, bottom: -Infinity });
     const p = local({ left: plant.left, top: plant.top, width: plant.right - plant.left, height: plant.bottom - plant.top });
+    const [nx, ny] = spec.nozzle ?? SPOUT;
     // Над кроною, трохи лівіше центру: носик лійки й отвір мішка дивляться
-    // праворуч униз, тож частинки падають саме на рослину.
-    const to = { x: p.x + p.w / 2 - from.w * 0.9, y: Math.max(0, p.y - from.h * 1.2) };
+    // праворуч униз, тож частинки падають саме на рослину. Розпилювач —
+    // нижче, біля голови зліва вгорі, головкою до крони: над кроною хмарка
+    // йшла в повітря (власник, 28.09.2026). Рахуємо від тіла, а не від
+    // верху силуету, — інакше на кущі без листя пляшка лягала на око. Тут
+    // спершу ставимо носик, а пляшку — від нього.
+    const bodyImg = area.querySelector('.plant-scene img[src*="/body_stage"]');
+    const b = bodyImg ? local(bodyImg.getBoundingClientRect()) : p;
+    const aim = spec.parts === "mist" ? { x: b.x + b.w * 0.12, y: b.y + b.h * 0.1 } : null;
+    const to = aim
+      ? { x: aim.x - from.w / 2 - nx * from.w * OVER, y: aim.y - from.h / 2 - ny * from.h * OVER }
+      : { x: p.x + p.w / 2 - from.w * 0.9, y: Math.max(0, p.y - from.h * 1.2) };
     const dx = to.x - from.x, dy = to.y - from.y;
     const mirror = shelfImg.style.transform || "";
     // Розворот до рослини: віддзеркалене на полиці в польоті дивиться прямо.
@@ -152,7 +166,7 @@ function CareFx({ pour, areaRef }) {
 
     // Частинки — з носика/отвору на верх рослини. Масштаб іде від центру
     // препарату, тож і носик відсувається від центру разом з ним.
-    const spout = { x: to.x + from.w / 2 + from.w * 0.45 * OVER, y: to.y + from.h / 2 + from.h * 0.25 * OVER };
+    const spout = { x: to.x + from.w / 2 + from.w * nx * OVER, y: to.y + from.h / 2 + from.h * ny * OVER };
     const fall = Math.max(40, p.y + Math.min(p.h, 120) * 0.5 - spout.y);
     const n = spec.parts === "mist" ? 7 : spec.parts === "grain" ? 9 : 3;
     for (let i = 0; i < n; i++) {
@@ -176,14 +190,16 @@ function CareFx({ pour, areaRef }) {
         Object.assign(el.style, { position: "absolute", width: `${size}px`, height: `${size}px`, borderRadius: "50%",
           background: "radial-gradient(closest-side, rgba(236,250,236,.75), rgba(236,250,236,0))",
           left: `${spout.x - size / 2}px`, top: `${spout.y - size / 2}px`, zIndex: 61 });
-        const ang = (i / n) * Math.PI - Math.PI / 2 + 0.3;
-        const r = 26 + (i % 3) * 12;
-        kf = [{ transform: "translate(0,0) scale(.35)", opacity: 0 }, { offset: 0.25, opacity: 0.9 },
-              { transform: `translate(${Math.cos(ang) * r}px, ${Math.sin(ang) * r + 22}px) scale(1.5)`, opacity: 0 }];
+        // Конус від головки праворуч і трохи вниз — як пирскає розпилювач.
+        const ang = -0.35 + (i / (n - 1)) * 1.1;
+        const r = 30 + (i % 3) * 14;
+        kf = [{ transform: "translate(0,0) scale(.3)", opacity: 0 }, { offset: 0.2, opacity: 0.9 },
+              { transform: `translate(${Math.cos(ang) * r}px, ${Math.sin(ang) * r + 10}px) scale(1.5)`, opacity: 0 }];
         dur = 900; delay = CARE_FX_MS * 0.44 + i * 50;
       }
       box.appendChild(el);
-      anims.push(el.animate(kf, { duration: dur, delay, easing: "ease-in", fill: "both" }));
+      // Краплі й гранули падають із розгоном, а пирск вилітає різко й гасне.
+      anims.push(el.animate(kf, { duration: dur, delay, easing: spec.parts === "mist" ? "ease-out" : "ease-in", fill: "both" }));
     }
     return () => { anims.forEach((a) => a.cancel()); box.replaceChildren(); };
   }, [pour?.id]);
