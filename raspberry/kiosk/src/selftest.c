@@ -104,7 +104,7 @@ static void build_fixture(menu_t *m) {
     struct { const char *name, *vol, *sprite, *cup; int price, bonus; } fx[] = {
         { "Еспресо",              "30 мл",  "espresso",   "S", 35,  0  },
         { "Американо",            "150 мл", "americano",  "M", 40,  0  },
-        { "Американо з бонусами", "150 мл", "americano",  "M", 80,  80 },
+        { "Бонус-американо",      "150 мл", "americano",  "M", 80,  80 },
         { "Капучино",             "260 мл", "cappuccino", "L", 50,  0  },
     };
     for (size_t i = 0; i < sizeof(fx) / sizeof(fx[0]); i++) {

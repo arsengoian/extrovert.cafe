@@ -146,12 +146,12 @@ cairo_surface_t *render_menu(const menu_t *menu, const char *assets_dir) {
             snprintf(coins, sizeof(coins), "%d", d->coins);
             int ctw;
             text_extents(badge_font, coins, &ctw, NULL);
-            /* Дві іконки: подарунок і монета. Ширину рахуємо від
-             * виміряного тексту, як і раніше, але місця тепер на обидві. */
-            /* Під знижку в бейджі спереду ще іконка відсотка, а подарунок,
-             * монета й число зсуваються на її ширину. */
+            /* Ширину рахуємо від виміряного тексту. */
+            /* Під знижку в бейджі спереду ще значок відсотка, а монета й
+             * число зсуваються на його ширину. Подарунка в бейджі більше
+             * немає (власник, 28.09.2026) — лише монета й ціна в монетах. */
             double pct_shift = menu->discount ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
-            double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift + CARD_BADGE_GIFT_SIZE + CARD_BADGE_GIFT_GAP +
+            double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift +
                               CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
             char badge_w_s[16], pct_shift_s[16];
             snprintf(badge_w_s, sizeof(badge_w_s), "%.1f", badge_w);
@@ -265,10 +265,11 @@ cairo_surface_t *render_ad(const menu_t *menu, const char *assets_dir) {
 /* -------- попап: без дизайну поки що, лишається прямим Cairo -------- */
 
 /* -------- плашка знижки: прямий Cairo, як і плашка оновлення --------
- * Біла, «Знижка!» — акцентним помаранчевим, відлік — темним. Секунди
- * змінюються щосекунди, тож і плашка перепікається щосекунди: SVG-шаблон
- * через librsvg на Pi 1 для цього задорогий, а кілька рядків Cairo —
- * ні. Слово «секунд» узгоджується з числом, як у застосунку. */
+ * Градієнт бренду (той самий, що в пігулці ціни, url(#pill)) і білий
+ * текст (власник, 28.09.2026; спершу була біла). Секунди змінюються
+ * щосекунди, тож і плашка перепікається щосекунди: SVG-шаблон через
+ * librsvg на Pi 1 для цього задорогий, а кілька рядків Cairo — ні. Слово
+ * «секунд» узгоджується з числом, як у застосунку. */
 static const char *seconds_word(int n) {
     int m10 = n % 10, m100 = n % 100;
     if (m10 == 1 && m100 != 11) return "секунду";
@@ -293,12 +294,14 @@ cairo_surface_t *render_discount_banner(int seconds_left, double *out_w) {
     cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, (int)w, (int)UPDATE_BANNER_H);
     cairo_t *cr = cairo_create(s);
     rounded_rect(cr, 0, 0, w, UPDATE_BANNER_H, UPDATE_BANNER_R);
-    cairo_set_source_rgb(cr, 1, 1, 1);
+    cairo_pattern_t *grad = cairo_pattern_create_linear(0, 0, w, 0);
+    cairo_pattern_add_color_stop_rgb(grad, 0, BADGE_COLOR_R, BADGE_COLOR_G, BADGE_COLOR_B);
+    cairo_pattern_add_color_stop_rgb(grad, 1, ACCENT2_R, ACCENT2_G, ACCENT2_B);
+    cairo_set_source(cr, grad);
     cairo_fill(cr);
-    draw_text_vc(cr, UPDATE_BANNER_PAD_X, UPDATE_BANNER_H / 2.0, font,
-                 BADGE_COLOR_R, BADGE_COLOR_G, BADGE_COLOR_B, head);
-    draw_text_vc_ellipsized(cr, UPDATE_BANNER_PAD_X + hw, UPDATE_BANNER_H / 2.0, font,
-                             0x0C / 255.0, 0x0E / 255.0, 0x11 / 255.0,
+    cairo_pattern_destroy(grad);
+    draw_text_vc(cr, UPDATE_BANNER_PAD_X, UPDATE_BANNER_H / 2.0, font, 1, 1, 1, head);
+    draw_text_vc_ellipsized(cr, UPDATE_BANNER_PAD_X + hw, UPDATE_BANNER_H / 2.0, font, 1, 1, 1,
                              tail, w - 2 * UPDATE_BANNER_PAD_X - hw);
     cairo_destroy(cr);
     return s;
