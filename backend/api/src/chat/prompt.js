@@ -37,6 +37,33 @@ function economyLines() {
   ];
 }
 
+const SLOT_NAME = { head: "голова", body: "тіло", pants: "штани", feet: "взуття", acc_1: "аксесуар" };
+const itemList = (items) => items.map((i) => `${i.name} (${SLOT_NAME[i.slot] ?? i.slot}, ${i.tier})`).join(", ");
+
+// Одяг кавенятка поіменно: подаровані комплекти, примірочна й що вдягнене.
+// Зерна за комплект отримує гравець — кавенятку дарують лише одяг. Рядок
+// «+N зерен уже нараховано» біля комплекту модель читала як зерна, подаровані
+// їй самій (власник, 28.09.2026), тому одержувач названий прямо.
+export function wardrobeLines(sets, wornSetId, nickname) {
+  const lines = [];
+  const gifted = sets.filter((s) => s.gifted);
+  const fitting = sets.find((s) => !s.gifted && s.items.length);
+  if (gifted.length) {
+    lines.push(`подарований тобі одяг: ${gifted.map((s, n) => `комплект ${n + 1} (${s.tier}): ${itemList(s.items)}`).join("; ")}`);
+    const beans = gifted.reduce((sum, s) => sum + (s.beans_awarded ?? 0), 0);
+    lines.push(`за подаровані комплекти ${beans} зерен отримав ${nickname}, а не ти: тобі дарують лише одяг, зерна дістаються гравцеві`);
+  } else {
+    lines.push("подарованого одягу в тебе ще немає");
+  }
+  if (fitting) lines.push(`у примірочній, ще не подаровано: ${itemList(fitting.items)} (${fitting.items.length} з 5 слотів)`);
+
+  const n = gifted.findIndex((s) => String(s.id) === String(wornSetId));
+  if (n >= 0) lines.push(`зараз на тобі комплект ${n + 1}`);
+  else if (fitting && String(fitting.id) === String(wornSetId)) lines.push("зараз на тобі речі з примірочної");
+  else lines.push("зараз на тобі нічого не вдягнено");
+  return lines;
+}
+
 // Факти про акаунт. Порядок навмисний: спершу те, про що питають найчастіше.
 export function factLines({ user, plant, growth, care, counts, wardrobe, orders, lastDrinks }) {
   const lines = [
@@ -58,11 +85,7 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
   lines.push(`на складі: ${counts.items} предметів одягу${counts.listed ? `, ${counts.listed} на продажу` : ""}`);
   lines.push(`куплено напоїв за весь час: ${counts.drinks}${counts.unclaimed ? `, незабраних бонусів: ${counts.unclaimed}` : ""}`);
 
-  if (wardrobe) {
-    lines.push(wardrobe.gifted
-      ? `гардероб: подарований комплект (${wardrobe.tier}), +${wardrobe.beans_awarded} зерен уже нараховано`
-      : `гардероб: ${wardrobe.filled} з 5 слотів${wardrobe.tier ? `, найслабший тір ${wardrobe.tier}` : ""}`);
-  }
+  lines.push(...wardrobeLines(wardrobe ?? [], plant.worn_set_id, user.nickname));
   if (orders?.length) {
     lines.push(`замовлення: ${orders.map((o) => `${o.title} — ${o.status}`).join("; ")}`);
   }

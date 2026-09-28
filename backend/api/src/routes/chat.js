@@ -66,11 +66,21 @@ async function gatherFacts(user, plant) {
         order by r.fiscal_date desc limit 3`,
       [user.id]
     ),
-    one(
-      `select ws.tier, ws.gifted, ws.beans_awarded,
-              (select count(*)::int from wardrobe_set_items where set_id = ws.id) as filled
-         from wardrobe_sets ws where ws.id = $1`,
-      [plant.worn_set_id]
+    // Усі подаровані комплекти й примірочна — з назвами речей. Раніше тут
+    // був лише вдягнений комплект числом, і кавенятко не знало, що саме йому
+    // подарували (власник, 28.09.2026).
+    many(
+      `select ws.id, ws.tier, ws.gifted, ws.beans_awarded,
+              coalesce((select json_agg(json_build_object('slot', wsi.slot, 'name', d.name, 'tier', d.tier) order by wsi.id)
+                          from wardrobe_set_items wsi
+                          join user_items ui on ui.id = wsi.user_item_id
+                          join item_defs d on d.id = ui.item_def_id
+                         where wsi.set_id = ws.id), '[]') as items
+         from wardrobe_sets ws
+        where ws.plant_id = $1
+          and (ws.gifted or ws.id = (select max(id) from wardrobe_sets where plant_id = $1 and not gifted))
+        order by ws.gifted desc, ws.gifted_at, ws.id`,
+      [plant.id]
     ),
     many(
       `select product as title, status
