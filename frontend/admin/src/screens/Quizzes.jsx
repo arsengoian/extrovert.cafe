@@ -29,7 +29,9 @@ const answers = (n) => `${fmt.int(n)} ${fmt.plural(n, "відповідь", "в�
 const ROWS = [
   [{ id: "age", ring: true, note: "анкети" }, { id: "gender", ring: true }, { id: "how_found", ring: true }],
   [{ id: "favourite_drink" }, { id: "frequency", also: "sugar", color: BLUE }, { id: "when", also: "where", color: BLUE }],
-  [{ id: "values" }, { id: "milk", color: BLUE, grow: 0.8 }, { id: "other_drinks", color: VIOLET, grow: 1.15 }],
+  // «Зерно» (арабіка / бленд / робуста, власник 28.09.2026) — у картці
+  // молока: така сама дрібна шкала на три варіанти.
+  [{ id: "values" }, { id: "milk", also: "bean_sort", color: BLUE, grow: 0.8 }, { id: "other_drinks", color: VIOLET, grow: 1.15 }],
 ];
 
 // Порядок і колір шкал напою — теж із макета.
