@@ -368,8 +368,11 @@ export default async function routes(app) {
   app.get("/admin/quiz-responses", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const rows = await many(
+      // Обидві гілки union мають віддавати ті самі колонки: коли в гілку
+      // напою додали sprite (шкали, про які не питали), без null тут запит
+      // падав цілком, і стрічка показувала «internal» (28.09.2026).
       `(select 'profile' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, null as drink
+               u.id as user_id, u.nickname, null as drink, null as sprite
           from quiz_profile_responses q join users u on u.id = q.user_id)
        union all
        (select 'drink' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
