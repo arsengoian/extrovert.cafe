@@ -13,7 +13,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
-import { queueDiscount } from "../discount.js";
+import { queueDiscount } from "@extrovert/lib/discounts.js";
 
 const CARE = {
   water: { column: "water_liters", amount: economy.care.water.batch_liters, price: economy.care.water.price_coins },
@@ -129,12 +129,12 @@ export default async function routes(app) {
     }
 
     // ── знижка в кав'ярні ────────────────────────────────────────────
-    // Не код, а тимчасова ціна на точці: у чергу menu_deployments стають
-    // два деплойменти для неї — знижений на uah і звичайний через window_s
-    // (discount.js, gamification_economy.md §6). Точка — з запиту, а коли її
-    // не передали й точка одна, то вона. Продається з 28.09.2026 (власник):
-    // перед релізом вимкнемо (available: false), якщо ціна не доїжджатиме
-    // до автомата Jetinno — цілі jetinno поки немає.
+    // Не код, а тимчасова ціна на точці: знижка стає в чергу точки й діє
+    // window_s секунд або до першого чека, а не доїхала — зерна повернуться
+    // самі (lib/discounts.js, gamification_economy.md §6). Точка — з запиту,
+    // а коли її не передали й точка одна, то вона. Продається з 28.09.2026
+    // (власник): перед релізом вимкнемо (available: false), якщо ціна не
+    // доїжджатиме до автомата Jetinno — цілі jetinno поки немає.
     if (code === "pos_discount") {
       const cfg = economy.shop_beans.pos_discount;
       if (!cfg.available) fail(409, "not_available");
@@ -147,9 +147,12 @@ export default async function routes(app) {
       return tx(async (client) => {
         const spent = await spend(client, user.id, "beans", cfg.beans, "pos_discount", { uah: cfg.uah, point: point.id });
         const q = await queueDiscount(client, point.id, {
-          uah: cfg.uah, seconds: cfg.window_s ?? 120, meta: { user_id: user.id, ledger_entry_id: spent.ledgerId },
+          uah: cfg.uah, seconds: cfg.window_s ?? 120, userId: user.id, ledgerEntryId: spent.ledgerId,
         });
-        return { ok: true, kind: "pos_discount", amount_uah: cfg.uah, point: point.id, point_name: point.name, until: q.until, seconds: cfg.window_s ?? 120 };
+        return {
+          ok: true, kind: "pos_discount", amount_uah: cfg.uah, point: point.id, point_name: point.name,
+          seconds: cfg.window_s ?? 120, status: q.status, ahead: q.ahead, until: q.ends_at,
+        };
       });
     }
 

@@ -130,6 +130,8 @@ ws-сервер слухав `user:*` — але жоден маршрут у к
 erDiagram
     POINTS ||--o{ RECEIPTS : "де продано"
     POINTS ||--o{ MENU_DEPLOYMENT_TARGETS : "яке меню стоїть"
+    POINTS ||--o{ POINT_DISCOUNTS : "знижки в кав'ярні, черга"
+    MENU_DEPLOYMENTS ||--o| POINT_DISCOUNTS : "знижене меню знижки"
     MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
     POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
     USERS ||--o{ USER_IDENTITIES : "пошта / google"
@@ -254,6 +256,20 @@ erDiagram
         timestamptz scheduled_at
         timestamptz created_at
         timestamptz finished_at
+    }
+    POINT_DISCOUNTS {
+        bigserial id PK
+        text point_id FK
+        uuid user_id FK "null — тестова з адмінки"
+        bigint ledger_entry_id FK "списання зерен; за ним і повертаємо"
+        int uah "20"
+        int window_s "120"
+        text status "queued|active|done|refunded; active — щонайбільше одна на точку"
+        text ended_reason "time|receipt|failed"
+        bigint deployment_id FK "знижене меню"
+        timestamptz started_at
+        timestamptz ends_at
+        timestamptz ended_at
     }
     MENU_DEPLOYMENT_TARGETS {
         bigserial id PK

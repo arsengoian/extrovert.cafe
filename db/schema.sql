@@ -953,6 +953,50 @@ COMMENT ON COLUMN public.plants.harvest_at IS 'Коли виплачено 7 з�
 
 
 --
+-- Name: point_discounts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.point_discounts (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    user_id uuid,
+    ledger_entry_id bigint,
+    uah integer NOT NULL,
+    window_s integer NOT NULL,
+    status text DEFAULT 'queued'::text NOT NULL,
+    ended_reason text,
+    deployment_id bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    started_at timestamp with time zone,
+    ends_at timestamp with time zone,
+    ended_at timestamp with time zone,
+    CONSTRAINT point_discounts_ended_reason_check CHECK ((ended_reason = ANY (ARRAY['time'::text, 'receipt'::text, 'failed'::text]))),
+    CONSTRAINT point_discounts_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'active'::text, 'done'::text, 'refunded'::text]))),
+    CONSTRAINT point_discounts_uah_check CHECK ((uah > 0)),
+    CONSTRAINT point_discounts_window_s_check CHECK ((window_s > 0))
+);
+
+
+--
+-- Name: point_discounts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.point_discounts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: point_discounts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.point_discounts_id_seq OWNED BY public.point_discounts.id;
+
+
+--
 -- Name: points; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1864,6 +1908,13 @@ ALTER TABLE ONLY public.plant_stage_transitions ALTER COLUMN id SET DEFAULT next
 
 
 --
+-- Name: point_discounts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts ALTER COLUMN id SET DEFAULT nextval('public.point_discounts_id_seq'::regclass);
+
+
+--
 -- Name: problem_reports id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2268,6 +2319,14 @@ ALTER TABLE ONLY public.plant_stage_transitions
 
 ALTER TABLE ONLY public.plants
     ADD CONSTRAINT plants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: point_discounts point_discounts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_pkey PRIMARY KEY (id);
 
 
 --
@@ -2791,6 +2850,20 @@ CREATE INDEX plants_owner_id_created_at_idx ON public.plants USING btree (owner_
 
 
 --
+-- Name: point_discounts_one_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX point_discounts_one_active ON public.point_discounts USING btree (point_id) WHERE (status = 'active'::text);
+
+
+--
+-- Name: point_discounts_point_id_status_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX point_discounts_point_id_status_id_idx ON public.point_discounts USING btree (point_id, status, id);
+
+
+--
 -- Name: problem_reports_status_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3226,6 +3299,38 @@ ALTER TABLE ONLY public.plants
 
 
 --
+-- Name: point_discounts point_discounts_deployment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES public.menu_deployments(id);
+
+
+--
+-- Name: point_discounts point_discounts_ledger_entry_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_ledger_entry_id_fkey FOREIGN KEY (ledger_entry_id) REFERENCES public.ledger_entries(id);
+
+
+--
+-- Name: point_discounts point_discounts_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
+-- Name: point_discounts point_discounts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
 -- Name: problem_reports problem_reports_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3530,4 +3635,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260927120000'),
     ('20260927180000'),
     ('20260927200000'),
-    ('20260927220000');
+    ('20260927220000'),
+    ('20260928080000');

@@ -7,6 +7,7 @@
 // (docs/checkbox.md, «Наш приймач»).
 import { pool } from "@extrovert/lib/db.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
+import { endActive } from "@extrovert/lib/discounts.js";
 import { rollDrinkDrop } from "@extrovert/lib/economy.js";
 
 // Суми Checkbox тримає в копійках — переводимо тут і більше ніде
@@ -66,6 +67,11 @@ export async function ingest(receipt, { source, log }) {
       return { duplicate: true };
     }
     const receiptId = rows[0].id;
+
+    // Перший чек із точки закінчує знижку в кав'ярні (власник, 28.09.2026) —
+    // якщо пробитий уже під час неї: запізнілий чек, що доїхав опитуванням,
+    // знижку не чіпає (lib/discounts.js).
+    await endActive(client, pointId, "receipt", { after: receipt.fiscal_date ?? new Date().toISOString() });
 
     const goods = receipt.goods ?? [];
     let coins = 0;

@@ -8,7 +8,7 @@
 // не більше сервісів.
 import { pool, one, tx } from "../db.js";
 import { economy } from "../economy.js";
-import { queueDiscount } from "../discount.js";
+import { queueDiscount } from "@extrovert/lib/discounts.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { requireAdmin, signToken } from "../auth.js";
 import { verifyPassword } from "../admin-auth.js";
@@ -110,9 +110,9 @@ export default async function routes(app) {
     return { ...deployment, points };
   });
 
-  // Тестова знижка на точках: ті самі два деплойменти, що й купівля
-  // гравцем (discount.js), — щоб побачити на кіоску плашку з відліком і
-  // знижені ціни. Автомат про знижку поки не знає (цілей checkbox і jetinno
+  // Тестова знижка на точках: та сама черга, що й купівля гравцем
+  // (lib/discounts.js), тільки без зерен, — щоб побачити на кіоску плашку з
+  // відліком і знижені ціни. Автомат про знижку поки не знає (цілей checkbox і jetinno
   // немає), тож пробивати справжні чеки в цей час не варто.
   app.post("/admin/menu/discount-test", async (req, reply) => {
     const admin = requireAdmin(req, reply);
@@ -125,10 +125,10 @@ export default async function routes(app) {
     if (!points.length) return reply.code(400).send({ error: "no_points" });
     const out = await tx(async (client) => {
       let last = null;
-      for (const point of points) last = await queueDiscount(client, point, { uah: cfg.uah, seconds, createdBy: admin.id, meta: { test: true } });
+      for (const point of points) last = await queueDiscount(client, point, { uah: cfg.uah, seconds });
       return last;
     });
-    return { until: out.until, seconds, uah: cfg.uah, points };
+    return { until: out.ends_at, status: out.status, ahead: out.ahead, seconds, uah: cfg.uah, points };
   });
 
   // Вхід адміна: пошта й пароль із admin_users. Форми «зареєструватися»

@@ -34,12 +34,13 @@ async function currentAd(client) {
 // меню має бути тим самим, що надрукує каса: кіоск звіряє з ним подію
 // bonus_ready, а вона приходить із чека.
 //
-// discount — знижка на точці з деплойменту (backend/api/src/discount.js):
-// { uah, until }. Поки вона діє, ціна кожного напою — на uah нижча,
-// округлена до цілої гривні, однаково для бонусних і звичайних (власник,
-// 27.09.2026), а поруч лежить повна (price_full): кіоск повертає її сам,
-// щойно until мине, не чекаючи наступного меню. until_ts — те саме в
-// секундах епохи: кіоску на C так простіше, ніж розбирати ISO.
+// discount — знижка в кав'ярні з деплойменту (backend/lib/src/discounts.js):
+// { uah, until }. Поки вона діє, ціна кожного напою — рівно на uah нижча,
+// але не менше гривні, однаково для бонусних і звичайних (власник,
+// 28.09.2026: «обмеження 1 гривня, рівно 20», без округлень), а поруч лежить
+// повна (price_full): кіоск повертає її сам, щойно until мине, не чекаючи
+// наступного меню. until_ts — те саме в секундах епохи: кіоску на C так
+// простіше, ніж розбирати ISO.
 export async function buildMenu(client, letter = "a", { discount } = {}) {
   // active = false прибирає напій з екрана, але лишає в базі: сезонні
   // позиції повертаються, а чеки на них мають на що посилатись.
@@ -55,7 +56,7 @@ export async function buildMenu(client, letter = "a", { discount } = {}) {
   const until = discount?.until ? new Date(discount.until) : null;
   const uah = Number(discount?.uah) || 0;
   const live = Boolean(until && until > new Date() && uah > 0);
-  const lowered = (full) => Math.max(0, Math.round(full - uah));
+  const lowered = (full) => Math.max(1, full - uah);
 
   return {
     updated: new Date().toISOString().slice(0, 10),

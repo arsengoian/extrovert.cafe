@@ -16,6 +16,7 @@ import { publishOutbox } from "./jobs/outbox.js";
 import { flushImpressions } from "./jobs/impressions.js";
 import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
 import { deployMenus } from "./jobs/menu.js";
+import { runDiscounts } from "./jobs/discounts.js";
 import { backupDatabase } from "./jobs/backup.js";
 
 const log = makeLog("scheduler");
@@ -33,6 +34,8 @@ const JOBS = [
   // Десять секунд: людина натиснула «викотити меню» й чекає, поки цифри
   // на екрані зміняться. Запит дешевий — один select у порожню чергу.
   { name: "menu-deploy", every: 10_000, ttl: 60_000, run: () => deployMenus({ pool, log }) },
+  // Знижки в кав'ярні: кінець за часом і повернення зерен (jobs/discounts.js).
+  { name: "discounts", every: 5_000, ttl: 30_000, run: () => runDiscounts({ pool }) },
   { name: "np-tracking", every: HOUR, ttl: 50 * MINUTE, run: () => trackShipments({ pool, log }) },
   { name: "np-directory", every: 6 * HOUR, ttl: 3 * HOUR, run: () => syncDirectory({ pool, log }) },
   // Щогодини лише перевірка «чи є сьогоднішній дамп» — сам дамп раз на добу.
