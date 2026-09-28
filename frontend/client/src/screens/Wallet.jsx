@@ -139,12 +139,12 @@ export function Wallet({ ctx }) {
           <Task
             badge="/assets/ui/coin_silver.png"
             reward={repost?.reward ?? 80}
-            title="Репост у соцмережі"
+            title="Пост у соцмережі"
             note={repost?.limit_reached
               ? `${repost.counted} з ${repost.max}, більше не рахується`
               : repost?.days_left
                 ? `${repost.counted} з ${repost.max}, ще ${days(repost.days_left)} до наступного`
-                : `${repost?.counted ?? 0} з ${repost?.max ?? 5}, можна зараз`}
+                : `${repost?.counted ?? 0} з ${repost?.max ?? 3}, можна зараз`}
             action={repost && !repost.limit_reached && !repost.days_left
               ? { label: "Поділитись", kind: "primary" }
               : { label: "Пізніше", kind: "off" }}

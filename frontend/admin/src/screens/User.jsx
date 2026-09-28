@@ -11,7 +11,7 @@ import { Badge, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 const REASON = {
   purchase: "бонус за чек", care: "догляд", sapling: "саджанець", exchange: "обмін зерен",
   pos_discount: "знижка в кав'ярні", crate: "скринька", crate_opening: "відкриття скриньки",
-  market: "ринок", transfer: "переказ", repost: "репост", chat: "чат", quiz: "опитування",
+  market: "ринок", transfer: "переказ", repost: "пост", chat: "чат", quiz: "опитування",
   delivery: "доставка", wardrobe_set: "комплект одягу",
 };
 const delta = (n, sign = "") => (n ? <b style={{ color: n > 0 ? "var(--ok)" : "var(--bad)" }}>{n > 0 ? "+" : ""}{fmt.int(n)}{sign}</b> : null);

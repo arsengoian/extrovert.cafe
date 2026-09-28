@@ -68,7 +68,7 @@ export const SCREENS = {
       : "Опитування про напій",
     hideNav: true,
   },
-  repost: { component: Repost, title: "Репост у соцмережі" },
+  repost: { component: Repost, title: "Пост у соцмережі" },
   // «Незавершена посадка» — ще на вкладці (HUD і меню), редактор — з «Назад».
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true, keepChrome: (p) => Boolean(p.resume) },
   wardrobe: { component: Wardrobe, title: "Гардероб" },

@@ -110,7 +110,7 @@
   "repost": {
     "coins": 80,
     "min_days_between": 10,
-    "max_per_account": 5
+    "max_per_account": 3
   },
   "coin_packs": [
     {
