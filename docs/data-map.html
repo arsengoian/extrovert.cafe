@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f09c476</p>
+  <p class="eyebrow">extrovert.cafe · джерело 6e97ed2</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1887,7 +1887,7 @@ erDiagram
 erDiagram
     USERS ||--o{ PLANTS : &quot;необмежено кавенят&quot;
     PLANTS ||--o{ PLANT_STAGE_TRANSITIONS : &quot;історія росту&quot;
-    PLANTS ||--o{ WARDROBE_SETS : &quot;подаровані комплекти&quot;
+    PLANTS ||--o{ WARDROBE_SETS : &quot;подаровані комплекти й примірочна&quot;
     PLANTS ||--o{ CHAT_MESSAGES : &quot;AI-чат&quot;
     WARDROBE_SETS ||--o{ WARDROBE_SET_ITEMS : &quot;5 слотів&quot;
     USER_ITEMS ||--o| WARDROBE_SET_ITEMS : &quot;який предмет у слоті&quot;
@@ -1905,7 +1905,7 @@ erDiagram
         text cycle_phase &quot;initial|regrowth&quot;
         int lifetime_beans_gifted &quot;зерна від куща: врожай + подаровані комплекти&quot;
         timestamptz harvest_at &quot;7 зерен за перший повний ріст виплачено&quot;
-        uuid worn_set_id FK
+        uuid worn_set_id FK &quot;вдягнене: подарований комплект або примірочна&quot;
         bigint listing_id FK &quot;заморожене на маркеті&quot;
         timestamptz chat_seen_at &quot;останнє відкриття чату: після нього — непрочитані&quot;
         jsonb appearance &quot;листя/гілки/плоди + чернетка посадки - див. §0&quot;
@@ -1925,7 +1925,7 @@ erDiagram
         uuid plant_id FK
         text tier &quot;за найслабшим предметом&quot;
         boolean complete
-        boolean gifted &quot;зерна нараховуються тут&quot;
+        boolean gifted &quot;зерна нараховуються тут; false — примірочна, одна на кавенятко&quot;
         timestamptz gifted_at
         int beans_awarded
     }
@@ -1949,8 +1949,8 @@ erDiagram
 </figure>
 <div class="dict"><article class="entity" id="t-plants">
   <header><h4>plants</h4><span class="entity-count">16 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">зерна від куща: врожай + подаровані комплекти</td></tr><tr><td class="c-name">harvest_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">7 зерен за перший повний ріст виплачено</td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">останнє відкриття чату: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">зерна від куща: врожай + подаровані комплекти</td></tr><tr><td class="c-name">harvest_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">7 зерен за перший повний ріст виплачено</td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">вдягнене: подарований комплект або примірочна</td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">останнє відкриття чату: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти й примірочна</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
 </article>
 <article class="entity" id="t-plant_stage_transitions">
   <header><h4>plant_stage_transitions</h4><span class="entity-count">7 кол.</span></header>
@@ -1959,8 +1959,8 @@ erDiagram
 </article>
 <article class="entity" id="t-wardrobe_sets">
   <header><h4>wardrobe_sets</h4><span class="entity-count">7 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">за найслабшим предметом</td></tr><tr><td class="c-name">complete</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">gifted</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">зерна нараховуються тут</td></tr><tr><td class="c-name">gifted_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">beans_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
-  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">подаровані комплекти</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_set_items">wardrobe_set_items</a><span class="rel-label">5 слотів</span></li><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">зараз одягнений</span></li></ul>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">tier</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">за найслабшим предметом</td></tr><tr><td class="c-name">complete</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">gifted</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">зерна нараховуються тут; false — примірочна, одна на кавенятко</td></tr><tr><td class="c-name">gifted_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">beans_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">подаровані комплекти й примірочна</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_set_items">wardrobe_set_items</a><span class="rel-label">5 слотів</span></li><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">зараз одягнений</span></li></ul>
 </article>
 <article class="entity" id="t-wardrobe_set_items">
   <header><h4>wardrobe_set_items</h4><span class="entity-count">4 кол.</span></header>
@@ -7825,7 +7825,15 @@ Safari немає зовсім). Натомість у ландшафті вер
 <p>Придбання паростка за монети (1000) або кавові боби (15) - без оплати справжніми грошима - або опція покупки на P2P маркеті готового кавенятка - відкриваєш список з цінами, прев&#39;ю та нікнеймами продавців. До 10 лотів, які обирає API за тим самим правилом, що й лоти одягу: дешевші - частіше.</p>
 <h5 id="gamification-ui-екран-гардеробу-кавенятка"><a class="anchor" href="#gamification-ui-екран-гардеробу-кавенятка" aria-hidden="true">#</a>Екран гардеробу кавенятка</h5>
 <p>Кнопка назад зверху повертає на головний</p>
-<p>Показуємо набори, які можна одягнути, плюс примірочна - кавенятко може одягати готовий набір або із примірочної</p>
+<p>Показуємо набори, які можна одягнути, плюс примірочна - кавенятко може одягати готовий набір або із примірочної.</p>
+<p><strong>Модель (27.09.2026, до того - помилка дизайну).</strong> У кавенятка скільки завгодно подарованих комплектів, і будь-який із них можна вдягнути. Вдягнене - або один із них, або речі з примірочної. Примірочна існує, щоб зібрати <strong>новий</strong> комплект: вдягнути подарований її не розбирає, а &quot;Подарувати&quot; дарує саме її (не те, що зараз вдягнене). Раніше примірочна й &quot;вдягнене&quot; були одним і тим самим: вдягнув подарований - і зібране в примірочній розліталось на склад.</p>
+<p>Екран зверху вниз (кадр &quot;Гардероб&quot; у макеті):</p>
+<ul>
+<li>Мініатюра кавенятка в тому, що вдягнене, поруч - &quot;Одягнено&quot;, <strong>ім&#39;я кавенятка</strong> заголовком, а рядком нижче стан: &quot;Повний комплект (5 з 5 слотів)&quot;, &quot;Комплект збирається (3 з 5 слотів)&quot; або &quot;Нічого не вдягнено&quot;. Кнопка &quot;Зняти комплект&quot; / &quot;Зняти все&quot; лише знімає вдягнене - нічого не розбирає: подарований комплект лишається в смузі, а примірочна - робочим місцем нового комплекту. Річ зі слота на склад повертає тап по самому слоту.</li>
+<li>Смуга &quot;Комплекти&quot; (є, коли є хоч один подарований; праворуч - &quot;N подарованих&quot;): перша плитка &quot;приміряти&quot; - вдягає речі з примірочної (порожня примірочна веде на Склад); далі подаровані комплекти - плитка кольору рідкості з мініатюрами п&#39;яти речей. Вдягнена плитка - в акцентній рамці з підписом &quot;одягнено&quot;, решта - &quot;одягнути&quot;, тап вдягає. Смуга гортається вбік, праворуч згасає.</li>
+<li>Примірочна: п&#39;ять слотів. Покласти річ у слот (зі Складу, &quot;Вдягнути&quot;) - одразу й вдягнути її: що міряєш, те й на кущі.</li>
+<li>Смужка подарунка - про примірочну: скільки зерен дасть і який предмет тягне тір донизу.</li>
+</ul>
 <p>Тут показувати маленьке прев&#39;ю кавенятка в обраному наборі</p>
 <p>Після &quot;Подарувати&quot; - не рядок &quot;Кавенятко в захваті&quot;, а одразу головний екран із цим кавенятком: бочка з зерном підстрибує й іскрить, а боби летять із неї в баланс зерен у шапці, число перебігає до нового (27.09.2026). Боби в шапку летять лише з позначеного джерела - на 10-й стадії своя анімація (дугою в бочку), і політ &quot;знизу екрана&quot; поверх неї лише плутав би.</p>
 <p>Ім&#39;я кавенятка ніде не береться в лапки: &quot;У примірочній Барні&quot;, а не &quot;У примірочній «Барні»&quot; (27.09.2026). У шторці після &quot;Вдягнути&quot; на Складі - лише це речення, без &quot;Подарувати можна лише повний комплект&quot;.</p>
@@ -11931,7 +11939,7 @@ iCloud і на новий Android сам не перейде. Потрібен �
 </section>
 </main>
 </div>
-<footer>Хеш джерел f09c476 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 6e97ed2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -1492,9 +1492,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wr-gift > button { flex: none; padding: 8px 12px; border-radius: 999px; background: var(--grad); color: var(--accent-ink); font-size: 12px; font-weight: 800 }
 .wr-gift > button:disabled { background: var(--panel2); border: 1px solid var(--line); color: var(--muted); opacity: .55 }
 .wr-note { font-size: 12.5px; line-height: 1.4; color: var(--muted) }
-.wr-ready { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 13px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
-.wr-ready b { display: block; font-size: 13px; font-weight: 800 }
-.wr-ready small { font-size: 12px; color: var(--muted) }
+/* Смуга «Комплекти»: «приміряти» (речі з примірочної) і подаровані
+   комплекти кольору рідкості, прокрутка вбік до країв екрана, праворуч
+   згасання — кадр «Гардероб» у макеті. */
+.wr-strip { position: relative; margin: 0 -14px }
+.wr-strip-row { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 0 14px }
+.wr-strip-row::-webkit-scrollbar { display: none }
+.wr-strip-fade { position: absolute; right: 0; top: 0; bottom: 0; width: 36px; pointer-events: none; background: linear-gradient(to left, var(--bg), rgba(0, 0, 0, 0)) }
+.wr-set { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0 0 9px; overflow: hidden; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
+.wr-set[data-worn] { border: 2px solid var(--accent) }
+.wr-set-box { align-self: stretch; height: 72px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(var(--t), .34); border: 1px solid rgba(var(--t), .5) }
+.wr-set-box.fitting { background: none; border: 1.5px dashed var(--accent) }
+.wr-set-box.fitting img { width: 50px; height: 50px; object-fit: contain }
+.wr-set-col { display: flex; flex-direction: column; align-items: center }
+.wr-set-label { font-size: 11px; font-weight: 800; white-space: nowrap; color: var(--muted) }
+.wr-set[data-worn] .wr-set-label { color: var(--accent-text) }
 /* «Продати кавенятко» і «Нове кавенятко»: мініатюри на небі, саджанці від
    кафе й лоти гравців. */
 .sell-plant { position: relative; flex: none; width: 68px; height: 84px; border-radius: 14px; background: radial-gradient(120% 80% at 50% 70%, var(--sky1) 0%, var(--sky2) 74%); overflow: hidden }
@@ -1644,6 +1656,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      це майже вся ширина, на десктопі — читабельна смуга, а не рядки на
      півтора метри. */
   .stage-pad, .quiz, .form18 { width: 100%; max-width: 680px; margin: 0 auto; padding: 16px 20px }
+  .wr-strip { margin: 0 -20px }
+  .wr-strip-row { padding: 0 20px }
   .chat { max-width: 760px; margin: 0 auto }
 
   /* Кавенятко: композиція вміщається за висотою (Plant.jsx, LAND_*), низ

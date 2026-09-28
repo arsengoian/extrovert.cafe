@@ -34,7 +34,7 @@ export function SellPlant({ plant, ctx }) {
   const appearance = plant.appearance ?? {};
   const skins = new Set([...(appearance.leaves_bg ?? []), ...(appearance.leaves_fg ?? [])].map((l) => l.skin)).size;
   const branches = (appearance.branches ?? []).length;
-  const sets = (wardrobe?.ready?.length ?? 0) + (wardrobe?.set?.gifted ? 1 : 0);
+  const sets = wardrobe?.sets?.length ?? 0;
   const facts = [`Стадія ${plant.growth_stage}`, sets ? `${sets} ${plural(sets, "повний комплект", "повні комплекти", "повних комплектів")}` : null].filter(Boolean).join(", ");
   const look = [skins ? `${skins} ${plural(skins, "скін", "скіни", "скінів")} листя` : null, branches ? `${branches} ${plural(branches, "гілка", "гілки", "гілок")}` : null].filter(Boolean).join(", ");
 
