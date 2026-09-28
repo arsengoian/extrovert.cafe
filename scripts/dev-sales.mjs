@@ -34,7 +34,9 @@ for (let n = 1; n <= count && !stopped; n++) {
   const d = drinks[Math.floor(Math.random() * drinks.length)];
   const code = `${letter}${d.slot}`;
   console.log(`\n── продаж ${n} з ${count}: ${d.name} (${code}), ${d.price_uah} ₴ ──`);
-  const proc = Bun.spawn(["bun", path.join(ROOT, "scripts", "dev-sale.mjs"), "--drink", code, "--pay", pay], {
+  // process.execPath, а не "bun": make з PowerShell кличе bun повним шляхом
+  // ($(BUN) у Makefile), а в PATH його там немає — "bun" падав з ENOENT.
+  const proc = Bun.spawn([process.execPath, path.join(ROOT, "scripts", "dev-sale.mjs"), "--drink", code, "--pay", pay], {
     cwd: ROOT, stdout: "inherit", stderr: "inherit",
   });
   const code_ = await proc.exited;
