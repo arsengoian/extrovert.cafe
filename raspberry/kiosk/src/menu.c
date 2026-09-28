@@ -228,6 +228,25 @@ bool menu_expire_discount(menu_t *m, long long now) {
     return true;
 }
 
+unsigned long menu_visible_hash(const menu_t *m) {
+    char buf[256];
+    unsigned long h = 2166136261UL;   /* 32-бітний FNV: на ARMv6 long 32-бітний */
+    for (int i = 0; i < m->drink_count; i++) {
+        const drink_t *d = &m->drinks[i];
+        int n = snprintf(buf, sizeof(buf), "%s|%s|%s|%d|%d|%d;", d->name, d->vol, d->sprite,
+                         d->price, d->is_bonus ? d->coins : -1, d->is_bonus);
+        if (n > (int)sizeof(buf) - 1) n = (int)sizeof(buf) - 1;
+        h ^= menu_fnv1a(buf, (size_t)n);
+        h *= 16777619UL;
+    }
+    const ad_t *a = &m->ad;
+    int n = snprintf(buf, sizeof(buf), "%d|%s|%s|%s|%s|%s|%s|%d", a->valid, a->promo_label, a->head1,
+                     a->head2, a->sub, a->fine, a->sprite, m->discount);
+    if (n > (int)sizeof(buf) - 1) n = (int)sizeof(buf) - 1;
+    h ^= menu_fnv1a(buf, (size_t)n);
+    return h ? h : 1;
+}
+
 bool menu_same_look(const menu_t *a, const menu_t *b) {
     if (!a->valid || !b->valid || a->drink_count != b->drink_count) return false;
     for (int i = 0; i < a->drink_count; i++) {

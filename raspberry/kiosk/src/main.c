@@ -180,7 +180,7 @@ static void apply_menu(const menu_t *menu, const char *assets_dir,
     if (a) *ad_tex = gl_texture_from_cairo(a);
     gl_texture_destroy(prices_tex);
     if (p) *prices_tex = gl_texture_from_cairo(p);
-    write_fallback_png(m, a, p, menu->hash, menu->discount);
+    write_fallback_png(m, a, p, menu_visible_hash(menu), menu->discount);
     if (p) cairo_surface_destroy(p);
     *keep_menu = m;
     *keep_ad = a;
@@ -327,9 +327,12 @@ static void *menu_poll_thread(void *arg) {
             clock_gettime(CLOCK_MONOTONIC, &t0);
             cairo_surface_t *p = render_prices(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &tp);
-            write_fallback_png(mp->base_menu, mp->base_ad, p, attempt.hash, attempt.discount);
-            clock_gettime(CLOCK_MONOTONIC, &t1);
 
+            /* Спершу на екран, потім запасна картинка: її запис на Pi 1
+             * коштує ~13 с, і першого дня повні ціни після знижки чекали
+             * саме його (лог kyiv-01, 28.09.2026). Своє посилання на шар —
+             * головний потік знищить свій, щойно заллє текстуру. */
+            if (p) cairo_surface_reference(p);
             pthread_mutex_lock(&mp->mu);
             mp->last = attempt;
             mp->pending = attempt;
@@ -340,8 +343,12 @@ static void *menu_poll_thread(void *arg) {
             mp->has_pending = true;
             pthread_mutex_unlock(&mp->mu);
 
-            fprintf(stderr, "main: лише ціни у фоні за %.1f с (шар цін %.2f + запасний png %.1f)%s\n",
-                    span(t0, t1), span(t0, tp), span(tp, t1), attempt.discount ? " — знижка" : "");
+            write_fallback_png(mp->base_menu, mp->base_ad, p, menu_visible_hash(&attempt), attempt.discount);
+            if (p) cairo_surface_destroy(p);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+
+            fprintf(stderr, "main: лише ціни у фоні: на екран за %.2f с, запасний png ще %.1f с%s\n",
+                    span(t0, tp), span(tp, t1), attempt.discount ? " — знижка" : "");
         } else if (changed || expired) {
             struct timespec t0, t1;
             /* Три заміри, а не один. Загальні 32,8 с у лозі точки нічого не
@@ -356,8 +363,6 @@ static void *menu_poll_thread(void *arg) {
             clock_gettime(CLOCK_MONOTONIC, &ta);
             cairo_surface_t *p = render_prices(&attempt, mp->assets_dir);
             clock_gettime(CLOCK_MONOTONIC, &tp);
-            write_fallback_png(m, a, p, attempt.hash, attempt.discount);
-            clock_gettime(CLOCK_MONOTONIC, &t1);
 
             /* Свої посилання на меню й рекламу — для наступної зміни лише
              * цін. Не вдалось намалювати меню — лишаємо попереднє: на
@@ -368,6 +373,9 @@ static void *menu_poll_thread(void *arg) {
                 mp->base_menu = cairo_surface_reference(m);
                 mp->base_ad = a ? cairo_surface_reference(a) : NULL;
             }
+            /* Шар цін потрібен і запасній картинці, яку пишемо вже після
+             * того, як віддали все на екран (нижче). */
+            if (p) cairo_surface_reference(p);
 
             pthread_mutex_lock(&mp->mu);
             mp->last = attempt;
@@ -383,6 +391,10 @@ static void *menu_poll_thread(void *arg) {
             mp->pending_base = true;
             mp->has_pending = true;
             pthread_mutex_unlock(&mp->mu);
+
+            write_fallback_png(m ? mp->base_menu : NULL, mp->base_ad, p, menu_visible_hash(&attempt), attempt.discount);
+            if (p) cairo_surface_destroy(p);
+            clock_gettime(CLOCK_MONOTONIC, &t1);
 
             fprintf(stderr,
                     "main: меню у фоні за %.1f с (меню %.1f + реклама %.1f + ціни %.2f + запасний png %.1f) — кадр не стояв\n",
