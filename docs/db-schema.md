@@ -589,7 +589,7 @@ erDiagram
 erDiagram
     USERS ||--o{ PLANTS : "необмежено кавенят"
     PLANTS ||--o{ PLANT_STAGE_TRANSITIONS : "історія росту"
-    PLANTS ||--o{ WARDROBE_SETS : "подаровані комплекти"
+    PLANTS ||--o{ WARDROBE_SETS : "подаровані комплекти й примірочна"
     PLANTS ||--o{ CHAT_MESSAGES : "AI-чат"
     WARDROBE_SETS ||--o{ WARDROBE_SET_ITEMS : "5 слотів"
     USER_ITEMS ||--o| WARDROBE_SET_ITEMS : "який предмет у слоті"
@@ -607,7 +607,7 @@ erDiagram
         text cycle_phase "initial|regrowth"
         int lifetime_beans_gifted "зерна від куща: врожай + подаровані комплекти"
         timestamptz harvest_at "7 зерен за перший повний ріст виплачено"
-        uuid worn_set_id FK
+        uuid worn_set_id FK "вдягнене: подарований комплект або примірочна"
         bigint listing_id FK "заморожене на маркеті"
         timestamptz chat_seen_at "останнє відкриття чату: після нього — непрочитані"
         jsonb appearance "листя/гілки/плоди + чернетка посадки - див. §0"
@@ -627,7 +627,7 @@ erDiagram
         uuid plant_id FK
         text tier "за найслабшим предметом"
         boolean complete
-        boolean gifted "зерна нараховуються тут"
+        boolean gifted "зерна нараховуються тут; false — примірочна, одна на кавенятко"
         timestamptz gifted_at
         int beans_awarded
     }
