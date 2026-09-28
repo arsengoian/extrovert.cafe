@@ -99,6 +99,8 @@ const CARE_FX = {
   insecticide: { tilt: 0, shake: true, parts: "mist", turn: "scaleX(-1)" },   // носик ліворуч
 };
 
+const OVER = 1.6;
+
 function CareFx({ pour, areaRef }) {
   const host = useRef(null);
   useEffect(() => {
@@ -120,7 +122,7 @@ function CareFx({ pour, areaRef }) {
     const p = local({ left: plant.left, top: plant.top, width: plant.right - plant.left, height: plant.bottom - plant.top });
     // Над кроною, трохи лівіше центру: носик лійки й отвір мішка дивляться
     // праворуч униз, тож частинки падають саме на рослину.
-    const to = { x: p.x + p.w / 2 - from.w * 0.9, y: Math.max(0, p.y - from.h * 0.9) };
+    const to = { x: p.x + p.w / 2 - from.w * 0.9, y: Math.max(0, p.y - from.h * 1.2) };
     const dx = to.x - from.x, dy = to.y - from.y;
     const mirror = shelfImg.style.transform || "";
     // Розворот до рослини: віддзеркалене на полиці в польоті дивиться прямо.
@@ -133,21 +135,24 @@ function CareFx({ pour, areaRef }) {
       filter: "drop-shadow(0 6px 5px rgba(0,0,0,.35))" });
     box.appendChild(flyer);
     const t = (x, y, r = 0, sc = 1, turned = true) => `translate(${x}px, ${y}px) rotate(${r}deg) scale(${sc}) ${face(turned)}`;
+    // Над рослиною препарат більший, ніж на полиці (OVER): на полиці він
+    // крихітний, і над кроною його ледь було видно (власник, 28.09.2026).
     const act = spec.shake
-      ? [{ offset: 0.44, transform: t(dx, dy, -9, 1.12) }, { offset: 0.52, transform: t(dx, dy, 9, 1.12) },
-         { offset: 0.6, transform: t(dx, dy, -9, 1.12) }, { offset: 0.68, transform: t(dx, dy, 0, 1.12) }]
-      : [{ offset: 0.44, transform: t(dx, dy, spec.tilt, 1.12) }, { offset: 0.7, transform: t(dx, dy, spec.tilt, 1.12) }];
+      ? [{ offset: 0.44, transform: t(dx, dy, -9, OVER) }, { offset: 0.52, transform: t(dx, dy, 9, OVER) },
+         { offset: 0.6, transform: t(dx, dy, -9, OVER) }, { offset: 0.68, transform: t(dx, dy, 0, OVER) }]
+      : [{ offset: 0.44, transform: t(dx, dy, spec.tilt, OVER) }, { offset: 0.7, transform: t(dx, dy, spec.tilt, OVER) }];
     const anims = [flyer.animate([
       { offset: 0, transform: t(0, 0, 0, 1, false), opacity: 1 },
       { offset: 0.18, transform: t(dx * 0.5, dy * 0.5 - 46, -6, 1.06, false) },      // дуга вгору
-      { offset: 0.36, transform: t(dx, dy, 0, 1.12) },
+      { offset: 0.36, transform: t(dx, dy, 0, OVER) },
       ...act,
-      { offset: 0.82, transform: t(dx, dy, 0, 1.12), opacity: 1 },
-      { offset: 1, transform: t(dx, dy - 10, 0, 0.9), opacity: 0 },
+      { offset: 0.82, transform: t(dx, dy, 0, OVER), opacity: 1 },
+      { offset: 1, transform: t(dx, dy - 10, 0, OVER * 0.8), opacity: 0 },
     ].map((kf) => ({ easing: "ease-in-out", ...kf })), { duration: CARE_FX_MS, easing: "linear", fill: "forwards" })];
 
-    // Частинки — з носика/отвору на верх рослини.
-    const spout = { x: to.x + from.w * 0.95, y: to.y + from.h * 0.75 };
+    // Частинки — з носика/отвору на верх рослини. Масштаб іде від центру
+    // препарату, тож і носик відсувається від центру разом з ним.
+    const spout = { x: to.x + from.w / 2 + from.w * 0.45 * OVER, y: to.y + from.h / 2 + from.h * 0.25 * OVER };
     const fall = Math.max(40, p.y + Math.min(p.h, 120) * 0.5 - spout.y);
     const n = spec.parts === "mist" ? 7 : spec.parts === "grain" ? 9 : 3;
     for (let i = 0; i < n; i++) {
@@ -670,7 +675,7 @@ export function Plant({ ctx }) {
         <div className="plant-area" ref={area}>
           <img className="plant-platform" src="/assets/ui/platform.png" alt="" />
           {want && (
-            <button className="wish" title={want.title} onClick={wish} style={{ left: cx, top: cy }}>
+            <button className="wish" data-tap="off" title={want.title} onClick={wish} style={{ left: cx, top: cy }}>
               <img src="/assets/ui/cloud_p1.png" alt="" />
               <img src="/assets/ui/cloud_p2.png" alt="" />
               <img src="/assets/ui/cloud_p3.png" alt="" />
@@ -692,7 +697,7 @@ export function Plant({ ctx }) {
                 <div className="fx-fade-out" key={`o${fx.id}`}><Scene instances={fx.prev} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} /></div>
                 <div className="fx-fade-in" key={`i${fx.id}`}><Scene instances={instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle /></div>
               </>
-            ) : <Scene instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
+            ) : <Scene key={plant.id} reveal instances={oldScene ?? instances} layout={assets.layout} mood={plant.mood} camera={{ k: 0.26, tx: 0, ty: 0 }} idle />)}
           </div>
           <Shelf care={care} onApply={apply} need={need} canWater={canWater}
                  onWrong={() => (onSale ? say(ON_SALE) : need === "time" ? say(TOO_SOON) : wrong(need))} />

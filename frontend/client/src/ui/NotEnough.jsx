@@ -107,7 +107,6 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                pill="Склад" onClick={go(() => ctx.openTab("stock"))} />
         </div>
       )}
-
       <div className="short-foot"><Gold /> в <Bean /> не обмінюються.</div>
     </ConfirmSheet>
   );
@@ -165,7 +164,8 @@ export function NotEnoughBeans({ what, price, have, ctx, onClose }) {
         </div>
       )}
 
-      <div className="short-foot"><Gold /> в <Bean /> не обмінюються.</div>
+      {/* Без «монети в зерна не обмінюються»: у попапі про зерна це зайве
+          (власник, 28.09.2026). */}
     </ConfirmSheet>
   );
 }

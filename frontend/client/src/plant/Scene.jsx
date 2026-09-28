@@ -1,13 +1,17 @@
 // Малювання сцени: список інстансів → шари <img> у координатах сцени.
 // Порядок — суто z (стабільне сортування лишає однакові z у порядку
 // посадки), тіні й підфарбовування настрою — як у рушії дизайну.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FILTER_KEY, STAGE_H, STAGE_W } from "./geometry.js";
 import { usePlantAssets } from "./assets.js";
 
 const DEFAULT_SHADOW = { enabled: true, offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8 };
 const DEFAULT_FACE_SHADOW = { enabled: true, offset: 5, blur: 0.8, opacity: 0.41 };
 const W0 = 220;
+// reveal: скільки найдовше чекати на всі спрайти, перш ніж показати
+// кавенятко як є. Повільний інтернет не має лишити порожнє місце: за цей час
+// кущ з'явиться, навіть якщо частина листя ще доїжджає.
+const REVEAL_MAX_MS = 1500;
 
 const isLeaf = (g) => /leaf|leav/i.test(g || "");
 const isBranch = (g) => /branch/i.test(g || "");
@@ -59,8 +63,13 @@ const filterCss = (cfg) => {
   return sat === 100 && bri === 100 ? "" : `saturate(${sat}%) brightness(${bri / 100})`;
 };
 
-export function Scene({ instances, layout, mood = "healthy", camera, idle, style, children }) {
+// reveal — не показувати кущ, доки не домалюються всі спрайти (але не довше
+// за REVEAL_MAX_MS): інакше перші мілісекунди видно, як листя з'являється
+// шматками (власник, 28.09.2026). Раз показаний — більше не ховається:
+// нові листки після посадки мають з'являтись на очах, а не з миганням.
+export function Scene({ instances, layout, mood = "healthy", camera, idle, style, children, reveal = false }) {
   const assets = usePlantAssets();
+  const [shown, setShown] = useState(!reveal);
   // «Поза екраном анімація ставиться на паузу» (дошка «Анімації»): гойдання
   // вмикається, лише поки сцену видно.
   const root = useRef(null);
@@ -71,6 +80,24 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     io.observe(root.current);
     return () => io.disconnect();
   }, [idle]);
+
+  // До першого кадру: спрайти з кешу вже complete, і тоді кущ видно одразу —
+  // без кадру прозорості й мигання після кожного переходу стадії.
+  useLayoutEffect(() => {
+    if (shown || !root.current) return undefined;
+    const imgs = [...root.current.querySelectorAll("img")];
+    let left = imgs.filter((im) => !im.complete).length;
+    if (!left) { setShown(true); return undefined; }
+    const stop = new AbortController();
+    const done = () => { left -= 1; if (left <= 0) setShown(true); };
+    for (const im of imgs) {
+      if (im.complete) continue;
+      im.addEventListener("load", done, { once: true, signal: stop.signal });
+      im.addEventListener("error", done, { once: true, signal: stop.signal });
+    }
+    const timer = setTimeout(() => setShown(true), REVEAL_MAX_MS);
+    return () => { stop.abort(); clearTimeout(timer); };
+  }, [shown, instances.length]);
 
   const filters = layout?.colorFilters ?? {};
   const shadow = { ...DEFAULT_SHADOW, ...(layout?.shadow ?? {}) };
@@ -91,6 +118,7 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
         transformOrigin: "0 0",
         transform: camera ? `translate(${camera.tx}px, ${camera.ty}px) scale(${camera.k})` : undefined,
         pointerEvents: "none",
+        ...(reveal ? { opacity: shown ? 1 : 0, transition: "opacity .18s ease-out" } : {}),
         ...style,
       }}
     >

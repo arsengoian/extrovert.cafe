@@ -20,7 +20,7 @@ const Coins2 = () => (
 // ж тоні й довжині.
 const ABOUT = {
   water: [
-    "Полив потрібен саджанцю, щоб рушити в ріст, і далі – щоб кавенятко не сумувало. Без води три дні воно поникне, а потім зів'яне.",
+    "Полив потрібен саджанцю, щоб рушити в ріст, і далі – щоб кавенятко не сумувало. Без води три дні воно засумує, а потім зів'яне.",
     "Один полив миттєво повертає звичний вигляд навіть із зів'ялого стану, і прогрес росту не втрачається.",
   ],
   compost: ["Компост потрібен на переходах до листя й гілок – двох найпомітніших змін вигляду."],
@@ -31,8 +31,7 @@ const ABOUT = {
     "Кожне кавеня росте паралельно з рештою й хоче свій догляд. Твої склад, відро й поличка спільні для всіх.",
   ],
   beans_to_coins: [
-    "Обмін односторонній: монети назад у зерна не перетворюються.",
-    "Зерна варті більше – обмінюй, лише коли монети потрібні тут і зараз.",
+    "Кавові боби можна обміняти на монети. Але обережно! Назад обміняти уже не можна, тому використовуй цю функцію лише коли монети потрібні терміново.",
   ],
 };
 ABOUT.sapling_beans = ABOUT.sapling;
@@ -50,8 +49,8 @@ ABOUT.pos_discount = (item) => [
 // це була плашка на вітрині під плитками, а на самій чашці стояло сухе «з
 // принтом extrovert.cafe» (власник, 27.09.2026).
 const UNIQUE = {
-  merch_cup: "Другої такої чашки ні в кого не буде.",
-  custom_print: "Другої такої футболки ні в кого не буде.",
+  merch_cup: "Кожна чашка неповторна.",
+  custom_print: "Кожна футболка неповторна.",
 };
 function Unique({ code }) {
   return (
@@ -85,7 +84,7 @@ function ExchangePicker({ amount, setAmount, have, rate }) {
         <button className="exch-max" data-on={amount === max && have > 0} disabled={have < 1} onClick={() => setAmount(max)}>Максимум</button>
       </div>
       <div className="exch-sum">
-        Отримаєш <b>{coinsText((Number(amount) || 0) * rate)}</b>
+        Ти отримаєш <b>{coinsText((Number(amount) || 0) * rate)}</b>
         <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 17, height: 18 }} />
       </div>
     </div>
@@ -191,7 +190,7 @@ export function ShopItem({ item, ctx }) {
       <div className="shop-head">
         <div className="preview-head">
           <h2>{item.unit ? `${item.title} (${item.unit})` : item.title}</h2>
-          <p>{item.subtitle}</p>
+          {item.subtitle && <p>{item.subtitle}</p>}
         </div>
         {chip}
       </div>
