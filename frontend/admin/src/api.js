@@ -103,6 +103,7 @@ export const api = {
   savePrices: (drinks) => request("/admin/prices", { method: "PATCH", body: { drinks } }),
   deployments: () => request("/admin/deployments"),
   deployMenu: (body) => request("/admin/menu/deployments", { method: "POST", body }),
+  discountTest: (body) => request("/admin/menu/discount-test", { method: "POST", body }),
   problems: (p) => request(`/admin/problems${qs(p)}`),
   problemStatus: (id, status) => request(`/admin/problems/${id}`, { method: "PATCH", body: { status } }),
   // Фото лежить у приватному бакеті: спершу беремо підписане посилання,

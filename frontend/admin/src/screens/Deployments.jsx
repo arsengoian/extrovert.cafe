@@ -1,4 +1,5 @@
 // Історія деплойментів цін: що, коли й куди поїхало (docs/admin_panel.md).
+import { useState } from "react";
 import { api } from "../api.js";
 import { Badge, Empty, Table, fmt, useData } from "../ui.jsx";
 
@@ -10,6 +11,17 @@ const badge = (s) => { const [tone, text] = STATUS[s] ?? ["", s]; return <Badge 
 
 export function Deployments() {
   const { data, error, reload } = useData(() => api.deployments());
+  const [note, setNote] = useState(null);
+  // Тестова знижка: два деплойменти (знижені ціни й повернення) на всі
+  // точки — подивитись плашку з відліком на кіоску (discount.js в api).
+  const discount = async () => {
+    if (!confirm("Увімкнути тестову знижку на точках? Ціни на екрані кіоска на дві хвилини стануть нижчими, а автомат пробиватиме звичайні.")) return;
+    try {
+      const r = await api.discountTest({});
+      setNote(`Знижка ${r.uah} ₴ до ${new Date(r.until).toLocaleTimeString("uk-UA")}`);
+      reload();
+    } catch (e) { setNote(`не вийшло: ${e.message}`); }
+  };
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
 
@@ -20,7 +32,11 @@ export function Deployments() {
           <h1>Історія деплойментів</h1>
           <p>останні 50 – ціни їдуть у публічний бакет, звідки їх бере точка</p>
         </div>
-        <div className="right"><button className="btn" onClick={reload}>Оновити</button></div>
+        <div className="right">
+          {note && <span className="muted">{note}</span>}
+          <button className="btn" onClick={discount}>Тестова знижка</button>
+          <button className="btn" onClick={reload}>Оновити</button>
+        </div>
       </div>
 
       <Table

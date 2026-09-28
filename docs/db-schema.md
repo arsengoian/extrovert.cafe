@@ -262,7 +262,7 @@ erDiagram
         text point_id FK "чия ціна їде; для checkbox — чию філію оновлюємо"
         text status "queued|deploying|done|failed|skipped"
         timestamptz done_at
-        timestamptz acked_at "кіоск підтвердив, що показує"
+        timestamptz acked_at "кіоск підтвердив, що показує (POST /points/:id/menu/ack)"
         text error
     }
     BONUS_GRANTS {
