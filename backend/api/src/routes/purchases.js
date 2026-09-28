@@ -103,18 +103,26 @@ export default async function routes(app) {
 
     // ── обмін зерен на монети ────────────────────────────────────────
     // Скільки завгодно зерен за раз, аж до всіх, що є (власник, 27.09.2026).
-    // Верхньої межі, крім балансу, немає: spend() сам відмовить, якщо
+    // Верхньої межі, крім балансу, немає: update нижче сам відмовить, якщо
     // зерен менше. Раніше межа була 100, а «abc» у amount давало NaN монет.
     if (code === "beans_to_coins") {
       const beans = Math.floor(Number(req.body?.amount ?? 1));
       if (!Number.isFinite(beans) || beans < 1) fail(400, "bad_amount");
       const coins = beans * economy.beans.rate_coins;
+      // Один запит і один рядок журналу на обидві сторони: мінус зерна й
+      // плюс монети — це одна операція, і в журналі вона має бути одна
+      // (власник, 28.09.2026; раніше spend() і доплата писали два рядки).
       return tx(async (client) => {
-        await spend(client, user.id, "beans", beans, "exchange", { beans, coins });
-        await client.query("update users set coins_yellow = coins_yellow + $2 where id = $1", [user.id, coins]);
+        const { rows } = await client.query(
+          `update users set beans = beans - $2, coins_yellow = coins_yellow + $3
+            where id = $1 and beans >= $2 returning beans`,
+          [user.id, beans, coins]
+        );
+        if (!rows.length) fail(409, "not_enough", { currency: "beans", need: beans });
         await client.query(
-          "insert into ledger_entries (user_id, delta_yellow, reason, meta) values ($1, $2, 'exchange', $3)",
-          [user.id, coins, { beans }]
+          `insert into ledger_entries (user_id, delta_beans, delta_yellow, reason, meta)
+           values ($1, $2, $3, 'exchange', $4)`,
+          [user.id, -beans, coins, { beans, coins }]
         );
         return { ok: true, kind: "exchange", beans, coins };
       });

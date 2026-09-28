@@ -57,10 +57,10 @@ export default async function routes(app) {
         code,
         kind: "care",
         title: { compost: "Компост", fertilizer: "Добриво", insecticide: "Інсектицид" }[code],
-        // Компост і добриво — кілограмами, інсектицид — пляшками
-        // (gamification_economy.md §3.2).
-        unit: `${e.care[code].batch_units} ${code === "insecticide" ? "пляшки" : "кг"}`,
-        subtitle: `1 ${code === "insecticide" ? "пляшка" : "кг"} = 1 застосування`,
+        // Компост і добриво — кілограмами, інсектицид — штуками (власник,
+        // 28.09.2026: «не пляшки, а шт»; gamification_economy.md §3.2).
+        unit: `${e.care[code].batch_units} ${code === "insecticide" ? "шт" : "кг"}`,
+        subtitle: `1 ${code === "insecticide" ? "шт" : "кг"} = 1 застосування`,
         // Добриво намальоване як мінеральне (assets/ui/mineral.png) — ім'я
         // файла з дизайну не збігається з кодом товару, і «assets/ui/
         // fertilizer.png» давало биту картинку в магазині.
@@ -100,7 +100,9 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Чашка з принтом",
         name: product("merch_cup")?.name ?? "Чашка з принтом",
-        subtitle: "Принт із твого кавенятка",
+        // Підзаголовка немає: про принт каже блок «тільки твоє» (власник,
+        // 28.09.2026).
+        subtitle: "",
         icon: "assets/ui/merch.png",
         price: beans.merch_cup.beans,
         currency: "beans",
@@ -111,11 +113,11 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Футболка з принтом",
         name: product("custom_print")?.name ?? "Футболка з принтом",
-        subtitle: "Принт із твого кавенятка",
+        subtitle: "",
         icon: "assets/ui/custom_print.png",
+        // Рівно 40 зерен незалежно від розміру (власник, 28.09.2026); до того
+        // вітрина показувала коридор «36-45».
         price: beans.custom_print.beans,
-        // Ціна ще в коридорі (§6), і вітрина чесно показує «36-45».
-        price_range: beans.custom_print.range ?? null,
         currency: "beans",
         packed: product("custom_print")?.packed ?? null,
         options: { size: ["XS", "S", "M", "L", "XL", "XXL"] },
