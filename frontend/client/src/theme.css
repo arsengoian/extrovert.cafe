@@ -1340,7 +1340,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
    плавно інтерполювався; де його немає, листя просто стоїть. */
 @property --sway { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 /* Пориви (варіант 3, власник 28.09.2026): між ними все нерухоме, а
-   data-gust на сцені (plant/Scene.jsx) раз на 8–15 с пускає одну хвилю —
+   data-gust на сцені (plant/Scene.jsx) раз на 5,5–9 с пускає одну хвилю —
    відхилення, відскок і загасання. --gd — коли хвиля доходить до цього
    спрайта: зліва направо крізь крону. До цього листя гойдалось безперервно. */
 @keyframes aGustLeaf { 0% { --sway: 0deg } 22% { --sway: 3.2deg } 48% { --sway: -1.6deg } 72% { --sway: .7deg } 100% { --sway: 0deg } }
@@ -1522,9 +1522,14 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .wr-strip-row { display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 0 14px }
 .wr-strip-row::-webkit-scrollbar { display: none }
 .wr-strip-fade { position: absolute; right: 0; top: 0; bottom: 0; width: 36px; pointer-events: none; background: linear-gradient(to left, var(--bg), rgba(0, 0, 0, 0)) }
-.wr-set { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0 0 9px; overflow: hidden; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
-.wr-set[data-worn] { border: 2px solid var(--accent) }
-.wr-set-box { align-self: stretch; height: 72px; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(var(--t), .34); border: 1px solid rgba(var(--t), .5) }
+/* Коробка з речами — з відступом 5 px усередині плитки, і радіуси
+   концентричні (14 − 5 = 9): раніше вона впиралась у край, overflow: hidden
+   зрізав її кутики іншим радіусом, і пунктир примірочної обривався на
+   заокругленні (власник, 29.09.2026). Вибрана плитка — внутрішня обводка
+   поверх рамки, а не товща рамка: вміст не зсувається на піксель. */
+.wr-set { flex: none; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 5px 5px 9px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line) }
+.wr-set[data-worn] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent) }
+.wr-set-box { align-self: stretch; height: 68px; border-radius: 9px; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgba(var(--t), .34); border: 1px solid rgba(var(--t), .5) }
 .wr-set-box.fitting { background: none; border: 1.5px dashed var(--accent) }
 .wr-set-box.fitting img { object-fit: contain }
 .wr-set-col { display: flex; flex-direction: column; align-items: center }
