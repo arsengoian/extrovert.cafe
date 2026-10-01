@@ -75,18 +75,32 @@ function BeanRow({ item, onOpen }) {
   );
 }
 
+// Обрана вкладка магазину («За монети» / «За зерна») і коли її обрали.
+const MODE_KEY = "extrovert.shop";
+const MODE_TTL_MS = 60 * 60 * 1000;
+
+function shopMode() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MODE_KEY));
+    return saved && Date.now() - saved.at < MODE_TTL_MS ? saved.mode : "coins";
+  } catch {
+    return "coins";
+  }
+}
+
+export function rememberShopMode(mode) {
+  try { localStorage.setItem(MODE_KEY, JSON.stringify({ mode, at: Date.now() })); } catch { /* приватний режим */ }
+}
+
 export function Shop({ ctx }) {
   const [shop, setShop] = useState(() => api.peek("/shop") ?? null);
   const [clothes, setClothes] = useState(() => api.peek("/catalog/featured")?.items ?? []);
   // Вкладка переживає перехід на інший екран і перезавантаження: людина
   // купує за зерна й повертається саме за зерна (скарга власника
-  // 23.09.2026). Той самий прийом, що з вкладкою внизу (app.jsx).
-  const [mode, setMode] = useState(() => {
-    try { return sessionStorage.getItem("extrovert.shop") || "coins"; } catch { return "coins"; }
-  });
-  useEffect(() => {
-    try { sessionStorage.setItem("extrovert.shop", mode); } catch { /* приватний режим */ }
-  }, [mode]);
+  // 23.09.2026). Але лише годину від вибору (власник, 01.10.2026): наступного
+  // дня магазин знову відкривається на монетах.
+  const [mode, setMode] = useState(shopMode);
+  const pick = (next) => { setMode(next); rememberShopMode(next); };
 
   useEffect(() => {
     api.get("/shop").then(setShop).catch(() => setShop({ coins: [], beans: [] }));
@@ -115,10 +129,10 @@ export function Shop({ ctx }) {
     <div className="stage-pad">
       <div className="row">
         <div className="seg">
-          <button data-on={mode === "coins"} onClick={() => setMode("coins")}>
+          <button data-on={mode === "coins"} onClick={() => pick("coins")}>
             За <Coins2 />
           </button>
-          <button data-on={mode === "beans"} onClick={() => setMode("beans")}>
+          <button data-on={mode === "beans"} onClick={() => pick("beans")}>
             За <Bean size={15} />
           </button>
         </div>

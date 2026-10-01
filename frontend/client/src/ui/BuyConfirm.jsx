@@ -14,11 +14,20 @@ export function haveFor(currency, balances = {}) {
   return (balances.silver ?? 0) + (balances.yellow ?? 0);
 }
 
+// Іконка каже, чим саме заплатиш: лот на ринку — лише золотими, магазин —
+// будь-якими, спершу срібними (тому пара монет).
 export function CurrencyIcon({ currency }) {
-  return currency === "beans"
-    ? <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 15, height: 17 }} />
-    : <img src="/assets/ui/coin_gold.png" alt="монети" style={{ width: 16, height: 17 }} />;
+  if (currency === "beans") return <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 15, height: 17 }} />;
+  if (currency === "yellow") return <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17 }} />;
+  return (
+    <span className="coins2">
+      <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 16, height: 17 }} />
+      <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
+    </span>
+  );
 }
+
+const BALANCE_LABEL = { yellow: "Золоті після покупки", beans: "Зерна після покупки" };
 
 export function BuyConfirm({ art, title, subtitle, price, currency, balances, busy, onCancel, onBuy, cta, after }) {
   const have = haveFor(currency, balances);
@@ -33,7 +42,7 @@ export function BuyConfirm({ art, title, subtitle, price, currency, balances, bu
         <strong style={{ display: "flex", alignItems: "center", gap: 4 }}>{fmt(price)} <CurrencyIcon currency={currency} /></strong>
       </div>
       <div className="confirm-note">
-        <span>Баланс після покупки</span>
+        <span>{BALANCE_LABEL[currency] ?? "Баланс після покупки"}</span>
         <span>{fmt(have)} → {fmt(Math.max(0, have - price))} <CurrencyIcon currency={currency} /></span>
       </div>
       {after}

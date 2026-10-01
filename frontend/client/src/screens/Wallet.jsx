@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { PROFILE_DRAFT } from "./QuizProfile.jsx";
+import { rememberShopMode } from "./Shop.jsx";
 import { days } from "../ui/plural.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
@@ -62,7 +63,7 @@ export function Wallet({ ctx }) {
   // зерна», а не головна Магазину, де обмін ще треба шукати (власник,
   // 27.09.2026). «Назад» з обміну веде саме туди.
   const openExchange = async () => {
-    try { sessionStorage.setItem("extrovert.shop", "beans"); } catch { /* приватний режим */ }
+    rememberShopMode("beans");
     const shop = api.peek("/shop") ?? await api.get("/shop").catch(() => null);
     const item = shop?.beans?.find((i) => i.code === "beans_to_coins");
     ctx.openTab("shop");
