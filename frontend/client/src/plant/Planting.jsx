@@ -14,7 +14,7 @@ import { Scene } from "./Scene.jsx";
 import { usePlantAssets } from "./assets.js";
 import { FRUIT_FOREGROUND_Z, W0, fitCamera, growthFactor, smoothD } from "./geometry.js";
 import { ANCHOR, baseInstances, playerInstances } from "./scene.js";
-import { budTargets, config, createAt, groupFor, moveTo, resolve, spriteFor } from "./placement.js";
+import { budTargets, config, createAt, groupFor, moveTo, resolve, rootOf, spriteFor } from "./placement.js";
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
 import { useLandscape } from "../ui/landscape.js";
@@ -319,6 +319,11 @@ export function Planting({ ctx, plantId, title, resume }) {
   // під палець у мить, коли елемент брали, — тягнути можна було лише «за
   // корінь» (власник, 28.09.2026). Тепер відстань зберігається, і листок
   // їде за пальцем, за яку б його точку не взяли.
+  //
+  // Саме від КОРЕНЯ (rootOf), а не від центру картинки: moveTo ставить у
+  // точку корінь, і з відстанню до центру навіть тап без руху переносив
+  // корінь туди, де був центр, — обраний листок відскакував від тіла
+  // (власник, 01.10.2026).
   const grab = useRef({ dx: 0, dy: 0 });
 
   // Елемент під пальцем — той, у чиє біле коло влучив дотик: коло, що
@@ -341,7 +346,8 @@ export function Planting({ ctx, plantId, title, resume }) {
     const hit = hitAt(point);
     if (hit >= 0) {
       setSelected(hit);
-      grab.current = { dx: resolved[hit].x - point.x, dy: resolved[hit].y - point.y };
+      const root = rootOf(list[hit], cfg, targets);
+      grab.current = { dx: root.x - point.x, dy: root.y - point.y };
     } else if (list.length < max) {
       grab.current = { dx: 0, dy: 0 };   // новий — корінь саме там, де торкнулись
       const skin = list[selected]?.skin ?? 1;

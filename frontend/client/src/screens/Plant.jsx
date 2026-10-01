@@ -642,6 +642,11 @@ export function Plant({ ctx }) {
       const r = await api.post(`/me/plants/${plant.id}/care`, { kind });
       setPour({ id: Date.now(), kind });
       await ctx.refreshMe();
+      // Настрій і стадію куща міняємо, коли дія препарату вже відпрацювала:
+      // інакше сумне кавенятко «оживало», поки лійка ще летіла, — раніше,
+      // ніж на нього впала вода (власник, 01.10.2026). Запас на полиці
+      // (refreshMe вище) зменшується одразу — банку ж уже взяли.
+      if (!calm()) await new Promise((ok) => setTimeout(ok, CARE_FX_MS));
       await reload();
       if (r.grown) setFx({ id: Date.now(), prev, from, to: r.stage });
       // Кущ дякує своїм словом на кожен препарат — і коли підріс, і коли
