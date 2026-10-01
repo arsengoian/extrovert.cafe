@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
+import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { beans as beansText, coins as coinsText } from "../ui/plural.js";
 
@@ -139,6 +140,9 @@ export function ShopItem({ item, ctx }) {
   const [error, setError] = useState(null);
   const [sapling, setSapling] = useState(null);
   const [amount, setAmount] = useState(1);
+  // Що підтверджуємо: кнопка з ціною відкриває попап, а не купує одразу
+  // (власник, 01.10.2026).
+  const [confirm, setConfirm] = useState(null);
 
   // Саджанець продається і за монети, і за зерна — у макеті обидві ціни
   // на одному превʼю, звідки б гравець не прийшов.
@@ -180,8 +184,10 @@ export function ShopItem({ item, ctx }) {
       }
     } finally {
       setBusy(false);
+      setConfirm(null);
     }
   };
+  const ask = (target = item) => setConfirm(target);
 
   const chip = delivery
     ? <span className="shop-chip price"><Bean w={20} h={22} />{item.price_range ? item.price_range.join("-") : item.price}</span>
@@ -240,29 +246,43 @@ export function ShopItem({ item, ctx }) {
           // зерен у Магазині — зерна, з монет — монети (власник, 28.09.2026).
           // Раніше акцентними завжди були монети.
           <>
-            <button className={item.currency === "beans" ? "cta ghost" : "cta"} disabled={busy || !sapling} onClick={() => buy(sapling.coins)}>
+            <button className={item.currency === "beans" ? "cta ghost" : "cta"} disabled={busy || !sapling} onClick={() => ask(sapling.coins)}>
               <Coins2 />{sapling?.coins?.price ?? "…"}
             </button>
-            <button className={item.currency === "beans" ? "cta" : "cta ghost"} disabled={busy || !sapling} onClick={() => buy(sapling.beans)}>
+            <button className={item.currency === "beans" ? "cta" : "cta ghost"} disabled={busy || !sapling} onClick={() => ask(sapling.beans)}>
               <Bean w={19} h={21} />{sapling?.beans?.price ?? "…"}
             </button>
           </>
         ) : exchange ? (
-          <button className="cta" disabled={busy || beansHave < 1} onClick={() => buy()}>
+          <button className="cta" disabled={busy || beansHave < 1} onClick={() => ask()}>
             {beansHave < 1 ? "Зерен поки немає" : <>Обміняти {Number(amount) || 1} <Bean w={19} h={21} /></>}
           </button>
         ) : item.available === false ? (
           <button className="cta" disabled>Скоро на точці</button>
         ) : item.currency === "beans" ? (
-          <button className="cta" disabled={busy || lack > 0} onClick={() => buy()}>
+          <button className="cta" disabled={busy || lack > 0} onClick={() => ask()}>
             <Bean w={19} h={21} />{item.price}
           </button>
         ) : (
-          <button className="cta" disabled={busy} onClick={() => buy()}>
+          <button className="cta" disabled={busy} onClick={() => ask()}>
             <Coins2 />{item.price}
           </button>
         )}
       </div>
+
+      {confirm && (() => {
+        const t = confirm;
+        const ex = t.kind === "exchange";
+        const qty = Math.max(1, Number(amount) || 1);
+        return (
+          <BuyConfirm art={<img src={`/${t.icon}`} alt="" style={{ width: 52, height: 56, objectFit: "contain" }} />}
+                      title={ex ? "Обмін зерен на монети" : t.unit ? `${t.title} (${t.unit})` : t.title}
+                      subtitle={ex ? `отримаєш ${coinsText(qty * (item.gives_coins ?? 15))}` : null}
+                      price={ex ? qty : t.price} currency={ex || t.currency === "beans" ? "beans" : "coins"}
+                      balances={b} busy={busy} onCancel={() => setConfirm(null)} onBuy={() => buy(t)}
+                      cta={ex ? `Обміняти ${qty}` : undefined} />
+        );
+      })()}
     </div>
   );
 }

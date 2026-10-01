@@ -309,7 +309,9 @@ export default async function routes(app) {
       const what = listing.kind === "item" ? "Твою річ" : "Твоє кавенятко";
       await notifyPlant(listing.seller_id, `${what} продано на маркеті: +${net} після комісії.`, { client });
 
-      return { ok: true, paid: gross, kind: listing.kind };
+      // plant_id — щоб застосунок одразу показав куплене кавенятко на
+      // головному екрані, а не те, що було обране раніше.
+      return { ok: true, paid: gross, kind: listing.kind, plant_id: listing.plant_id ?? null };
     });
   });
 }

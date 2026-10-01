@@ -10,6 +10,9 @@ import { api } from "../api.js";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { PlantView } from "../plant/PlantView.jsx";
 import { plural } from "../ui/plural.js";
+import { ResultPopup } from "../ui/Popup.jsx";
+import { BuyConfirm } from "../ui/BuyConfirm.jsx";
+import { rememberPlant } from "../plant/selected.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
@@ -32,6 +35,10 @@ export function PlantMarket({ ctx }) {
   const [shop, setShop] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Що підтверджуємо: тап по саджанцю чи «Купити» біля лота більше не
+  // купує одразу, а відкриває попап із ціною й балансом після покупки
+  // (власник, 01.10.2026: покупка одним тапом списувала монети без питання).
+  const [picked, setPicked] = useState(null);
 
   const load = () => Promise.all([
     api.get("/market/plants?limit=10").then((r) => setOffers(r.offers)).catch(() => setOffers([])),
@@ -52,14 +59,31 @@ export function PlantMarket({ ctx }) {
     ctx.notify(<Popup what={what} price={price} have={have} ctx={ctx} onClose={() => ctx.notify(null)} />);
   };
 
+  // Куплено — попап успіху над вкладкою кавенятка, і нове кавенятко на
+  // головному екрані обране (і з ринку теж). Ім'я саджанцю попросить уже
+  // головний екран.
   const buy = async (request, lack) => {
     setBusy(true);
     setError(null);
     try {
-      await request();
+      const r = await request();
+      if (r?.plant_id) rememberPlant(r.plant_id);
       await ctx.refreshMe();
+      setPicked(null);
       ctx.openTab("plant");
+      const close = () => ctx.notify(null);
+      ctx.notify(
+        <ResultPopup art={<img src="/assets/ui/sprout.png" alt="" style={{ width: 40, height: 62, objectFit: "contain" }} />}
+                     title={lack.what === "Саджанець" ? "Саджанець твій!" : "Кавенятко твоє!"} onClose={close}>
+          <div className="result-note">
+            {lack.what === "Саджанець"
+              ? "Він уже на головному екрані – дай йому ім'я, і можна поливати."
+              : "Воно вже на головному екрані разом з усім подарованим йому одягом."}
+          </div>
+        </ResultPopup>
+      );
     } catch (e) {
+      setPicked(null);
       const code = e.body?.error;
       if (code === "not_enough") short(lack.currency, lack.what, lack.price);
       else setError(code === "already_gone" ? "Цей лот уже купили" : code ?? e.message);
@@ -74,7 +98,8 @@ export function PlantMarket({ ctx }) {
       <div className="pm-saplings">
         {saplings.map((item) => (
           <button key={item.code} className="pm-sapling" disabled={busy}
-                  onClick={() => buy(() => api.post("/shop/buy", { code: item.code }), { currency: item.currency, what: "Саджанець", price: item.price })}>
+                  onClick={() => setPicked({ what: "Саджанець", name: "Саджанець", currency: item.currency, price: item.price,
+                                             request: () => api.post("/shop/buy", { code: item.code }) })}>
             <img src="/assets/ui/sprout.png" alt="" />
             <b>Саджанець</b>
             <span>
@@ -115,13 +140,34 @@ export function PlantMarket({ ctx }) {
                 {fmt(lot.price)}
               </span>
               <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy}
-                      onClick={() => buy(() => api.post(`/market/listings/${lot.id}/buy`), { currency: lot.currency, what: "Кавенятко", price: lot.price })}>
+                      onClick={() => setPicked({ what: "Кавенятко", name: lot.plant?.name || "Без імені", seller: lot.seller, lot,
+                                                 currency: lot.currency, price: lot.price,
+                                                 request: () => api.post(`/market/listings/${lot.id}/buy`) })}>
                 Купити
               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {picked && <PlantBuyConfirm picked={picked} me={ctx.me} busy={busy} onCancel={() => setPicked(null)}
+                             onBuy={() => buy(picked.request, picked)} />}
     </div>
+  );
+}
+
+// Підтвердження — спільне для всіх покупок (ui/BuyConfirm.jsx).
+function PlantBuyConfirm({ picked, me, busy, onCancel, onBuy }) {
+  // Саджанець за монети платиться й срібними, лот на ринку — лише жовтими.
+  const currency = picked.currency === "beans" ? "beans" : picked.lot ? "yellow" : "coins";
+  const art = picked.lot
+    ? <span style={{ width: 49, height: 56, flex: "none" }}>
+        <PlantView plant={{ growth_stage: picked.lot.plant?.growth_stage ?? 0, appearance: picked.lot.plant?.appearance, mood: "healthy" }}
+                   worn={picked.lot.plant?.worn} width={49} height={56} fit="stage" />
+      </span>
+    : <img src="/assets/ui/sprout.png" alt="" style={{ width: 36, height: 56, objectFit: "contain" }} />;
+  return (
+    <BuyConfirm art={art} title={picked.name} subtitle={picked.seller ? `продає ${picked.seller}` : "від кафе, ростиме з нуля"}
+                price={picked.price} currency={currency} balances={me?.balances} busy={busy} onCancel={onCancel} onBuy={onBuy} />
   );
 }

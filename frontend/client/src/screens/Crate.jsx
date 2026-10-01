@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
+import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { Sparks, burst, calm, markCoinSource } from "../ui/fx.jsx";
@@ -113,6 +114,9 @@ export function openStockCrate(ctx, onOpened) {
 export function CratePreview({ item, ctx }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Скринька за монети — спершу підтвердження (власник, 01.10.2026); за
+  // гривні підтвердженням служить сторінка банку.
+  const [confirm, setConfirm] = useState(false);
   const odds = item?.odds ?? {};
   const price = item?.price ?? 90;   // запас, поки не прийшла ціна з api (economy.json crate.price_coins)
 
@@ -120,6 +124,7 @@ export function CratePreview({ item, ctx }) {
   const buy = async () => {
     setBusy(true);
     setError(null);
+    setConfirm(false);
     try {
       await api.post("/shop/crate/buy");
       await ctx.refreshMe();
@@ -183,7 +188,7 @@ export function CratePreview({ item, ctx }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <div className="buy-row">
-        <button className="cta" disabled={busy} onClick={buy}>
+        <button className="cta" disabled={busy} onClick={() => setConfirm(true)}>
           <span className="coins2">
             <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
             <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
@@ -194,6 +199,13 @@ export function CratePreview({ item, ctx }) {
           {item?.price_uah ?? 99} ₴
         </button>
       </div>
+
+      {confirm && (
+        <BuyConfirm art={<img src="/assets/ui/crate.png" alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />}
+                    title="Щаслива скринька" subtitle="ляже на Склад, відкриєш звідти"
+                    price={price} currency="coins" balances={ctx.me?.balances} busy={busy}
+                    onCancel={() => setConfirm(false)} onBuy={buy} />
+      )}
     </div>
   );
 }

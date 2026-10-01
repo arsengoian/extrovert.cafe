@@ -8,6 +8,7 @@ import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { renderMarkdown } from "../ui/markdown.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { ResultPopup } from "../ui/Popup.jsx";
+import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 
 export const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
 export const SLOT_OF = { head: "слот голови", body: "слот тіла", pants: "слот штанів", feet: "слот взуття", acc_1: "слот аксесуара" };
@@ -22,6 +23,9 @@ export function ItemCard({ item, ctx }) {
   const [all, setAll] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  // Підтвердження перед покупкою: { lot } — лот на ринку, {} — у кафе
+  // (власник, 01.10.2026).
+  const [confirm, setConfirm] = useState(null);
 
   const code = item?.code;
   const load = () => Promise.all([
@@ -60,6 +64,7 @@ export function ItemCard({ item, ctx }) {
   const buyFromShop = async () => {
     setBusy(true);
     setError(null);
+    setConfirm(null);
     try {
       const r = await api.post("/shop/buy", { code: "item", item: item.code });
       await ctx.refreshMe();
@@ -76,6 +81,7 @@ export function ItemCard({ item, ctx }) {
   const buyLot = async (lot) => {
     setBusy(true);
     setError(null);
+    setConfirm(null);
     try {
       await api.post(`/market/listings/${lot.id}/buy`);
       await ctx.refreshMe();
@@ -142,7 +148,7 @@ export function ItemCard({ item, ctx }) {
                 </div>
                 <div className="offer-buy">
                   <b><img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />{lot.price}</b>
-                  <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy} onClick={() => buyLot(lot)}>Купити</button>
+                  <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy} onClick={() => setConfirm({ lot })}>Купити</button>
                 </div>
               </div>
             );
@@ -158,8 +164,19 @@ export function ItemCard({ item, ctx }) {
       )}
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
+      {confirm && (() => {
+        const lot = confirm.lot;
+        return (
+          <BuyConfirm art={<ItemIcon sprite={lot?.item?.sprite_id ?? item.sprite_id} size={52} alt={item.name} style={{ width: 52 }} />}
+                      title={lot?.item?.name ?? item.name} subtitle={lot ? `продає ${lot.seller}` : "у Магазині кафе"}
+                      price={lot ? lot.price : price} currency={lot ? (lot.currency === "beans" ? "beans" : "yellow") : "coins"}
+                      balances={ctx.me?.balances} busy={busy} onCancel={() => setConfirm(null)}
+                      onBuy={() => (lot ? buyLot(lot) : buyFromShop())} />
+        );
+      })()}
+
       <div className="buy-row">
-        <button className="cta" disabled={busy || !price} onClick={buyFromShop}>
+        <button className="cta" disabled={busy || !price} onClick={() => setConfirm({})}>
           <span className="coins2">
             <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
             <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
