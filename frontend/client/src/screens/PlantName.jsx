@@ -2,7 +2,7 @@
 // з подякою, поле з лічильником і «Готово». HUD і нижнє меню — під тим
 // самим розмиттям, що й у попапів. Ім'я бачить лише власник, тому перевірок
 // мінімум — на відміну від нікнейма, який унікальний.
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, errText } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
@@ -43,6 +43,26 @@ export function PlantName({ plant, ctx }) {
     setBox({ top: s.top - a.top, bottom: a.bottom - s.bottom, left: s.left - a.left, right: a.right - s.right });
   }, []);
 
+  // Клавіатура на iPhone не стискає сторінку, а лягає поверх неї: картка
+  // внизу неба опинялась під клавіатурою разом із полем. Тож низ неба
+  // піднімаємо на висоту клавіатури (visualViewport), картка стає нижчою й
+  // прокручується, а поле прокручуємо у видиму частину — паросток угорі
+  // просто їде в скрол, а не стискається (власник, 01.10.2026).
+  const [keyboard, setKeyboard] = useState(0);
+  const input = useRef(null);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return undefined;
+    const update = () => {
+      setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+      if (document.activeElement === input.current) input.current?.scrollIntoView({ block: "center" });
+    };
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    update();
+    return () => { vv.removeEventListener("resize", update); vv.removeEventListener("scroll", update); };
+  }, []);
+
   const save = async () => {
     setBusy(true);
     setError(null);
@@ -64,7 +84,7 @@ export function PlantName({ plant, ctx }) {
           ніде, і кавенятко лишалось безіменним назавжди (власник,
           28.09.2026). */}
       <div className="sheet-backdrop" />
-      <div className="name-sky" style={box ?? undefined}>
+      <div className="name-sky" style={box ? { ...box, bottom: Math.max(box.bottom, keyboard) } : undefined}>
       <div className="name-card">
         <div className="name-hero">
           <img className="name-platform" src="/assets/ui/platform.png" alt="" />
@@ -76,7 +96,8 @@ export function PlantName({ plant, ctx }) {
         <div className="name-form">
           <b>Як його звати?</b>
           <label className="name-field">
-            <input value={name} autoFocus maxLength={MAX} spellCheck={false} autoComplete="off"
+            <input ref={input} value={name} autoFocus maxLength={MAX} spellCheck={false} autoComplete="off"
+                   onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ block: "center" }), 350)}
                    onChange={(e) => { setName(e.target.value.slice(0, MAX)); setError(null); }} />
             <span>{name.length} / {MAX}</span>
           </label>
