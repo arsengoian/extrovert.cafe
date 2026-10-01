@@ -150,6 +150,10 @@ export function Planting({ ctx, plantId, title, resume }) {
   const [items, setItems] = useState(EMPTY);
   const [selected, setSelected] = useState(null);
   const [sheet, setSheet] = useState("intro");        // intro | edit | skins | confirm | resume
+  // Масштаб кадру: звичайний — найкрупніший (зона цього кроку й кущ);
+  // віддалений — усе, куди можуть дістати листя й гілки на будь-якому
+  // кроці, щоб бачити кущ цілком (власник, 01.10.2026).
+  const [zoomOut, setZoomOut] = useState(false);
   const [skipFg, setSkipFg] = useState(false);        // «пропустити» листя на чолі
   const [busy, setBusy] = useState(false);
   const rootRef = useRef(null);
@@ -284,6 +288,24 @@ export function Planting({ ctx, plantId, title, resume }) {
     }));
   }, [cfg, assets, targets, list, selected, toStage]);
 
+  // Куди взагалі можуть дістати листя й гілки: обидві зони листя й лінія
+  // гілок, і від кожної точки — ще довжина найбільшого елемента (він
+  // тягнеться від кореня назовні). Це рамка віддаленого масштабу.
+  const reach = useMemo(() => {
+    if (!assets) return [];
+    const pts = [];
+    for (const kind of ["leafBg", "leafFg", "branch"]) {
+      const c = config(assets, kind);
+      const r = W0 * (c.scale?.max ?? 1) * f * 0.6;
+      const src = c.zone ? c.zone.polygon : c.curve?.source ?? [];
+      for (const p0 of src) {
+        const p = toStage(p0);
+        pts.push({ x: p.x - r, y: p.y - r }, { x: p.x + r, y: p.y + r });
+      }
+    }
+    return pts;
+  }, [assets, f, toStage]);
+
   // Камера — як у макеті: зона й кущ (радіус 0.42 спрайта) з полями 26, але
   // рамка одна на всі панелі (CAMERA_PANEL_ROOM) і прив'язана до верху.
   const camera = useMemo(() => {
@@ -299,11 +321,12 @@ export function Planting({ ctx, plantId, title, resume }) {
       const r = W0 * i.scale * 0.42;
       pts.push({ x: i.x - r, y: i.y - r }, { x: i.x + r, y: i.y + r });
     }
+    if (zoomOut) pts.push(...reach);
     const room = wide
       ? { x: 10, y: CAMERA_TOP, w: box.w - CAMERA_PANEL_SIDE - 20, h: box.h - CAMERA_TOP - 10 }
       : { x: 10, y: CAMERA_TOP, w: box.w - 20, h: box.h - CAMERA_TOP - CAMERA_PANEL_ROOM };
     return fitCamera(pts, room, 26, { align: "top" });
-  }, [cfg, assets, targets, instances, box, toStage, wide]);
+  }, [cfg, assets, targets, instances, box, toStage, wide, zoomOut, reach]);
 
   // ── робота з елементами ───────────────────────────────────────────────
   const setList = (next) => setItems((prev) => ({ ...prev, [FIELD[phase]]: next }));
@@ -579,6 +602,14 @@ export function Planting({ ctx, plantId, title, resume }) {
 
           {sheet === "edit" && (
             <>
+              <button className="pl-zoom" data-shift={item ? "1" : undefined}
+                      aria-label={zoomOut ? "Наблизити" : "Віддалити"} title={zoomOut ? "Наблизити" : "Віддалити"}
+                      onClick={() => setZoomOut((z) => !z)}>
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <circle cx="10.5" cy="10.5" r="6.5" /><path d="M15.5 15.5 20 20" /><path d="M7.8 10.5h5.4" />
+                  {zoomOut && <path d="M10.5 7.8v5.4" />}
+                </svg>
+              </button>
               {item ? (
                 <>
                   <button className="pl-del" aria-label="Видалити" onClick={remove}><Trash /></button>

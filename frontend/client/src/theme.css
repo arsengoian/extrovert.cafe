@@ -1459,6 +1459,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .pl-skins.wide .pl-skin { flex: 1; width: auto; height: 62px }
 .pl-skins.wide .pl-skin img { width: 46px; height: 46px }
 .pl-del { position: absolute; top: -58px; right: 2px; width: 46px; height: 46px; border-radius: 999px; background: #FF4D5E; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(0, 0, 0, .4) }
+/* Масштаб — між «Обрати скін» і кошиком (власник, 01.10.2026): лупа з
+   мінусом віддаляє кадр до всієї досяжної крони, з плюсом — вертає. Коли
+   кошика немає (нічого не обрано), стає на його місце. */
+.pl-zoom { position: absolute; top: -54px; right: 2px; width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); box-shadow: 0 10px 24px rgba(0, 0, 0, .34); display: flex; align-items: center; justify-content: center }
+.pl-zoom[data-shift] { right: 60px }
 .pl-skinpick { position: absolute; top: -54px; left: 2px; height: 38px; padding: 0 12px 0 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); box-shadow: 0 10px 24px rgba(0, 0, 0, .34); display: flex; align-items: center; gap: 8px }
 .pl-skinpick img { flex: none; width: 24px; height: 24px; object-fit: contain }
 .pl-skinpick span { font-size: 12.5px; font-weight: 800 }
@@ -1757,6 +1762,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
      панелі без них («як це працює», скіни, чернетка) прокручуються. */
   .pl-del { top: 0; right: calc(100% + 10px) }
   .pl-skinpick { top: 56px; left: auto; right: calc(100% + 10px); white-space: nowrap }
+  .pl-zoom, .pl-zoom[data-shift] { top: 104px; right: calc(100% + 10px) }
   .pl-sheet[data-kind="intro"], .pl-sheet[data-kind="skins"], .pl-sheet[data-kind="resume"] { max-height: calc(100% - 20px); overflow-y: auto; scrollbar-width: thin }
 
   /* Вхід: кущ із реплікою, бонус і кнопки — в один ряд під логотипом.
