@@ -285,7 +285,9 @@ export default async function routes(app) {
     const drink = String(req.query.drink ?? "");
 
     const profile = await many(
-      "select answers, created_at from quiz_profile_responses where created_at between $1 and $2",
+      // Разом із незавершеними анкетами: їхні відповіді теж рахуються, кожне
+      // питання — лише серед тих, хто на нього відповів (tally), 01.10.2026.
+      "select answers, created_at, completed_at from quiz_profile_responses where created_at between $1 and $2",
       [from, to]
     );
     const rows = await many(
@@ -335,13 +337,14 @@ export default async function routes(app) {
     const spent = (await one("select count(*)::int as n from quiz_drink_responses"))?.n ?? 0;
 
     const players = (await one("select count(*)::int as n from users"))?.n ?? 0;
-    const filled = (await one("select count(*)::int as n from quiz_profile_responses"))?.n ?? 0;
+    const filled = (await one("select count(*)::int as n from quiz_profile_responses where completed_at is not null"))?.n ?? 0;
 
     const texts = picked.filter((r) => r.free_text?.trim());
     return {
       from, to, drink,
       profile: {
         total: profile.length,
+        partial: profile.filter((r) => !r.completed_at).length,
         filled, players,
         questions: tally(profile, PROFILE_Q),
       },
@@ -372,11 +375,11 @@ export default async function routes(app) {
       // напою додали sprite (шкали, про які не питали), без null тут запит
       // падав цілком, і стрічка показувала «internal» (28.09.2026).
       `(select 'profile' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, null as drink, null as sprite
+               u.id as user_id, u.nickname, null as drink, null as sprite, q.completed_at is null as partial
           from quiz_profile_responses q join users u on u.id = q.user_id)
        union all
        (select 'drink' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, coalesce(d.name, i.name) as drink, d.sprite
+               u.id as user_id, u.nickname, coalesce(d.name, i.name) as drink, d.sprite, false as partial
           from quiz_drink_responses q
           join users u on u.id = q.user_id
           join receipt_items i on i.id = q.receipt_item_id

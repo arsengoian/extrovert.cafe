@@ -27,7 +27,14 @@ export function QuizProfile({ ctx }) {
   const [error, setError] = useState(null);
   const [done, setDone] = useState(false);
 
-  useEffect(() => { api.get("/quiz/profile").then(setQuiz).catch((e) => setError(e.message)); }, []);
+  useEffect(() => {
+    api.get("/quiz/profile").then((q) => {
+      setQuiz(q);
+      // Чернетки на цьому пристрої немає, а на сервері є пройдені кроки
+      // (почав на іншому телефоні) — продовжуємо з них.
+      if (q.progress && !Object.keys(draft.answers ?? {}).length) setAnswers(q.progress);
+    }).catch((e) => setError(e.message));
+  }, []);
 
   // Пишемо чернетку на кожну відповідь: гравця перервуть на півкроці —
   // телефон дзвонить, вкладка засинає, — і повертатись з нуля він не стане.
@@ -65,7 +72,15 @@ export function QuizProfile({ ctx }) {
     setAnswers((a) => ({ ...a, [id]: typeof value === "function" ? value(a[id]) : value }));
 
   const next = async () => {
-    if (!last) { setStep(step + 1); return; }
+    // Пройдений крок — одразу на сервер: незавершена анкета теж іде в
+    // статистику (лише заповненими відповідями, 01.10.2026). Не вдалось —
+    // не страшно: чернетка на телефоні лишається, а наступний крок
+    // надішле все разом.
+    if (!last) {
+      api.put("/quiz/profile/progress", { answers }).catch(() => {});
+      setStep(step + 1);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

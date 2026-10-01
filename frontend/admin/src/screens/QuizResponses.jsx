@@ -27,7 +27,7 @@ export function QuizResponses() {
       <Table
         columns={[
           { key: "created_at", title: "коли", render: (r) => <span>{fmt.time(r.created_at)}<small>{fmt.ago(r.created_at)}</small></span> },
-          { key: "kind", title: "що", render: (r) => <Badge tone={r.kind === "profile" ? "accent" : ""}>{r.kind === "profile" ? "анкета" : r.drink ?? "напій"}</Badge> },
+          { key: "kind", title: "що", render: (r) => <Badge tone={r.kind === "profile" ? "accent" : ""}>{r.kind === "profile" ? (r.partial ? "анкета, не дописана" : "анкета") : r.drink ?? "напій"}</Badge> },
           {
             key: "nickname", title: "хто", render: (r) => (
               <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${r.user_id}`)}>{r.nickname}</button>

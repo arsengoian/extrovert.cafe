@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 5a5af1b</p>
+  <p class="eyebrow">extrovert.cafe · джерело afb9551</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1794,10 +1794,11 @@ erDiagram
     QUIZ_PROFILE_RESPONSES {
         bigserial id PK
         uuid user_id FK &quot;unique: анкета одноразова&quot;
-        jsonb answers
+        jsonb answers &quot;лише заповнені питання; росте з кожним кроком&quot;
         text free_text &quot;відкрите питання в кінці, може бути порожнім&quot;
-        int coins_awarded
+        int coins_awarded &quot;0, поки анкету не надіслали&quot;
         timestamptz created_at
+        timestamptz completed_at &quot;null — анкету почали, але не дописали&quot;
     }
     QUIZ_DRINK_RESPONSES {
         bigserial id PK
@@ -1885,8 +1886,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-np_cities">np_cities</a><span class="rel-label">відділення й поштомати</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemptions">redemptions</a><span class="rel-label">куди везти</span></li></ul>
 </article>
 <article class="entity" id="t-quiz_profile_responses">
-  <header><h4>quiz_profile_responses</h4><span class="entity-count">6 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: анкета одноразова</td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">відкрите питання в кінці, може бути порожнім</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>quiz_profile_responses</h4><span class="entity-count">7 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">unique: анкета одноразова</td></tr><tr><td class="c-name">answers</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">лише заповнені питання; росте з кожним кроком</td></tr><tr><td class="c-name">free_text</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">відкрите питання в кінці, може бути порожнім</td></tr><tr><td class="c-name">coins_awarded</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">0, поки анкету не надіслали</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">completed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">null — анкету почали, але не дописали</td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">анкета, одноразово</span></li></ul>
 </article>
 <article class="entity" id="t-quiz_drink_responses">
@@ -11129,6 +11130,15 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 з трьома варіантами, де середина («якраз», «ідеальне», «гаряча»,
 «чисто») і означає «як має бути». Показуємо частку таких відповідей: те
 саме за змістом, і воно є в даних.</li>
+<li><strong>Частково заповнені теж рахуються — лише заповненими відповідями</strong>
+(01.10.2026). Кожне питання має свій знаменник: тих, хто на нього
+відповів, тож пропущене питання нічого не тягне вниз. Опитування про
+напій можна надіслати й неповним. Анкета профілю зберігається на
+сервері з кожним пройденим кроком (<code>completed_at</code> порожній, монет ще
+немає), тому й кинута на третьому кроці потрапляє в картки. У KPI
+«Анкет профілю» вони в загальному числі, «N не дописали» — у підписі, а
+«заповнили» — лише ті, хто дійшов до кінця. У стрічці відповідей такі
+позначені «анкета, не дописана».</li>
 <li><strong>«Кредитів витрачено»</strong> — скільки квізів про напій пройдено від того,
 скільки кредитів гравці заробили за мілстоунами лічильника напоїв
 (<code>economy.md</code> §2.4). Рахує та сама функція, що й видає кредити в клієнті.</li>
@@ -12304,7 +12314,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 5a5af1b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел afb9551 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -544,10 +544,11 @@ erDiagram
     QUIZ_PROFILE_RESPONSES {
         bigserial id PK
         uuid user_id FK "unique: анкета одноразова"
-        jsonb answers
+        jsonb answers "лише заповнені питання; росте з кожним кроком"
         text free_text "відкрите питання в кінці, може бути порожнім"
-        int coins_awarded
+        int coins_awarded "0, поки анкету не надіслали"
         timestamptz created_at
+        timestamptz completed_at "null — анкету почали, але не дописали"
     }
     QUIZ_DRINK_RESPONSES {
         bigserial id PK

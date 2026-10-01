@@ -1156,6 +1156,7 @@ CREATE TABLE public.quiz_profile_responses (
     free_text text,
     coins_awarded integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    completed_at timestamp with time zone,
     CONSTRAINT quiz_profile_responses_coins_awarded_check CHECK ((coins_awarded >= 0))
 );
 
@@ -3637,4 +3638,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260927200000'),
     ('20260927220000'),
     ('20260928080000'),
-    ('20260928100000');
+    ('20260928100000'),
+    ('20261001120000');

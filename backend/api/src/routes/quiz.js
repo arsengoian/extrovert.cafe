@@ -39,6 +39,20 @@ async function drinkCount(userId) {
   return row?.n ?? 0;
 }
 
+// Відповіді анкети без порожніх: незаповнене питання не має потрапляти в
+// базу як "" чи [] — статистика рахує кожне питання лише серед тих, хто
+// справді відповів.
+function profileAnswers(raw) {
+  const out = {};
+  for (const [k, raw_] of Object.entries(raw && typeof raw === "object" ? raw : {})) {
+    const v = typeof raw_ === "string" ? raw_.trim() : raw_;
+    if (v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length)) continue;
+    out[k] = v;
+  }
+  return out;
+}
+const freeTextOf = (a) => [a.impression, a.ideas].filter(Boolean).join("\n\n").trim() || null;
+
 async function award(client, userId, silver, reason, meta) {
   await client.query("update users set coins_silver = coins_silver + $2 where id = $1", [userId, silver]);
   await client.query(
@@ -52,7 +66,9 @@ export default async function routes(app) {
   app.get("/quiz/profile", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    const done = await one("select created_at from quiz_profile_responses where user_id = $1", [user.id]);
+    // Рядок є й у незавершеної анкети (completed_at порожній): «пройдено» —
+    // лише коли її надіслали цілком.
+    const row = await one("select answers, completed_at from quiz_profile_responses where user_id = $1", [user.id]);
 
     // Список напоїв у питанні «яку каву п'єш» береться з каталога, а не
     // дублюється в JSON: інакше нові напої довелося б вписувати двічі.
@@ -68,23 +84,56 @@ export default async function routes(app) {
       ),
     }));
 
-    return { done: Boolean(done), completed_at: done?.created_at ?? null, reward: economy.quiz.profile_coins, steps };
+    return {
+      done: Boolean(row?.completed_at),
+      completed_at: row?.completed_at ?? null,
+      // Відповіді незавершеної анкети: з ними її можна продовжити й з іншого
+      // пристрою, а не лише з того, де лежить чернетка.
+      progress: row && !row.completed_at ? row.answers : null,
+      reward: economy.quiz.profile_coins,
+      steps,
+    };
+  });
+
+  // Пройдений крок анкети. Монет не дає — їх дає лише надіслана анкета
+  // (POST нижче), — але відповіді вже йдуть у статистику адмінки: кинута на
+  // третьому кроці анкета теж щось каже (власник, 01.10.2026). Завершену
+  // анкету цей запит не чіпає.
+  app.put("/quiz/profile/progress", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const answers = profileAnswers(req.body?.answers);
+    if (!Object.keys(answers).length) return { ok: true };
+    await one(
+      `insert into quiz_profile_responses (user_id, answers, free_text, coins_awarded)
+       values ($1, $2, $3, 0)
+       on conflict (user_id) do update set answers = excluded.answers, free_text = excluded.free_text
+         where quiz_profile_responses.completed_at is null
+       returning id`,
+      [user.id, answers, freeTextOf(answers)]
+    );
+    return { ok: true };
   });
 
   app.post("/quiz/profile", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
 
-    const answers = { ...(req.body?.answers ?? {}) };
-    const freeText = [answers.impression, answers.ideas].filter(Boolean).join("\n\n").trim() || null;
+    const answers = profileAnswers(req.body?.answers);
+    const freeText = freeTextOf(answers);
     if (!Object.keys(answers).length) return reply.code(400).send({ error: "empty_answers" });
 
     try {
       const saved = await tx(async (client) => {
+        // Незавершений рядок (кроки, пройдені раніше) стає завершеним;
+        // завершений не чіпаємо — це «анкета вже була».
         const { rows } = await client.query(
-          `insert into quiz_profile_responses (user_id, answers, free_text, coins_awarded)
-           values ($1, $2, $3, $4)
-           on conflict (user_id) do nothing
+          `insert into quiz_profile_responses (user_id, answers, free_text, coins_awarded, completed_at)
+           values ($1, $2, $3, $4, now())
+           on conflict (user_id) do update
+             set answers = excluded.answers, free_text = excluded.free_text,
+                 coins_awarded = excluded.coins_awarded, completed_at = now()
+             where quiz_profile_responses.completed_at is null
            returning id`,
           [user.id, answers, freeText, economy.quiz.profile_coins]
         );

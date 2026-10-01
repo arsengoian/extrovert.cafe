@@ -95,7 +95,8 @@ export function Quizzes() {
       </div>
 
       <div className="grid k4" style={{ marginBottom: 12 }}>
-        <Kpi label="Анкет профілю" value={fmt.int(profile.total)} note={`${pct(profile.filled, profile.players)} гравців заповнили`} />
+        <Kpi label="Анкет профілю" value={fmt.int(profile.total)}
+             note={`${pct(profile.filled, profile.players)} гравців заповнили${profile.partial ? `, ${fmt.int(profile.partial)} не дописали` : ""}`} />
         <Kpi label="Опитувань про напій" value={fmt.int(drinks.total_all)} note={`кредитів витрачено ${pct(drinks.credits.spent, drinks.credits.earned)}`} />
         <Kpi
           label="Влучань у норму"
