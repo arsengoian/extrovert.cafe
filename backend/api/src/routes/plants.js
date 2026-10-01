@@ -96,7 +96,8 @@ export default async function routes(app) {
         [plant.id, target.id]
       );
       // Розмови лишаються тому, хто їх вів: новому власнику — чистий чат.
-      await client.query("delete from chat_messages where plant_id = $1", [plant.id]);
+      // Не видаляємо, а ховаємо: чат показує лише повідомлення поточного
+      // власника (user_id), а історія лишається в базі (власник, 01.10.2026).
       // Недосаджена чернетка — розстановка попереднього власника: новий
       // побачив би «Ти вже почав садити» з чужим листям (власник,
       // 27.09.2026). Препарат за неї не списувався, тож губити нічого.
@@ -158,7 +159,7 @@ export default async function routes(app) {
     const rows = await many(
       `select p.*, l.price_amount as listing_price, l.price_currency as listing_currency,
               (select count(*)::int from chat_messages m
-                where m.plant_id = p.id and m.role <> 'user'
+                where m.plant_id = p.id and m.user_id = p.owner_id and m.role <> 'user'
                   and (p.chat_seen_at is null or m.created_at > p.chat_seen_at)) as chat_unread,
               -- вдягнений комплект: головний екран малює його на кущі одразу
               coalesce((select json_agg(json_build_object('slot', wsi.slot, 'code', d.code, 'name', d.name,

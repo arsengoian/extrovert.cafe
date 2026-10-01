@@ -147,7 +147,9 @@ CREATE TABLE public.chat_messages (
     tokens_in integer,
     tokens_out integer,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text DEFAULT 'message'::text NOT NULL,
     CONSTRAINT chat_messages_coins_charged_check CHECK ((coins_charged >= 0)),
+    CONSTRAINT chat_messages_kind_check CHECK ((kind = ANY (ARRAY['message'::text, 'echo'::text]))),
     CONSTRAINT chat_messages_role_check CHECK ((role = ANY (ARRAY['user'::text, 'plant'::text, 'system'::text])))
 );
 
@@ -3639,4 +3641,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260927220000'),
     ('20260928080000'),
     ('20260928100000'),
-    ('20261001120000');
+    ('20261001120000'),
+    ('20261001150000');

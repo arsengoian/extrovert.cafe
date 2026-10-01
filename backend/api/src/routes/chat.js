@@ -20,11 +20,13 @@ const HISTORY_LIMIT = 40;          // скільки реплік показує
 const CONTEXT_MESSAGES = 10;       // скільки з них віддаємо моделі
 
 // Хмаринка з головного екрана дублюється в чат (власник, 28.09.2026), але
-// лише коли людина давно не писала (ECHO_QUIET_MS) і лише доти, доки три
-// останні репліки не стали всі від кавенятка: далі воно мовчить, поки
-// людина не відповість, — інакше чат перетворився б на стрічку сповіщень.
+// лише коли людина давно не писала (ECHO_QUIET_MS). Таких реплік поспіль
+// ніколи не більше однієї (01.10.2026): якщо остання в чаті — теж із
+// хмаринки (kind = 'echo'), нова її переписує, а не стає поруч. Досі після
+// трьох поспіль нові губились; тепер свіжа завжди на місці, а чат не
+// перетворюється на стрічку сповіщень. Відповіді моделі й системні
+// повідомлення мають kind = 'message' і не переписуються ніколи.
 const ECHO_QUIET_MS = 2 * 60 * 60 * 1000;
-const ECHO_MAX_STREAK = 3;
 
 const view = (m) => ({
   id: m.id, role: m.role, body: m.body,
@@ -113,9 +115,12 @@ export default async function routes(app) {
     const plant = await one("select * from plants where id = $1 and owner_id = $2", [req.params.id, user.id]);
     if (!plant) fail(404, "no_such_plant");
 
+    // Лише повідомлення поточного власника: куплене чи подароване кавенятко
+    // не показує чужої переписки, хоч у базі вона лишається (власник,
+    // 01.10.2026; до того подарунок її видаляв, а продаж — показував).
     const messages = await many(
-      "select * from chat_messages where plant_id = $1 order by created_at desc limit $2",
-      [plant.id, HISTORY_LIMIT]
+      "select * from chat_messages where plant_id = $1 and user_id = $2 order by created_at desc limit $3",
+      [plant.id, user.id, HISTORY_LIMIT]
     );
     // Відкрив чат — побачив усе: лічильник на кнопці чату гасне.
     await one("update plants set chat_seen_at = now() where id = $1 returning id", [plant.id]);
@@ -140,17 +145,28 @@ export default async function routes(app) {
     const plant = await one("select id from plants where id = $1 and owner_id = $2", [req.params.id, user.id]);
     if (!plant) fail(404, "no_such_plant");
 
-    const recent = await many(
-      "select role, body from chat_messages where plant_id = $1 order by id desc limit $2", [plant.id, ECHO_MAX_STREAK]);
+    // Лише свої повідомлення: після продажу чи подарунку чат попереднього
+    // власника лишається в базі, але новому не належить.
+    const last = await one(
+      "select id, role, kind, body from chat_messages where plant_id = $1 and user_id = $2 order by id desc limit 1",
+      [plant.id, user.id]
+    );
+    if (last && last.role !== "user" && last.body === text) return { echoed: false };
+    // Остання — теж із хмаринки: переписуємо її, і вона знову свіжа
+    // (лічильник непрочитаних побачить її як нову).
+    if (last?.kind === "echo") {
+      await one("update chat_messages set body = $2, created_at = now() where id = $1 returning id", [last.id, text]);
+      return { echoed: true };
+    }
     const lastUser = await one(
-      "select max(created_at) as at from chat_messages where plant_id = $1 and role = 'user'", [plant.id]);
+      "select max(created_at) as at from chat_messages where plant_id = $1 and user_id = $2 and role = 'user'",
+      [plant.id, user.id]
+    );
     const quiet = !lastUser?.at || Date.now() - new Date(lastUser.at).getTime() >= ECHO_QUIET_MS;
-    const streak = recent.length >= ECHO_MAX_STREAK && recent.every((m) => m.role !== "user");
-    const repeat = recent[0] && recent[0].role !== "user" && recent[0].body === text;
-    if (!quiet || streak || repeat) return { echoed: false };
+    if (!quiet) return { echoed: false };
 
     await one(
-      "insert into chat_messages (plant_id, user_id, role, body) values ($1, $2, 'plant', $3) returning id",
+      "insert into chat_messages (plant_id, user_id, role, body, kind) values ($1, $2, 'plant', $3, 'echo') returning id",
       [plant.id, user.id, text]
     );
     return { echoed: true };
@@ -196,8 +212,9 @@ export default async function routes(app) {
     // відповідь кавенятка пишемо окремим рядком і повертаємо обидва.
     const knowledge = await search(body, 4);
     const history = await many(
-      "select role, body from chat_messages where plant_id = $1 and id < $2 order by id desc limit $3",
-      [plant.id, saved.id, CONTEXT_MESSAGES]
+      // Моделі — лише своя розмова, не попереднього власника.
+      "select role, body from chat_messages where plant_id = $1 and user_id = $2 and id < $3 order by id desc limit $4",
+      [plant.id, user.id, saved.id, CONTEXT_MESSAGES]
     );
     const { lines: facts, nickname } = await gatherFacts(user, plant);
     const points = await many(
