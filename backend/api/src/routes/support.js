@@ -51,6 +51,11 @@ const GREETING_LINKED = `Бачимо, з якого ви акаунта — р�
 
 Відповідає жива людина, тож трохи почекати — нормально.`;
 
+// Повторний /start від гравця, якого вже привітали (кнопка «Підтримка»
+// вдруге й утретє): довге привітання вдруге лише засмічує чат (власник,
+// 01.10.2026).
+const GREETING_AGAIN = `Ми на зв'язку й бачимо ваш акаунт. Просто напишіть, що сталось — відповімо тут.`;
+
 const GREETING_ANONYMOUS = `Цей чат відкрито напряму, тож ми не бачимо, з якого ви акаунта.
 
 Якщо питання про ваше замовлення, бонуси чи кавенятко — зайдіть через кнопку «Підтримка» в застосунку: тоді акаунт видно одразу й нічого шукати не доведеться.
@@ -125,7 +130,11 @@ export default async function routes(app) {
     });
 
     if (start) {
-      const text = thread.user_id ? GREETING_LINKED : GREETING_ANONYMOUS;
+      const greeted = thread.user_id && await one(
+        "select 1 from support_messages where thread_id = $1 and direction = 'out' and body in ($2, $3) limit 1",
+        [thread.id, GREETING_LINKED, GREETING_AGAIN]
+      );
+      const text = !thread.user_id ? GREETING_ANONYMOUS : greeted ? GREETING_AGAIN : GREETING_LINKED;
       try {
         const sent = await sendMessage(chatId, text);
         await query(
