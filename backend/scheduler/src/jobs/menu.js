@@ -11,7 +11,7 @@
 import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
-import { catalogClient, goodPrice, uahToKop } from "@extrovert/lib/checkbox-catalog.js";
+import { catalogClient, uahToKop } from "@extrovert/lib/checkbox-catalog.js";
 
 // Ціль `checkbox`: ціни меню точки → каталог Checkbox (lib/checkbox-catalog.js).
 // Кожна ціна після запису перечитується, і ціль done, лише коли в каталозі
@@ -41,7 +41,6 @@ async function deployCheckbox(client, t, menu, log) {
 
   try {
     const catalog = await cb.catalog();
-    const branch = t.checkbox_branch_id || null;
     const missing = [], problems = [];
     let written = 0;
     for (const d of menu.drinks) {
@@ -51,13 +50,13 @@ async function deployCheckbox(client, t, menu, log) {
       if (good === undefined) { missing.push(`${d.name} (${code})`); continue; }
       if (good === null) { problems.push(`${code}: кілька товарів із цим кодом`); continue; }
       const kop = uahToKop(d.price);
-      const now = goodPrice(good, branch);
+      const now = good.price;
       if (now === kop) continue;
       // Знижка опускає ціну й до 1 ₴ (35 → 1, у 35 разів) — це нормально;
       // сплутані гривні з копійками — це рівно ×100.
       const ratio = now > 0 ? kop / now : 1;
       if (ratio >= 50 || ratio <= 1 / 50) { problems.push(`${d.name} (${code}): ${now} → ${kop} коп. — схоже на сплутані гривні й копійки`); continue; }
-      const err = await cb.setPrice(good, kop, branch);
+      const err = await cb.setPrice(good, kop);
       if (err) { problems.push(`${d.name} (${code}): ${err}`); break; }
       written++;
     }
@@ -132,7 +131,7 @@ async function deployNext(client, log) {
   // Спершу бакет (екран кіоска), потім Checkbox: на запис кожної ціни в
   // каталог іде три запити, і екран не має на них чекати.
   const { rows: targets } = await client.query(
-    `select t.id, t.point_id, t.kind, p.machine_letter, p.checkbox_branch_id
+    `select t.id, t.point_id, t.kind, p.machine_letter
        from menu_deployment_targets t
        join points p on p.id = t.point_id
       where t.deployment_id = $1 and t.status = 'queued'

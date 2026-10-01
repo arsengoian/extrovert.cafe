@@ -147,7 +147,7 @@ erDiagram
         text short_address "у виборі точки: «Мишуги 8»"
         text timezone
         text status "planned|live|paused"
-        text checkbox_branch_id "філія в Checkbox: через неї ціна на точку"
+        text checkbox_branch_id "не використовується: точку розрізняє літера в коді товару"
         text machine_letter "літера машини: код позиції = літера + drinks.slot"
         text key_hash "sha256 ключа з config/point.key на малині"
         text next_key_hash "ротація: видано, малина ще не підхопила"

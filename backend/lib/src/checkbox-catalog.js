@@ -29,13 +29,10 @@ function drift(before, after) {
   return changed;
 }
 
-// Ціна, за якою продає каса цієї точки: своя ціна філії, якщо вона є,
-// інакше базова ціна товару.
-export function goodPrice(good, branchId) {
-  const own = branchId ? (good.branches_info ?? []).find((b) => b.branch_id === branchId) : null;
-  return Number.isInteger(own?.price) ? own.price : good.price;
-}
-
+// Філій Checkbox (branches_info) не використовуємо (власник, 01.10.2026):
+// усі товари в одному каталозі, а точку розрізняє літера машини в коді
+// товару — «a018», «b018». Тож ціна напою на точці — це просто ціна товару
+// з її кодом.
 export function catalogClient({ env = process.env } = {}) {
   const api = (env.CHECKBOX_API || "https://api.checkbox.ua").replace(/\/+$/, "");
   const prod = env.APP_ENV === "production";
@@ -90,20 +87,16 @@ export function catalogClient({ env = process.env } = {}) {
     throw new Error("список товарів не закінчується — API ігнорує offset?");
   }
 
-  // Записати ціну й перевірити. З філією — своя ціна філії в branches_info
-  // (решта філій лишаються як були), без неї — базова ціна товару.
-  // Повертає null, якщо в каталозі тепер саме ця ціна, інакше — що не так.
-  async function setPrice(good, kop, branchId = null) {
+  // Записати ціну й перевірити. Повертає null, якщо в каталозі тепер саме
+  // ця ціна, інакше — що не так.
+  async function setPrice(good, kop) {
     const before = await call("GET", `/api/v1/goods/${good.id}`);
     if (before.status !== 200) return `товар не читається: HTTP ${before.status} ${explain(before.body)}`;
-    const payload = branchId
-      ? { branches_info: [...(before.body.branches_info ?? []).filter((b) => b.branch_id !== branchId), { branch_id: branchId, price: kop }] }
-      : { price: kop };
-    const put = await call("PUT", `/api/v1/goods/${good.id}`, payload);
+    const put = await call("PUT", `/api/v1/goods/${good.id}`, { price: kop });
     if (put.status !== 200) return `PUT: HTTP ${put.status} ${explain(put.body)}`;
     const after = await call("GET", `/api/v1/goods/${good.id}`);
     if (after.status !== 200) return `після запису товар не читається: HTTP ${after.status}`;
-    const got = goodPrice(after.body, branchId);
+    const got = after.body?.price;
     if (got !== kop) return `записали ${kop} коп., а в каталозі ${got}`;
     const changed = drift(before.body, after.body);
     if (changed.length) return `ціну записано, але змінились і ${changed.join(", ")} — перевір товар у кабінеті`;
