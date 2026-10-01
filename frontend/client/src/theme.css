@@ -1111,7 +1111,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .order-row-main { flex: 1; min-width: 0 }
 .order-row-title { display: flex; align-items: center; gap: 7px }
 .order-row-title b { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.order-row-title i { flex: none; min-width: 17px; height: 17px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 10px; font-weight: 800; font-style: normal; display: flex; align-items: center; justify-content: center }
+/* Лише прямий нащадок — бейдж непрочитаного. Без «>» правило чіпляло й
+   розділювач .vsep усередині назви («№1 | Кава 250 г»), і він ставав
+   градієнтним кружечком, що ламав рядок (власник, 01.10.2026). */
+.order-row-title > i { flex: none; min-width: 17px; height: 17px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--grad); color: var(--accent-ink); font-size: 10px; font-weight: 800; font-style: normal; display: flex; align-items: center; justify-content: center }
 .order-row-main > small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px }
 .order-status { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--muted) }
 .order-status > i { flex: none; width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--muted) }
