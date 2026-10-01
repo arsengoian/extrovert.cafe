@@ -11,6 +11,64 @@
 import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
+import { catalogClient, goodPrice, uahToKop } from "@extrovert/lib/checkbox-catalog.js";
+
+// Ціль `checkbox`: ціни меню точки → каталог Checkbox (lib/checkbox-catalog.js).
+// Кожна ціна після запису перечитується, і ціль done, лише коли в каталозі
+// справді вони (власник, 01.10.2026: «деплоймент перевіряє успішне
+// встановлення цін у Checkbox?» — досі ця ціль існувала лише в схемі).
+//
+// Що вважаємо провалом: товар із кодом трапляється двічі, ціна різниться
+// в десятки разів (так виглядають сплутані гривні й копійки), запис не
+// пройшов або разом із ціною змінилось щось іще. Після першого ж провалу
+// запису зупиняємось — якщо PUT поводиться не так, як ми думаємо, решта
+// каталогу вціліє. Напою, якого в каталозі немає (бонусні позиції, поки
+// їх не заведено), каса й не продасть — це не провал, але в поясненні цілі
+// його видно.
+async function deployCheckbox(client, t, menu, log) {
+  const finish = async (status, error) => {
+    await client.query(
+      `update menu_deployment_targets set status = $2, error = $3,
+              done_at = case when $2 = 'done' then now() else done_at end
+        where id = $1`,
+      [t.id, status, error ? String(error).slice(0, 500) : null]
+    );
+    return status !== "failed";
+  };
+  const cb = catalogClient();
+  if (!cb.prod) return finish("skipped", "локально каталог Checkbox не пишемо: він спільний із бойовою касою");
+  if (!cb.configured) return finish("failed", "немає CHECKBOX_LOGIN / CHECKBOX_PASSWORD");
+
+  try {
+    const catalog = await cb.catalog();
+    const branch = t.checkbox_branch_id || null;
+    const missing = [], problems = [];
+    let written = 0;
+    for (const d of menu.drinks) {
+      const code = d.system_code;
+      if (!code) continue;
+      const good = catalog.get(code);
+      if (good === undefined) { missing.push(`${d.name} (${code})`); continue; }
+      if (good === null) { problems.push(`${code}: кілька товарів із цим кодом`); continue; }
+      const kop = uahToKop(d.price);
+      const now = goodPrice(good, branch);
+      if (now === kop) continue;
+      // Знижка опускає ціну й до 1 ₴ (35 → 1, у 35 разів) — це нормально;
+      // сплутані гривні з копійками — це рівно ×100.
+      const ratio = now > 0 ? kop / now : 1;
+      if (ratio >= 50 || ratio <= 1 / 50) { problems.push(`${d.name} (${code}): ${now} → ${kop} коп. — схоже на сплутані гривні й копійки`); continue; }
+      const err = await cb.setPrice(good, kop, branch);
+      if (err) { problems.push(`${d.name} (${code}): ${err}`); break; }
+      written++;
+    }
+    const note = [...problems, missing.length ? `нема в каталозі: ${missing.join(", ")}` : ""].filter(Boolean).join("; ");
+    log?.info(`Checkbox для ${t.point_id}: записано ${written}${note ? `; ${note}` : ""}`);
+    return finish(problems.length ? "failed" : "done", note || null);
+  } catch (e) {
+    log?.error(`ціни в Checkbox для ${t.point_id} не записались`, e);
+    return finish("failed", e.message ?? e);
+  }
+}
 
 // Клієнта беремо один на прохід і віддаємо його у finally. Черга
 // деплойментів майже завжди порожня, тож ранній вихід «нема чого котити»
@@ -71,17 +129,25 @@ async function deployNext(client, log) {
     return { menu, body };
   };
 
+  // Спершу бакет (екран кіоска), потім Checkbox: на запис кожної ціни в
+  // каталог іде три запити, і екран не має на них чекати.
   const { rows: targets } = await client.query(
-    `select t.id, t.point_id, t.kind, p.machine_letter
+    `select t.id, t.point_id, t.kind, p.machine_letter, p.checkbox_branch_id
        from menu_deployment_targets t
        join points p on p.id = t.point_id
-      where t.deployment_id = $1 and t.status = 'queued'`,
+      where t.deployment_id = $1 and t.status = 'queued'
+      order by t.kind = 'r2' desc, t.id`,
     [deployment.id]
   );
 
   let done = 0, failed = 0;
   for (const t of targets) {
-    if (t.kind !== "r2") continue;          // checkbox і jetinno — окремі роботи
+    if (t.kind === "checkbox") {
+      const ok = await deployCheckbox(client, t, (await menuFor(t.machine_letter)).menu, log);
+      if (ok) done++; else failed++;
+      continue;
+    }
+    if (t.kind !== "r2") continue;          // jetinno — коли буде доступ до порталу
     try {
       const { menu, body } = await menuFor(t.machine_letter);
       // 30 секунд кешу — щоб зміна доїхала на екран навіть тоді, коли подія

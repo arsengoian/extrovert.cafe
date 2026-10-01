@@ -27,8 +27,11 @@ async function deploy(client, pointId, payload) {
     "insert into menu_deployments (payload, status) values ($1, 'queued') returning id",
     [JSON.stringify(payload)]
   );
+  // Знижена ціна має дійти й до каси, не лише на екран (ціль checkbox,
+  // 01.10.2026). Повернення зерен дивиться лише на r2 — екран, який
+  // підтверджує кіоск; що ціна не записалась у Checkbox, скаже overseer.
   await client.query(
-    "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2)",
+    "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2), ($1, 'checkbox', $2)",
     [rows[0].id, pointId]
   );
   return rows[0].id;

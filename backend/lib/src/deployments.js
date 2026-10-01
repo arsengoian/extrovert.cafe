@@ -23,7 +23,9 @@ export async function recountDeployments(client, ids) {
     `update menu_deployments d
         set status = case when s.done = s.total then 'done' when s.done = 0 then 'failed' else 'partial' end
        from (select deployment_id,
-                    count(*) filter (where status = 'done') as done,
+                    -- skipped — ціль, яку свідомо не котили (Checkbox локально):
+                    -- провалом вона не є.
+                    count(*) filter (where status in ('done', 'skipped')) as done,
                     count(*) as total
                from menu_deployment_targets
               where deployment_id = any($1::bigint[])

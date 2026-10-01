@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело afb9551</p>
+  <p class="eyebrow">extrovert.cafe · джерело c70cec0</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -801,7 +801,8 @@ API: <code>libwebsockets</code> у Stretch — 2.0 із 2016 року, і той
 <pre><code>адмінка → api: menu_deployments + цілі (за замовчуванням — усі активні точки)
   → scheduler (робота menu-deploy, раз на 10 с бере чергу):
   → r2:       points/&lt;point&gt;/menu.json у публічний бакет, cache-control 30 с
-  → checkbox: ціна філії точки в каталозі — branches_info (checkbox.md)
+  → checkbox: ціни в каталог каси з перечитуванням (філії — branches_info,
+              без філії — базова ціна; з 01.10.2026, нижче)
   → jetinno:  ціни в портал автомата — під питанням, див. нижче
   → outbox(menu.deployed) на кожну точку → кіоск перечитує → acked_at
 </code></pre>
@@ -831,12 +832,43 @@ scheduler раз на 5 с; про повернення гравцеві лет�
 <code>menu.json</code> знижка — це <code>discount: { uah, until, until_ts }</code> і <code>price_full</code>
 поруч зі зниженою <code>price</code> кожного напою (<code>lib/menu.js</code>). Кіоск показує її
 одразу за <code>menu.deployed</code> і сам повертає повні ціни, щойно <code>until_ts</code>
-мине, навіть якщо деплой повернення ще не доїхав. Працювати для
-покупців це буде лише з цілями <code>checkbox</code> і <code>jetinno</code>, які поки не
-котяться: без них кіоск показав би знижену ціну, а автомат пробив би
-звичайну. Подивитись, як це виглядає на точці, можна кнопкою «Тестова
+мине, навіть якщо деплой повернення ще не доїхав. Знижена ціна йде й у
+каталог Checkbox (ціль <code>checkbox</code>, нижче), але чек пробиває автомат, а
+ціль <code>jetinno</code> поки не котиться — тож для покупців знижка запрацює
+повністю лише разом із нею. Подивитись, як це виглядає на точці, можна кнопкою «Тестова
 знижка» в адмінці (Деплойменти). Механіка — <a class="doclink" href="#gamification-economy"><code>gamification_economy.md</code></a> §6,
 «Знижка в кав&#39;ярні — як працює».</p>
+<p><strong>Ціль <code>checkbox</code> — ціни в каталог каси з перевіркою</strong> (01.10.2026). До
+цього дня вона існувала лише в схемі: деплой котив меню в бакет, а в
+Checkbox ціни потрапляли тільки ручним <code>prices:sync</code>. Тепер деплоймент цін
+з адмінки й кожен деплой знижки мають на точку дві цілі — <code>r2</code> і
+<code>checkbox</code>; оновлення акції (лише напис на екрані) — тільки <code>r2</code>. Ціль
+<code>checkbox</code> котить той самий <code>menu-deploy</code> у scheduler, одразу після бакета
+(<code>backend/scheduler/src/jobs/menu.js</code>, клієнт —
+<code>backend/lib/src/checkbox-catalog.js</code>):</p>
+<ul>
+<li>для кожного напою меню точки бере товар із тим самим кодом
+(<code>system_code</code>, літера машини + номер позиції) і, якщо ціна інша, пише
+її: з <code>points.checkbox_branch_id</code> — ціну філії в <code>branches_info</code>, без
+нього — базову ціну товару;</li>
+<li><strong>після кожного запису товар перечитується</strong>: ціль <code>done</code>, лише коли в
+каталозі справді та ціна, а назва, група, податки й решта полів не
+зрушили; інакше <code>failed</code> з поясненням, і на першому ж провалі запис
+зупиняється, щоб решта каталогу вціліла;</li>
+<li><code>failed</code> і тоді, коли код трапляється в каталозі двічі або ціна
+різниться в десятки разів (так виглядають сплутані гривні й копійки);
+знижка до 1 ₴ сюди не потрапляє;</li>
+<li>напій, якого в каталозі немає (бонусні позиції, поки їх не заведено), не
+провал — каса його й не продасть, — але він видно в поясненні цілі;</li>
+<li>overseer пише в Telegram «💳 ціни деплою №N не записались у Checkbox», а
+коли наступний деплой пройде — «✅ ціни в Checkbox знову збігаються»;</li>
+<li><strong>писати має право лише прод</strong> (<code>APP_ENV=production</code>): каталог спільний
+для тестового й бойового касира, тож локальний scheduler інакше міняв би
+ціни справжньої каси. Локально ціль стає <code>skipped</code>, і деплой від цього
+не вважається проваленим.</li>
+</ul>
+<p>Повернення зерен за знижку дивиться лише на <code>r2</code> — на те, що кіоск
+підтвердив показ.</p>
 <p><strong>Ціна в чеку — окрема правда.</strong> Автомат пробиває те, що в нього в прайсі, а
 не те, що ми виклали в каталог: у позиції чека своя <code>price</code> (<a class="doclink" href="#checkbox"><code>checkbox.md</code></a>).
 Тому <code>checkbox</code> при розборі чека звіряє ціну позиції з чинним деплоєм цієї
@@ -3591,9 +3623,14 @@ GET    /api/v1/goods/by-code/{code}       ⚠️ 404 «Облік товарів
 <li><code>sync-prices.mjs</code> уже читає <code>branches_info</code>: товар, у якого в філії своя
 ціна, він не рахує оновленим, а виносить окремим списком — каса продає за
 ціною філії, і рапорт про базову ціну був би неправдою;</li>
-<li>ціль <code>checkbox</code> у деплої теж <strong>на точку</strong>: пише <code>branches_info</code> для філії
-цієї точки, базовий <code>price</code> лишається ціною за замовчанням для нових
-філій;</li>
+<li>ціль <code>checkbox</code> у деплої теж <strong>на точку</strong> (котиться з 01.10.2026,
+<a class="doclink" href="#svc"><code>services.md</code></a>, «Ціль checkbox»): пише <code>branches_info</code> для філії цієї
+точки, базовий <code>price</code> лишається ціною за замовчанням для нових філій.
+Поки в точки філії немає (<code>checkbox_branch_id</code> порожній — так у kyiv-01
+на 01.10.2026), пише базовий <code>price</code>. Кожен запис перечитується й
+звіряється так само, як у <code>sync-prices.mjs</code>; першу перевірку читанням
+проти живого каталогу зроблено 01.10.2026 — усі 13 напоїв меню знайшлись
+за кодом, ціни збіглися;</li>
 <li>мапа «точка → філія» — <code>points.checkbox_branch_id</code>;</li>
 <li><code>sync-prices.mjs</code> звіряє не лише <code>price</code>, а й ціну філії.</li>
 </ul>
@@ -12314,7 +12351,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел afb9551 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел c70cec0 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

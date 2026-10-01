@@ -101,9 +101,11 @@ export default async function routes(app) {
       // викочування вже в drinks, а тут — привід.
       [JSON.stringify({ reason: "prices" }), admin.id]
     );
+    // На кожну точку дві цілі: меню на екран (r2) і ціни в каталог каси
+    // (checkbox, 01.10.2026) — щоб пробивалось те саме, що показує кіоск.
     for (const point of points) {
       await pool.query(
-        "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2)",
+        "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2), ($1, 'checkbox', $2)",
         [deployment.id, point]
       );
     }
@@ -112,8 +114,10 @@ export default async function routes(app) {
 
   // Тестова знижка на точках: та сама черга, що й купівля гравцем
   // (lib/discounts.js), тільки без зерен, — щоб побачити на кіоску плашку з
-  // відліком і знижені ціни. Автомат про знижку поки не знає (цілей checkbox і jetinno
-  // немає), тож пробивати справжні чеки в цей час не варто.
+  // відліком і знижені ціни. З 01.10.2026 знижена ціна йде й у каталог
+  // Checkbox (ціль checkbox), тож у ці хвилини каса справді має продавати
+  // дешевше. Автомат Jetinno про знижку поки не знає (цілі jetinno немає), а
+  // чек пробиває він, тож на справжні чеки ще не покладаймося.
   app.post("/admin/menu/discount-test", async (req, reply) => {
     const admin = requireAdmin(req, reply);
     if (!admin) return;

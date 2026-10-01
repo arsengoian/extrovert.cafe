@@ -353,6 +353,26 @@ export async function checkMenuAcks(pool) {
   }));
 }
 
+// Ціни в Checkbox: стан точки — за її останньою ціллю checkbox. failed —
+// каса пробиватиме не ті ціни, що на екрані (scheduler, jobs/menu.js,
+// 01.10.2026). Ціль skipped (локально) — не поломка.
+export async function checkMenuCheckbox(pool) {
+  const { rows } = await pool.query(
+    `select distinct on (t.point_id) t.point_id, p.name, t.deployment_id, t.status, t.error
+       from menu_deployment_targets t
+       join points p on p.id = t.point_id
+      where t.kind = 'checkbox' and t.status in ('done', 'failed') and p.status <> 'retired'
+      order by t.point_id, t.deployment_id desc`
+  );
+  return rows.map((r) => ({
+    id: r.point_id,
+    name: r.name,
+    deployment: Number(r.deployment_id),
+    state: r.status === "failed" ? "failed" : "ok",
+    error: r.error,
+  }));
+}
+
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {
