@@ -7,6 +7,7 @@
 // посиланням, і «назад» працює.
 import { useCallback, useEffect, useState } from "react";
 import { api, getToken, setToken } from "./api.js";
+import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
 import { Login } from "./screens/Login.jsx";
 import { Health } from "./screens/Health.jsx";
 import { Pos } from "./screens/Pos.jsx";
@@ -115,6 +116,9 @@ export function App() {
   const [booting, setBooting] = useState(true);
   const [counts, setCounts] = useState({});
   const [at, setAt] = useState(route());
+  // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
+  useEffect(() => { setErrorUser(admin?.id); }, [admin?.id]);
+  useEffect(() => { setErrorScope({ screen: at.name }); breadcrumb("navigation", at.name); }, [at.name]);
 
   useEffect(() => {
     const onHash = () => { setAt(route()); window.scrollTo(0, 0); };

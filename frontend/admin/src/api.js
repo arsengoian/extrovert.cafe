@@ -1,6 +1,8 @@
 // Клієнт до api. Той самий підхід, що в застосунку гравця: короткий токен
 // у памʼяті й localStorage, refresh — httpOnly-кука на api.extrovert.cafe
 // (тут вона своя, `asid`, щоб не перетинатися з сесією гравця).
+import { breadcrumb, normalizePath } from "./errors.js";
+
 const BASE = import.meta.env.VITE_API ?? "/api/v1";
 const TOKEN_KEY = "extrovert.admin.token";
 
@@ -64,8 +66,13 @@ async function request(path, opts = {}) {
       else throw e;
     }
   }
+  breadcrumb("fetch", `${opts.method ?? "GET"} ${normalizePath(path)} → ${res.status}`);
+  // Не JSON — це сторінка помилки проксі (502 від Caddy чи Cloudflare під
+  // час викочування). Раніше SyntaxError з JSON.parse летів до екрана
+  // замість зрозумілого «HTTP 502».
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* лишаємо null */ }
   if (!res.ok) {
     if (res.status === 401) setToken(null);
     throw new ApiError(res.status, data);

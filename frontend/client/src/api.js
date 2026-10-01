@@ -6,6 +6,8 @@
 // Вихід з акаунта — лише тоді, коли сервер сказав «сесії немає» (401 на
 // refresh). Обрив мережі чи api, що перезапускається під час деплою, — не
 // привід викидати людину: токен і кука лишаються, запит просто падає.
+import { breadcrumb, normalizePath } from "./errors.js";
+
 const BASE = import.meta.env.VITE_API ?? "/api/v1";
 const TOKEN_KEY = "extrovert.token";
 
@@ -99,6 +101,7 @@ async function send(path, { method, body, auth }) {
     // браузера не можна, та й не треба: для людини це одне й те саме.
     // Раніше цей TypeError доходив до екрана як є, і в підказці під
     // кнопкою світилось «Failed to fetch» (24.09.2026).
+    breadcrumb("fetch", `${method} ${normalizePath(path)} — немає звʼязку`);
     window.dispatchEvent(new CustomEvent("extrovert:offline"));
     throw new ApiError(0, null, true);
   }
@@ -117,8 +120,13 @@ async function request(path, { method = "GET", body, auth = true, retry = true }
     }
   }
 
+  breadcrumb("fetch", `${method} ${normalizePath(path)} → ${res.status}`);
+  // Не JSON — це сторінка помилки проксі (502 від Caddy чи Cloudflare під
+  // час викочування). Раніше SyntaxError з JSON.parse летів до екрана
+  // замість зрозумілого «HTTP 502».
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* лишаємо null */ }
   if (!res.ok) {
     if (res.status === 401) setToken(null);
     throw new ApiError(res.status, data);

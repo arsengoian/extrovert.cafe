@@ -5,7 +5,12 @@ import { api } from "./api.js";
 import { RepostLanding } from "./RepostLanding.jsx";
 import { installTapFx } from "./ui/fx.jsx";
 import { readLoginWait } from "./loginWait.js";
+import { initErrors } from "./errors.js";
+import { Crash } from "./ui/Crash.jsx";
 import "./theme.css";
+
+// Першим — щоб і помилки решти ініціалізації дійшли в GlitchTip.
+initErrors("client");
 
 // Кільце тапу — один слухач на весь документ, а не обгортка кожної кнопки.
 installTapFx();
@@ -56,6 +61,8 @@ const legalDoc = { "/privacy-policy": "privacy", "/terms": "terms" }[window.loca
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} confirmLogin={confirmLogin} legalDoc={legalDoc} loginNote={loginNote} />}
+    <Crash>
+      {repost ? <RepostLanding token={decodeURIComponent(repost[1])} /> : <App bonusToken={bonus ? decodeURIComponent(bonus[1]) : null} returningFromPayment={returningFromPayment} login={login} confirmLogin={confirmLogin} legalDoc={legalDoc} loginNote={loginNote} />}
+    </Crash>
   </StrictMode>
 );

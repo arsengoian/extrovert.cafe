@@ -97,6 +97,20 @@ if (flag("open")) {
       }
     }
   }
+  // Фронтенди шлють ще й слід: останні запити до api й переходи між
+  // екранами перед падінням (frontend/*/src/errors.js). Часто саме він
+  // пояснює більше за мініфікований стек.
+  const crumbs = entries.find((e) => e.type === "breadcrumbs")?.data?.values ?? [];
+  if (crumbs.length) {
+    console.log("\n   перед цим:");
+    for (const c of crumbs.slice(-15)) {
+      const at = new Date(typeof c.timestamp === "number" ? c.timestamp * 1000 : c.timestamp).toISOString().slice(11, 19);
+      console.log(`     ${at} ${c.category ?? ""} ${c.message ?? ""}`);
+    }
+  }
+  const extra = event.context ?? {};
+  if (extra.componentStack) console.log(`\n   компоненти:${String(extra.componentStack).split("\n").slice(0, 8).join("\n     ")}`);
+  if (event.user?.id) console.log(`\n   користувач: ${event.user.id}`);
   process.exit(0);
 }
 

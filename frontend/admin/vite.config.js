@@ -11,4 +11,7 @@ export default defineConfig({
     proxy: { "/api": { target: "http://127.0.0.1:3001", changeOrigin: true } },
   },
   build: { target: "es2022", sourcemap: true },
+  // Коміт збірки — release у GlitchTip (src/errors.js): видно, з якої версії
+  // прийшла помилка. GITHUB_SHA ставить сам Actions; локально — порожньо.
+  define: { "import.meta.env.VITE_RELEASE": JSON.stringify((process.env.GITHUB_SHA ?? "").slice(0, 7)) },
 });

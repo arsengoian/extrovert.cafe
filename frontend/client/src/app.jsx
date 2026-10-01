@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
 import { api, getToken } from "./api.js";
+import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
 import { TopbarBack } from "./ui/TopbarBack.jsx";
@@ -49,6 +50,10 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     try { return sessionStorage.getItem(TAB_KEY) || "plant"; } catch { return "plant"; }
   });
   const [stack, setStack] = useState([]);           // екрани поверх вкладки
+  // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
+  const where = stack[stack.length - 1]?.name ?? tab;
+  useEffect(() => { setErrorUser(me?.id); }, [me?.id]);
+  useEffect(() => { setErrorScope({ screen: where }); breadcrumb("navigation", where); }, [where]);
   // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
   // розділі «Поза авторизацією» — ними користуються ще без акаунта.
   // Адреса документа (/privacy-policy) відкриває його одразу — спершу

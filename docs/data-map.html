@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f9f3db0</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0758ca5</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1038,6 +1038,15 @@ SDK у <strong>свій проєкт</strong>: сповіщення, квоти 
 патчить рантайм; на bun із лімітом 512 МБ це погана угода заради «сталась
 помилка, ось стек». Є стеля 20 подій на хвилину: зациклений сервіс не має
 ні забити квоту, ні влаштувати DDoS збирачу.</p>
+<p><strong>Фронтенди — теж без SDK</strong> (01.10.2026): <code>frontend/*/src/errors.js</code> шле той
+самий envelope прямо з браузера — ключ у рядку запиту, тіло <code>text/plain</code>,
+тож обходиться без preflight. Ловить <code>onerror</code>, необроблені обіцянки й
+падіння рендеру (межа <code>Crash</code> замість білого екрана), а до події додає
+слід: останні запити до api зі статусами й переходи між екранами. Саме
+слід пояснює «кнопка нічого не робить», якого стек не покаже. В адресу не
+йдуть рядок запиту й фрагмент (там токени входу), користувач — лише id.
+DSN — у <code>.env.production</code> кожного застосунку, release — коміт збірки.
+Обрив звʼязку подією не вважається: про нього вже сказав тост.</p>
 <p><strong>Дивитись помилки — з консолі, не з веба</strong>: <code>bun scripts/errors.mjs</code>
 (список), <code>--open &lt;id&gt;</code> (стек і теги), <code>--resolve &lt;id&gt;</code>. Так попросив
 власник — у веб-інтерфейс він заглядати не буде, а помилки хтось має
@@ -1063,7 +1072,7 @@ SDK у <strong>свій проєкт</strong>: сповіщення, квоти 
 <tr>
 <td><code>client</code>, <code>admin</code></td>
 <td>фронтенди</td>
-<td><code>@sentry/react</code>, з source maps зі збірки</td>
+<td>свій мінімальний клієнт <code>src/errors.js</code> — <strong>зроблено 01.10.2026</strong></td>
 </tr>
 <tr>
 <td><code>kiosk</code></td>
@@ -12365,7 +12374,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел f9f3db0 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0758ca5 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
