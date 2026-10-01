@@ -15,7 +15,11 @@ export function plural(n, one, few, many) {
   return many;
 }
 
-export const beansWord = (n) => `${n} ${plural(n, "зерно", "зерна", "зерен")}`;
+// Валюта в сповіщенні — символом, а не словом (власник, 01.10.2026): чат
+// малює токен іконкою (frontend/client/src/screens/Chat.jsx), моделі він
+// іде назад словами (chat/prompt.js). Зараховане — завжди з «+».
+export const CURRENCY = { yellow: ":gold:", silver: ":silver:", beans: ":bean:" };
+export const credit = (n, currency) => `+${n} ${CURRENCY[currency]}`;
 
 // plantId — коли подія стосується конкретного куща: подяка за комплект іде
 // від того, кого вдягнули, подарунок — у чат подарованого. Без нього

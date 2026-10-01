@@ -19,6 +19,16 @@ const dayLabel = (iso) => {
   return d.toLocaleDateString("uk-UA", { day: "numeric", month: "long" });
 };
 
+// Валюта в сповіщеннях приходить токеном (:gold:, lib/notify.js) і
+// малюється тією самою іконкою, що в гаманці (власник, 01.10.2026).
+const CURRENCY = {
+  ":gold:": ["/assets/ui/coin_gold.png", "золотих монет"],
+  ":silver:": ["/assets/ui/coin_silver.png", "срібних монет"],
+  ":bean:": ["/assets/ui/bean.png", "зерен"],
+};
+const withCurrency = (text) => String(text ?? "").split(/(:gold:|:silver:|:bean:)/).map((part, i) =>
+  CURRENCY[part] ? <img key={i} className="chat-cur" src={CURRENCY[part][0]} alt={CURRENCY[part][1]} /> : part);
+
 export function Chat({ ctx, plant }) {
   const [data, setData] = useState(null);
   const [text, setText] = useState("");
@@ -86,7 +96,7 @@ export function Chat({ ctx, plant }) {
           return (
             <Fragment key={m.id}>
               {separator && <div className="chat-day">{separator}</div>}
-              <div className={`chat-msg chat-${m.role}`}>{m.body}</div>
+              <div className={`chat-msg chat-${m.role}`}>{m.role === "system" ? <span>{withCurrency(m.body)}</span> : m.body}</div>
             </Fragment>
           );
         })}

@@ -13,7 +13,7 @@ import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
-import { notifyPlant } from "../notify.js";
+import { credit, notifyPlant } from "../notify.js";
 
 export const IMPRESSIONS_KEY = "market:impressions";
 
@@ -307,7 +307,7 @@ export default async function routes(app) {
       );
 
       const what = listing.kind === "item" ? "Твою річ" : "Твоє кавенятко";
-      await notifyPlant(listing.seller_id, `${what} продано на маркеті: +${net} після комісії.`, { client });
+      await notifyPlant(listing.seller_id, `${what} продано на маркеті: ${credit(net, listing.price_currency)} після комісії.`, { client });
 
       // plant_id — щоб застосунок одразу показав куплене кавенятко на
       // головному екрані, а не те, що було обране раніше.

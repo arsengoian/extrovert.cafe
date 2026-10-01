@@ -227,6 +227,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .chat-user { align-self: flex-end; border-radius: 18px 18px 6px 18px; background: var(--grad); color: var(--accent-ink); font-weight: 600 }
 /* Системне — не репліка, а подія акаунта («Нараховано 40 за опитування») */
 .chat-msg.chat-system { max-width: none; align-self: flex-start; display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 14px; background: var(--panel2); font-size: 12px; line-height: normal; color: var(--muted) }
+.chat-cur { display: inline-block; width: 14px; height: 15px; object-fit: contain; vertical-align: -3px; margin: 0 1px }
 .chat-typing { opacity: .6 }
 .chat-error { padding: 0 14px 8px; font-size: 12px; color: var(--accent-text) }
 /* Вступ порожнього чату — плашка посередині історії, як у телеграм-боті:

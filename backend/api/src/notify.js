@@ -2,4 +2,4 @@
 // api, а й scheduler (повернення зерен за знижку, статус замовлення), і
 // копія з іншим вибором куща вже раз розійшлась (28.09.2026). Тут —
 // реекспорт, щоб імпорти роутів лишились як були.
-export { plural, beansWord, notifyPlant, flushNotices } from "@extrovert/lib/notify.js";
+export { plural, credit, notifyPlant, flushNotices } from "@extrovert/lib/notify.js";

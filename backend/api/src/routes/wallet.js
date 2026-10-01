@@ -6,7 +6,7 @@
 import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
-import { notifyPlant } from "../notify.js";
+import { credit, notifyPlant } from "../notify.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 
 // У бонусі лежать коди предметів; плитці потрібні назва, комплект,
@@ -72,7 +72,7 @@ export default async function routes(app) {
          values ($1, $2, 'transfer', 'coin_transfer', $3, $4)`,
         [target.id, amount, transfer[0].id, { transfer_id: transfer[0].id, from: me[0].nickname }]
       );
-      await notifyPlant(target.id, `Тобі переказали ${amount} жовтих монет.`, { client });
+      await notifyPlant(target.id, `Тобі переказали монети: ${credit(amount, "yellow")}.`, { client });
 
       return { ok: true, amount, to: target.nickname, left: paid[0].coins_yellow };
     });

@@ -22,7 +22,7 @@ import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
-import { beansWord, notifyPlant } from "../notify.js";
+import { credit, notifyPlant } from "../notify.js";
 import { growthState } from "./planting.js";
 
 const SLOTS = economy.set.slots;                 // head, body, pants, feet, acc_1
@@ -307,7 +307,7 @@ export default async function routes(app) {
 
       // Саме від цього куща: подяка за одяг від сусіднього кавенятка —
       // дрібниця, яку видно одразу (24.09.2026).
-      await notifyPlant(user.id, `Дякую за комплект! Тримай ${beansWord(beans)} — заслужено.`, { client, plantId: plant.id });
+      await notifyPlant(user.id, `Дякую за комплект! Тримай ${credit(beans, "beans")} — заслужено.`, { client, plantId: plant.id });
       return { ok: true, beans, tier: state.tier };
     });
   });

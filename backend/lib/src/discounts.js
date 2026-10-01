@@ -17,7 +17,7 @@
 // серіалізує advisory-lock: дві купівлі в ту саму мить не зроблять дві
 // активні (а якщо й спробують — не дасть унікальний індекс).
 import { enqueue } from "./outbox.js";
-import { beansWord, notifyPlant } from "./notify.js";
+import { credit, notifyPlant } from "./notify.js";
 
 const lockPoint = (client, pointId) =>
   client.query("select pg_advisory_xact_lock(hashtext($1))", [`discount:${pointId}`]);
@@ -143,7 +143,7 @@ export async function refundFailed(client) {
     // із погаслим екраном подію пропускає, і зерна «самі» з'являлись без
     // пояснення (власник, 28.09.2026). Рядок у чаті кавенятка лишається.
     await notifyPlant(d.user_id,
-      `Знижка в кав'ярні${d.point_name ? ` ${d.point_name}` : ""} не спрацювала: знижені ціни не доїхали до автомата. Повернуто ${beansWord(beans)}.`,
+      `Знижка в кав'ярні${d.point_name ? ` ${d.point_name}` : ""} не спрацювала: знижені ціни не доїхали до автомата. Повернуто ${credit(beans, "beans")}.`,
       { client });
   }
   return rows.length;

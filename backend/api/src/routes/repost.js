@@ -9,7 +9,7 @@
 import { many, one, query, tx } from "../db.js";
 import { requireUser, userFromRequest } from "../auth.js";
 import { economy } from "../economy.js";
-import { notifyPlant } from "../notify.js";
+import { credit, notifyPlant } from "../notify.js";
 
 const R = economy.repost;
 // Домен застосунку — конфіг оточення, а не економіка: локально посилання
@@ -169,7 +169,7 @@ export default async function routes(app) {
         `insert into ledger_entries (user_id, delta_silver, reason, meta) values ($1, $2, 'repost', $3)`,
         [row.user_id, R.coins, { repost_id: row.id, network }]
       );
-      await notifyPlant(row.user_id, `Хтось перейшов за твоїм посиланням — нараховано ${R.coins} срібних за пост.`, { client });
+      await notifyPlant(row.user_id, `Хтось перейшов за твоїм посиланням: ${credit(R.coins, "silver")} за пост.`, { client });
     });
 
     return { ok: true };

@@ -12,7 +12,7 @@ import { one, query, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
-import { notifyPlant } from "../notify.js";
+import { credit, notifyPlant } from "../notify.js";
 import { createInvoice, hasToken, invoiceStatus, verifyWebhook } from "../payments/mono.js";
 import { DEV } from "../env.js";
 
@@ -76,7 +76,7 @@ async function settle(invoiceId, status, raw = null) {
       "update payments set credited_at = now(), ledger_entry_id = $2 where id = $1",
       [payment.id, entry[0].id]
     );
-    await notifyPlant(payment.user_id, `Оплата пройшла: +${payment.coins} монет.`, { client });
+    await notifyPlant(payment.user_id, `Оплата пройшла: ${credit(payment.coins, "yellow")}.`, { client });
 
     return { payment: { ...payment, status, credited_at: new Date() }, credited: true };
   });

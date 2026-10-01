@@ -121,12 +121,17 @@ export function systemPrompt({ plant, user, facts, knowledge, points = [] }) {
   return parts.join("\n\n");
 }
 
+// Сповіщення пишуть валюту токеном (:gold: — іконка в чаті, lib/notify.js),
+// а моделі потрібні слова: інакше вона повторює двокрапки у відповідях.
+const CURRENCY_WORDS = { ":gold:": "золотих монет", ":silver:": "срібних монет", ":bean:": "зерен" };
+const words = (text) => String(text ?? "").replace(/:gold:|:silver:|:bean:/g, (t) => CURRENCY_WORDS[t]);
+
 // Історія йде окремими репліками, а не злитим текстом: модель краще тримає
 // чергу «гравець — кавенятко», коли ролі розділені.
 export function buildMessages({ plant, user, facts, knowledge, points, history, message }) {
   return [
     { role: "system", content: systemPrompt({ plant, user, facts, knowledge, points }) },
-    ...history.map((m) => ({ role: m.role === "plant" ? "assistant" : "user", content: m.body })),
+    ...history.map((m) => ({ role: m.role === "plant" ? "assistant" : "user", content: words(m.body) })),
     { role: "user", content: message },
   ];
 }
