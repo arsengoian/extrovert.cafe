@@ -20,7 +20,7 @@
 
 Гривня ніколи не `float`; монети й зерна цілі за визначенням (економіка
 оперує `round(маржа)`, `gamification_economy.md` §7). Checkbox віддає суми
-цілими копійками (Еспресо 35 ₴ приходить як `3500`) — ділимо на 100 на
+цілими копійками (Еспресо 45 ₴ приходить як `4500`) — ділимо на 100 на
 вході в `checkbox`, щоб копійки не розповзлися по схемі.
 
 ### Баланси — колонки в `users`, рухи — рядки журналу
@@ -409,7 +409,7 @@ erDiagram
         text slot "head|body|pants|feet|acc_1"
         text tier "common|uncommon|rare|epic"
         text sprite_id
-        int price_coins "пряма покупка, усі тіри: 93/189/425/850 (economy §5.1)"
+        int price_coins "пряма покупка, усі тіри: 98/200/450/900 (economy §5.1)"
         bigint season_id "сезонні скіни - лише за грн"
         boolean active
     }
