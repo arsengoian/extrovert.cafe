@@ -45,7 +45,9 @@ export function Stock({ ctx }) {
       </div>
 
       {crates > 0 && (
-        <button className="crate-open" onClick={() => openStockCrate(ctx, loadItems)}>
+        // Відкривається лише кнопкою, а не тапом по всьому рядку (власник,
+        // 01.10.2026): скринька відкривається одразу й назад не закривається.
+        <div className="crate-open">
           <span className="crate-art">
             <img src="/assets/ui/crate.png" alt="щаслива скринька" />
             <img src="/assets/ui/crate_lid.png" alt="" />
@@ -55,8 +57,8 @@ export function Stock({ ctx }) {
             <b>Щасливі скриньки</b>
             <em>Відкрий, щоб побачити вміст</em>
           </span>
-          <span className="pill pill-primary" style={{ padding: "9px 14px", fontSize: 13 }}>Відкрити</span>
-        </button>
+          <button className="pill pill-primary" style={{ padding: "9px 14px", fontSize: 13 }} onClick={() => openStockCrate(ctx, loadItems)}>Відкрити</button>
+        </div>
       )}
 
       {items.length === 0 && (
