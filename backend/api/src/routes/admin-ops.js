@@ -546,6 +546,13 @@ export default async function routes(app) {
     const ttn = req.body?.ttn ? String(req.body.ttn).trim() : null;
     const allowed = ["new", "printing", "packing", "shipped", "arrived", "received", "returned", "cancelled"];
     if (!allowed.includes(status)) fail(400, "bad_status");
+    // «Друкуємо» — лише в товарів із принтом (футболка, чашка): кава 250 г
+    // не друкується, і в застосунку такого кроку в неї немає (01.10.2026).
+    if (status === "printing") {
+      const order = await one("select product from redemptions where id = $1", [req.params.id]);
+      if (!order) fail(404, "no_such_order");
+      if (!["custom_print", "merch_cup"].includes(order.product)) fail(400, "status_not_for_product");
+    }
 
     // Статус і подія — однією транзакцією: історія замовлення не має
     // розходитися з його станом.

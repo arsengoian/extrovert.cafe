@@ -11,7 +11,18 @@ export const ORDER_STATUS = {
 };
 export const orderBadge = (s) => { const [tone, text] = ORDER_STATUS[s] ?? ["", s]; return <Badge tone={tone}>{text}</Badge>; };
 
-const PRODUCT = { coffee_250: "кава 250 г", merch_cup: "чашка", print_tshirt: "футболка з принтом" };
+// Коди товарів — як у backend/api/data/shop-products.json. Досі тут стояли
+// вигадані coffee_250 і print_tshirt, і список показував сирі коди.
+export const PRODUCT = { coffee_250g: "кава 250 г", merch_cup: "чашка", custom_print: "футболка з принтом" };
+
+// Які стани має сенс обирати для цього товару: «друкуємо» — лише в товарів
+// із принтом кавенятка (футболка й чашка), кава 250 г одразу пакується
+// (власник, 01.10.2026). Той самий поділ, що в кроках замовлення в
+// застосунку (frontend/client/src/screens/Order.jsx), і та сама перевірка в
+// api — інакше адмінка й клієнт показували б різне.
+export const PRINTED = new Set(["custom_print", "merch_cup"]);
+export const statusesFor = (product) =>
+  Object.entries(ORDER_STATUS).filter(([k]) => k !== "printing" || PRINTED.has(product));
 
 export function Orders() {
   const [status, setStatus] = useState("");

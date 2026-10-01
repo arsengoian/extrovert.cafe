@@ -7,7 +7,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Card, Empty, fmt, useData } from "../ui.jsx";
-import { ORDER_STATUS, orderBadge } from "./Orders.jsx";
+import { PRODUCT, orderBadge, statusesFor } from "./Orders.jsx";
 
 const Row = ({ label, children }) => (
   <div className="row" style={{ justifyContent: "space-between", padding: "6px 0", fontSize: 12, borderBottom: "1px solid rgba(242,239,230,.05)" }}>
@@ -43,7 +43,7 @@ export function Order({ id }) {
       <div className="head">
         <div>
           <h1>Замовлення №{order.id}</h1>
-          <p>{fmt.time(order.created_at)}, {order.product}, {order.nickname}</p>
+          <p>{fmt.time(order.created_at)}, {PRODUCT[order.product] ?? order.product}, {order.nickname}</p>
         </div>
         <div className="right">
           {orderBadge(order.status)}
@@ -63,7 +63,7 @@ export function Order({ id }) {
           </Card>
 
           <Card title="Замовлення">
-            <Row label="Товар">{order.product}</Row>
+            <Row label="Товар">{PRODUCT[order.product] ?? order.product}</Row>
             <Row label="Опції">{Object.entries(order.options ?? {}).map(([k, v]) => `${k}: ${v}`).join(", ") || "—"}</Row>
             <Row label="Собівартість">{order.cost_uah_actual ? fmt.uah(order.cost_uah_actual) : <span className="muted">не вказана</span>}</Row>
             <Row label="Гравець">
@@ -77,7 +77,7 @@ export function Order({ id }) {
             <div className="stack" style={{ gap: 9 }}>
               <label className="field">
                 <select value={status || order.status} onChange={(e) => setStatus(e.target.value)}>
-                  {Object.entries(ORDER_STATUS).map(([k, [, title]]) => <option key={k} value={k}>{title}</option>)}
+                  {statusesFor(order.product).map(([k, [, title]]) => <option key={k} value={k}>{title}</option>)}
                 </select>
               </label>
               <label className="field"><input placeholder="номер ТТН" value={ttn} onChange={(e) => setTtn(e.target.value)} /></label>
