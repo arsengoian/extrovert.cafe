@@ -1365,16 +1365,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   border: 1px solid var(--line); border-radius: 22px; background: var(--panel);
   box-shadow: 0 24px 60px rgba(0, 0, 0, .5); overflow: hidden; display: flex; flex-direction: column;
 }
-.name-hero { position: relative; flex: none; height: 176px; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
+/* Коли бракує висоти, стискається паросток, а не форма: на iPhone
+   клавіатура з'їдала висоту неба, картинка лишалась 176 px, а форма з
+   полем стискалась до нуля — ім'я не було куди вводити (власник,
+   01.10.2026). Тепер форма завжди повної висоти (flex: none нижче), а
+   паросток поступається аж до 72 px — і подяку видно, поки є місце. */
+.name-hero { position: relative; flex: 0 1 176px; min-height: 72px; overflow: hidden; background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line) }
 .name-platform { position: absolute; left: 50%; bottom: -22px; width: 168px; height: 83px; margin-left: -112px }
 /* -55px, а не -34: у макеті паросток стояв на землі попереду трави, а не в
    ній (помилка макета, власник 23.09.2026). Зміряно на екрані: основа
    спрайта була на 370.8 px, а смуга трави в цій колонці — 336.9…362.6,
    тобто середина 349.8. Різниця 21 px і пішла в цей зсув. */
-.name-scene { position: absolute; left: 50%; top: -55px; width: 0; height: 0; margin-left: -121px }
-.name-bubble { position: absolute; left: 50%; top: 38px; margin-left: 6px; max-width: 168px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
+/* Від низу, а не від верху (176 − 55 = 121 → calc(100% − 231px)): картинка
+   тепер стискається під клавіатурою, і паросток має лишатись на платформі,
+   а не з'їжджати вгору разом із верхом (01.10.2026). */
+.name-scene { position: absolute; left: 50%; top: calc(100% - 231px); width: 0; height: 0; margin-left: -121px }
+.name-bubble { position: absolute; left: 50%; top: calc(100% - 138px); margin-left: 6px; max-width: 168px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 18px 18px 18px 6px;
   background: color-mix(in srgb, var(--panel) 72%, transparent); backdrop-filter: blur(4px) saturate(160%); color: var(--ink); font-size: 12.5px; line-height: 1.35; box-shadow: 0 10px 24px rgba(0, 0, 0, .28); animation: aHop 2.6s ease-in-out infinite }
-.name-form { padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto }
+.name-form { flex: none; padding: 32px 16px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto }
 .name-form > b { font-size: 19px; font-weight: 900; line-height: 1.15 }
 .name-form > p { margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); text-wrap: pretty }
 .name-form > .cta { height: 50px; border-radius: 16px; font-size: 16px }
