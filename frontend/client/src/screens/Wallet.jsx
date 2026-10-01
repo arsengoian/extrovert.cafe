@@ -171,6 +171,9 @@ export function Wallet({ ctx }) {
           <span>Поповнити</span>
         </button>
       </div>
+
+      {/* Історія — одна кнопка на всю ширину під плитками (власник, 01.10.2026). */}
+      <button className="cta wide ghost wallet-history" onClick={() => ctx.push("transactions")}>Історія транзакцій</button>
     </div>
   );
 }

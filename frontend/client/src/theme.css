@@ -307,6 +307,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* Три дії внизу гаманця: переказ, обмін, поповнення. */
 .tiles { display: flex; gap: 10px }
+.wallet-history { height: 48px }
+/* «Історія транзакцій»: дні, у кожному — рядки з назвою ліворуч і змінами
+   валют праворуч. Плюс — акцентним, мінус — звичайним кольором. */
+.tx-day { display: flex; flex-direction: column; gap: 8px }
+.tx-list { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); overflow: hidden }
+.tx-row { display: flex; align-items: center; gap: 10px; padding: 11px 12px }
+.tx-row + .tx-row { border-top: 1px solid var(--line) }
+.tx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.tx-main b { font-size: 13.5px; font-weight: 800; text-wrap: pretty }
+.tx-main small { font-size: 11.5px; color: var(--muted) }
+.tx-deltas { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px }
+.tx-deltas span { display: flex; align-items: center; gap: 4px; font-size: 13.5px; font-weight: 800; white-space: nowrap }
+.tx-deltas span[data-plus] { color: var(--accent-text) }
+.tx-deltas img { width: 16px; height: 16px; object-fit: contain }
 /* min-width: 0 — інакше «Поповнити» не дає плитці стиснутись, і на 320 px
    третя плитка виїжджає за екран. Кегль підпису теж їде за шириною:
    14 px на макетних 390 і 12 px на 320 (перевірено 23.09.2026). */

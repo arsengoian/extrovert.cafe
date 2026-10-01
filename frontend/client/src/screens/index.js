@@ -14,6 +14,7 @@ import { Problem } from "./Problem.jsx";
 import { QuizProfile } from "./QuizProfile.jsx";
 import { QuizDrink } from "./QuizDrink.jsx";
 import { Repost } from "./Repost.jsx";
+import { Transactions } from "./Transactions.jsx";
 import { Planting } from "../plant/Planting.jsx";
 import { Wardrobe } from "./Wardrobe.jsx";
 import { Chat } from "./Chat.jsx";
@@ -69,6 +70,7 @@ export const SCREENS = {
     hideNav: true,
   },
   repost: { component: Repost, title: "Пост у соцмережі" },
+  transactions: { component: Transactions, title: "Історія транзакцій" },
   // «Незавершена посадка» — ще на вкладці (HUD і меню), редактор — з «Назад».
   planting: { component: Planting, title: (p) => p.title ?? "Посадка", hideNav: true, keepChrome: (p) => Boolean(p.resume) },
   wardrobe: { component: Wardrobe, title: "Гардероб" },

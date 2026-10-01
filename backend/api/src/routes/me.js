@@ -159,17 +159,24 @@ export default async function routes(app) {
     return { receipts, totals };
   });
 
-  // Журнал операцій — «історія транзакцій» у Гаманці.
+  // Журнал операцій — «Історія транзакцій» у Гаманці (01.10.2026): рядки
+  // ledger_entries як є, назву речі для покупки одягу підставляємо з
+  // каталогу. Сторінками по 50 від найновішого; before — id останнього
+  // показаного рядка.
   app.get("/me/ledger", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
+    const before = /^\d+$/.test(String(req.query.before ?? "")) ? String(req.query.before) : null;
     const rows = await many(
-      `select id, delta_yellow, delta_silver, delta_beans, reason, meta, created_at
-         from ledger_entries where user_id = $1
-        order by created_at desc limit 50`,
-      [user.id]
+      `select l.id, l.delta_yellow, l.delta_silver, l.delta_beans, l.reason, l.meta, l.created_at,
+              d.name as item_name
+         from ledger_entries l
+         left join item_defs d on d.code = l.meta->>'item'
+        where l.user_id = $1 and ($2::bigint is null or l.id < $2::bigint)
+        order by l.id desc limit 51`,
+      [user.id, before]
     );
-    return { entries: rows };
+    return { entries: rows.slice(0, 50), more: rows.length > 50 };
   });
 }
 
