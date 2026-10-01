@@ -205,14 +205,15 @@ export function wornInstances(layout, worn, body, mood = "healthy") {
   return out;
 }
 
-// Одяг видно лише на дорослому кавенятку (стадія 10): дарують його
-// дорослому, і на паростку чи кущі з бутонами речі з примірочної не
-// малюються (власник, 28.09.2026).
+// Одяг видно на кавенятку будь-якої стадії, де вже є тіло: речі з
+// примірочної — і на малому кущі (власник, 01.10.2026; 28.09 було «лише на
+// дорослому»). Подаровані комплекти й так бувають лише в дорослих, а в
+// паростка тіла ще немає, і wornInstances нічого не малює. Положення речей
+// рахується від тіла, тож сидять вони на будь-якій стадії.
 export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [] }) {
   if (!layout) return [];
   const base = baseInstances(layout, stage, mood);
   const body = base.find((i) => /^body_stage1/.test(i.group));
-  const dressed = stage >= 10 ? worn : null;
-  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, dressed, body, mood), ...extra]
+  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body, mood), ...extra]
     .sort((a, b) => a.z - b.z);
 }

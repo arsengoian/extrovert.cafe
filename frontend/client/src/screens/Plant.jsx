@@ -247,12 +247,13 @@ function Shelf({ care, onApply, onWrong, need, canWater }) {
 }
 
 // Меню дій — кадр «Меню дій з кавенятком»: картка над кнопкою «…». Кавенятку
-// на маркеті меню не відкривається — замість нього картка «Зняти з продажу»,
-// тож тут рядок зняття завжди неактивний.
+// на маркеті меню не відкривається — замість нього картка «Зняти з продажу».
+// Тому й рядка зняття тут немає: у меню він завжди був би неактивним
+// (власник, 01.10.2026).
 // only — кавенятко в гравця єдине: віддати чи продати його не можна (сервер
 // відповідає last_plant). Кажемо це в самому рядку, а не помилкою після
 // натискання (власник, 26.09.2026).
-const ONLY_ONE = "Потрібно мати хоч одне кавенятко";
+const ONLY_ONE = "Потрібно мати більше одного кавенятка";
 
 function ActionMenu({ onGift, onSell, onScythe, only }) {
   const row = (icon, title, sub, onClick, extra = {}) => (
@@ -267,8 +268,6 @@ function ActionMenu({ onGift, onSell, onScythe, only }) {
         "Подарувати другу", only ? ONLY_ONE : "Переходить іншому користувачу з усім подарованим одягом", onGift, { off: only })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.4v9.2" /><path d="M14.6 9.6c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.9.8-2.9 2 0 2.8 5.9 1.6 5.9 4.2 0 1.2-1.3 2-3 2-1.3 0-2.4-.5-3-1.3" /></svg>,
         "Продати на ринку", only ? ONLY_ONE : "Ціна в монетах або бобах, мінімум 10", onSell, { off: only })}
-      {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M5 19h14" /><path d="M7 19c0-4.4 2.6-7.6 6-9" /><path d="M13 10c-3.6 1.6-4.4 5-4.4 9" /><path d="M17.5 5.5 20 3" /></svg>,
-        "Зняти з продажу", "Кавенятко не виставлене", undefined, { off: true })}
       {row(<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 7h15" /><path d="M9.5 7V4.5h5V7" /><path d="M7 7v12.2A1.8 1.8 0 0 0 8.8 21h6.4a1.8 1.8 0 0 0 1.8-1.8V7" /></svg>,
         "Скосити", "Ресурси не повертаються, подарований одяг зникає назавжди", onScythe, { danger: true })}
     </div>
