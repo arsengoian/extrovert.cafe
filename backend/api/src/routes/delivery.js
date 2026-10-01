@@ -9,6 +9,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy, shopProducts } from "../economy.js";
 import { notifyPlant } from "../notify.js";
+import { presign } from "@extrovert/lib/r2.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
 // У замовленнях — коротко й з розміром: «Футболка, M» (кадр «Мої замовлення»).
@@ -18,6 +19,40 @@ const orderName = (id, options) => {
   return options?.size ? `${base}, ${options.size}` : base;
 };
 const priceOf = (id) => economy.shop_beans[id]?.beans ?? null;
+
+// ── принт ───────────────────────────────────────────────────────────────
+// Товар із зоною друку (чашка, футболка) друкується з кавенятка, яке обрав
+// гравець (власник, 01.10.2026). PNG малює застосунок — у нього вже є сцена
+// й спрайти — і заливає сам за підписаним посиланням у приватний бакет
+// uploads: це те, що надсилає гравець і читає адмінка, як і фото зі скарг.
+const printed = (p) => Boolean(p?.print_area_mm);
+const printKey = (id) => `prints/${id}.png`;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Без R2 (локально без MinIO) посилань немає — замовлення від цього не падає.
+const link = (opts) => {
+  try { return presign({ purpose: "uploads", ...opts }).url; } catch { return null; }
+};
+const printUpload = (id) => link({ method: "PUT", key: printKey(id), contentType: "image/png", expiresIn: 900 });
+
+// Посилання на готовий принт: подивитись і завантажити файлом.
+export function printLinks(row) {
+  if (!row?.print_r2_key) return null;
+  return {
+    url: link({ method: "GET", key: row.print_r2_key, expiresIn: 3600 }),
+    download_url: link({ method: "GET", key: row.print_r2_key, expiresIn: 3600, filename: `принт-${row.id}.png` }),
+  };
+}
+
+const printView = (row) => (row.print_snapshot
+  ? {
+      snapshot: row.print_snapshot,
+      ...(printLinks(row) ?? {}),
+      // Файл не доїхав (обірвався звʼязок одразу після оплати) — застосунок
+      // домалює його з того самого знімка, поки замовлення ще не в друці.
+      upload_url: !row.print_r2_key && row.status === "new" ? printUpload(row.id) : null,
+    }
+  : null);
 
 // Назви статусів — як у кадрах «Мої замовлення».
 export const STATUS_LABEL = {
@@ -134,9 +169,33 @@ export default async function routes(app) {
     const warehouseRef = String(req.body?.warehouse_ref ?? "");
     const options = req.body?.options ?? {};
     if (name.length < 3) fail(400, "bad_name");
-    if (!/^\+?\d{10,13}$/.test(phone)) fail(400, "bad_phone");
+    // Будь-яка країна, не лише +380 (власник, 01.10.2026): E.164 — «+», код
+    // країни й номер, разом від 8 до 15 цифр.
+    if (!/^\+?\d{8,15}$/.test(phone)) fail(400, "bad_phone");
     if (!warehouseRef) fail(400, "warehouse_required");
     if (p.options?.size && !p.options.size.includes(options.size)) fail(400, "size_required");
+
+    // Знімок обраного кавенятка: друкуємо таким, яким воно було зараз, а не
+    // яким стане (кущ росте, переодягається, може піти на ринок).
+    let snapshot = null;
+    if (printed(p)) {
+      const plantId = String(req.body?.print_plant_id ?? "");
+      const plant = UUID.test(plantId)
+        ? await one("select id, name, growth_stage, appearance, worn_set_id from plants where id = $1 and owner_id = $2", [plantId, user.id])
+        : null;
+      if (!plant) fail(400, "plant_required");
+      const worn = plant.worn_set_id
+        ? await many(
+            `select wsi.slot, d.code, d.sprite_id from wardrobe_set_items wsi
+               join user_items ui on ui.id = wsi.user_item_id
+               join item_defs d on d.id = ui.item_def_id
+              where wsi.set_id = $1`,
+            [plant.worn_set_id]
+          )
+        : [];
+      const { draft: _draft, ...appearance } = plant.appearance ?? {};   // чернетку посадки не друкуємо
+      snapshot = { plant_id: plant.id, name: plant.name, growth_stage: plant.growth_stage, appearance, worn, taken_at: new Date().toISOString() };
+    }
 
     const warehouse = await one(
       `select w.*, c.name as city_name from np_warehouses w
@@ -162,10 +221,11 @@ export default async function routes(app) {
       const { rows } = await client.query(
         `insert into redemptions
            (user_id, ledger_entry_id, product, options, recipient_name, recipient_phone,
-            np_warehouse_ref, np_warehouse_kind, np_address_snapshot)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            np_warehouse_ref, np_warehouse_kind, np_address_snapshot, print_plant_id, print_snapshot)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          returning id, status, created_at`,
-        [user.id, entry[0].id, id, options, name, phone, warehouse.ref, warehouse.category, address]
+        [user.id, entry[0].id, id, options, name, phone, warehouse.ref, warehouse.category, address,
+         snapshot?.plant_id ?? null, snapshot]
       );
       await client.query(
         "update ledger_entries set ref_type = 'redemption', ref_id = $2 where id = $1",
@@ -177,8 +237,55 @@ export default async function routes(app) {
       );
       await notifyPlant(user.id, `Замовлення прийнято: ${p.name} → ${address}.`, { client });
 
-      return { ok: true, id: rows[0].id, status: rows[0].status, address, spent_beans: price };
+      return { ok: true, id: rows[0].id, status: rows[0].status, address, spent_beans: price,
+               print_upload_url: snapshot ? printUpload(rows[0].id) : null };
     });
+  });
+
+  // Залитий принт: перевіряємо, що файл справді в бакеті, і лише тоді
+  // записуємо ключ — інакше замовлення показувало б посилання в нікуди.
+  app.post("/me/redemptions/:id/print", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    if (!/^\d+$/.test(String(req.params.id))) fail(404, "no_such_order");
+    const row = await one("select id, print_snapshot from redemptions where id = $1 and user_id = $2", [req.params.id, user.id]);
+    if (!row?.print_snapshot) fail(404, "no_print");
+    const head = link({ method: "HEAD", key: printKey(row.id), expiresIn: 60 });
+    const res = head ? await fetch(head, { method: "HEAD" }).catch(() => null) : null;
+    if (!res?.ok) fail(409, "not_uploaded");
+    await one("update redemptions set print_r2_key = $2 where id = $1 returning id", [row.id, printKey(row.id)]);
+    return { ok: true };
+  });
+
+  // Дані попереднього замовлення — щоб друге не заповнювати з нуля
+  // (власник, 01.10.2026). Відділення — лише якщо воно досі працює.
+  app.get("/me/redemptions/last", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const row = await one(
+      `select r.recipient_name, r.recipient_phone, r.np_warehouse_kind,
+              w.ref, w.number, w.category, w.description, w.short_address, w.schedule,
+              c.ref as city_ref, c.name as city_name, c.area as city_area
+         from redemptions r
+         left join np_warehouses w on w.ref = r.np_warehouse_ref and (w.status is null or w.status = 'Working')
+         left join np_cities c on c.ref = w.city_ref
+        where r.user_id = $1 order by r.created_at desc limit 1`,
+      [user.id]
+    );
+    if (!row) return { last: null };
+    const [first, ...rest] = row.recipient_name.trim().split(/\s+/);
+    return {
+      last: {
+        first,
+        last: rest.join(" "),
+        phone: row.recipient_phone,
+        kind: row.category ?? row.np_warehouse_kind ?? "branch",
+        city: row.city_ref ? { ref: row.city_ref, name: row.city_name, area: row.city_area } : null,
+        warehouse: row.ref
+          ? { ref: row.ref, number: row.number, category: row.category, description: row.description, address: row.short_address, schedule: row.schedule }
+          : null,
+      },
+    };
   });
 
   app.get("/me/redemptions", async (req, reply) => {
@@ -231,6 +338,7 @@ export default async function routes(app) {
       recipient: { name: row.recipient_name, phone: row.recipient_phone },
       ttn: row.np_ttn,
       created_at: row.created_at,
+      print: printView(row),
       events: events.map((e) => ({ ...e, label: STATUS_LABEL[e.status] ?? e.status })),
     };
   });

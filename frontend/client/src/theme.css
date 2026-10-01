@@ -1050,6 +1050,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .earn-beans .sectionTitle { display: flex; align-items: center; gap: 6px }
 .earn-beans > div:not(.sectionTitle) { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted) }
 .earn-beans > div > b { color: var(--accent-text); font-weight: 800 }
+.earn-beans > div.earn-set { flex-direction: column; align-items: flex-start; gap: 6px }
+.earn-tiers { display: flex; flex-wrap: wrap; gap: 6px 14px }
+.earn-tiers b { color: var(--accent-text); font-weight: 800 }
+.earn-tiers em { font-style: normal; font-weight: 700 }
 .buy-row .cta:disabled { border: 0 }
 
 /* Чекаут Нової Пошти: картка товару з залишком, розміри з посиланням,
@@ -1064,6 +1068,17 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .co-price small { font-size: 11px; color: var(--muted) }
 .co-sizes { display: flex; align-items: center; gap: 10px }
 .co-sizes .segs { flex: 1 }
+/* Кавенятко на принт: мініатюри всіх кущів гравця, обране — в акцентній рамці. */
+.co-plants { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px }
+.co-plant { flex: none; width: 88px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel) }
+.co-plant[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset }
+.co-plant > span { max-width: 100%; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+/* Принт у картці замовлення: мініатюра на шаховому тлі (видно прозорість) і посилання на файл. */
+.order-print { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel) }
+.order-print > img, .order-print-wait { flex: none; width: 72px; height: 88px; object-fit: contain; border-radius: 10px; background: repeating-conic-gradient(var(--panel2) 0 25%, transparent 0 50%) 0 0 / 12px 12px }
+.order-print > div { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.order-print b { font-size: 14px }
+.order-print small { font-size: 12px; color: var(--muted) }
 .co-link { flex: none; font-size: 12px; font-weight: 700; color: var(--accent-text) }
 .co-np { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel) }
 .co-np > span { flex: none; width: 40px; height: 40px; border-radius: var(--radius-pill); background: #fff; display: flex; align-items: center; justify-content: center }

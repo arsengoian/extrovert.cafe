@@ -70,6 +70,22 @@ export function Order({ id }) {
               <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${order.user_id}`)}>{order.nickname}</button>
             </Row>
           </Card>
+
+          {/* Чашка й футболка: PNG кавенятка, яке обрав гравець, — його й
+              віддаємо в друкарню. Знімок зроблено в момент замовлення. */}
+          {order.print_snapshot && (
+            <Card title="Принт" note={order.print_snapshot.name || "кавенятко без імені"}>
+              {data.print?.url ? (
+                <div className="stack" style={{ gap: 10, alignItems: "flex-start" }}>
+                  <img src={data.print.url} alt="принт для друку"
+                       style={{ width: "100%", maxWidth: 280, borderRadius: 10, background: "repeating-conic-gradient(rgba(242,239,230,.08) 0 25%, transparent 0 50%) 0 0 / 14px 14px" }} />
+                  <a className="btn" href={data.print.download_url}>Завантажити PNG</a>
+                </div>
+              ) : (
+                <span className="muted">Файл ще не залитий: застосунок гравця домалює його, щойно той відкриє замовлення.</span>
+              )}
+            </Card>
+          )}
         </div>
 
         <div className="stack">

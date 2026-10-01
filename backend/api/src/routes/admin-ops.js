@@ -9,6 +9,7 @@ import { many, one, query, tx } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 import { presign } from "@extrovert/lib/r2.js";
+import { printLinks } from "./delivery.js";
 
 // Як показувати ціль здоровʼя: група, назва, підпис. Порядок тут — порядок
 // на екрані.
@@ -533,7 +534,8 @@ export default async function routes(app) {
       "select id, status, source, note, created_at from redemption_events where redemption_id = $1 order by id",
       [order.id]
     );
-    return { order, events };
+    // PNG для друку (чашка, футболка): подивитись і завантажити в друкарню.
+    return { order, events, print: printLinks(order) };
   });
 
   // Зміна статусу руками: друкуємо → пакуємо → відправлено. ТТН сюди ж,

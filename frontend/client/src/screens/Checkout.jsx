@@ -9,6 +9,9 @@ import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, errText } from "../api.js";
 import { NotEnoughBeans } from "../ui/NotEnough.jsx";
+import { PlantView } from "../plant/PlantView.jsx";
+import { uploadPrint } from "../plant/print.js";
+import { preferSelected } from "../plant/selected.js";
 
 const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -24,11 +27,29 @@ const Chevron = () => (
   </svg>
 );
 
-// «+380 67 123 45 67» — як у макеті; зберігаємо лише цифри.
-const formatPhone = (digits) => {
-  const d = digits.replace(/\D/g, "").replace(/^380/, "").slice(0, 9);
-  const parts = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
-  return `+380 ${parts.join(" ")}`.trimEnd();
+// Телефон будь-якої країни (власник, 01.10.2026), а не лише +380. Цифри
+// номера: «0671234567» — це український номер без коду, як його зазвичай і
+// пишуть, тож дописуємо 38.
+const phoneDigits = (raw) => {
+  let d = raw.replace(/\D/g, "");
+  if (/^0\d{9}$/.test(d)) d = `38${d}`;
+  return d.slice(0, d.startsWith("380") ? 12 : 15);
+};
+// Український — групами, як у макеті: «+380 67 123 45 67». Будь-який інший —
+// «+» і цифри підряд: довжину коду країни (1–3 цифри) з цифр не вгадати, а
+// трійки робили з «+48 512…» «+485 12…».
+const formatPhone = (raw) => {
+  const d = phoneDigits(raw);
+  if (d.startsWith("380")) {
+    const n = d.slice(3, 12);
+    return `+380 ${[n.slice(0, 2), n.slice(2, 5), n.slice(5, 7), n.slice(7, 9)].filter(Boolean).join(" ")}`.trimEnd();
+  }
+  return `+${d}`;
+};
+// Повний номер: український — рівно 12 цифр, інший — від 8 до 15 (E.164).
+const phoneOk = (raw) => {
+  const d = phoneDigits(raw);
+  return d.startsWith("380") ? d.length === 12 : d.length >= 8 && d.length <= 15;
 };
 
 // Відділення в рядку: «Відділення №12» і «вул. Хрещатик, 22 · до 20:00».
@@ -43,10 +64,13 @@ export function Checkout({ item, ctx }) {
   const productId = item?.code;
   const [product, setProduct] = useState(null);
   const [form, setForm] = useState(() => drafts.get(productId) ?? {
-    size: null, first: "", last: "", phone: "+380", city: null, kind: "branch", warehouse: null,
+    size: null, first: "", last: "", phone: "+380", city: null, kind: "branch", warehouse: null, plant: null,
   });
+  // Чашка й футболка друкуються з кавенятка — гравець обирає, з якого.
+  const [plants, setPlants] = useState(() => api.peek("/me/plants")?.plants ?? []);
   const [picker, setPicker] = useState(null);       // city | warehouse
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState(null);         // print — малюємо й заливаємо принт
   const [error, setError] = useState(null);
 
   const set = (patch) => setForm((f) => {
@@ -54,6 +78,29 @@ export function Checkout({ item, ctx }) {
     drafts.set(productId, next);
     return next;
   });
+
+  // Друге замовлення не заповнюють з нуля: отримувач і відділення — з
+  // попереднього (власник, 01.10.2026). Чернетка цієї форми важливіша.
+  useEffect(() => {
+    if (drafts.has(productId)) return;
+    api.get("/me/redemptions/last").then(({ last }) => {
+      if (!last) return;
+      setForm((f) => {
+        // Поки відповідь ішла, людина вже почала заповнювати — не чіпаємо.
+        if (f.first || f.last || f.city || f.phone !== "+380") return f;
+        const next = {
+          ...f, first: last.first ?? "", last: last.last ?? "", phone: last.phone ?? "+380",
+          kind: last.kind === "postomat" ? "postomat" : "branch", city: last.city, warehouse: last.warehouse,
+        };
+        drafts.set(productId, next);
+        return next;
+      });
+    }).catch(() => {});
+  }, [productId]);
+
+  useEffect(() => {
+    api.get("/me/plants").then((r) => setPlants(r.plants ?? [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api.get(`/shop/products/${productId}`).then((p) => {
@@ -66,21 +113,33 @@ export function Checkout({ item, ctx }) {
   if (!product) return <div className="stage-pad"><div className="skeleton" /></div>;
 
   const beans = ctx.me?.balances?.beans ?? 0;
-  const digits = form.phone.replace(/\D/g, "");
-  const ready = form.warehouse && form.first.trim() && form.last.trim() && digits.length === 12 && (!product.options?.size || form.size);
+  const printable = Boolean(product.print_area_mm);
+  // Кавенятко для принта: обране, а поки не обирали — те, що на головному екрані.
+  const printPlant = printable ? plants.find((p) => p.id === form.plant) ?? preferSelected(plants) : null;
+  const ready = form.warehouse && form.first.trim() && form.last.trim() && phoneOk(form.phone)
+    && (!product.options?.size || form.size) && (!printable || printPlant);
 
   const order = async () => {
     setBusy(true);
     setError(null);
     try {
-      await api.post("/me/redemptions", {
+      const r = await api.post("/me/redemptions", {
         product: productId,
         options: form.size ? { size: form.size } : {},
         recipient_name: `${form.first.trim()} ${form.last.trim()}`,
-        recipient_phone: `+${digits}`,
+        recipient_phone: `+${phoneDigits(form.phone)}`,
         warehouse_ref: form.warehouse.ref,
+        print_plant_id: printPlant?.id ?? null,
       });
       drafts.delete(productId);
+      // PNG для друку малюємо тут же, з того самого кавенятка. Не вдалось —
+      // замовлення вже оформлене, а картка замовлення домалює файл сама.
+      if (r.print_upload_url && printPlant) {
+        setStage("print");
+        try {
+          if (await uploadPrint(printPlant, r.print_upload_url)) await api.post(`/me/redemptions/${r.id}/print`);
+        } catch { /* домалює картка замовлення */ }
+      }
       await ctx.refreshMe();
       ctx.replace("orders");
     } catch (e) {
@@ -92,11 +151,13 @@ export function Checkout({ item, ctx }) {
         setBusy(false);
         return;
       }
-      setError(code === "bad_phone" ? "Телефон у форматі +380 XX XXX XX XX"
+      setError(code === "bad_phone" ? "Перевір номер телефону: код країни й номер"
         : code === "bad_name" ? "Вкажи імʼя й прізвище"
+        : code === "plant_required" ? "Обери кавенятко для принта"
         : code ?? e.message);
     } finally {
       setBusy(false);
+      setStage(null);
     }
   };
 
@@ -132,6 +193,20 @@ export function Checkout({ item, ctx }) {
         </div>
       )}
 
+      {printable && plants.length > 0 && (
+        <div className="field">
+          <div className="sectionTitle">Кавенятко на принт</div>
+          <div className="co-plants">
+            {plants.map((p) => (
+              <button key={p.id} className="co-plant" aria-pressed={printPlant?.id === p.id} onClick={() => set({ plant: p.id })}>
+                <PlantView plant={{ ...p, mood: "healthy" }} worn={p.worn} width={72} height={84} platform={false} pad={6} />
+                <span>{p.name || "Без імені"}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="field" style={{ gap: 10 }}>
         <div className="sectionTitle">Доставка</div>
         <div className="co-np">
@@ -149,12 +224,10 @@ export function Checkout({ item, ctx }) {
         <input className="co-input" value={form.first} placeholder="Імʼя" onChange={(e) => set({ first: e.target.value.slice(0, 30) })} />
         <input className="co-input" value={form.last} placeholder="Прізвище" onChange={(e) => set({ last: e.target.value.slice(0, 30) })} />
       </div>
-      <input className="co-input" value={formatPhone(form.phone)} inputMode="tel"
+      <input className="co-input" value={formatPhone(form.phone)} inputMode="tel" placeholder="+380 XX XXX XX XX"
              onChange={(e) => set({ phone: e.target.value })} />
-      <button className="co-input co-select" onClick={() => setPicker("city")}>
-        <span className={form.city ? undefined : "muted"}>{form.city?.name ?? "Місто"}</span><Chevron />
-      </button>
-
+      {/* Спершу — відділення чи поштомат, потім місто (власник, 01.10.2026):
+          від типу залежить список у шторці, а місто обирають уже під нього. */}
       <div className="seg">
         {["branch", "postomat"].map((k) => (
           <button key={k} data-on={form.kind === k}
@@ -163,6 +236,10 @@ export function Checkout({ item, ctx }) {
           </button>
         ))}
       </div>
+
+      <button className="co-input co-select" onClick={() => setPicker("city")}>
+        <span className={form.city ? undefined : "muted"}>{form.city?.name ?? "Місто"}</span><Chevron />
+      </button>
 
       <button className="co-input co-wh" data-picked={Boolean(form.warehouse)} disabled={!form.city} onClick={() => setPicker("warehouse")}>
         <span>
@@ -175,7 +252,7 @@ export function Checkout({ item, ctx }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <button className="cta wide" style={{ height: 52 }} disabled={!ready || busy} onClick={order}>
-        {busy ? "Оформлюємо…" : <>Замовити за {product.price_beans} <Bean w={18} h={20} /></>}
+        {stage === "print" ? "Готуємо принт…" : busy ? "Оформлюємо…" : <>Замовити за {product.price_beans} <Bean w={18} h={20} /></>}
       </button>
 
       {picker === "city" && (

@@ -9,6 +9,10 @@ export default async function routes(app) {
   app.get("/shop", async () => {
     const e = economy;
     const beans = e.shop_beans;
+    // «Як дістати зерна» на товарах за зерна — числа з економіки, а не з
+    // тексту екрана: за кущ до 10 стадії й за подарований комплект, який
+    // платить за найслабшою річчю (set.beans_by_tier).
+    const earn = { harvest: e.harvest?.beans ?? 0, set_by_tier: e.set?.beans_by_tier ?? {} };
 
     const coins = [
       {
@@ -94,6 +98,7 @@ export default async function routes(app) {
         price: beans.coffee_250g.beans,
         currency: "beans",
         packed: product("coffee_250g")?.packed ?? null,
+        earn,
       },
       {
         code: "merch_cup",
@@ -107,6 +112,7 @@ export default async function routes(app) {
         price: beans.merch_cup.beans,
         currency: "beans",
         packed: product("merch_cup")?.packed ?? null,
+        earn,
       },
       {
         code: "custom_print",
@@ -121,6 +127,7 @@ export default async function routes(app) {
         price: beans.custom_print.beans,
         currency: "beans",
         packed: product("custom_print")?.packed ?? null,
+        earn,
         options: { size: ["XS", "S", "M", "L", "XL", "XXL"] },
       },
       {

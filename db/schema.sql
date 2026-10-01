@@ -1322,6 +1322,9 @@ CREATE TABLE public.redemptions (
     user_seen_at timestamp with time zone,
     evidence_event_id bigint,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    print_plant_id uuid,
+    print_snapshot jsonb,
+    print_r2_key text,
     CONSTRAINT redemptions_np_warehouse_kind_check CHECK ((np_warehouse_kind = ANY (ARRAY['branch'::text, 'postomat'::text]))),
     CONSTRAINT redemptions_status_check CHECK ((status = ANY (ARRAY['new'::text, 'printing'::text, 'packing'::text, 'shipped'::text, 'arrived'::text, 'received'::text, 'returned'::text, 'cancelled'::text])))
 );
@@ -3430,6 +3433,14 @@ ALTER TABLE ONLY public.redemptions
 
 
 --
+-- Name: redemptions redemptions_print_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.redemptions
+    ADD CONSTRAINT redemptions_print_plant_id_fkey FOREIGN KEY (print_plant_id) REFERENCES public.plants(id) ON DELETE SET NULL;
+
+
+--
 -- Name: redemptions redemptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3643,4 +3654,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260928100000'),
     ('20261001120000'),
     ('20261001150000'),
-    ('20261001180000');
+    ('20261001180000'),
+    ('20261001190000');

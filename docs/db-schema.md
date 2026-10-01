@@ -510,6 +510,9 @@ erDiagram
         timestamptz status_changed_at
         timestamptz user_seen_at "лічильник: зміни, яких гравець ще не бачив"
         bigint evidence_event_id FK "доказ з камери"
+        uuid print_plant_id FK "кавенятко на чашці чи футболці"
+        jsonb print_snapshot "його вигляд у момент замовлення"
+        text print_r2_key "PNG для друку, uploads/prints"
         timestamptz created_at
     }
     REDEMPTION_EVENTS {

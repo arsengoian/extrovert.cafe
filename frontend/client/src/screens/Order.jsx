@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ttnOf } from "./Orders.jsx";
+import { uploadPrint } from "../plant/print.js";
 
 const ART = {
   merch_cup: ["/assets/ui/merch.png", 36, 44],
@@ -14,6 +15,39 @@ const LABEL = { new: "Нове", printing: "Друкуємо", packing: "Пак�
 const when = (iso) => new Date(iso).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const Bean = () => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 14, height: 16 }} />;
 
+// Принт чашки чи футболки — те кавенятко, яке друкуємо, і файл для друку.
+// Якщо після оплати файл не доїхав (обрив звʼязку), домальовуємо його тут
+// із того самого знімка, поки замовлення ще не пішло в друк.
+function PrintCard({ order, onReady }) {
+  const print = order.print;
+  const [state, setState] = useState(null);   // drawing | failed
+  useEffect(() => {
+    if (print.url || !print.upload_url || state) return;
+    setState("drawing");
+    uploadPrint(print.snapshot, print.upload_url)
+      .then((ok) => (ok ? api.post(`/me/redemptions/${order.id}/print`).then(onReady) : Promise.reject(new Error("upload"))))
+      .catch(() => setState("failed"));
+  }, [print.url, print.upload_url]);
+
+  return (
+    <div className="order-print">
+      {print.url
+        ? <img src={print.url} alt={`принт: ${print.snapshot?.name ?? "кавенятко"}`} />
+        : <span className="order-print-wait" />}
+      <div>
+        <b>Принт: {print.snapshot?.name || "кавенятко"}</b>
+        <small>
+          {print.url ? "Таким воно буде на виробі."
+            : state === "failed" ? "Не вдалось підготувати файл – спробуй відкрити замовлення ще раз."
+            : print.upload_url ? "Готуємо файл для друку…"
+            : "Файл для друку ще не готовий."}
+        </small>
+        {print.download_url && <a className="co-link" href={print.download_url} download>Завантажити PNG</a>}
+      </div>
+    </div>
+  );
+}
+
 export function Order({ id, ctx }) {
   const [order, setOrder] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -21,9 +55,8 @@ export function Order({ id, ctx }) {
 
   // Відкрив картку — сервер гасить лічильник; перечитуємо профіль, щоб
   // бейдж на вкладці Магазину зник одразу.
-  useEffect(() => {
-    api.get(`/me/redemptions/${id}`).then((o) => { setOrder(o); ctx.refreshMe().catch(() => {}); }).catch((e) => setError(e.message));
-  }, [id]);
+  const load = () => api.get(`/me/redemptions/${id}`).then((o) => { setOrder(o); ctx.refreshMe().catch(() => {}); }).catch((e) => setError(e.message));
+  useEffect(() => { load(); }, [id]);
 
   if (error) return <div className="stage-pad"><div className="panel">{error}</div></div>;
   if (!order) return <div className="stage-pad"><div className="skeleton" /></div>;
@@ -57,6 +90,8 @@ export function Order({ id, ctx }) {
           <small className="order-meta">{order.beans} <Bean /><i className="vsep" />{order.place}</small>
         </div>
       </div>
+
+      {order.print && <PrintCard order={order} onReady={load} />}
 
       <div className="timeline">
         {steps.map((s, i) => {

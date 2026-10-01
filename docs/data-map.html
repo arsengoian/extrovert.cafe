@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 0758ca5</p>
+  <p class="eyebrow">extrovert.cafe · джерело 5257cca</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -347,9 +347,9 @@ graph TB
 </tr>
 <tr>
 <td><code>extrovert-uploads</code></td>
-<td><strong>фото, які надсилає гравець у скарзі</strong></td>
+<td><strong>фото, які надсилає гравець у скарзі</strong>; PNG принтів чашки й футболки (<code>prints/</code>)</td>
 <td>телефон гравця за підписаним посиланням</td>
-<td>адмінка за підписаним посиланням</td>
+<td>адмінка за підписаним посиланням (принт — ще й гравець у картці замовлення)</td>
 <td>без обмеження (рішення власника 21.09.2026)</td>
 </tr>
 <tr>
@@ -978,6 +978,22 @@ limit $4;                                                   -- $4 = limit ≤ 10
 документації НП, не за текстом статусу. Кожна зміна — рядок
 <code>redemption_events</code> + <code>outbox(order.updated)</code> → лічильник на кнопці «Мої
 замовлення» в застосунку (<a class="doclink" href="#gamification-ui"><code>gamification_ui.md</code></a>).</p>
+<p><strong>Принт чашки й футболки</strong> (01.10.2026). На чекауті гравець обирає, яке з
+його кавенят друкувати; сервер кладе в замовлення знімок його вигляду
+(<code>print_snapshot</code>: стадія, посаджене, вдягнене), бо кущ після замовлення
+росте й переодягається. PNG малює сам застосунок (<code>plant/print.js</code>) із
+тих самих інстансів і спрайтів, що й головний екран: прозоре тло, без
+платформи, довша сторона ≈3000 px після обрізки по кущу. Заливає — за
+підписаним посиланням у <code>extrovert-uploads</code> (<code>prints/&lt;id&gt;.png</code>): це те,
+що надсилає гравець і читає адмінка, як і фото зі скарг, тож окремий бакет
+не заводили. Ключ записується лише після перевірки HEAD-запитом. Обірвався
+звʼязок після оплати — картка замовлення домальовує файл із того самого
+знімка, поки замовлення ще «нове». Адмінка показує принт і віддає його
+файлом («Завантажити PNG») для друкарні.</p>
+<p>Форма заповнюється з попереднього замовлення (<code>GET /me/redemptions/last</code>),
+телефон — будь-якої країни (E.164, 8–15 цифр; український показуємо
+групами). ТТН створюється руками, тож НП-обмеження на номер отримувача тут
+не заважає.</p>
 <h3 id="svc-підтримка-через-telegram-наш-бот"><a class="anchor" href="#svc-підтримка-через-telegram-наш-бот" aria-hidden="true">#</a>Підтримка через Telegram — наш бот</h3>
 <p>Кнопка «Підтримка» в застосунку відкриває нашого бота. Далі це звичайний
 пересилач між Telegram і адмінкою, увесь усередині <code>api</code>:</p>
@@ -1802,6 +1818,9 @@ erDiagram
         timestamptz status_changed_at
         timestamptz user_seen_at &quot;лічильник: зміни, яких гравець ще не бачив&quot;
         bigint evidence_event_id FK &quot;доказ з камери&quot;
+        uuid print_plant_id FK &quot;кавенятко на чашці чи футболці&quot;
+        jsonb print_snapshot &quot;його вигляд у момент замовлення&quot;
+        text print_r2_key &quot;PNG для друку, uploads/prints&quot;
         timestamptz created_at
     }
     REDEMPTION_EVENTS {
@@ -1908,8 +1927,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">переказ жовтих</span></li></ul>
 </article>
 <article class="entity" id="t-redemptions">
-  <header><h4>redemptions</h4><span class="entity-count">18 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">ledger_entry_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">списання зерен</td></tr><tr><td class="c-name">product</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">id з backend/api/data/shop-products.json</td></tr><tr><td class="c-name">options</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">розмір футболки</td></tr><tr><td class="c-name">cost_uah_actual</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">для 10% ліміту бюджету</td></tr><tr><td class="c-name">recipient_name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">recipient_phone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">без нього НП посилку не видасть</td></tr><tr><td class="c-name">np_warehouse_ref</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">Ref із довідника</td></tr><tr><td class="c-name">np_warehouse_kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">branch|postomat</td></tr><tr><td class="c-name">np_address_snapshot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">довідник міняється, замовлення - ні</td></tr><tr><td class="c-name">np_ttn</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">np_status_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">останній код із трекінгу</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">new|printing|packing|shipped|arrived|received|returned|cancelled</td></tr><tr><td class="c-name">status_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">user_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">лічильник: зміни, яких гравець ще не бачив</td></tr><tr><td class="c-name">evidence_event_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">доказ з камери</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>redemptions</h4><span class="entity-count">21 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">ledger_entry_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">списання зерен</td></tr><tr><td class="c-name">product</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">id з backend/api/data/shop-products.json</td></tr><tr><td class="c-name">options</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">розмір футболки</td></tr><tr><td class="c-name">cost_uah_actual</td><td class="c-type">numeric</td><td class="c-keys"></td><td class="c-note">для 10% ліміту бюджету</td></tr><tr><td class="c-name">recipient_name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">recipient_phone</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">без нього НП посилку не видасть</td></tr><tr><td class="c-name">np_warehouse_ref</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">Ref із довідника</td></tr><tr><td class="c-name">np_warehouse_kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">branch|postomat</td></tr><tr><td class="c-name">np_address_snapshot</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">довідник міняється, замовлення - ні</td></tr><tr><td class="c-name">np_ttn</td><td class="c-type">text</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note"></td></tr><tr><td class="c-name">np_status_code</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">останній код із трекінгу</td></tr><tr><td class="c-name">status</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">new|printing|packing|shipped|arrived|received|returned|cancelled</td></tr><tr><td class="c-name">status_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">user_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">лічильник: зміни, яких гравець ще не бачив</td></tr><tr><td class="c-name">evidence_event_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">доказ з камери</td></tr><tr><td class="c-name">print_plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">кавенятко на чашці чи футболці</td></tr><tr><td class="c-name">print_snapshot</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">його вигляд у момент замовлення</td></tr><tr><td class="c-name">print_r2_key</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">PNG для друку, uploads/prints</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">доставки Новою Поштою</span></li><li><span class="rel-card">← 1</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">списання зерен за доставку</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemption_events">redemption_events</a><span class="rel-label">історія статусів</span></li><li><span class="rel-card">← 1</span><a href="#t-np_warehouses">np_warehouses</a><span class="rel-label">куди везти</span></li></ul>
 </article>
 <article class="entity" id="t-redemption_events">
@@ -12374,7 +12393,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 0758ca5 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 5257cca — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

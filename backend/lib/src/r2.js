@@ -25,7 +25,9 @@ export const BUCKETS = {
   evidence: "extrovert-evidence",
   // Фото, які надсилає гравець у скарзі. Окремо від evidence навмисно:
   // це чужі персональні дані, з іншим строком зберігання й іншим правом
-  // доступу — гравець пише, адмінка читає, камери тут ні до чого.
+  // доступу — гравець пише, адмінка читає, камери тут ні до чого. З
+  // 01.10.2026 тут же PNG принтів чашки й футболки (prints/) — той самий
+  // шлях: малює й заливає застосунок гравця, забирає адмінка.
   uploads: "extrovert-uploads",
   // Щоденні дампи Postgres від scheduler, lifecycle 30 днів.
   backups: "extrovert-backups",
@@ -122,6 +124,14 @@ export async function put({ purpose, bucket = null, key, body, contentType, cach
   return { bucket: target, key, bytes: body.length ?? body.byteLength ?? 0 };
 }
 
+// Рядок запиту так, як його кодує сам S3, рахуючи підпис (RFC 3986): пробіл —
+// %20, а не «+», як у URLSearchParams. Різниця видна лише з пробілом у
+// значенні — а він є в «attachment; filename=…»: посилання «завантажити»
+// віддавали 403 (01.10.2026). Порядок — сортований, як вимагає SigV4.
+const enc = (v) => encodeURIComponent(v).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+const query = (params) => [...params].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+  .map(([k, v]) => `${enc(k)}=${enc(v)}`).join("&");
+
 // ── підписане посилання ─────────────────────────────────────────────────
 // Фото зі скарги телефон заливає САМ, за підписаним URL: інакше кілька
 // мегабайтів ішли б через api, який для цього не потрібен. Підпис живе
@@ -151,14 +161,18 @@ export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn
   // Порядок важливий: у канонічному запиті параметри мають іти відсортовані,
   // а "response-…" стоїть після всіх "X-Amz-…" (велика X — раніше за малу r).
   if (filename) {
-    params.set("response-content-disposition", `attachment; filename="${filename.replaceAll('"', "")}"`);
+    // Заголовки HTTP — latin1: кирилиця в filename доїжджала кракозябрами.
+    // filename* (RFC 5987) несе справжню назву, filename — запасну ASCII.
+    const name = filename.replaceAll('"', "");
+    params.set("response-content-disposition",
+      `attachment; filename="${name.replace(/[^\x20-\x7e]/g, "_")}"; filename*=UTF-8''${enc(name)}`);
   }
 
   const canonicalHeaders = contentType
     ? `content-type:${contentType}\nhost:${host}\n`
     : `host:${host}\n`;
   const canonical = [
-    method, `/${target}/${key}`, params.toString(),
+    method, `/${target}/${key}`, query(params),
     canonicalHeaders, signedHeaders, "UNSIGNED-PAYLOAD",
   ].join("\n");
   const sts = ["AWS4-HMAC-SHA256", amz, scope, sha256(canonical)].join("\n");
@@ -166,7 +180,7 @@ export function presign({ method = "PUT", purpose, bucket = null, key, expiresIn
   params.set("X-Amz-Signature", signature);
 
   return {
-    url: `${endpoint}/${target}/${key}?${params.toString()}`,
+    url: `${endpoint}/${target}/${key}?${query(params)}`,
     bucket: target,
     key,
     expires_in: expiresIn,
