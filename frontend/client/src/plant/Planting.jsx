@@ -14,7 +14,7 @@ import { Scene } from "./Scene.jsx";
 import { usePlantAssets } from "./assets.js";
 import { FRUIT_FOREGROUND_Z, W0, fitCamera, growthFactor, smoothD } from "./geometry.js";
 import { ANCHOR, baseInstances, playerInstances } from "./scene.js";
-import { budTargets, config, createAt, groupFor, moveTo, resolve, rootOf, spriteFor } from "./placement.js";
+import { budTargets, config, createAt, groupFor, moveTo, resolve, resolveDraft, rootOf, spriteFor } from "./placement.js";
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
 import { useLandscape } from "../ui/landscape.js";
@@ -443,15 +443,10 @@ export function Planting({ ctx, plantId, title, resume }) {
     try {
       // Шлемо лише поля цієї посадки (сервер інших і не садить).
       const all = { bg: items.bg, fg: skipFg ? [] : items.fg, branches: items.branches, buds: items.buds };
-      const payload = { items: Object.fromEntries(PHASES[data.state.planting].map((p) => [FIELD[p], all[FIELD[p]]])) };
+      const own = Object.fromEntries(PHASES[data.state.planting].map((p) => [FIELD[p], all[FIELD[p]]]));
       // Готові координати рахує клієнт: сервер геометрію не перевіряє (§9).
-      for (const [key, kind] of [["bg", "leafBg"], ["fg", "leafFg"], ["branches", "branch"], ["buds", "bud"]]) {
-        const list2 = payload.items[key];
-        if (!list2?.length) continue;
-        const c = config(assets, kind);
-        const t = kind === "bud" ? budTargets(assets, data.appearance?.branches ?? []) : null;
-        payload.items[key] = list2.map((it) => resolve(it, { assets, cfg: c, targets: t }));
-      }
+      // Порожні поля теж ідуть — сервер рахує їх кількість.
+      const payload = { items: { ...own, ...resolveDraft(assets, own, data.appearance?.branches) } };
       await api.post(`/me/plants/${id}/planting`, payload);
       // Посаджене — вже не чернетка. Гасимо і таймер, і те, що чекало на
       // відправку: інакше flush при виході воскресив би її на сервері, і
@@ -471,11 +466,14 @@ export function Planting({ ctx, plantId, title, resume }) {
         const back = PHASE_OF_FIELD[body.key];
         if (back && back !== phase) { setPhase(back); setSelected(null); }
         setError(badCount(body));
+        setSheet("edit");
+        setSkipFg(false);   // не лишаємо людину в режимі пропуску після помилки
       } else {
+        // Решту причин пишемо в самій картці: рядок під панеллю після її
+        // закриття легко не помітити, і «Посадити» виглядало кнопкою, яка
+        // нічого не робить (власник, 01.10.2026).
         setError(ERRORS[body.error] ?? errText(e));
       }
-      setSheet("edit");
-      setSkipFg(false);   // не лишаємо людину в режимі пропуску після помилки
     } finally {
       setBusy(false);
     }
@@ -505,7 +503,7 @@ export function Planting({ ctx, plantId, title, resume }) {
     const label = phase === "branch" ? `посадити ${list.length} ${plural(list.length, "гілку", "гілки", "гілок")}`
       : phase === "bud" ? `посадити ${list.length}` : "посадити";
     const plant = (
-      <button className="pl-btn" disabled={!enough} onClick={() => setSheet("confirm")}>
+      <button className="pl-btn" disabled={!enough} onClick={() => { setError(null); setSheet("confirm"); }}>
         <CareIcon need={need} h={phase === "bud" ? 21 : 20} />{unit}<i className="vsep" />{label}
       </button>
     );
@@ -515,7 +513,7 @@ export function Planting({ ctx, plantId, title, resume }) {
         {/* Не стираємо розставлене: якщо посадка впаде (немає препарату,
             не та кількість), листя має лишитись на місці. Пропуск — це
             намір, який враховує commit, а не видалення роботи наперед. */}
-        <button className="pl-btn ghost" onClick={() => { setSkipFg(true); setSelected(null); setSheet("confirm"); }}>Пропустити</button>
+        <button className="pl-btn ghost" onClick={() => { setSkipFg(true); setSelected(null); setError(null); setSheet("confirm"); }}>Пропустити</button>
         {plant}
       </div>
     );
@@ -647,7 +645,7 @@ export function Planting({ ctx, plantId, title, resume }) {
 
       {sheet === "confirm" && (
         <>
-          {host && createPortal(<div className="sheet-backdrop" onClick={() => { setSheet("edit"); setSkipFg(false); }} />, host)}
+          {host && createPortal(<div className="sheet-backdrop" onClick={() => { setSheet("edit"); setSkipFg(false); setError(null); }} />, host)}
           <div className="care-card">
             <div className="care-card-head">
               <CareIcon need={need} h={47} />
@@ -658,8 +656,9 @@ export function Planting({ ctx, plantId, title, resume }) {
               <span>{CARE[need].stock}</span>
               <b>{supplyLeft} {CARE[need].unit} → {Math.max(0, supplyLeft - 1)} {CARE[need].unit}</b>
             </div>
+            {error && <p style={{ color: "var(--accent-text)", fontWeight: 700 }}>{error}</p>}
             <div className="care-card-btns">
-              <button onClick={() => { setSheet("edit"); setSkipFg(false); }}>Ще ні</button>
+              <button onClick={() => { setSheet("edit"); setSkipFg(false); setError(null); }}>Ще ні</button>
               <button disabled={busy || supplyLeft < 1} onClick={commit}>{busy ? "Саджаємо…" : "Посадити"}</button>
             </div>
           </div>

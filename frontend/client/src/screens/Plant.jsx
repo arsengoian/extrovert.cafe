@@ -8,13 +8,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, errText } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
-import { buildScene } from "../plant/scene.js";
+import { buildScene, draftInstances } from "../plant/scene.js";
+import { resolveDraft } from "../plant/placement.js";
 import { Scene } from "../plant/Scene.jsx";
 import { NoSupply } from "../plant/NoSupply.jsx";
 import { Sparks, Typewriter, calm, markCoinSource } from "../ui/fx.jsx";
 import { isLandscape } from "../ui/landscape.js";
 import {
-  AFTER_CARE, BARREL, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
+  AFTER_CARE, BARREL, DRAFTED, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
   stageLines, wrongFirst, wrongMore,
 } from "../plant/lines.js";
 import { takeHandoff } from "../plant/handoff.js";
@@ -587,6 +588,7 @@ export function Plant({ ctx }) {
     : plant.mood === "withered" ? WITHERED
     : plant.mood === "sad" ? SAD
     : shelfEmpty ? EMPTY
+    : plant.draft?.count && !waiting ? DRAFTED
     : plant.growth_stage >= 10 && dressed ? DRESSED
     : stageLines(plant.growth_stage, growth.need);
   const lines = note?.lines ?? idle;
@@ -676,7 +678,8 @@ export function Plant({ ctx }) {
   };
   const [cx, cy] = CLOUD_AT[Math.min(10, plant.growth_stage)] ?? CLOUD_AT[10];
   const instances = assets
-    ? buildScene({ layout: assets.layout, appearance: plant.appearance, stage: plant.growth_stage, mood: plant.mood, worn: plant.worn })
+    ? buildScene({ layout: assets.layout, appearance: plant.appearance, stage: plant.growth_stage, mood: plant.mood, worn: plant.worn,
+                   extra: draftOf(assets, plant) })
       .filter((i) => i.group !== "platform")
     : [];
 
@@ -806,6 +809,26 @@ const BARREL_AT = { x: 277 + 2 + 34, y: 260 + 3 + 35 };
 // Перехід стадії: великий сплеск конфеті над кроною; бутон → квітка → біб —
 // маленькі іскорки на кожному плоді, що змінився; на стадії 10 сім бобів
 // летять дугою в бочку, і вона з'являється з підскоком.
+// Незавершена посадка теж видна на головному екрані, а не лише в редакторі
+// (власник, 01.10.2026): розставив листя, вийшов — кавенятко вже в ньому.
+// plant.draft — лише чернетка поточної посадки (liveDraft); з неї беремо
+// тільки поля цієї посадки. Бита чернетка не має валити головний екран.
+const DRAFT_FIELDS = { leaves: ["bg", "fg"], branches: ["branches"], buds: ["buds"] };
+
+function draftOf(assets, plant) {
+  const fields = DRAFT_FIELDS[plant.draft?.kind];
+  const raw = plant.appearance?.draft?.items;
+  if (!fields || !raw || !plant.growth?.to) return [];
+  try {
+    const own = Object.fromEntries(fields.map((key) => [key, raw[key] ?? []]));
+    return draftInstances(assets.layout, resolveDraft(assets, own, plant.appearance?.branches), {
+      stage: plant.growth_stage, to: plant.growth.to, mood: plant.mood, budsBefore: plant.appearance?.buds?.length ?? 0,
+    });
+  } catch {
+    return [];
+  }
+}
+
 function GrowthFx({ fx, instances }) {
   const body = instances.find((i) => /^body_stage/.test(i.group ?? ""));
   const crown = body ? inArea(body) : { x: 196, y: 200 };

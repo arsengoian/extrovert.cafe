@@ -205,6 +205,28 @@ export function wornInstances(layout, worn, body, mood = "healthy") {
   return out;
 }
 
+// Чернетка посадки на головному екрані: розставлене видно ще до «Посадити»
+// (власник, 01.10.2026). items — уже розв'язані (placement.resolveDraft). На
+// екрані посадки вони стоять на кущі цільової стадії, тож і тут спершу
+// ростуть під неї, а потім переносяться від тіла тієї стадії до тіла
+// поточної — як одяг у wornInstances. Інакше на стадії 1, де тіло підняте на
+// тонкому стовбурі, листя висіло б нижче голови.
+export function draftInstances(layout, items, { stage, to, mood = "healthy", budsBefore = 0 }) {
+  if (!layout || !items) return [];
+  const f = growthFactor(to);
+  const out = playerInstances({ leaves_bg: items.bg, leaves_fg: items.fg, branches: items.branches }, to, mood);
+  (items.buds ?? []).forEach((bud, n) => {
+    const [group, sprite] = fruitSprite(to, budsBefore + n);
+    out.push(applyGrowth({ ...bud, group, sprite, z: FRUIT_FOREGROUND_Z + budsBefore + n }, ANCHOR, f));
+  });
+  if (stage === to) return out;
+  const bodyOf = (s) => baseInstances(layout, s, mood).find((i) => /^body_stage1/.test(i.group));
+  const from = bodyOf(to), now = bodyOf(stage);
+  if (!from || !now) return [];
+  const k = now.scale / from.scale;
+  return out.map((i) => ({ ...i, x: now.x + (i.x - from.x) * k, y: now.y + (i.y - from.y) * k, scale: i.scale * k }));
+}
+
 // Одяг видно на кавенятку будь-якої стадії, де вже є тіло: речі з
 // примірочної — і на малому кущі (власник, 01.10.2026; 28.09 було «лише на
 // дорослому»). Подаровані комплекти й так бувають лише в дорослих, а в

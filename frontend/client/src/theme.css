@@ -1404,8 +1404,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .name-field input { flex: 1; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--ink); font: inherit; font-size: 17px; font-weight: 800; outline: none }
 .name-field span { flex: none; font-size: 12px; font-weight: 800; color: var(--muted) }
 /* Посадка — кадри «… · як це працює / вибір скіна / трансформація»: сцена
-   на все небо, лічильник угорі, плаваюча панель знизу. */
-.pl { position: absolute; inset: 0; overflow: hidden; background: radial-gradient(120% 80% at 50% 66%, var(--sky1) 0%, var(--sky2) 74%) }
+   на все небо, лічильник угорі, плаваюча панель знизу.
+   clip, а не лише hidden: сцена ширша за екран, а hidden-контейнер можна
+   прокрутити програмно (фокус, scrollIntoView) — і панель з кнопками
+   з'їжджала вбік за край. */
+.pl { position: absolute; inset: 0; overflow: hidden; overflow: clip; background: radial-gradient(120% 80% at 50% 66%, var(--sky1) 0%, var(--sky2) 74%) }
 .pl-touch { position: absolute; inset: 0; z-index: 1; touch-action: none }
 .pl-chips { position: absolute; left: 10px; right: 10px; top: 10px; z-index: 60; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none }
 .pl-chip { display: flex; align-items: center; gap: 9px; padding: 7px 11px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 8px 18px rgba(0, 0, 0, .26) }

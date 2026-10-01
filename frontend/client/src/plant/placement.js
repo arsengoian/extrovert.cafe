@@ -129,6 +129,23 @@ export function resolve(item, { assets, cfg, targets }) {
   };
 }
 
+// Поля чернетки (і тіла запиту посадки) → тип елемента.
+export const DRAFT_KINDS = [["bg", "leafBg"], ["fg", "leafFg"], ["branches", "branch"], ["buds", "bud"]];
+
+// Усі поля чернетки — у готові інстанси. Один шлях і для «Посадити», і для
+// показу чернетки на головному екрані: що видно до підтвердження, те й
+// посадиться.
+export function resolveDraft(assets, items, branches) {
+  const out = {};
+  for (const [key, kind] of DRAFT_KINDS) {
+    if (!items?.[key]?.length) continue;
+    const cfg = config(assets, kind);
+    const targets = kind === "bud" ? budTargets(assets, branches ?? []) : null;
+    out[key] = items[key].map((it) => resolve(it, { assets, cfg, targets }));
+  }
+  return out;
+}
+
 // Чи можна поставити корінь у цю точку — і куди його підтягнути, якщо палець
 // трохи промазав повз межу зони.
 export function snapToZone(point, cfg) {
