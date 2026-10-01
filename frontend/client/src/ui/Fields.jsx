@@ -31,7 +31,24 @@ export function Choice({ options, value, onChange, multi = false }) {
   );
 }
 
-export function Segment({ options, value, onChange }) {
+// multi — той самий вигляд, але кілька варіантів; exclusive — варіанти на
+// кшталт «без молока», що знімають решту й знімаються будь-яким іншим.
+export function Segment({ options, value, onChange, multi = false, exclusive = [] }) {
+  if (multi) {
+    const toggle = (o) => onChange((prev) => {
+      const list = Array.isArray(prev) ? prev : prev ? [prev] : [];
+      if (list.includes(o)) return list.filter((x) => x !== o);
+      return exclusive.includes(o) ? [o] : [...list.filter((x) => !exclusive.includes(x)), o];
+    });
+    const list = Array.isArray(value) ? value : value ? [value] : [];
+    return (
+      <div className="segs">
+        {options.map((o) => (
+          <button key={o} aria-pressed={list.includes(o)} onClick={() => toggle(o)}>{o}</button>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="segs">
       {options.map((o) => (

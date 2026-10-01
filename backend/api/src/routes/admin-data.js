@@ -66,7 +66,8 @@ for (const step of quizDef.profile?.steps ?? []) {
   for (const q of step.questions ?? []) {
     PROFILE_Q.set(q.id, {
       title: SHORT[q.id] ?? q.title ?? step.title,
-      type: q.type,
+      // Сегмент із multi (молоко) — для адмінки те саме, що «кілька варіантів».
+      type: q.multi ? "multi" : q.type,
       options: q.options ?? null,        // null — варіанти з бази (напої)
     });
   }

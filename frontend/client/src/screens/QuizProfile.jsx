@@ -118,7 +118,7 @@ export function QuizProfile({ ctx }) {
         const control =
           q.type === "single" ? <Choice options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
           : q.type === "multi" ? <Choice options={q.options} multi value={answers[q.id] ?? []} onChange={(v) => set(q.id, v)} />
-          : q.type === "segment" ? <Segment options={q.options} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
+          : q.type === "segment" ? <Segment options={q.options} multi={q.multi} exclusive={q.exclusive} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
           : q.type === "drinks" ? <DrinkGrid options={q.options} sprites={q.sprites} value={answers[q.id]} onChange={(v) => set(q.id, v)} />
           : <TextField value={answers[q.id] ?? ""} placeholder={q.placeholder} tall={q.tall} onChange={(v) => set(q.id, v)} />;
         // Питання без підпису — головне питання кроку (його заголовок уже

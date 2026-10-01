@@ -72,7 +72,9 @@ export default async function routes(app) {
 
     // Список напоїв у питанні «яку каву п'єш» береться з каталога, а не
     // дублюється в JSON: інакше нові напої довелося б вписувати двічі.
-    const drinks = await many("select name, sprite from drinks where active order by sort_order");
+    // Лише те, що можна купити: без бонусних позицій (901–904 — той самий
+    // напій, видача за бонус) і без схованих з меню (власник, 01.10.2026).
+    const drinks = await many("select name, sprite from drinks where active and not is_bonus order by sort_order");
     // Для сітки напоїв (кадр «Розкажи про себе · крок 3») потрібна ще й
     // картинка — тож окрім назв віддаємо спрайти поруч.
     const steps = quiz.profile.steps.map((step) => ({
@@ -185,7 +187,8 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const itemId = Number(req.body?.receipt_item_id);
-    const answers = req.body?.answers ?? {};
+    const raw = req.body?.answers;
+    const answers = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw } : {};
     const freeText = String(req.body?.free_text ?? "").trim() || null;
 
     if (!Number.isInteger(itemId)) return reply.code(400).send({ error: "bad_item" });
@@ -203,6 +206,15 @@ export default async function routes(app) {
     const drink = await one(
       "select d.sprite from receipt_items ri left join drinks d on d.slot = ri.slot where ri.id = $1", [itemId]);
     for (const id of skippedScales(drink?.sprite)) delete answers[id];
+
+    // Шкали обов'язкові, необов'язковий лише текст (власник, 01.10.2026):
+    // відгук без оцінок нічого не каже, а монети за нього платяться. Лишаємо
+    // тільки відомі шкали й відомі варіанти — решту клієнт не мав би слати.
+    const skipped = new Set(skippedScales(drink?.sprite));
+    const scales = (quiz.drink?.scales ?? []).filter((s) => !skipped.has(s.id));
+    for (const id of Object.keys(answers)) if (!scales.some((s) => s.id === id)) delete answers[id];
+    const missing = scales.filter((s) => !s.options.includes(answers[s.id])).map((s) => s.id);
+    if (missing.length) return reply.code(400).send({ error: "incomplete", missing });
 
     // Кредити вирішують лише те, чи буде нагорода. Сам відгук приймаємо
     // завжди: якщо напій не сподобався, людина має де це сказати, а нам

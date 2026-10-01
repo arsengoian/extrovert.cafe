@@ -41,6 +41,11 @@ export function QuizDrink({ item: picked = null, ctx }) {
   // Кредити скінчились — відгук приймається, але без монет: обіцяти
   // нагороду, якої не буде, не можна (рішення власника 23.09.2026).
   const paid = data.credits > 0;
+  // Про молоко в каві без молока не питаємо (skip_for у quiz.json). Решта
+  // шкал обов'язкові, без варіанта за замовчуванням; необов'язковий лише
+  // текст (власник, 01.10.2026).
+  const scales = data.scales.filter((sc) => !(sc.skip_for ?? []).includes(item.sprite));
+  const complete = scales.every((sc) => answers[sc.id]);
 
   const send = async () => {
     setBusy(true);
@@ -50,7 +55,9 @@ export function QuizDrink({ item: picked = null, ctx }) {
       await ctx.refreshMe();
       setDone(true);
     } catch (e) {
-      setError(e.body?.error === "already_answered" ? "Про цей напій уже відповідали" : e.message);
+      setError(e.body?.error === "already_answered" ? "Про цей напій уже відповідали"
+        : e.body?.error === "incomplete" ? "Обери по варіанту в кожному рядку"
+        : e.message);
     } finally {
       setBusy(false);
     }
@@ -74,8 +81,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
 
       <div className="section" style={{ gap: 12 }}>
         <div className="sectionTitle">Як смакувало</div>
-        {/* Про молоко в каві без молока не питаємо (skip_for у quiz.json). */}
-        {data.scales.filter((sc) => !(sc.skip_for ?? []).includes(item.sprite)).map((sc) => (
+        {scales.map((sc) => (
           <div key={sc.id} className="scale">
             <b>{sc.title}</b>
             <div className="segs sm">
@@ -94,7 +100,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="cta wide" disabled={busy} onClick={send}>
+      <button className="cta wide" disabled={busy || !complete} onClick={send}>
         {busy ? "Надсилаємо…"
           : paid ? <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>
           : "Надіслати відгук"}
