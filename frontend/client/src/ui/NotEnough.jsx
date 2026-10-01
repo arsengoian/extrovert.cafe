@@ -53,7 +53,7 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
     Promise.all([
       api.get("/shop/coin-packs").catch(() => ({ packs: [] })),
       api.get("/catalog/drinks").catch(() => ({ drinks: [] })),
-      api.get("/quiz/drink").catch(() => ({ credits: 0, reward: 40 })),
+      api.get("/quiz/drink").catch(() => ({ credits: 0, reward: 15 })),
       api.get("/shop").catch(() => ({ beans: [] })),
       api.get("/me/items").catch(() => ({ items: [] })),
     ]).then(([packs, drinks, quiz, shop, items]) => {

@@ -7,7 +7,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "barista_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -18,7 +18,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "barista_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -29,7 +29,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "barista_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -40,7 +40,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "barista_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -51,7 +51,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "barista_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -62,7 +62,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "cowboy_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -73,7 +73,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "cowboy_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -84,7 +84,7 @@
     "slot": "acc_1",
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_acc",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -95,7 +95,7 @@
     "slot": "body",
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_body",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -106,7 +106,7 @@
     "slot": "feet",
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_feet",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -117,7 +117,7 @@
     "slot": "head",
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_head",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -128,7 +128,7 @@
     "slot": "pants",
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_pants",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -139,7 +139,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "cowboy_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -154,7 +154,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "cowboy_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -165,7 +165,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "cowboy_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -176,7 +176,7 @@
     "slot": "acc_1",
     "tier": "uncommon",
     "sprite_id": "dj_acc",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -187,7 +187,7 @@
     "slot": "body",
     "tier": "uncommon",
     "sprite_id": "dj_body",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -198,7 +198,7 @@
     "slot": "feet",
     "tier": "uncommon",
     "sprite_id": "dj_feet",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -209,7 +209,7 @@
     "slot": "head",
     "tier": "uncommon",
     "sprite_id": "dj_head",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -220,7 +220,7 @@
     "slot": "pants",
     "tier": "uncommon",
     "sprite_id": "dj_pants",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -231,7 +231,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "hipster_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -242,7 +242,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "hipster_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -253,7 +253,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "hipster_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -264,7 +264,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "hipster_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -275,7 +275,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "hipster_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -286,7 +286,7 @@
     "slot": "acc_1",
     "tier": "epic",
     "sprite_id": "magnate_acc",
-    "price_coins": 850,
+    "price_coins": 900,
     "active": true
   },
   {
@@ -297,7 +297,7 @@
     "slot": "body",
     "tier": "epic",
     "sprite_id": "magnate_body",
-    "price_coins": 850,
+    "price_coins": 900,
     "active": true
   },
   {
@@ -308,7 +308,7 @@
     "slot": "feet",
     "tier": "epic",
     "sprite_id": "magnate_feet",
-    "price_coins": 850,
+    "price_coins": 900,
     "active": true
   },
   {
@@ -319,7 +319,7 @@
     "slot": "head",
     "tier": "epic",
     "sprite_id": "magnate_head",
-    "price_coins": 850,
+    "price_coins": 900,
     "active": true
   },
   {
@@ -330,7 +330,7 @@
     "slot": "pants",
     "tier": "epic",
     "sprite_id": "magnate_pants",
-    "price_coins": 850,
+    "price_coins": 900,
     "active": true
   },
   {
@@ -341,7 +341,7 @@
     "slot": "acc_1",
     "tier": "rare",
     "sprite_id": "pirate_acc",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -352,7 +352,7 @@
     "slot": "body",
     "tier": "rare",
     "sprite_id": "pirate_body",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -363,7 +363,7 @@
     "slot": "feet",
     "tier": "rare",
     "sprite_id": "pirate_feet",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -374,7 +374,7 @@
     "slot": "head",
     "tier": "rare",
     "sprite_id": "pirate_head",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -385,7 +385,7 @@
     "slot": "pants",
     "tier": "rare",
     "sprite_id": "pirate_pants",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -396,7 +396,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "rainy_kyiv_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -407,7 +407,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "rainy_kyiv_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -418,7 +418,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "rainy_kyiv_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -429,7 +429,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "rainy_kyiv_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -440,7 +440,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "rainy_kyiv_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -451,7 +451,7 @@
     "slot": "acc_1",
     "tier": "uncommon",
     "sprite_id": "retro_gamer_acc",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -462,7 +462,7 @@
     "slot": "body",
     "tier": "uncommon",
     "sprite_id": "retro_gamer_body",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -473,7 +473,7 @@
     "slot": "feet",
     "tier": "uncommon",
     "sprite_id": "retro_gamer_feet",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -484,7 +484,7 @@
     "slot": "head",
     "tier": "uncommon",
     "sprite_id": "retro_gamer_head",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -495,7 +495,7 @@
     "slot": "pants",
     "tier": "uncommon",
     "sprite_id": "retro_gamer_pants",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -506,7 +506,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "skater_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -517,7 +517,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "skater_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -528,7 +528,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "skater_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -539,7 +539,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "skater_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -550,7 +550,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "skater_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -561,7 +561,7 @@
     "slot": "acc_1",
     "tier": "rare",
     "sprite_id": "space_barista_acc",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -572,7 +572,7 @@
     "slot": "body",
     "tier": "rare",
     "sprite_id": "space_barista_body",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -583,7 +583,7 @@
     "slot": "feet",
     "tier": "rare",
     "sprite_id": "space_barista_feet",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -594,7 +594,7 @@
     "slot": "head",
     "tier": "rare",
     "sprite_id": "space_barista_head",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -605,7 +605,7 @@
     "slot": "pants",
     "tier": "rare",
     "sprite_id": "space_barista_pants",
-    "price_coins": 425,
+    "price_coins": 450,
     "active": true
   },
   {
@@ -616,7 +616,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "sporty_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -627,7 +627,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "sporty_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -638,7 +638,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "sporty_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -649,7 +649,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "sporty_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -660,7 +660,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "sporty_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -671,7 +671,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "student_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -682,7 +682,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "student_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -693,7 +693,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "student_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -704,7 +704,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "student_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -715,7 +715,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "student_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -726,7 +726,7 @@
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "surfer_acc",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -737,7 +737,7 @@
     "slot": "body",
     "tier": "common",
     "sprite_id": "surfer_body",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -748,7 +748,7 @@
     "slot": "feet",
     "tier": "common",
     "sprite_id": "surfer_feet",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -759,7 +759,7 @@
     "slot": "head",
     "tier": "common",
     "sprite_id": "surfer_head",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -770,7 +770,7 @@
     "slot": "pants",
     "tier": "common",
     "sprite_id": "surfer_pants",
-    "price_coins": 93,
+    "price_coins": 98,
     "active": true
   },
   {
@@ -781,7 +781,7 @@
     "slot": "acc_1",
     "tier": "uncommon",
     "sprite_id": "traveler_acc",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -792,7 +792,7 @@
     "slot": "body",
     "tier": "uncommon",
     "sprite_id": "traveler_body",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -803,7 +803,7 @@
     "slot": "feet",
     "tier": "uncommon",
     "sprite_id": "traveler_feet",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -814,7 +814,7 @@
     "slot": "head",
     "tier": "uncommon",
     "sprite_id": "traveler_head",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   },
   {
@@ -825,7 +825,7 @@
     "slot": "pants",
     "tier": "uncommon",
     "sprite_id": "traveler_pants",
-    "price_coins": 189,
+    "price_coins": 200,
     "active": true
   }
 ]

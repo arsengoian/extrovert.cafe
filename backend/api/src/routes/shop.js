@@ -115,8 +115,9 @@ export default async function routes(app) {
         name: product("custom_print")?.name ?? "Футболка з принтом",
         subtitle: "",
         icon: "assets/ui/custom_print.png",
-        // Рівно 40 зерен незалежно від розміру (власник, 28.09.2026); до того
-        // вітрина показувала коридор «36-45».
+        // Одна ціна незалежно від розміру (власник, 28.09.2026; до того
+        // вітрина показувала коридор «36-45»). Скільки — economy.json, з
+        // 01.10.2026 це 45 зерен.
         price: beans.custom_print.beans,
         currency: "beans",
         packed: product("custom_print")?.packed ?? null,

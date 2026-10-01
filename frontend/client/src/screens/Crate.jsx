@@ -114,7 +114,7 @@ export function CratePreview({ item, ctx }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const odds = item?.odds ?? {};
-  const price = item?.price ?? 85;
+  const price = item?.price ?? 90;   // запас, поки не прийшла ціна з api (economy.json crate.price_coins)
 
   // Куплена скринька — на Складі: туди й ведемо, там вона чекає «Відкрити».
   const buy = async () => {

@@ -41,7 +41,7 @@ export default async function routes(app) {
       [tier ?? null, collection ?? null, TIER_ORDER, SET_ORDER, SLOT_ORDER]
     );
     return {
-      items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier) })),
+      items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier), set_beans: economy.set.beans_by_tier[r.tier] ?? null })),
       tiers: economy.clothing_direct_price_coins,
     };
   });
@@ -69,7 +69,7 @@ export default async function routes(app) {
         order by slot_rank
         limit 3`
     );
-    return { items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier) })) };
+    return { items: rows.map((r) => ({ ...r, price_coins: priceForTier(r.tier), set_beans: economy.set.beans_by_tier[r.tier] ?? null })) };
   });
 
   // Набори одягу: Склад групує предмети саме за ними.

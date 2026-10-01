@@ -22,12 +22,12 @@ export function History({ ctx }) {
   const [data, setData] = useState(() => api.peek("/me/history") ?? null);
   const [quiz, setQuiz] = useState(() => {
     const r = api.peek("/quiz/drink");
-    return { credits: r?.credits ?? 0, reward: r?.reward ?? 40 };
+    return { credits: r?.credits ?? 0, reward: r?.reward ?? 15 };
   });
 
   useEffect(() => {
     api.get("/me/history").then(setData).catch(() => setData({ receipts: [], totals: { drinks: 0, coins: 0 } }));
-    api.get("/quiz/drink").then((r) => setQuiz({ credits: r.credits ?? 0, reward: r.reward ?? 40 })).catch(() => {});
+    api.get("/quiz/drink").then((r) => setQuiz({ credits: r.credits ?? 0, reward: r.reward ?? 15 })).catch(() => {});
     // ctx.rev — щоб щойно забраний бонус з'явився тут одразу, без
     // перемикання вкладок.
   }, [ctx.rev]);

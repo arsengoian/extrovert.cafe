@@ -11,7 +11,10 @@ import { ResultPopup } from "../ui/Popup.jsx";
 
 export const TIER_LABEL = { common: "Common", uncommon: "Uncommon", rare: "Rare", epic: "Epic" };
 export const SLOT_OF = { head: "слот голови", body: "слот тіла", pants: "слот штанів", feet: "слот взуття", acc_1: "слот аксесуара" };
-const SET_BEANS = { common: 3, uncommon: 6, rare: 9, epic: 15 };
+// Зерна за комплект приходять з api (catalog: set_beans, з economy.json).
+// Це лише запас для предметів, що прийшли не з каталогу, — тримати в
+// синхроні з set.beans_by_tier (01.10.2026: Epic 17).
+const SET_BEANS = { common: 3, uncommon: 6, rare: 9, epic: 17 };
 
 export function ItemCard({ item, ctx }) {
   const [offers, setOffers] = useState(null);
@@ -111,7 +114,7 @@ export function ItemCard({ item, ctx }) {
           <div>
             {/* Без двокрапки й пояснення про найслабший предмет
                 (власник, 27.09.2026). */}
-            У тебе вже {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {SET_BEANS[item.tier] ?? 3}{" "}
+            У тебе вже {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {item.set_beans ?? SET_BEANS[item.tier] ?? 3}{" "}
             <img src="/assets/ui/bean.png" alt="кавових зерна" />
           </div>
         )}

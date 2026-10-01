@@ -112,9 +112,18 @@ async function advance(client, plant, state, { consumed, appearance }) {
 // подарований чи куплений дорослий кущ удруге не платить. Раніше цього
 // кроку не було зовсім — перший кущ на проді виріс 26.09.2026 без жодного
 // зерна (доплату зробила міграція 20260927180000).
+//
+// Перший урожай власника — harvest.beans, кожен наступний — harvest.beans_later
+// (01.10.2026). Зараз обидва 7, але модель балансу тримає їх окремо: перший
+// кущ — бонус новачку, а наступні не мають ставати фермою зерен, дешевшою за
+// одяг. «Перший» — за журналом: чи був у власника хоч один рядок 'harvest'.
 async function harvest(client, plant, state) {
   if (transitionFrom(state.to)) return 0;           // далі ще є куди рости
-  const beans = economy.harvest?.beans ?? 0;
+  const { rows: before } = await client.query(
+    "select 1 from ledger_entries where user_id = $1 and reason = 'harvest' limit 1",
+    [plant.owner_id]
+  );
+  const beans = (before.length ? economy.harvest?.beans_later : null) ?? economy.harvest?.beans ?? 0;
   const { rows } = await client.query(
     `update plants set harvest_at = now(), lifetime_beans_gifted = lifetime_beans_gifted + $2
       where id = $1 and harvest_at is null returning owner_id`,

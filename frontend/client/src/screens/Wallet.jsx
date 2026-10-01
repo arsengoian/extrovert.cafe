@@ -102,7 +102,7 @@ export function Wallet({ ctx }) {
         <div className="task-list">
           <Task
             badge="/assets/ui/coin_silver.png"
-            reward={profile?.reward ?? 150}
+            reward={profile?.reward ?? 75}
             title="Розкажи про себе"
             note={profile?.done ? "Пройдено" : inProgress ? `Крок ${step} з ${steps}, відповіді збережено` : "Одноразово"}
             action={profile?.done
@@ -118,7 +118,7 @@ export function Wallet({ ctx }) {
                   <b>{percent}%</b>
                 </div>
                 <div className="task-note">
-                  Нарахуємо всі {profile?.reward ?? 150}{" "}
+                  Нарахуємо всі {profile?.reward ?? 75}{" "}
                   <img src="/assets/ui/coin_silver.png" alt="срібних монет" /> після останнього кроку.
                 </div>
               </>
@@ -127,7 +127,7 @@ export function Wallet({ ctx }) {
 
           <Task
             badge="/assets/ui/coin_silver.png"
-            reward={drink?.reward ?? 40}
+            reward={drink?.reward ?? 15}
             title="Опитування про напій"
             note={drink?.credits ? `доступно ${drink.credits}, про будь-який напій` : "Поки недоступне"}
             action={drink?.credits ? { label: "Обрати" } : { label: "Недоступно", kind: "off" }}
@@ -138,7 +138,7 @@ export function Wallet({ ctx }) {
 
           <Task
             badge="/assets/ui/coin_silver.png"
-            reward={repost?.reward ?? 80}
+            reward={repost?.reward ?? 20}
             title="Пост у соцмережі"
             note={repost?.limit_reached
               ? `${repost.counted} з ${repost.max}, більше не рахується`

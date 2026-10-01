@@ -157,7 +157,7 @@ export default async function routes(app) {
 
     // Кредити вирішують лише те, чи буде нагорода. Сам відгук приймаємо
     // завжди: якщо напій не сподобався, людина має де це сказати, а нам
-    // такий відгук цінніший за зекономлені 40 срібних (рішення власника
+    // такий відгук цінніший за зекономлене срібло (рішення власника
     // 23.09.2026).
     const drinks = await drinkCount(user.id);
     const used = await one("select count(*)::int as n from quiz_drink_responses where user_id = $1", [user.id]);
