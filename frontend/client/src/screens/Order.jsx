@@ -83,7 +83,9 @@ export function Order({ id, ctx }) {
       </div>
 
       <div className="order-actions">
-        <button className="order-problem" onClick={() => ctx.push("problem")}>Проблема із замовленням</button>
+        {/* Із замовленням — у підтримку (Telegram-бот), а не у форму скарги
+            на точку: та про кавомашину, а тут посилка (власник, 01.10.2026). */}
+        <button className="order-problem" onClick={() => ctx.support()}>Проблема із замовленням</button>
         <button className="order-track" disabled={!order.ttn}
                 onClick={() => window.open(`https://novaposhta.ua/tracking/?cargo_number=${order.ttn}`, "_blank", "noopener")}>
           Відстежити
