@@ -221,11 +221,12 @@ export function Checkout({ item, ctx }) {
         </div>
       </div>
 
-      <div className="co-row">
+      {/* Отримувач і адреса — під маскою в записах Clarity (clarity.js). */}
+      <div className="co-row" data-clarity-mask="True">
         <input className="co-input" value={form.first} placeholder="Імʼя" onChange={(e) => set({ first: e.target.value.slice(0, 30) })} />
         <input className="co-input" value={form.last} placeholder="Прізвище" onChange={(e) => set({ last: e.target.value.slice(0, 30) })} />
       </div>
-      <input className="co-input" value={formatPhone(form.phone)} inputMode="tel" placeholder="+380 XX XXX XX XX"
+      <input className="co-input" data-clarity-mask="True" value={formatPhone(form.phone)} inputMode="tel" placeholder="+380 XX XXX XX XX"
              onChange={(e) => set({ phone: e.target.value })} />
       {/* Спершу — відділення чи поштомат, потім місто (власник, 01.10.2026):
           від типу залежить список у шторці, а місто обирають уже під нього. */}
@@ -238,11 +239,11 @@ export function Checkout({ item, ctx }) {
         ))}
       </div>
 
-      <button className="co-input co-select" onClick={() => setPicker("city")}>
+      <button className="co-input co-select" data-clarity-mask="True" onClick={() => setPicker("city")}>
         <span className={form.city ? undefined : "muted"}>{form.city?.name ?? "Місто"}</span><Chevron />
       </button>
 
-      <button className="co-input co-wh" data-picked={Boolean(form.warehouse)} disabled={!form.city} onClick={() => setPicker("warehouse")}>
+      <button className="co-input co-wh" data-clarity-mask="True" data-picked={Boolean(form.warehouse)} disabled={!form.city} onClick={() => setPicker("warehouse")}>
         <span>
           <b>{form.warehouse ? whTitle(form.warehouse) : form.city ? `Обрати ${KIND_TITLE[form.kind].toLowerCase()}` : "Спершу місто"}</b>
           {form.warehouse && <small>{whSub(form.warehouse)}</small>}

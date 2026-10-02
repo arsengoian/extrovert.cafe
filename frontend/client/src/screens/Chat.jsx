@@ -80,7 +80,8 @@ export function Chat({ ctx, plant }) {
 
   return (
     <div className="chat">
-      <div className="chat-log">
+      {/* Розмову гравця записи Clarity не показують (clarity.js). */}
+      <div className="chat-log" data-clarity-mask="True">
         {/* Порожня історія — плашка посередині, як вступ у телеграм-боті, а
             не повідомлення від кавенятка: це підказка інтерфейсу, а не репліка,
             і вона зникає з першим же повідомленням (власник, 26.09.2026). */}

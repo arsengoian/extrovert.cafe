@@ -100,7 +100,7 @@ export function EmailLogin({ next = "/", ctx }) {
           <Img src="/assets/ui/hero_bush.png" sizes="132px" alt="" />
           <b>Лист уже летить</b>
           <div className="lead14">
-            Ми надіслали лінк для входу на <b>{sent.email}</b>. Посилання діє {sent.minutes} хвилин.
+            Ми надіслали лінк для входу на <b data-clarity-mask="True">{sent.email}</b>. Посилання діє {sent.minutes} хвилин.
           </div>
           {sent.wait && (
             <div className="lead14 muted">Відкрий лист будь-де – хоч у пошті на телефоні: щойно підтвердиш вхід, ця сторінка пустить тебе сама.</div>

@@ -69,7 +69,7 @@ export function Orders({ ctx }) {
                     <b>№{o.id}<i className="vsep" />{o.name}</b>
                     {o.unseen && <i>1</i>}
                   </div>
-                  <small>{o.place}</small>
+                  <small data-clarity-mask="True">{o.place}</small>
                   <span className="order-status" data-tone={tone(o.status)}><i />{statusLine(o)}</span>
                 </div>
                 <div className="order-row-end">

@@ -6,11 +6,14 @@ import { RepostLanding } from "./RepostLanding.jsx";
 import { installTapFx } from "./ui/fx.jsx";
 import { readLoginWait } from "./loginWait.js";
 import { initErrors } from "./errors.js";
+import { initClarity } from "./clarity.js";
 import { Crash } from "./ui/Crash.jsx";
 import "./theme.css";
 
 // Першим — щоб і помилки решти ініціалізації дійшли в GlitchTip.
 initErrors("client");
+// Записи сесій — лише в проді на extrovert.cafe (clarity.js сам це перевіряє).
+initClarity();
 
 // Кільце тапу — один слухач на весь документ, а не обгортка кожної кнопки.
 installTapFx();

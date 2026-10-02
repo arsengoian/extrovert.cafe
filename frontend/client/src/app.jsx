@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
 import { api, getToken } from "./api.js";
 import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
+import { clarityScreen, clarityUser } from "./clarity.js";
 import { loadPlantAssets } from "./plant/assets.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
@@ -53,11 +54,11 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   const [stack, setStack] = useState([]);           // екрани поверх вкладки
   // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
   const where = stack[stack.length - 1]?.name ?? tab;
-  useEffect(() => { setErrorUser(me?.id); }, [me?.id]);
+  useEffect(() => { setErrorUser(me?.id); clarityUser(me?.id); }, [me?.id]);
   // Макет куща й розміри спрайтів — щойно відомо, що людина в акаунті, а не
   // коли відкриється кавенятко: інакше спрайти чекали ще й на ці файли.
   useEffect(() => { if (me) loadPlantAssets().catch(() => {}); }, [Boolean(me)]);
-  useEffect(() => { setErrorScope({ screen: where }); breadcrumb("navigation", where); }, [where]);
+  useEffect(() => { setErrorScope({ screen: where }); breadcrumb("navigation", where); clarityScreen(where); }, [where]);
   // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
   // розділі «Поза авторизацією» — ними користуються ще без акаунта.
   // Адреса документа (/privacy-policy) відкриває його одразу — спершу

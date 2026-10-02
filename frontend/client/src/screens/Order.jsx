@@ -87,7 +87,7 @@ export function Order({ id, ctx }) {
         <img src={src} alt="" style={{ width: w, height: h }} />
         <div className="co-name plain">
           <b>{order.name}</b>
-          <small className="order-meta">{order.beans} <Bean /><i className="vsep" />{order.place}</small>
+          <small className="order-meta">{order.beans} <Bean /><i className="vsep" /><span data-clarity-mask="True">{order.place}</span></small>
         </div>
       </div>
 

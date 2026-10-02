@@ -77,7 +77,7 @@ export function LoginConfirm({ token, onDone }) {
   if (step === "ask") {
     return screen(
       "Це ти входиш?",
-      <>Вхід в акаунт <b>{info.email}</b> попросили з пристрою <b>{info.device}</b>, {ago(info.requested_at)}.</>,
+      <>Вхід в акаунт <b data-clarity-mask="True">{info.email}</b> попросили з пристрою <b>{info.device}</b>, {ago(info.requested_at)}.</>,
       <>
         <button className="cta send start-cta" disabled={busy} onClick={yes}>Так, це я</button>
         <button className="btn" disabled={busy} onClick={no}>Ні, не я</button>

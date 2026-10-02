@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 130ff87</p>
+  <p class="eyebrow">extrovert.cafe · джерело 184742d</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1064,6 +1064,12 @@ SDK у <strong>свій проєкт</strong>: сповіщення, квоти 
 йдуть рядок запиту й фрагмент (там токени входу), користувач — лише id.
 DSN — у <code>.env.production</code> кожного застосунку, release — коміт збірки.
 Обрив звʼязку подією не вважається: про нього вже сказав тост.</p>
+<p><strong>Записи сесій — Microsoft Clarity</strong> (02.10.2026): <code>frontend/client/src/clarity.js</code>,
+лише прод-збірка й лише на <code>extrovert.cafe</code> — локальний сервер і превʼю
+воркера не пишуть нічого. До сесії — id акаунта (Clarity ще й хешує його)
+і тег <code>screen</code>, тож запис знаходиться за скаргою конкретного гравця. Чат,
+отримувач і адреса замовлення, пошта в профілі й на екранах входу позначені
+<code>data-clarity-mask</code> і в записи не потрапляють; поля вводу Clarity маскує сам.</p>
 <p><strong>Дивитись помилки — з консолі, не з веба</strong>: <code>bun scripts/errors.mjs</code>
 (список), <code>--open &lt;id&gt;</code> (стек і теги), <code>--resolve &lt;id&gt;</code>. Так попросив
 власник — у веб-інтерфейс він заглядати не буде, а помилки хтось має
@@ -12433,7 +12439,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 130ff87 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 184742d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

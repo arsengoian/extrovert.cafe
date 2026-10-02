@@ -34,7 +34,7 @@ export function Profile({ ctx }) {
               словом «Пошта» — адреса під ніком і так це каже (власник,
               28.09.2026). */}
           {me?.identity?.provider !== "email" && <small>{PROVIDER[me?.identity?.provider] ?? me?.identity?.provider}</small>}
-          {me?.identity?.email && <small className="selectable">{me.identity.email}</small>}
+          {me?.identity?.email && <small className="selectable" data-clarity-mask="True">{me.identity.email}</small>}
         </div>
       </div>
 
