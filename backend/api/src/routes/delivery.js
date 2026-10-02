@@ -10,6 +10,7 @@ import { fail } from "../errors.js";
 import { economy, shopProducts } from "../economy.js";
 import { notifyPlant } from "../notify.js";
 import { presign } from "@extrovert/lib/r2.js";
+import { enqueue } from "@extrovert/lib/outbox.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
 // У замовленнях — коротко й з розміром: «Футболка, M» (кадр «Мої замовлення»).
@@ -237,6 +238,23 @@ export default async function routes(app) {
       );
       await notifyPlant(user.id, `Замовлення прийнято: ${p.name} → ${address}.`, { client });
 
+      // Замовлення — одразу власнику в Telegram, з усім, що треба, щоб його
+      // зібрати й відправити (власник, 02.10.2026). Подія йде в канал admin
+      // тією самою транзакцією; її слухає overseer, як і скарги.
+      const { rows: who } = await client.query("select nickname from users where id = $1", [user.id]);
+      await enqueue(client, "admin", "order_created", {
+        order_id: Number(rows[0].id),
+        product: p.name,
+        options,
+        beans: price,
+        nickname: who[0]?.nickname ?? null,
+        recipient_name: name,
+        recipient_phone: phone,
+        address,
+        kind: warehouse.category,
+        print: snapshot ? { plant: snapshot.name, stage: snapshot.growth_stage } : null,
+      });
+
       return { ok: true, id: rows[0].id, status: rows[0].status, address, spent_beans: price,
                print_upload_url: snapshot ? printUpload(rows[0].id) : null };
     });
@@ -253,7 +271,18 @@ export default async function routes(app) {
     const head = link({ method: "HEAD", key: printKey(row.id), expiresIn: 60 });
     const res = head ? await fetch(head, { method: "HEAD" }).catch(() => null) : null;
     if (!res?.ok) fail(409, "not_uploaded");
-    await one("update redemptions set print_r2_key = $2 where id = $1 returning id", [row.id, printKey(row.id)]);
+    await tx(async (client) => {
+      const { rows: done } = await client.query(
+        "update redemptions set print_r2_key = $2 where id = $1 and print_r2_key is null returning id",
+        [row.id, printKey(row.id)]
+      );
+      // Файл для друкарні — слідом за повідомленням про замовлення, лише раз.
+      if (done.length) {
+        await enqueue(client, "admin", "order_print_ready", {
+          order_id: Number(row.id), plant: row.print_snapshot?.name ?? null, key: printKey(row.id),
+        });
+      }
+    });
     return { ok: true };
   });
 

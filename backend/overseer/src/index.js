@@ -129,11 +129,48 @@ const CATEGORY = {
   supplies: "витратники", idea: "ідея",
 };
 
+// Замовлення за зерна — теж одразу (власник, 02.10.2026): що, кому, куди й
+// чим друкувати. Телефон і імʼя отримувача — свідомо: з ними посилку
+// збирають і відправляють, не відкриваючи адмінку. Текст від гравців
+// (нікнейм, імʼя, адреса) екрануємо — повідомлення йде з parse_mode HTML.
+const ADMIN_URL = process.env.ADMIN_URL || "https://admin.extrovert.cafe";
+const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const OPTION = { size: "розмір" };
+
+function orderText(e) {
+  const options = Object.entries(e.options ?? {}).map(([k, v]) => `${OPTION[k] ?? k} ${v}`).join(", ");
+  return [
+    `📦 Нове замовлення №${e.order_id}${e.nickname ? ` від ${esc(e.nickname)}` : ""}`,
+    `${esc(e.product)}${options ? ` (${esc(options)})` : ""} — ${e.beans} зерен`,
+    e.print ? `Принт: кавенятко «${esc(e.print.plant || "без імені")}», стадія ${e.print.stage} — PNG прийде окремо` : null,
+    `Отримувач: ${esc(e.recipient_name)}, ${esc(e.recipient_phone)}`,
+    `Нова Пошта: ${esc(e.address)}`,
+    `${ADMIN_URL}/#/orders/${e.order_id}`,
+  ].filter(Boolean).join("\n");
+}
+
+// Файл для друкарні — прямим посиланням на тиждень (довше R2 не підписує):
+// його відкривають, коли передають замовлення в друк, а не в ту ж хвилину.
+function printText(e) {
+  let link = null;
+  try {
+    link = presign({ method: "GET", purpose: "uploads", key: e.key, expiresIn: 7 * 24 * 3600, filename: `принт-${e.order_id}.png` }).url;
+  } catch (err) {
+    log.warn({ err: err.message }, "не підписали посилання на принт");
+  }
+  return [
+    `🖼 Принт до замовлення №${e.order_id}${e.plant ? ` — «${esc(e.plant)}»` : ""}`,
+    link ? `<a href="${esc(link)}">Завантажити PNG</a>` : `Файл — в адмінці: ${ADMIN_URL}/#/orders/${e.order_id}`,
+  ].join("\n");
+}
+
 const sub = redisClient();
 await sub.subscribe("admin");
 sub.on("message", async (_channel, raw) => {
   let event;
   try { event = JSON.parse(raw); } catch { return; }
+  if (event.event === "order_created") { await send(orderText(event), { log }); return; }
+  if (event.event === "order_print_ready") { await send(printText(event), { log }); return; }
   if (event.event !== "problem_reported") return;
   const what = (event.categories ?? []).map((c) => CATEGORY[c] ?? c).join(", ");
   // Фото — прямим посиланням, а не файлом: бакет приватний, і тягнути

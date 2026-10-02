@@ -22,6 +22,7 @@ const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (_m, key) => vars[key] ?
 const MOOD = { healthy: "здоровий", sad: "сумний, давно без поливу", withered: "зів'ялий, дуже давно без поливу" };
 const POINT_STATUS = { live: "працює", paused: "тимчасово не працює", planned: "скоро відкриється" };
 const CARE_NAME = { water: "вода", compost: "компост", fertilizer: "добриво", insecticide: "інсектицид" };
+const PLANTING_NAME = { leaves: "листя", branches: "гілок", buds: "бутонів" };
 
 // Короткий зріз економіки: тільки те, про що реально питають.
 function economyLines() {
@@ -80,9 +81,17 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
   else if (growth) {
     const need = CARE_NAME[growth.need] ?? growth.need;
     const progress = growth.applications > 1 ? ` (застосовано ${growth.progress} з ${growth.applications})` : "";
-    lines.push(`ти хочеш зараз: ${need}${progress}`);
-    if (growth.planting) lines.push(`наступний крок — посадка: ${growth.planting}`);
-    if (growth.ready_at) lines.push(`наступна стадія відкриється ${new Date(growth.ready_at).toLocaleString("uk-UA")}`);
+    // Сирий ключ «leaves» модель повторювала як є: «наступний крок — посадка
+    // leaves» (30.09.2026). І поки діє добовий гейт, «хочу компост» — неправда:
+    // кавенятко радило його використати, а сервер відмовляв.
+    const planting = growth.planting ? `посадка ${PLANTING_NAME[growth.planting] ?? "елементів"}` : null;
+    if (growth.ready_at && new Date(growth.ready_at) > new Date()) {
+      const when = new Date(growth.ready_at).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+      lines.push(`сьогодні ти вже підріс; наступний крок (${[need, planting].filter(Boolean).join(" і ")}) відкриється ${when}, до того нічого робити не треба`);
+    } else {
+      lines.push(`ти хочеш зараз: ${need}${progress}`);
+      if (planting) lines.push(`разом із ним — ${planting}: гравець сам розставляє їх на тобі на екрані посадки`);
+    }
   }
 
   lines.push(`на поличці: ${care.water_liters} л води, ${care.compost_kg} компосту, ${care.fertilizer_kg} добрива, ${care.insecticide_bottles} інсектициду`);
