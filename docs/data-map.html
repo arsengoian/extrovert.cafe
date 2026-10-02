@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 09b151b</p>
+  <p class="eyebrow">extrovert.cafe · джерело 056ffcc</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2704,9 +2704,11 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 </code></pre>
 <p>Перший файл уже є: <code>db/seeds/item_defs.json</code> — 75 предметів із 15 наборів
 (<a class="doclink" href="#bush-graphics-customization"><code>bush_graphics_customization.md</code></a> §7.1) з прототипами назв і описів. Код —
-<code>&lt;набір&gt;_&lt;слот&gt;</code>, <code>sprite_id</code> поки збігається з кодом. Ще 5 рядків —
-вимкнений набір «Кавовий ковбой Deluxe» (<code>active: false</code>, 02.10.2026 його
-замінив «Паровий кавоман», <code>steampunk_*</code>): рядки з каталогу не видаляють.</p>
+<code>&lt;набір&gt;_&lt;слот&gt;</code>, <code>sprite_id</code> поки збігається з кодом. Набір «Кавовий ковбой
+Deluxe», який 02.10.2026 замінив «Паровий кавоман» (<code>steampunk_*</code>), прибрано
+з бази міграцією <code>20261002200000_drop_cowboy_deluxe</code>: речі гравців перейшли
+на стимпанк-предмет того самого слота, і лише тоді рядки видалено. Сід
+видаляти не вміє (нижче) — таке робить міграція.</p>
 <p>Сам інструмент — <code>scripts/seed.mjs</code> (запуск <code>bun</code>) у корені, поруч із <code>build-data-map.mjs</code>:
 у <code>db/</code> навмисно немає <code>package.json</code> (§6). Його ще немає.</p>
 <h3 id="db-команди"><a class="anchor" href="#db-команди" aria-hidden="true">#</a>Команди</h3>
@@ -9200,9 +9202,9 @@ ICP проєкту (<a class="doclink" href="#roadmap"><code>roadmap.md</code></
 колекції двічі не давав другому набору власного образу. Аксесуар —
 турка з шестернями в руці: ранець на спині ховали б куля, стовбур і листя.
 Шолом Кавонавта прозорий, бо інакше він єдиний закриває обличчя.
-У <code>db/seeds/item_defs.json</code> предмети Deluxe не видалено, а вимкнено
-(<code>active: false</code>) — на них можуть посилатися <code>user_items</code> (<a class="doclink" href="#db"><code>db-schema.md</code></a>
-§7, «Нічого не видаляє»).</em></p>
+Того ж дня (власник) Deluxe прибрано з бази зовсім: міграція
+<code>20261002200000_drop_cowboy_deluxe</code> перевела речі гравців на стимпанк-предмет
+того самого слота й видалила рядки; із сіду вони теж прибрані.</em></p>
 <p>🔄 <em>02.10.2026 (власник): слово «бариста» лишилось лише в «Строгому баристі» —
 «Паровий бариста» став «Паровим кавоманом», «Космічний бариста» —
 «Кавонавтом» (від «астронавт»). Змінено лише назви колекцій; коди
@@ -12576,7 +12578,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 09b151b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 056ffcc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

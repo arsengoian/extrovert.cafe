@@ -77,61 +77,6 @@
     "active": true
   },
   {
-    "code": "cowboy_deluxe_acc",
-    "name": "Круглі окуляри в латунній оправі",
-    "collection": "Кавовий ковбой Deluxe",
-    "description_md": "Шериф, який читає, — найнебезпечніший шериф.",
-    "slot": "acc_1",
-    "tier": "uncommon",
-    "sprite_id": "cowboy_deluxe_acc",
-    "price_coins": 200,
-    "active": false
-  },
-  {
-    "code": "cowboy_deluxe_body",
-    "name": "Сорочка з кавовим принтом",
-    "collection": "Кавовий ковбой Deluxe",
-    "description_md": "Замість клітинки — кавові зерна. Метелик лишився: класика не міняється.",
-    "slot": "body",
-    "tier": "uncommon",
-    "sprite_id": "cowboy_deluxe_body",
-    "price_coins": 200,
-    "active": false
-  },
-  {
-    "code": "cowboy_deluxe_feet",
-    "name": "Чоботи із зерновим візерунком",
-    "collection": "Кавовий ковбой Deluxe",
-    "description_md": "На халявах витиснені кавові зерна. Кожен крок пахне — ну, майже — арабікою.",
-    "slot": "feet",
-    "tier": "uncommon",
-    "sprite_id": "cowboy_deluxe_feet",
-    "price_coins": 200,
-    "active": false
-  },
-  {
-    "code": "cowboy_deluxe_head",
-    "name": "Крислатий капелюх Deluxe",
-    "collection": "Кавовий ковбой Deluxe",
-    "description_md": "Той самий капелюх, але зі стрічкою кольору смаженого зерна. Шериф отримав підвищення.",
-    "slot": "head",
-    "tier": "uncommon",
-    "sprite_id": "cowboy_deluxe_head",
-    "price_coins": 200,
-    "active": false
-  },
-  {
-    "code": "cowboy_deluxe_pants",
-    "name": "Темні джинси",
-    "collection": "Кавовий ковбой Deluxe",
-    "description_md": "Темніші за звичайні, як обсмаження «френч». Для особливих виїздів на ранчо.",
-    "slot": "pants",
-    "tier": "uncommon",
-    "sprite_id": "cowboy_deluxe_pants",
-    "price_coins": 200,
-    "active": false
-  },
-  {
     "code": "cowboy_feet",
     "name": "Ковбойські чоботи",
     "collection": "Ковбой",
