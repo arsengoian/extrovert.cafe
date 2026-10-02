@@ -21,7 +21,9 @@ import { leaveHandoff } from "../plant/handoff.js";
 // Місце слота в примірочній 328×199, картинки слота й листкової рамки.
 const SLOTS = {
   head: { at: [0, 0], bg: "slot_head", leaf: "leaf_head", size: [62, 36], label: "Голова" },
-  body: { at: [114, 0], bg: "slot_body", leaf: "leaf_body", size: [54, 57], label: "Торс" },
+  // Іконка торса ширша за інші: нові сорочки широкі (рукава), і в 54 px
+  // виходили дрібними. Слот не міняється — лише сама іконка (власник, 02.10.2026).
+  body: { at: [114, 0], bg: "slot_body", leaf: "leaf_body", size: [74, 57], label: "Торс" },
   pants: { at: [228, 0], bg: "slot_pants", leaf: "leaf_pants", size: [50, 58], label: "Штани" },
   feet: { at: [57, 99], bg: "slot_feet", leaf: "leaf_feet", size: [35, 59], label: "Взуття" },
   acc_1: { at: [171, 99], bg: "slot_acc1", leaf: "leaf_acc1", size: [55, 55], label: "Аксесуар" },

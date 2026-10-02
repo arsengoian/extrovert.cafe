@@ -61,18 +61,21 @@ export async function renderPrint(snapshot) {
     // Знімки до 02.10.2026 номера набору не мають — тоді обличчя A, як і
     // бачив гравець, коли замовляв.
     faceSet: snapshot.face_set_id ?? 1,
-  }).filter((i) => i.sprite && !SKIP.has(i.group));
+  }).filter((i) => (i.sprite && !SKIP.has(i.group)) || i.masks);
 
   // Розмір кожного спрайта — з sizes.json, як у Scene.jsx; межі — повернутого
   // прямокутника. Прозорі поля всередині спрайтів зріже обрізка в кінці.
-  const boxes = instances.map((inst) => {
+  const boxOf = (inst) => {
     const w = W0 * inst.scale;
     const size = assets.sizes?.[`${inst.group}/${inst.sprite}`];
     const h = size ? (w * size[1]) / size[0] : w;
     const a = ((inst.rotation ?? 0) * Math.PI) / 180;
     const c = Math.abs(Math.cos(a)), sn = Math.abs(Math.sin(a));
     return { inst, w, h, ex: (w * c + h * sn) / 2, ey: (w * sn + h * c) / 2 };
-  });
+  };
+  // Маскові шари одягу (копії гілок поверх речі) лежать у межах самої речі,
+  // тож рамку файла рахуємо лише за звичайними спрайтами.
+  const boxes = instances.filter((i) => i.sprite).map(boxOf);
   const minX = Math.min(...boxes.map((b) => b.inst.x - b.ex));
   const maxX = Math.max(...boxes.map((b) => b.inst.x + b.ex));
   const minY = Math.min(...boxes.map((b) => b.inst.y - b.ey));
@@ -91,29 +94,63 @@ export async function renderPrint(snapshot) {
   ctx.imageSmoothingQuality = "high";
 
   const shadow = { offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8, ...(assets.layout.shadow ?? {}) };
-  const images = await Promise.all(boxes.map((b) => image(`/assets/sprites/${b.inst.group}/${b.inst.sprite}`)));
-  const indexOf = new Map(boxes.map((b, n) => [`${b.inst.group}/${b.inst.sprite}`, n]));
-  boxes.forEach((b, n) => {
-    let img = images[n];
+  const keyOf = (i) => `${i.group}/${i.sprite}`;
+  const all = instances.flatMap((i) => (i.masks ? [...i.masks, ...i.children] : [i]));
+  const urls = [...new Set(all.map(keyOf))];
+  const loaded = await Promise.all(urls.map((u) => image(`/assets/sprites/${u}`)));
+  const imageOf = new Map(urls.map((u, n) => [u, loaded[n]]));
+  const boxByKey = new Map(boxes.map((b) => [keyOf(b.inst), b]));
+
+  const drawOne = (c, b, dx, dy) => {
+    let img = imageOf.get(keyOf(b.inst));
     if (!img) return;
     if (b.inst.clipTo) {
-      const m = indexOf.get(`${b.inst.group}/${b.inst.clipTo}`);
-      if (m !== undefined && images[m]) img = clipped(img, b, boxes[m], images[m], k);
+      const m = boxByKey.get(`${b.inst.group}/${b.inst.clipTo}`);
+      const mImg = imageOf.get(`${b.inst.group}/${b.inst.clipTo}`);
+      if (m && mImg) img = clipped(img, b, m, mImg, k);
     }
-    ctx.save();
+    c.save();
     // Тінь листя, гілок і плодів — як drop-shadow у Scene.jsx, у масштабі файла.
     if (shadow.enabled !== false && shadowed(b.inst.group)) {
-      ctx.shadowColor = `rgba(15,12,4,${shadow.opacity})`;
-      ctx.shadowOffsetX = shadow.offsetX * k;
-      ctx.shadowOffsetY = shadow.offsetY * k;
-      ctx.shadowBlur = shadow.blur * k;
+      c.shadowColor = `rgba(15,12,4,${shadow.opacity})`;
+      c.shadowOffsetX = shadow.offsetX * k;
+      c.shadowOffsetY = shadow.offsetY * k;
+      c.shadowBlur = shadow.blur * k;
     }
-    ctx.globalAlpha = b.inst.opacity ?? 1;
-    ctx.translate(ox + b.inst.x * k, oy + b.inst.y * k);
-    ctx.rotate(((b.inst.rotation ?? 0) * Math.PI) / 180);
-    ctx.drawImage(img, (-b.w * k) / 2, (-b.h * k) / 2, b.w * k, b.h * k);
-    ctx.restore();
-  });
+    c.globalAlpha = b.inst.opacity ?? 1;
+    c.translate(ox + b.inst.x * k - dx, oy + b.inst.y * k - dy);
+    c.rotate(((b.inst.rotation ?? 0) * Math.PI) / 180);
+    c.drawImage(img, (-b.w * k) / 2, (-b.h * k) / 2, b.w * k, b.h * k);
+    c.restore();
+  };
+
+  // Масковий шар одягу, як контейнер із CSS-маскою в Scene.jsx: копії гілок
+  // і листя на окреме полотно в межах першої маски, лишаємо те, що під нею
+  // (destination-in), і прибираємо те, що під масками "subtract" (куля-голова).
+  const drawMasked = (inst) => {
+    const [first, ...rest] = inst.masks.map(boxOf);
+    const x0 = Math.floor(ox + (first.inst.x - first.w / 2) * k), y0 = Math.floor(oy + (first.inst.y - first.h / 2) * k);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.ceil(first.w * k) + 2);
+    c.height = Math.max(1, Math.ceil(first.h * k) + 2);
+    const cx = c.getContext("2d");
+    cx.imageSmoothingQuality = "high";
+    [...inst.children].sort((a, b) => a.z - b.z).forEach((ch) => drawOne(cx, boxOf(ch), x0, y0));
+    const put = (b) => {
+      const img = imageOf.get(keyOf(b.inst));
+      if (img) cx.drawImage(img, ox + (b.inst.x - b.w / 2) * k - x0, oy + (b.inst.y - b.h / 2) * k - y0, b.w * k, b.h * k);
+    };
+    cx.globalCompositeOperation = "destination-in";
+    put(first);
+    cx.globalCompositeOperation = "destination-out";
+    rest.forEach(put);
+    ctx.drawImage(c, x0, y0);
+  };
+
+  for (const inst of instances) {
+    if (inst.masks) drawMasked(inst);
+    else drawOne(ctx, boxOf(inst), 0, 0);
+  }
 
   const out = trim(canvas);
   return new Promise((resolve, reject) => out.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("print_render_failed"))), "image/png"));

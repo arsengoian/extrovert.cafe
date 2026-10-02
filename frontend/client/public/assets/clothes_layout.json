@@ -1,0 +1,3470 @@
+{
+ "$comment": "Одяг для сцени кавенятка (design/sprites/pipeline/export_clothes_client.py — руками не правити). Координати шарів — у сцені дорослого куща 1000×1300 відносно тіла body; клієнт переносить їх від тіла під стадію. items[sprite_id].moods[normal|sad|very_sad] — шари предмета: {group, sprite, x, y — центр, scale = ширина/220, z}. reveal — маска отворів рукавів (крізь неї малюються руки-гілки поверх сорочки); foliage — поверх шару малюються копії гілок (без кулі ball) і передніх листків гравця в масці самого шару.",
+ "stage": {
+  "width": 1000,
+  "height": 1300
+ },
+ "scale_px": 1.5,
+ "body": {
+  "x": 505.9822805932306,
+  "y": 598.7093361475136,
+  "scale": 3.3078012117775537
+ },
+ "ball": {
+  "normal": {
+   "group": "clothes_common",
+   "sprite": "ball_normal.png",
+   "x": 503.67,
+   "y": 572.33,
+   "scale": 2.2697,
+   "z": 45
+  },
+  "sad": {
+   "group": "clothes_common",
+   "sprite": "ball_sad.png",
+   "x": 503.67,
+   "y": 592.0,
+   "scale": 2.11212,
+   "z": 45
+  },
+  "very_sad": {
+   "group": "clothes_common",
+   "sprite": "ball_very_sad.png",
+   "x": 509.0,
+   "y": 595.33,
+   "scale": 2.08788,
+   "z": 45
+  }
+ },
+ "slot_order": [
+  "pants",
+  "feet",
+  "body",
+  "head",
+  "acc_1"
+ ],
+ "sets": [
+  {
+   "key": "cowboy",
+   "label": "Ковбой",
+   "codes": {
+    "head": "cowboy_head",
+    "body": "cowboy_body",
+    "pants": "cowboy_pants",
+    "feet": "cowboy_feet",
+    "acc_1": "cowboy_acc"
+   },
+   "feet": "over_pants"
+  },
+  {
+   "key": "tropical_surfer",
+   "label": "Тропічний серфер",
+   "codes": {
+    "head": "surfer_head",
+    "body": "surfer_body",
+    "pants": "surfer_pants",
+    "feet": "surfer_feet",
+    "acc_1": "surfer_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "coffee_hipster",
+   "label": "Кав'ярний хіпстер",
+   "codes": {
+    "head": "hipster_head",
+    "body": "hipster_body",
+    "pants": "hipster_pants",
+    "feet": "hipster_feet",
+    "acc_1": "hipster_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "strict_barista",
+   "label": "Строгий бариста",
+   "codes": {
+    "head": "barista_head",
+    "body": "barista_body",
+    "pants": "barista_pants",
+    "feet": "barista_feet",
+    "acc_1": "barista_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "sporty",
+   "label": "Спортивний",
+   "codes": {
+    "head": "sporty_head",
+    "body": "sporty_body",
+    "pants": "sporty_pants",
+    "feet": "sporty_feet",
+    "acc_1": "sporty_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "student",
+   "label": "Студент",
+   "codes": {
+    "head": "student_head",
+    "body": "student_body",
+    "pants": "student_pants",
+    "feet": "student_feet",
+    "acc_1": "student_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "rainy_kyiv",
+   "label": "Дощовий Київ",
+   "codes": {
+    "head": "rainy_kyiv_head",
+    "body": "rainy_kyiv_body",
+    "pants": "rainy_kyiv_pants",
+    "feet": "rainy_kyiv_feet",
+    "acc_1": "rainy_kyiv_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "skater",
+   "label": "Скейтер",
+   "codes": {
+    "head": "skater_head",
+    "body": "skater_body",
+    "pants": "skater_pants",
+    "feet": "skater_feet",
+    "acc_1": "skater_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "steampunk_barista",
+   "label": "Паровий кавоман",
+   "codes": {
+    "head": "steampunk_head",
+    "body": "steampunk_body",
+    "pants": "steampunk_pants",
+    "feet": "steampunk_feet",
+    "acc_1": "steampunk_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "dj_clubber",
+   "label": "DJ/Клубер",
+   "codes": {
+    "head": "dj_head",
+    "body": "dj_body",
+    "pants": "dj_pants",
+    "feet": "dj_feet",
+    "acc_1": "dj_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "retro_gamer",
+   "label": "Ретро-геймер",
+   "codes": {
+    "head": "retro_gamer_head",
+    "body": "retro_gamer_body",
+    "pants": "retro_gamer_pants",
+    "feet": "retro_gamer_feet",
+    "acc_1": "retro_gamer_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "traveler",
+   "label": "Мандрівник",
+   "codes": {
+    "head": "traveler_head",
+    "body": "traveler_body",
+    "pants": "traveler_pants",
+    "feet": "traveler_feet",
+    "acc_1": "traveler_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "coffee_pirate",
+   "label": "Пірат Кавових морів",
+   "codes": {
+    "head": "pirate_head",
+    "body": "pirate_body",
+    "pants": "pirate_pants",
+    "feet": "pirate_feet",
+    "acc_1": "pirate_acc"
+   },
+   "feet": "over_pants"
+  },
+  {
+   "key": "space_barista",
+   "label": "Кавонавт",
+   "codes": {
+    "head": "space_barista_head",
+    "body": "space_barista_body",
+    "pants": "space_barista_pants",
+    "feet": "space_barista_feet",
+    "acc_1": "space_barista_acc"
+   },
+   "feet": "under_pants"
+  },
+  {
+   "key": "coffee_magnate",
+   "label": "Кавовий магнат",
+   "codes": {
+    "head": "magnate_head",
+    "body": "magnate_body",
+    "pants": "magnate_pants",
+    "feet": "magnate_feet",
+    "acc_1": "magnate_acc"
+   },
+   "feet": "under_pants"
+  }
+ ],
+ "items": {
+  "cowboy_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "head.png",
+      "x": 513.0,
+      "y": 327.0,
+      "scale": 2.39697,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "head.png",
+      "x": 513.0,
+      "y": 360.4,
+      "scale": 2.39697,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "head.png",
+      "x": 513.0,
+      "y": 360.4,
+      "scale": 2.39697,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "cowboy_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 853.33,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_cowboy",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 853.33,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_cowboy",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 853.33,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_cowboy",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "cowboy_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ]
+   }
+  },
+  "cowboy_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 43
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 43
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_cowboy",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 43
+     }
+    ]
+   }
+  },
+  "cowboy_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "acc_1.png",
+      "x": 502.33,
+      "y": 596.33,
+      "scale": 2.48788,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "acc_1.png",
+      "x": 502.33,
+      "y": 596.33,
+      "scale": 2.48788,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_cowboy",
+      "sprite": "acc_1.png",
+      "x": 502.33,
+      "y": 596.33,
+      "scale": 2.48788,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "surfer_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "body.png",
+      "x": 499.67,
+      "y": 845.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_tropical_surfer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "body.png",
+      "x": 499.67,
+      "y": 845.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_tropical_surfer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "body.png",
+      "x": 499.67,
+      "y": 845.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_tropical_surfer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "surfer_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "surfer_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "surfer_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "head.png",
+      "x": 500.67,
+      "y": 325.33,
+      "scale": 2.07879,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "head.png",
+      "x": 500.67,
+      "y": 358.73,
+      "scale": 2.07879,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "head.png",
+      "x": 500.67,
+      "y": 358.73,
+      "scale": 2.07879,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "surfer_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "acc_1.png",
+      "x": 712.33,
+      "y": 777.33,
+      "scale": 0.59091,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "acc_1.png",
+      "x": 712.33,
+      "y": 777.33,
+      "scale": 0.59091,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_tropical_surfer",
+      "sprite": "acc_1.png",
+      "x": 712.33,
+      "y": 777.33,
+      "scale": 0.59091,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "hipster_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 845.0,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_hipster",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 845.0,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_hipster",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 845.0,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_hipster",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "hipster_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "hipster_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "hipster_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 336.0,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 369.4,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 369.4,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "hipster_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.27273,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.27273,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_hipster",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.27273,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "barista_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 851.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_strict_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 851.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_strict_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 851.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_strict_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "barista_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "barista_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "barista_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 335.67,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 369.07,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 369.07,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "barista_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "acc_1.png",
+      "x": 475.67,
+      "y": 842.33,
+      "scale": 0.3303,
+      "z": 46
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "acc_1.png",
+      "x": 475.67,
+      "y": 842.33,
+      "scale": 0.3303,
+      "z": 46
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_strict_barista",
+      "sprite": "acc_1.png",
+      "x": 475.67,
+      "y": 842.33,
+      "scale": 0.3303,
+      "z": 46
+     }
+    ]
+   }
+  },
+  "sporty_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 842.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_sporty",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 842.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_sporty",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 842.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_sporty",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "sporty_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "pants.png",
+      "x": 500.0,
+      "y": 925.67,
+      "scale": 0.66667,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "pants.png",
+      "x": 500.0,
+      "y": 925.67,
+      "scale": 0.66667,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "pants.png",
+      "x": 500.0,
+      "y": 925.67,
+      "scale": 0.66667,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "sporty_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.33,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.33,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.33,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_sporty",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "sporty_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 395.67,
+      "scale": 2.00606,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 429.07,
+      "scale": 2.00606,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 429.07,
+      "scale": 2.00606,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "sporty_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "acc_1.png",
+      "x": 342.33,
+      "y": 969.0,
+      "scale": 0.61515,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "acc_1.png",
+      "x": 342.33,
+      "y": 969.0,
+      "scale": 0.61515,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_sporty",
+      "sprite": "acc_1.png",
+      "x": 342.33,
+      "y": 969.0,
+      "scale": 0.61515,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "student_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_student",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 846.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_student",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 846.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_student",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 846.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_student",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "student_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_student",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "student_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_student",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_student",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_student",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_student",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "student_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_student",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 283.0,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 316.4,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 316.4,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "student_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_student",
+      "sprite": "acc_1.png",
+      "x": 501.67,
+      "y": 598.0,
+      "scale": 2.13636,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "acc_1.png",
+      "x": 501.67,
+      "y": 598.0,
+      "scale": 2.13636,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_student",
+      "sprite": "acc_1.png",
+      "x": 501.67,
+      "y": 598.0,
+      "scale": 2.13636,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "rainy_kyiv_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 841.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_rainy_kyiv",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 841.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_rainy_kyiv",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 841.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_rainy_kyiv",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "rainy_kyiv_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "rainy_kyiv_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_L.png",
+      "x": 450.0,
+      "y": 990.0,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_L.png",
+      "x": 450.0,
+      "y": 990.0,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "feet_L.png",
+      "x": 450.0,
+      "y": 990.0,
+      "scale": 0.41212,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "rainy_kyiv_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 316.0,
+      "scale": 2.36364,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 349.4,
+      "scale": 2.36364,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 349.4,
+      "scale": 2.36364,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "rainy_kyiv_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_back.png",
+      "x": 786.0,
+      "y": 657.67,
+      "scale": 1.60606,
+      "z": 44
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_front.png",
+      "x": 813.33,
+      "y": 657.67,
+      "scale": 1.35758,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_back.png",
+      "x": 786.0,
+      "y": 657.67,
+      "scale": 1.60606,
+      "z": 44
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_front_sad.png",
+      "x": 813.33,
+      "y": 657.67,
+      "scale": 1.35758,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_back.png",
+      "x": 786.0,
+      "y": 657.67,
+      "scale": 1.60606,
+      "z": 44
+     },
+     {
+      "group": "clothes_rainy_kyiv",
+      "sprite": "acc_1_front_very_sad.png",
+      "x": 788.67,
+      "y": 657.67,
+      "scale": 1.58182,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "skater_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_skater",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 845.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_skater",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 845.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_skater",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 845.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_skater",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "skater_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_skater",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.67,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "skater_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_skater",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "skater_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_skater",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 318.33,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 351.73,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 351.73,
+      "scale": 2.13333,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "skater_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_skater",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_skater",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "steampunk_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_steampunk_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_steampunk_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.33,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_steampunk_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "steampunk_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "steampunk_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "steampunk_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 307.0,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 340.4,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "head.png",
+      "x": 506.0,
+      "y": 340.4,
+      "scale": 1.72727,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "steampunk_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "acc_1.png",
+      "x": 251.67,
+      "y": 891.33,
+      "scale": 0.97879,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "acc_1.png",
+      "x": 251.67,
+      "y": 891.33,
+      "scale": 0.97879,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_steampunk_barista",
+      "sprite": "acc_1.png",
+      "x": 251.67,
+      "y": 891.33,
+      "scale": 0.97879,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "dj_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_dj_clubber",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_dj_clubber",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "body.png",
+      "x": 501.0,
+      "y": 848.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_dj_clubber",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "dj_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.33,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "dj_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "dj_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "head.png",
+      "x": 500.0,
+      "y": 501.67,
+      "scale": 2.98788,
+      "z": 66,
+      "foliage": true
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "head.png",
+      "x": 500.0,
+      "y": 535.07,
+      "scale": 2.98788,
+      "z": 66,
+      "foliage": true
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "head.png",
+      "x": 500.0,
+      "y": 535.07,
+      "scale": 2.98788,
+      "z": 66,
+      "foliage": true
+     }
+    ]
+   }
+  },
+  "dj_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_dj_clubber",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "retro_gamer_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_retro_gamer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_retro_gamer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.0,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_retro_gamer",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "retro_gamer_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "retro_gamer_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 38
+     },
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "retro_gamer_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "head.png",
+      "x": 511.0,
+      "y": 456.0,
+      "scale": 2.11212,
+      "z": 66,
+      "foliage": true
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "head.png",
+      "x": 511.0,
+      "y": 489.4,
+      "scale": 2.11212,
+      "z": 66,
+      "foliage": true
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "head.png",
+      "x": 511.0,
+      "y": 489.4,
+      "scale": 2.11212,
+      "z": 66,
+      "foliage": true
+     }
+    ]
+   }
+  },
+  "retro_gamer_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_retro_gamer",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.36364,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "traveler_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 843.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_traveler",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 843.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_traveler",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "body.png",
+      "x": 502.0,
+      "y": 843.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_traveler",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "traveler_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "traveler_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_traveler",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.33,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "traveler_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 342.0,
+      "scale": 2.45455,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 375.4,
+      "scale": 2.45455,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "head.png",
+      "x": 508.67,
+      "y": 375.4,
+      "scale": 2.45455,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "traveler_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_traveler",
+      "sprite": "acc_1.png",
+      "x": 501.33,
+      "y": 598.0,
+      "scale": 2.45455,
+      "z": 65
+     }
+    ]
+   }
+  },
+  "pirate_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 848.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_pirate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 848.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_pirate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 848.67,
+      "scale": 1.24848,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_pirate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "pirate_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "pants.png",
+      "x": 501.0,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "pants.png",
+      "x": 501.0,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "pants.png",
+      "x": 501.0,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 38
+     }
+    ]
+   }
+  },
+  "pirate_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 43
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 43
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_R.png",
+      "x": 551.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 40
+     },
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 990.0,
+      "scale": 0.41515,
+      "z": 43
+     }
+    ]
+   }
+  },
+  "pirate_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "head.png",
+      "x": 527.67,
+      "y": 278.67,
+      "scale": 3.14848,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "head.png",
+      "x": 527.67,
+      "y": 312.07,
+      "scale": 3.14848,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "head.png",
+      "x": 527.67,
+      "y": 312.07,
+      "scale": 3.14848,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "pirate_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "acc_1.png",
+      "x": 321.33,
+      "y": 766.0,
+      "scale": 0.60606,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "acc_1.png",
+      "x": 321.33,
+      "y": 766.0,
+      "scale": 0.60606,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_pirate",
+      "sprite": "acc_1.png",
+      "x": 321.33,
+      "y": 766.0,
+      "scale": 0.60606,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "space_barista_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "body.png",
+      "x": 500.33,
+      "y": 837.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_space_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "body.png",
+      "x": 500.33,
+      "y": 837.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_space_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "body.png",
+      "x": 500.33,
+      "y": 837.67,
+      "scale": 1.25152,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_space_barista",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "space_barista_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "pants.png",
+      "x": 500.33,
+      "y": 925.33,
+      "scale": 0.6697,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "space_barista_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 989.67,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 989.67,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 989.67,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_space_barista",
+      "sprite": "feet_L.png",
+      "x": 449.67,
+      "y": 989.67,
+      "scale": 0.41515,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "space_barista_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "head.png",
+      "x": 502.0,
+      "y": 507.33,
+      "scale": 2.65455,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "head.png",
+      "x": 502.0,
+      "y": 540.73,
+      "scale": 2.65455,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "head.png",
+      "x": 502.0,
+      "y": 540.73,
+      "scale": 2.65455,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "space_barista_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "acc_1.png",
+      "x": 291.0,
+      "y": 799.33,
+      "scale": 0.85152,
+      "z": 66
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "acc_1.png",
+      "x": 291.0,
+      "y": 799.33,
+      "scale": 0.85152,
+      "z": 66
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_space_barista",
+      "sprite": "acc_1.png",
+      "x": 291.0,
+      "y": 799.33,
+      "scale": 0.85152,
+      "z": 66
+     }
+    ]
+   }
+  },
+  "magnate_body": {
+   "slot": "body",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_magnate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_magnate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "body.png",
+      "x": 501.33,
+      "y": 847.33,
+      "scale": 1.25455,
+      "z": 44,
+      "reveal": {
+       "group": "clothes_coffee_magnate",
+       "sprite": "body_reveal.png",
+       "under": "branch_arms_fixed"
+      }
+     }
+    ]
+   }
+  },
+  "magnate_pants": {
+   "slot": "pants",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "pants.png",
+      "x": 500.67,
+      "y": 925.67,
+      "scale": 0.67273,
+      "z": 42
+     }
+    ]
+   }
+  },
+  "magnate_feet": {
+   "slot": "feet",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_R.png",
+      "x": 551.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 38
+     },
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "feet_L.png",
+      "x": 449.33,
+      "y": 990.0,
+      "scale": 0.41818,
+      "z": 39
+     }
+    ]
+   }
+  },
+  "magnate_head": {
+   "slot": "head",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "head.png",
+      "x": 520.0,
+      "y": 272.67,
+      "scale": 2.72121,
+      "z": 64
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "head.png",
+      "x": 520.0,
+      "y": 306.07,
+      "scale": 2.72121,
+      "z": 64
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "head.png",
+      "x": 520.0,
+      "y": 306.07,
+      "scale": 2.72121,
+      "z": 64
+     }
+    ]
+   }
+  },
+  "magnate_acc": {
+   "slot": "acc_1",
+   "moods": {
+    "normal": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "acc_1.png",
+      "x": 546.67,
+      "y": 869.67,
+      "scale": 0.34545,
+      "z": 46
+     }
+    ],
+    "sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "acc_1.png",
+      "x": 546.67,
+      "y": 869.67,
+      "scale": 0.34545,
+      "z": 46
+     }
+    ],
+    "very_sad": [
+     {
+      "group": "clothes_coffee_magnate",
+      "sprite": "acc_1.png",
+      "x": 546.67,
+      "y": 869.67,
+      "scale": 0.34545,
+      "z": 46
+     }
+    ]
+   }
+  }
+ }
+}

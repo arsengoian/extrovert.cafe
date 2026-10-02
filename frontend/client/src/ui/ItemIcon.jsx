@@ -1,13 +1,14 @@
 // Іконка предмета одягу: конвенція одна — /assets/ui/<sprite_id>.webp (WebP-копія
 // PNG, scripts/build-webp.mjs).
-// Частина спрайтів ще не намальована, тому замість
+// Якщо іконки немає (предмет новіший за клієнт), замість
 // битої картинки показуємо заглушку: порожня клітинка виглядала б як
 // «нічого не вдягнено», а це неправда. Там, де назва вже підписана поруч
 // (сітки каталога й складу), name не передають — інакше вона двоїться.
 import { useState } from "react";
 
-// Іконки, намальовані під іншою назвою: капелюх ковбоя в макеті — ui/hat.png.
-const ALIAS = { cowboy_head: "hat" };
+// Іконки всіх 75 предметів — design/sprites/pipeline/export_clothes_client.py
+// (обрізані по вмісту спрайти, взуття — лівий черевик). ui/hat.png лишився
+// значком розділу одягу в крамниці, а не іконкою предмета.
 
 export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
   const [broken, setBroken] = useState(false);
@@ -22,7 +23,7 @@ export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
 
   return (
     <img
-      src={`/assets/ui/${ALIAS[sprite] ?? sprite}.webp`}
+      src={`/assets/ui/${sprite}.webp`}
       alt={alt}
       style={{ width: "100%", height: size, objectFit: "contain", ...style }}
       onError={() => setBroken(true)}

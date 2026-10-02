@@ -96,6 +96,33 @@ function clipMaskOf(inst, w, h, instances, sizes) {
   };
 }
 
+// Маскові шари одягу (scene.js, wornInstances): контейнер на всю сцену з
+// CSS-маскою, а всередині — копії гілок/листя, які мають лягти поверх речі.
+// Маска — картинки шарів у координатах сцени: перша — де можна малювати
+// (отвори рукавів, сам убір), наступні з op "subtract" віднімаються (куля-
+// голова: гілки за нею не мають вилазити на неї). Копії гойдаються разом з
+// оригіналами (та сама затримка пориву), а маска стоїть — як і річ під нею.
+function maskLayersOf(masks, sizes) {
+  const parts = masks.map((m) => {
+    const w = W0 * m.scale;
+    const size = sizes?.[`${m.group}/${m.sprite}`];
+    const h = size ? (w * size[1]) / size[0] : w;
+    return { url: `url("${webp(`/assets/sprites/${m.group}/${m.sprite}`)}")`, pos: `${m.x - w / 2}px ${m.y - h / 2}px`, size: `${w}px ${h}px`, op: m.op };
+  });
+  const list = (f) => parts.map(f).join(", ");
+  // Стандарт: оператор шару застосовується до нього й шарів під ним —
+  // «subtract» на першому (верхньому) шарі лишає його поза рештою.
+  const composite = parts.length > 1 ? parts.map((_, i) => (parts[i + 1]?.op === "subtract" ? "subtract" : "add")) : null;
+  return {
+    maskImage: list((p) => p.url), maskPosition: list((p) => p.pos), maskSize: list((p) => p.size), maskRepeat: list(() => "no-repeat"),
+    WebkitMaskImage: list((p) => p.url), WebkitMaskPosition: list((p) => p.pos), WebkitMaskSize: list((p) => p.size), WebkitMaskRepeat: list(() => "no-repeat"),
+    ...(composite ? {
+      maskComposite: composite.join(", "),
+      WebkitMaskComposite: composite.map((c) => (c === "subtract" ? "source-out" : "source-over")).join(", "),
+    } : {}),
+  };
+}
+
 const filterCss = (cfg) => {
   if (!cfg) return "";
   const sat = Number(cfg.saturate), bri = Number(cfg.brightness);
@@ -186,6 +213,84 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     ? `drop-shadow(${shadow.offsetX}px ${shadow.offsetY}px ${shadow.blur}px rgba(15,12,4,${shadow.opacity}))`
     : "";
 
+  // Один спрайт сцени (і копія всередині маскового шару одягу).
+  const drawSprite = (inst, n) => {
+    const w = W0 * inst.scale;
+    if (isGroundShadow(inst.group)) {
+      return (
+        <div
+          key={`g${n}`}
+          style={{
+            position: "absolute", left: inst.x, top: inst.y, width: w, height: w * 0.35,
+            borderRadius: "50%", zIndex: inst.z,
+            background: `radial-gradient(closest-side, rgba(${inst.color ?? "90,90,90"},${inst.opacity ?? 0.4}) 65%, rgba(${inst.color ?? "90,90,90"},0) 100%)`,
+            filter: `blur(${inst.blur ?? 8}px)`,
+            transform: `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
+          }}
+        />
+      );
+    }
+
+    const parts = [];
+    const tint = isFruit(inst.group) ? fruitFilter : moodFilter;
+    if (tint) parts.push(tint);
+    if ((isLeaf(inst.group) || isBranch(inst.group) || isFruit(inst.group)) && dropShadow) parts.push(dropShadow);
+    // noShadow — внутрішні шари ока B–E (білок, повіка): тінь ока дає ціле
+    // око під ними, а друга тінь лягла б усередину ока.
+    if (isFace(inst.group) && faceShadow.enabled && !inst.noShadow) {
+      const sp = (inst.sprite || "").toLowerCase();
+      // Брови кидають тінь вниз, решта деталей обличчя — вгору.
+      const side = sp.includes("_brow") ? 1 : /_eye|_pupil|_mouth/.test(sp) ? -1 : 0;
+      if (side) parts.push(`drop-shadow(0px ${side * faceShadow.offset}px ${faceShadow.blur}px rgba(8,28,10,${faceShadow.opacity}))`);
+    }
+
+    const sway = swayOf(inst.group);
+    const [px, py] = sway ? pivotOf(metaOf(assets?.sprites, inst.group, inst.sprite), w) : [0, 0];
+    // Висота — наперед, із природного розміру (sizes.json). Спрайт
+    // центрується зсувом на −50% власної висоти, і з height: auto до
+    // завантаження вона нульова: листок стояв нижче свого місця й
+    // підскакував, щойно картинка доїжджала — кущ «стрибав», поки
+    // промальовувався (власник, 27.09.2026). Розміру немає (новий
+    // спрайт, маніфест не оновили) — ховаємо картинку до завантаження:
+    // краще з'явитись із запізненням, ніж підстрибнути.
+    const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
+    const url = `/assets/sprites/${inst.group}/${inst.sprite}`;
+    const h = size ? (w * size[1]) / size[0] : w;
+    const mask = clipMaskOf(inst, w, h, instances, assets?.sizes);
+    // Порив: деталі обличчя — з однією затримкою, щоб шари ока (ціле око,
+    // білок, зіниця, повіка) не розходились між собою на хвилі.
+    // Розкид сусідам — від положення, а не від номера в списку: копія гілки
+    // в масці одягу (scene.js) має гойднутись разом зі своїм оригіналом.
+    const gustDelay = isFace(inst.group)
+      ? Math.round(GUST_TRAVEL_MS / 2)
+      : Math.round((inst.x / STAGE_W) * GUST_TRAVEL_MS + (Math.round(inst.x + inst.y) % 3) * 40);
+    return (
+      <img
+        key={`l${n}`}
+        src={webp(url)}
+        srcSet={srcSetOf(url)}
+        sizes={`${Math.max(1, Math.ceil(w * k))}px`}
+        alt=""
+        data-sway={sway}
+        data-pop={inst.pop || undefined}
+        onLoad={size ? undefined : (e) => { e.currentTarget.style.visibility = "visible"; }}
+        style={{
+          position: "absolute", left: inst.x, top: inst.y, width: w, height: size ? (w * size[1]) / size[0] : "auto",
+          visibility: size ? undefined : "hidden",
+          transform: sway
+            ? `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg) translate(${px}px, ${py}px) rotate(var(--sway, 0deg)) translate(${-px}px, ${-py}px)`
+            : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
+          zIndex: inst.z, filter: parts.join(" ") || "none",
+          opacity: inst.opacity ?? 1,
+          ...mask,
+          // Коли до цього спрайта дійде хвиля пориву: чим правіше, тим
+          // пізніше; крихітна розбіжність сусідам, щоб не рухались строєм.
+          ...(sway ? { "--gd": `${gustDelay}ms` } : {}),
+        }}
+      />
+    );
+  };
+
   return (
     <div
       ref={root}
@@ -200,80 +305,19 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
         ...style,
       }}
     >
-      {instances.map((inst, n) => {
-        const w = W0 * inst.scale;
-        if (isGroundShadow(inst.group)) {
-          return (
-            <div
-              key={`g${n}`}
-              style={{
-                position: "absolute", left: inst.x, top: inst.y, width: w, height: w * 0.35,
-                borderRadius: "50%", zIndex: inst.z,
-                background: `radial-gradient(closest-side, rgba(${inst.color ?? "90,90,90"},${inst.opacity ?? 0.4}) 65%, rgba(${inst.color ?? "90,90,90"},0) 100%)`,
-                filter: `blur(${inst.blur ?? 8}px)`,
-                transform: `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
-              }}
-            />
-          );
-        }
-
-        const parts = [];
-        const tint = isFruit(inst.group) ? fruitFilter : moodFilter;
-        if (tint) parts.push(tint);
-        if ((isLeaf(inst.group) || isBranch(inst.group) || isFruit(inst.group)) && dropShadow) parts.push(dropShadow);
-        // noShadow — внутрішні шари ока B–E (білок, повіка): тінь ока дає ціле
-        // око під ними, а друга тінь лягла б усередину ока.
-        if (isFace(inst.group) && faceShadow.enabled && !inst.noShadow) {
-          const sp = (inst.sprite || "").toLowerCase();
-          // Брови кидають тінь вниз, решта деталей обличчя — вгору.
-          const side = sp.includes("_brow") ? 1 : /_eye|_pupil|_mouth/.test(sp) ? -1 : 0;
-          if (side) parts.push(`drop-shadow(0px ${side * faceShadow.offset}px ${faceShadow.blur}px rgba(8,28,10,${faceShadow.opacity}))`);
-        }
-
-        const sway = swayOf(inst.group);
-        const [px, py] = sway ? pivotOf(metaOf(assets?.sprites, inst.group, inst.sprite), w) : [0, 0];
-        // Висота — наперед, із природного розміру (sizes.json). Спрайт
-        // центрується зсувом на −50% власної висоти, і з height: auto до
-        // завантаження вона нульова: листок стояв нижче свого місця й
-        // підскакував, щойно картинка доїжджала — кущ «стрибав», поки
-        // промальовувався (власник, 27.09.2026). Розміру немає (новий
-        // спрайт, маніфест не оновили) — ховаємо картинку до завантаження:
-        // краще з'явитись із запізненням, ніж підстрибнути.
-        const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
-        const url = `/assets/sprites/${inst.group}/${inst.sprite}`;
-        const h = size ? (w * size[1]) / size[0] : w;
-        const mask = clipMaskOf(inst, w, h, instances, assets?.sizes);
-        // Порив: деталі обличчя — з однією затримкою, щоб шари ока (ціле око,
-        // білок, зіниця, повіка) не розходились між собою на хвилі.
-        const gustDelay = isFace(inst.group)
-          ? Math.round(GUST_TRAVEL_MS / 2)
-          : Math.round((inst.x / STAGE_W) * GUST_TRAVEL_MS + (n % 3) * 40);
-        return (
-          <img
-            key={`l${n}`}
-            src={webp(url)}
-            srcSet={srcSetOf(url)}
-            sizes={`${Math.max(1, Math.ceil(w * k))}px`}
-            alt=""
-            data-sway={sway}
-            data-pop={inst.pop || undefined}
-            onLoad={size ? undefined : (e) => { e.currentTarget.style.visibility = "visible"; }}
+      {instances.map((inst, n) => (inst.masks
+        ? (
+          <div
+            key={`m${n}`}
             style={{
-              position: "absolute", left: inst.x, top: inst.y, width: w, height: size ? (w * size[1]) / size[0] : "auto",
-              visibility: size ? undefined : "hidden",
-              transform: sway
-                ? `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg) translate(${px}px, ${py}px) rotate(var(--sway, 0deg)) translate(${-px}px, ${-py}px)`
-                : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
-              zIndex: inst.z, filter: parts.join(" ") || "none",
-              opacity: inst.opacity ?? 1,
-              ...mask,
-              // Коли до цього спрайта дійде хвиля пориву: чим правіше, тим
-              // пізніше; крихітна розбіжність сусідам, щоб не рухались строєм.
-              ...(sway ? { "--gd": `${gustDelay}ms` } : {}),
+              position: "absolute", left: 0, top: 0, width: STAGE_W, height: STAGE_H, zIndex: inst.z,
+              ...maskLayersOf(inst.masks, assets?.sizes),
             }}
-          />
-        );
-      })}
+          >
+            {[...inst.children].sort((a, b) => a.z - b.z).map((c, j) => drawSprite(c, `${n}-${j}`))}
+          </div>
+        )
+        : drawSprite(inst, n)))}
       {children}
     </div>
   );

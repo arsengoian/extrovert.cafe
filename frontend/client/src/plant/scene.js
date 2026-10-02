@@ -162,16 +162,18 @@ export function playerInstances(appearance, stage, mood) {
       }));
     }
   }
+  // front — «листя на чолі»: гілки й передні листки, які лягають поверх
+  // уборів із foliage (навушники, пов'язка; wornInstances).
   if (stage >= 3) {
     for (const b of a.branches ?? []) {
-      out.push(grow(b, { group: branchGroup(mood), sprite: branchSprite(b.skin, mood), z: 41 }));
+      out.push(grow(b, { group: branchGroup(mood), sprite: branchSprite(b.skin, mood), z: 41, front: "branch" }));
     }
   }
   if (stage >= 2) {
     for (const l of a.leaves_fg ?? []) {
       out.push(grow(l, {
         group: leafGroup(mood), sprite: leafSprite(l.skin, mood),
-        rotation: gravityDroop(l.rotation ?? 0, mood), z: 53,
+        rotation: gravityDroop(l.rotation ?? 0, mood), z: 53, front: "leaf",
       }));
     }
   }
@@ -187,44 +189,59 @@ export function playerInstances(appearance, stage, mood) {
   return out;
 }
 
-// Одяг: карта «спрайт предмета → шари в макеті». Повної мапи ще немає —
-// намальований лише ковбойський комплект, тож малюємо його; решта поки
-// видно лише в слотах примірочної.
-const CLOTHING = {
-  cowboy_head: ["clothing_cowboy_head/clothing_cowboy_head.png"],
-  cowboy_body: ["clothing_cowboy/clothing_cowboy_body.png"],
-  cowboy_pants: ["clothing_cowboy/clothing_cowboy_pants.png"],
-  cowboy_feet: ["clothing_cowboy/clothing_cowboy_feet_L.png", "clothing_cowboy/clothing_cowboy_feet_R.png"],
-  cowboy_acc: ["clothing_cowboy_acc1/clothing_cowboy_acc1.png"],
-};
+// Одяг — assets/clothes_layout.json (layout.clothes), його збирає
+// design/sprites/pipeline/export_clothes_client.py з того, що власник
+// припасував у clothes_sets_viewer.html. Кожен предмет там уже запечений у
+// PNG (перспектива, поворот, розтяг під силует — у пікселях), тож тут лише
+// перенос: шари лежать у координатах дорослого куща, і кожен кладемо
+// ВІДНОСНО тіла — так річ сидить на будь-якій стадії (на стадії 1 тіло іншого
+// розміру й ще й підняте на стовбурі). Настрій вибирає свій набір шарів:
+// у сумному й зів'ялому голова осідає, і головний убір опускається з нею.
+//
+// Дві особливості, які не запекти в одну картинку, бо залежать від куща
+// гравця, — маскові шари (Scene.jsx малює їх контейнером із CSS-маскою):
+//   * reveal (сорочки): копія рук-гілок поверх сорочки в масці отворів
+//     рукавів — гілки виходять із рукавів, а не з-під тканини;
+//   * foliage (навушники, пов'язка): копії гілок і передніх листків гравця
+//     поверх убору в масці самого убору; гілки ще й без кулі-голови (маска
+//     ball), бо вони за нею. Убір тоді над окулярами, але під листям на чолі.
+const SLOT_RANK = { pants: 0, feet: 1, body: 2, head: 3, acc_1: 4 };
 
-// Речі в макеті лежать у координатах дорослого куща. Якщо просто підрости
-// їх разом зі сценою, на стадії 1 капелюх повисне над головою: тіло там
-// іншого розміру й ще й зсунуте вгору по стовбуру. Тому кожну річ кладемо
-// ВІДНОСНО тіла — так вона сидить на будь-якій стадії.
-// Сумна й зів'яла голова намальована на 47 px (з 1024) нижчою — капелюх
-// сідає нижче на стільки ж, інакше висітиме над макітрою.
-const HEAD_SHRINK_NATIVE_PX = 47, BODY_SPRITE_NATIVE_SIZE = 1024;
+export function wornInstances(layout, worn, body, mood = "healthy", base = [], player = []) {
+  const clothes = layout?.clothes;
+  if (!worn?.length || !body || !clothes?.items || !clothes.body) return [];
+  const ref = clothes.body;
+  const k = body.scale / ref.scale;
+  const at = (l) => ({ ...l, x: body.x + (l.x - ref.x) * k, y: body.y + (l.y - ref.y) * k, scale: l.scale * k, rotation: 0 });
+  const art = ART_SUFFIX[mood] ?? "normal";
+  const sprite = ({ group, sprite: file, x, y, scale, z }) => ({ group, sprite: file, x, y, scale, z, rotation: 0 });
 
-export function wornInstances(layout, worn, body, mood = "healthy") {
-  if (!worn?.length || !body) return [];
-  const matureBody = layout.instances.find((i) => i.group === "body_stage1_sphere");
-  if (!matureBody) return [];
-  const k = body.scale / matureBody.scale;
-  const headShift = mood === "healthy" ? 0 : HEAD_SHRINK_NATIVE_PX * (W0 * matureBody.scale) / BODY_SPRITE_NATIVE_SIZE;
-
+  const items = worn.map((w) => clothes.items[w.sprite_id]).filter(Boolean)
+    .sort((a, b) => (SLOT_RANK[a.slot] ?? 9) - (SLOT_RANK[b.slot] ?? 9));
   const out = [];
-  for (const item of worn) {
-    for (const path of CLOTHING[item.sprite_id] ?? []) {
-      const [group, sprite] = path.split("/");
-      const inst = layout.instances.find((i) => i.group === group && i.sprite === sprite);
-      if (!inst) continue;
-      out.push({
-        ...inst,
-        x: body.x + (inst.x - matureBody.x) * k,
-        y: body.y + (inst.y + (group === "clothing_cowboy_head" ? headShift : 0) - matureBody.y) * k,
-        scale: inst.scale * k,
-      });
+  for (const item of items) {
+    for (const raw of item.moods?.[art] ?? item.moods?.normal ?? []) {
+      const l = at(raw);
+      out.push(sprite(l));
+      if (l.reveal) {
+        const arms = base.filter((i) => (i.group || "").startsWith(l.reveal.under));
+        if (arms.length) {
+          out.push({ z: l.z, masks: [sprite({ ...at({ ...raw, ...l.reveal }) })], children: arms.map((a) => ({ ...a })) });
+        }
+      }
+      if (l.foliage) {
+        const ball = clothes.ball?.[art] ?? clothes.ball?.normal;
+        const leaves = player.filter((i) => i.front === "leaf");
+        const branches = player.filter((i) => i.front === "branch");
+        if (leaves.length) out.push({ z: l.z, masks: [sprite(l)], children: leaves.map((a) => ({ ...a })) });
+        if (branches.length) {
+          out.push({
+            z: l.z,
+            masks: [sprite(l), ...(ball ? [{ ...sprite(at(ball)), op: "subtract" }] : [])],
+            children: branches.map((a) => ({ ...a })),
+          });
+        }
+      }
     }
   }
   return out;
@@ -261,6 +278,10 @@ export function buildScene({ layout, appearance, stage, mood = "healthy", worn, 
   if (!layout) return [];
   const base = baseInstances(layout, stage, mood, faceSet);
   const body = base.find((i) => /^body_stage1/.test(i.group));
-  return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body, mood), ...extra]
+  const player = playerInstances(appearance, stage, mood);
+  // Стабільне сортування: шари одягу з однаковим z лягають у порядку
+  // wornInstances — маска рукавів після сорочки, задня частина парасольки
+  // (z сорочки) після них.
+  return [...base, ...player, ...wornInstances(layout, worn, body, mood, base, player), ...extra]
     .sort((a, b) => a.z - b.z);
 }
