@@ -200,12 +200,45 @@ export function playerInstances(appearance, stage, mood) {
 //
 // Дві особливості, які не запекти в одну картинку, бо залежать від куща
 // гравця, — маскові шари (Scene.jsx малює їх контейнером із CSS-маскою):
-//   * reveal (сорочки): копія рук-гілок поверх сорочки в масці отворів
-//     рукавів — гілки виходять із рукавів, а не з-під тканини;
+//   * reveal (сорочки): поверх сорочки — копія ДЕРЕВИНИ рук (branch_arms_wood,
+//     без листя) у масці самих отворів рукавів; обідок манжета лягає поверх
+//     гілки, і вона виходить саме з рукава. Руки під кожну сорочку ще й
+//     повернуті навколо кореня (layer.arms, armPoses), щоб гілка йшла крізь
+//     центр отвору — інакше на частині сорочок отвір лишався порожнім;
 //   * foliage (навушники, пов'язка): копії гілок і передніх листків гравця
 //     поверх убору в масці самого убору; гілки ще й без кулі-голови (маска
 //     ball), бо вони за нею. Убір тоді над окулярами, але під листям на чолі.
 const SLOT_RANK = { pants: 0, feet: 1, body: 2, head: 3, acc_1: 4 };
+
+// Поворот рук-гілок під вдягнену сорочку: { L|R: { rot, pivot } } у сцені
+// дорослого куща (null — сорочки з рукавами немає).
+function shirtArms(clothes, worn, mood) {
+  const art = ART_SUFFIX[mood] ?? "normal";
+  for (const w of worn ?? []) {
+    const item = clothes?.items?.[w.sprite_id];
+    if (item?.slot !== "body") continue;
+    const l = (item.moods?.[art] ?? item.moods?.normal ?? [])[0];
+    if (l?.reveal) return l.arms ?? {};
+  }
+  return null;
+}
+
+// Руки базового куща, повернуті під сорочку. Корінь — у координатах дорослого
+// куща, тож переносимо його від тіла так само, як шари одягу.
+export function poseArms(base, layout, worn, body, mood = "healthy") {
+  const clothes = layout?.clothes;
+  const arms = shirtArms(clothes, worn, mood);
+  if (!arms || !body || !clothes?.body) return base;
+  const ref = clothes.body, k = body.scale / ref.scale;
+  return base.map((i) => {
+    if (!/^branch_arms_fixed/.test(i.group ?? "")) return i;
+    const p = arms[/_L(_|\.)/.test(i.sprite) ? "L" : "R"];
+    if (!p?.rot) return i;
+    const px = body.x + (p.pivot[0] - ref.x) * k, py = body.y + (p.pivot[1] - ref.y) * k;
+    const t = (p.rot * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t), dx = i.x - px, dy = i.y - py;
+    return { ...i, x: px + dx * c - dy * s, y: py + dx * s + dy * c, rotation: (i.rotation ?? 0) + p.rot };
+  });
+}
 
 export function wornInstances(layout, worn, body, mood = "healthy", base = [], player = []) {
   const clothes = layout?.clothes;
@@ -224,9 +257,14 @@ export function wornInstances(layout, worn, body, mood = "healthy", base = [], p
       const l = at(raw);
       out.push(sprite(l));
       if (l.reveal) {
+        // base — уже з руками, повернутими під цю сорочку (poseArms)
         const arms = base.filter((i) => (i.group || "").startsWith(l.reveal.under));
         if (arms.length) {
-          out.push({ z: l.z, masks: [sprite({ ...at({ ...raw, ...l.reveal }) })], children: arms.map((a) => ({ ...a })) });
+          out.push({
+            z: l.z,
+            masks: [sprite({ ...at({ ...raw, ...l.reveal }) })],
+            children: arms.map((a) => (l.reveal.copy ? { ...a, group: l.reveal.copy } : { ...a })),
+          });
         }
       }
       if (l.foliage) {
@@ -276,8 +314,10 @@ export function draftInstances(layout, items, { stage, to, mood = "healthy", bud
 // рахується від тіла, тож сидять вони на будь-якій стадії.
 export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [], faceSet = 1 }) {
   if (!layout) return [];
-  const base = baseInstances(layout, stage, mood, faceSet);
-  const body = base.find((i) => /^body_stage1/.test(i.group));
+  const unposed = baseInstances(layout, stage, mood, faceSet);
+  const body = unposed.find((i) => /^body_stage1/.test(i.group));
+  // руки повертаються під рукава вдягненої сорочки (без сорочки — як були)
+  const base = poseArms(unposed, layout, worn, body, mood);
   const player = playerInstances(appearance, stage, mood);
   // Стабільне сортування: шари одягу з однаковим z лягають у порядку
   // wornInstances — маска рукавів після сорочки, задня частина парасольки
