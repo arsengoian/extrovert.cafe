@@ -15,8 +15,8 @@ import { NoSupply } from "../plant/NoSupply.jsx";
 import { Sparks, Typewriter, calm, markCoinSource } from "../ui/fx.jsx";
 import { isLandscape } from "../ui/landscape.js";
 import {
-  AFTER_CARE, BARREL, DRAFTED, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
-  stageLines, wrongFirst, wrongMore,
+  AFTER_CARE, BARREL, DRESSED, EMPTY, GROWN, MORE, ON_SALE, OOPS, SAD, TOO_SOON, WAITING, WITHERED,
+  drafted, stageLines, wrongFirst, wrongMore,
 } from "../plant/lines.js";
 import { takeHandoff } from "../plant/handoff.js";
 import { useConfirmWord } from "../ui/confirmWord.js";
@@ -588,7 +588,7 @@ export function Plant({ ctx }) {
     : plant.mood === "withered" ? WITHERED
     : plant.mood === "sad" ? SAD
     : shelfEmpty ? EMPTY
-    : plant.draft?.count && !waiting ? DRAFTED
+    : plant.draft?.count && !waiting ? drafted(plant.draft.kind)
     : plant.growth_stage >= 10 && dressed ? DRESSED
     : stageLines(plant.growth_stage, growth.need);
   const lines = note?.lines ?? idle;

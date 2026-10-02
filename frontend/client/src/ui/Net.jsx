@@ -5,6 +5,12 @@
 // екран писав те саме своїм блоком, і в підказці під кнопкою світилось
 // «Failed to fetch».
 //
+// Той самий тост — і для будь-якої іншої відповіді на дію, якої людина
+// має не пропустити: «посадка відкриється завтра», «не вистачає
+// препарату» (власник, 02.10.2026). Рядок під кнопкою чи в картці легко не
+// помітити, і тоді здається, що кнопка нічого не робить. toast(text) —
+// звідки завгодно, без пропсів.
+//
 // Смужка зверху — навпаки, не про дію, а про фон: події перестали
 // приходити. Показуємо її не одразу: під час викочування ws розривається
 // на пів секунди (docs/deploy.md §2.3), і блимати смужкою на кожному
@@ -12,24 +18,31 @@
 import { useEffect, useState } from "react";
 
 const TOAST_MS = 4000;
+const OFFLINE = "Немає звʼязку. Спробуй ще раз";
+
+export const toast = (text) => window.dispatchEvent(new CustomEvent("extrovert:toast", { detail: text }));
 // Скільки терпіти мовчання ws, перш ніж сказати про це людині. Перепідключення
 // після викочування вкладається в секунду з невеликим розкидом (ws.js).
 const BANNER_AFTER_MS = 6000;
 
 export function NetStatus({ wsOnline }) {
-  const [toast, setToast] = useState(false);
+  const [message, setMessage] = useState(null);
   const [banner, setBanner] = useState(false);
 
   useEffect(() => {
     let hide = null;
-    const onOffline = () => {
-      setToast(true);
+    const show = (text) => {
+      setMessage(text);
       clearTimeout(hide);
-      hide = setTimeout(() => setToast(false), TOAST_MS);
+      hide = setTimeout(() => setMessage(null), TOAST_MS);
     };
+    const onOffline = () => show(OFFLINE);
+    const onToast = (e) => { if (e.detail) show(String(e.detail)); };
     window.addEventListener("extrovert:offline", onOffline);
+    window.addEventListener("extrovert:toast", onToast);
     return () => {
       window.removeEventListener("extrovert:offline", onOffline);
+      window.removeEventListener("extrovert:toast", onToast);
       clearTimeout(hide);
     };
   }, []);
@@ -43,7 +56,7 @@ export function NetStatus({ wsOnline }) {
   return (
     <>
       {banner && <div className="net-banner">Відновлюємо звʼязок…</div>}
-      {toast && <div className="net-toast">Немає звʼязку. Спробуй ще раз</div>}
+      {message && <div className="net-toast" key={message} role="status">{message}</div>}
     </>
   );
 }
