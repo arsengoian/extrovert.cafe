@@ -53,7 +53,7 @@ export function PaymentResult({ ctx, invoiceId }) {
   return (
     <div className="stage-pad">
       <div className="panel" style={{ textAlign: "center" }}>
-        <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
+        <img src="/assets/ui/coin_gold.webp" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
         {error && <div className="h2">{error}</div>}
 
         {!error && payment?.credited && (

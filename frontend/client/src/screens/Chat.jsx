@@ -22,9 +22,9 @@ const dayLabel = (iso) => {
 // Валюта в сповіщеннях приходить токеном (:gold:, lib/notify.js) і
 // малюється тією самою іконкою, що в гаманці (власник, 01.10.2026).
 const CURRENCY = {
-  ":gold:": ["/assets/ui/coin_gold.png", "золотих монет"],
-  ":silver:": ["/assets/ui/coin_silver.png", "срібних монет"],
-  ":bean:": ["/assets/ui/bean.png", "зерен"],
+  ":gold:": ["/assets/ui/coin_gold.webp", "золотих монет"],
+  ":silver:": ["/assets/ui/coin_silver.webp", "срібних монет"],
+  ":bean:": ["/assets/ui/bean.webp", "зерен"],
 };
 const withCurrency = (text) => String(text ?? "").split(/(:gold:|:silver:|:bean:)/).map((part, i) =>
   CURRENCY[part] ? <img key={i} className="chat-cur" src={CURRENCY[part][0]} alt={CURRENCY[part][1]} /> : part);
@@ -127,7 +127,7 @@ export function Chat({ ctx, plant }) {
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15" /><path d="M13 6l6 6-6 6" /></svg>
                 {/* Ціна — лише коли за повідомлення справді треба платити;
                     безкоштовні нічим не позначаємо (власник, 26.09.2026). */}
-                {data.price > 0 && <span>{data.price}<img src="/assets/ui/coin_gold.png" alt="золота монета" /></span>}
+                {data.price > 0 && <span>{data.price}<img src="/assets/ui/coin_gold.webp" alt="золота монета" /></span>}
               </button>
             </>
           )}

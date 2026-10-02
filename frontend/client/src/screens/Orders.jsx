@@ -15,15 +15,15 @@ const isDone = (o) => o.status === "cancelled" || o.status === "returned"
   || (o.status === "received" && Date.now() - new Date(o.status_changed_at) > FORTNIGHT);
 // Картинка товару у списку — розміри з макета.
 const ART = {
-  merch_cup: ["/assets/ui/merch.png", 30, 37],
-  custom_print: ["/assets/ui/custom_print.png", 34, 34],
-  coffee_250g: ["/assets/ui/coffee250.png", 28, 37],
+  merch_cup: ["/assets/ui/merch.webp", 30, 37],
+  custom_print: ["/assets/ui/custom_print.webp", 34, 34],
+  coffee_250g: ["/assets/ui/coffee250.webp", 28, 37],
 };
 const day = (iso) => new Date(iso).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
 // ТТН групами по чотири: «2045 0912 3344».
 export const ttnOf = (t) => String(t ?? "").replace(/(\d{4})(?=\d)/g, "$1 ");
 
-const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
+const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: w, height: h }} />;
 
 function statusLine(o) {
   if (o.status === "shipped" && o.ttn) return `${o.status_label}, ТТН ${ttnOf(o.ttn)}`;
@@ -60,7 +60,7 @@ export function Orders({ ctx }) {
       ) : (
         <div className="orders">
           {shown.map((o) => {
-            const [src, w, h] = ART[o.product] ?? ["/assets/ui/coffee250.png", 28, 37];
+            const [src, w, h] = ART[o.product] ?? ["/assets/ui/coffee250.webp", 28, 37];
             return (
               <button key={o.id} className="order-row" onClick={() => ctx.push("order", { id: o.id })}>
                 <img src={src} alt="" style={{ width: w, height: h }} />

@@ -49,8 +49,8 @@ export function Stock({ ctx }) {
         // 01.10.2026): скринька відкривається одразу й назад не закривається.
         <div className="crate-open">
           <span className="crate-art">
-            <img src="/assets/ui/crate.png" alt="щаслива скринька" />
-            <img src="/assets/ui/crate_lid.png" alt="" />
+            <img src="/assets/ui/crate.webp" alt="щаслива скринька" />
+            <img src="/assets/ui/crate_lid.webp" alt="" />
             <i>{crates}</i>
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
@@ -128,13 +128,13 @@ export function Stock({ ctx }) {
           <button className="lot-card" onClick={() => ctx.push("listings")}>
             {lot.item
               ? <ItemIcon sprite={lot.item.sprite_id} size={34} name={lot.item.name} style={{ width: 34, flex: "none" }} />
-              : <img src="/assets/ui/sprout.png" alt="" style={{ width: 22, height: 34 }} />}
+              : <img src="/assets/ui/sprout.webp" alt="" style={{ width: 22, height: 34 }} />}
             <span className="lot-main">
               <b>{lot.item?.name ?? lot.plant?.name}</b>
               <small>{lot.item ? "заморожена до продажу" : "заморожене до продажу"}</small>
             </span>
             <span className="lot-price">
-              <img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />
+              <img src={lot.currency === "beans" ? "/assets/ui/bean.webp" : "/assets/ui/coin_gold.webp"} alt="" />
               {lot.price}
             </span>
           </button>

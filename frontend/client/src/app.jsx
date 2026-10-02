@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
 import { api, getToken } from "./api.js";
 import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
+import { loadPlantAssets } from "./plant/assets.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
 import { TopbarBack } from "./ui/TopbarBack.jsx";
@@ -53,6 +54,9 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
   const where = stack[stack.length - 1]?.name ?? tab;
   useEffect(() => { setErrorUser(me?.id); }, [me?.id]);
+  // Макет куща й розміри спрайтів — щойно відомо, що людина в акаунті, а не
+  // коли відкриється кавенятко: інакше спрайти чекали ще й на ці файли.
+  useEffect(() => { if (me) loadPlantAssets().catch(() => {}); }, [Boolean(me)]);
   useEffect(() => { setErrorScope({ screen: where }); breadcrumb("navigation", where); }, [where]);
   // Екран, відкритий до входу: скарга, умови, підтримка. У макеті вони в
   // розділі «Поза авторизацією» — ними користуються ще без акаунта.
@@ -218,7 +222,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
         if (msg.event === "discount_refunded") {
           const close = () => setNotice(null);
           setNotice(
-            <ResultPopup art={<img src="/assets/ui/pos_discount.png" alt="" style={{ width: 58, height: 58, objectFit: "contain" }} />}
+            <ResultPopup art={<img src="/assets/ui/pos_discount.webp" alt="" style={{ width: 58, height: 58, objectFit: "contain" }} />}
                          title="Знижка не спрацювала" onClose={close}>
               <div className="result-note">
                 {`Знижені ціни не доїхали до автомата${msg.point_name ? ` у кав'ярні ${msg.point_name}` : ""}, тож зерна повернуто: +${beansText(msg.beans ?? 0)}.`}

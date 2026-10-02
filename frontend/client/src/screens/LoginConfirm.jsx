@@ -12,6 +12,7 @@
 // Кадру в макеті немає — зібрано з деталей екрана «Лист уже летить».
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Img } from "../ui/img.jsx";
 
 const ago = (iso) => {
   const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -65,7 +66,7 @@ export function LoginConfirm({ token, onDone }) {
   const screen = (title, lead, actions) => (
     <div className="form18" style={{ gap: 16 }}>
       <div className="email-sent">
-        <img src="/assets/ui/hero_bush.png" alt="" />
+        <Img src="/assets/ui/hero_bush.png" sizes="132px" alt="" />
         <b>{title}</b>
         <div className="lead14">{lead}</div>
       </div>

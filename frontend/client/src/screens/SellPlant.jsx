@@ -10,8 +10,8 @@ import { PlantView } from "../plant/PlantView.jsx";
 import { plural } from "../ui/plural.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
-const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: w, height: h }} />;
-const Bean = ({ w = 12, h = 14 }) => <img src="/assets/ui/bean.png" alt="кавові боби" style={{ width: w, height: h }} />;
+const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: w, height: h }} />;
+const Bean = ({ w = 12, h = 14 }) => <img src="/assets/ui/bean.webp" alt="кавові боби" style={{ width: w, height: h }} />;
 
 export function SellPlant({ plant, ctx }) {
   const [currency, setCurrency] = useState("yellow");

@@ -51,7 +51,7 @@ export function QuizProfile({ ctx }) {
     return (
       <div className="stage-pad">
         <div className="panel" style={{ textAlign: "center" }}>
-          <img src="/assets/ui/coin_silver.png" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
+          <img src="/assets/ui/coin_silver.webp" alt="" style={{ width: 54, margin: "6px auto 10px" }} />
           <div className="h2">{done ? `+${quiz.reward} срібних` : "Анкету вже заповнено"}</div>
           <p className="muted">
             {done
@@ -132,7 +132,7 @@ export function QuizProfile({ ctx }) {
 
       <div className="quiz-foot">
         <span>
-          <img src="/assets/ui/coin_silver.png" alt="срібні монети" />+{quiz.reward} за опитування
+          <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />+{quiz.reward} за опитування
         </span>
         <button className="cta" disabled={busy || !answered} onClick={next}>
           {last ? (busy ? "Зберігаємо…" : "Завершити") : "Далі"}

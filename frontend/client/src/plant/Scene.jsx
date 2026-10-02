@@ -4,6 +4,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { FILTER_KEY, STAGE_H, STAGE_W } from "./geometry.js";
 import { usePlantAssets } from "./assets.js";
+import { srcSetOf, webp } from "../ui/img.jsx";
 
 const DEFAULT_SHADOW = { enabled: true, offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8 };
 const DEFAULT_FACE_SHADOW = { enabled: true, offset: 5, blur: 0.8, opacity: 0.41 };
@@ -131,6 +132,28 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     return () => { stop.abort(); clearTimeout(timer); };
   }, [shown, instances.length]);
 
+  // Скільки CSS-пікселів екрана припадає на піксель сцени — з усіма
+  // масштабами над нею (камера, --pf платформи, ландшафт). Міряємо, а не
+  // множимо камеру на здогад: із цього числа кожен спрайт каже браузеру свій
+  // розмір на екрані (sizes), а браузер, помноживши на щільність екрана,
+  // бере найменшу WebP-копію, якої вистачає (власник, 02.10.2026). До
+  // першого заміру — камера з запасом.
+  const [onScreen, setOnScreen] = useState(null);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const w = root.current?.getBoundingClientRect().width;
+      if (w) setOnScreen(w / STAGE_W);
+    };
+    measure();
+    // Масштаб платформи (--pf) батько ставить своїм ефектом уже після
+    // першого кадру — перемірюємо ще раз, коли він устиг застосуватись.
+    const raf = requestAnimationFrame(measure);
+    const late = setTimeout(measure, 400);
+    window.addEventListener("resize", measure);
+    return () => { cancelAnimationFrame(raf); clearTimeout(late); window.removeEventListener("resize", measure); };
+  }, [camera?.k]);
+  const k = onScreen ?? (camera?.k ?? 1) * 1.3;
+
   const filters = layout?.colorFilters ?? {};
   const shadow = { ...DEFAULT_SHADOW, ...(layout?.shadow ?? {}) };
   const faceShadow = { ...DEFAULT_FACE_SHADOW, ...(layout?.faceShadow ?? {}) };
@@ -193,10 +216,13 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
         // спрайт, маніфест не оновили) — ховаємо картинку до завантаження:
         // краще з'явитись із запізненням, ніж підстрибнути.
         const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
+        const url = `/assets/sprites/${inst.group}/${inst.sprite}`;
         return (
           <img
             key={`l${n}`}
-            src={`/assets/sprites/${inst.group}/${inst.sprite}`}
+            src={webp(url)}
+            srcSet={srcSetOf(url)}
+            sizes={`${Math.max(1, Math.ceil(w * k))}px`}
             alt=""
             data-sway={sway}
             data-pop={inst.pop || undefined}

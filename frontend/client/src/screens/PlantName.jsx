@@ -8,6 +8,7 @@ import { api, errText } from "../api.js";
 import { usePlantAssets } from "../plant/assets.js";
 import { buildScene } from "../plant/scene.js";
 import { Scene } from "../plant/Scene.jsx";
+import { Img } from "../ui/img.jsx";
 
 const MAX = 16;
 
@@ -87,7 +88,7 @@ export function PlantName({ plant, ctx }) {
       <div className="name-sky" style={box ? { ...box, bottom: Math.max(box.bottom, keyboard) } : undefined}>
       <div className="name-card">
         <div className="name-hero">
-          <img className="name-platform" src="/assets/ui/platform.png" alt="" />
+          <Img className="name-platform" src="/assets/ui/platform.png" sizes="168px" alt="" />
           <div className="name-scene">
             {assets && <Scene instances={sprout} layout={assets.layout} camera={{ k: 0.185, tx: 0, ty: 0 }} />}
           </div>

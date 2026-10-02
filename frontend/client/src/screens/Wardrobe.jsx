@@ -53,7 +53,7 @@ function FittingTile({ slots, worn, busy, onTry }) {
               const side = FIT_MINI[n];
               return it
                 ? <ItemIcon key={slot} sprite={it.sprite_id} alt={it.name} size={side} style={{ width: side }} />
-                : <img key={slot} src={`/assets/ui/${SLOTS[slot].bg}.png`} alt="" style={{ width: side, height: side }} />;
+                : <img key={slot} src={`/assets/ui/${SLOTS[slot].bg}.webp`} alt="" style={{ width: side, height: side }} />;
             })}
           </span>
         ))}
@@ -63,7 +63,7 @@ function FittingTile({ slots, worn, busy, onTry }) {
   );
 }
 
-const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.png" alt="кавових зерен" style={{ width: w, height: h, display: "inline", verticalAlign: -4 }} />;
+const Bean = ({ w = 15, h = 17 }) => <img src="/assets/ui/bean.webp" alt="кавових зерен" style={{ width: w, height: h, display: "inline", verticalAlign: -4 }} />;
 
 function SetTile({ set, onWear }) {
   return (
@@ -188,13 +188,13 @@ export function Wardrobe({ ctx, plant }) {
             const g = SLOTS[s.slot];
             return (
               <button key={s.slot} className="wr-slot" title={g.label} style={{ left: g.at[0], top: g.at[1] }} onClick={() => tapSlot(s)}>
-                <img src={`/assets/ui/${g.bg}.png`} alt="" />
+                <img src={`/assets/ui/${g.bg}.webp`} alt="" />
                 {s.item && (
                   <>
                     <i className={`tier-${s.item.tier}`} />
                     <ItemIcon sprite={s.item.sprite_id} name={s.item.name} alt={s.item.name} size={g.size[1]}
                               style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: g.size[0] }} />
-                    <img src={`/assets/ui/${g.leaf}.png`} alt="" />
+                    <img src={`/assets/ui/${g.leaf}.webp`} alt="" />
                   </>
                 )}
               </button>
@@ -204,7 +204,7 @@ export function Wardrobe({ ctx, plant }) {
       </div>
 
       <div className="wr-gift">
-        <img src="/assets/ui/bean.png" alt="" />
+        <img src="/assets/ui/bean.webp" alt="" />
         <div>
           {data.gift.can
             ? <>Подарунок розраховується на основі рідкості предмета «{data.gift.weakest_item}» – {data.gift.beans} <Bean /></>

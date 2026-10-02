@@ -1,11 +1,11 @@
 // Нижня навігація: п'ять вкладок, кавенятко — піднятим колом по центру.
 const TABS = [
-  { id: "wallet", label: "Гаманець", icon: "/assets/ui/nav_wallet.png" },
+  { id: "wallet", label: "Гаманець", icon: "/assets/ui/nav_wallet.webp" },
   // У макеті іконка магазину ширша за решту: 25 px проти 23.
-  { id: "shop", label: "Магазин", icon: "/assets/ui/nav_shop.png", width: 25, badge: "orders" },
+  { id: "shop", label: "Магазин", icon: "/assets/ui/nav_shop.webp", width: 25, badge: "orders" },
   { id: "plant", label: "Кавенятко", center: true },
-  { id: "stock", label: "Склад", icon: "/assets/ui/nav_storage.png" },
-  { id: "history", label: "Покупки", icon: "/assets/ui/nav_history.png" },
+  { id: "stock", label: "Склад", icon: "/assets/ui/nav_storage.webp" },
+  { id: "history", label: "Покупки", icon: "/assets/ui/nav_history.webp" },
 ];
 
 export function Nav({ tab, onTab, badges = {} }) {
@@ -14,7 +14,7 @@ export function Nav({ tab, onTab, badges = {} }) {
       {TABS.map((t) =>
         t.center ? (
           <button key={t.id} className="nav-center" data-active={String(tab === t.id)} onClick={() => onTab(t.id)}>
-            <span className="bubble"><img src="/assets/ui/sprout.png" alt="" /></span>
+            <span className="bubble"><img src="/assets/ui/sprout.webp" alt="" /></span>
             <span className="nav-center-label">{t.label}</span>
           </button>
         ) : (

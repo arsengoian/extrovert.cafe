@@ -12,6 +12,7 @@ import { NotEnoughBeans } from "../ui/NotEnough.jsx";
 import { PlantView } from "../plant/PlantView.jsx";
 import { uploadPrint } from "../plant/print.js";
 import { preferSelected } from "../plant/selected.js";
+import { webp } from "../ui/img.jsx";
 
 const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -20,7 +21,7 @@ const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", 
 // назад у чернетці, а не в стані компонента, який тим часом розмонтовано.
 const drafts = new Map();
 
-const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
+const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: w, height: h }} />;
 const Chevron = () => (
   <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" style={{ flex: "none" }}>
     <path d="M6 9.5 12 15.5 18 9.5" />
@@ -166,7 +167,7 @@ export function Checkout({ item, ctx }) {
   return (
     <div className="stage-pad">
       <div className="co-product">
-        <img src={`/${item.icon}`} alt="" />
+        <img src={webp(`/${item.icon}`)} alt="" />
         <div className="co-name">
           <b>{product.name}</b>
           <small>{item.subtitle}</small>

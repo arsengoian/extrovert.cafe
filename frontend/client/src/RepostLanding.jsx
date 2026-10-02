@@ -4,6 +4,7 @@
 // впала мережа чи ні, гостя це не має обходити.
 import { useEffect } from "react";
 import { api } from "./api.js";
+import { Img } from "./ui/img.jsx";
 
 export function RepostLanding({ token }) {
   useEffect(() => {
@@ -15,7 +16,7 @@ export function RepostLanding({ token }) {
     <div className="app">
       <div className="stage" style={{ display: "grid", placeItems: "center", textAlign: "center", padding: 24 }}>
         <div>
-          <img src="/assets/ui/hero_bush.png" alt="Кавенятко" style={{ width: 180 }} />
+          <Img src="/assets/ui/hero_bush.png" sizes="180px" alt="Кавенятко" style={{ width: 180 }} />
           <div className="h1" style={{ marginTop: 14 }}>extrovert.cafe</div>
           <p className="muted">Відкриваємо застосунок…</p>
         </div>

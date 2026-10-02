@@ -162,7 +162,7 @@ export function Problem({ ctx }) {
 
       {sent && (
         <ResultPopup
-          art={<img src="/assets/ui/nav_problem.png" alt="" style={{ width: 52, height: 50 }} />}
+          art={<img src="/assets/ui/nav_problem.webp" alt="" style={{ width: 52, height: 50 }} />}
           title="Дякуємо, побачили"
           onClose={ctx.pop}
         >

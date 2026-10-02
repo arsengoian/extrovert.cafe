@@ -26,7 +26,7 @@ export function Profile({ ctx }) {
   return (
     <ConfirmSheet onCancel={ctx.pop} closable padding="18px 16px">
       <div className="profile-head">
-        <img src="/assets/ui/nav_profile.png" alt="" />
+        <img src="/assets/ui/nav_profile.webp" alt="" />
         <div>
           <b>{me?.nickname}</b>
           {/* Пошта — окремим рядком: довга адреса поруч зі способом входу

@@ -153,7 +153,7 @@ export function markCoinSource(el) {
 // onlyFromSource — летіти лише з позначеного місця: зерна приходять і
 // там, де своя анімація вже є (боби дугою в бочку на 10-й стадії), і
 // політ «знизу екрана» поверх неї лише плутав би.
-export function flyCoins(target, src = "/assets/ui/coin_gold.png", count = 6, { onlyFromSource = false } = {}) {
+export function flyCoins(target, src = "/assets/ui/coin_gold.webp", count = 6, { onlyFromSource = false } = {}) {
   if (!target || calm()) return;
   const host = document.querySelector(".app") ?? document.body;
   const hb = host.getBoundingClientRect();

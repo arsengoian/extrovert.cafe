@@ -314,6 +314,7 @@ z=28, що лежав явно глибше решти) — тобто зона 
 | Кореневі точки спрайтів | `frontend/client/public/assets/planting/points.json` (Крок 1) |
 | Природний кут спрайту | `frontend/client/public/assets/planting/sprites.json` — `bun run planting:data`, рахує `scripts/build-planting-data.mjs` |
 | Природні розміри всіх спрайтів куща | `frontend/client/public/assets/sprites/sizes.json` — `bun run sprites:sizes` після заміни спрайтів: без розміру спрайт до завантаження має нульову висоту й підскакує, коли доїде |
+| WebP-копії спрайтів і картинок | `bun run images:webp` після заміни будь-якого PNG у `sprites/`, `ui/`, `drinks/` (`scripts/build-webp.mjs`, 02.10.2026): поруч із `x.png` лягають `x.webp` і зменшені `x-256w/512w/1024w.webp`, а `src/images.gen.json` каже бандлу, які ширини є. Сцена дає браузеру `srcset` і свій розмір на екрані (міряє власний масштаб), і браузер, помноживши на щільність екрана, бере найменшу копію, якої вистачає: головний екран на телефоні з щільністю ×3 — 0,2–0,5 МБ (стадія 1–10) замість 2,2–4 МБ PNG. CI (`images:webp:check`) падає, якщо копію забули. PNG лишаються для PNG принта, листів і кіоска |
 | Математика (корінь↔центр, криві, зони, камера) | `frontend/client/src/plant/geometry.js` |
 | Правила типів і жести | `frontend/client/src/plant/placement.js` |
 | Складання сцени з макета + appearance | `frontend/client/src/plant/scene.js`, малювання — `Scene.jsx` |

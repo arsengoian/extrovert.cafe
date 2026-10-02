@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
+import { Img } from "../ui/img.jsx";
 
 const GoogleG = () => (
   <svg viewBox="0 0 48 48" width="20" height="20">
@@ -57,7 +58,7 @@ export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null,
 
         <div className="start-mid">
           <div className="hero">
-            <img src="/assets/ui/hero_bush.png" alt="Кавенятко" />
+            <Img src="/assets/ui/hero_bush.png" sizes="170px" alt="Кавенятко" />
             <div className="hero-bubble">
               <b>Твоє кавенятко</b>
               Вирости мене – я вмію розмовляти і дарувати речі в реальному світі
@@ -71,7 +72,7 @@ export function Start({ onSignedIn, onEmail, onProblem, onSupport, bonus = null,
               <b>Увійди, щоб не втратити бонуси</b>
               <div className="bonus-row">
                 <div className="bonus-tile">
-                  <span><img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 42, height: 44, objectFit: "contain" }} /></span>
+                  <span><img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 42, height: 44, objectFit: "contain" }} /></span>
                   <b>+{bonus.coins}</b>
                 </div>
                 {(bonus.items ?? []).map((item, n) => (

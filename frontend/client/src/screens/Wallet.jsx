@@ -85,15 +85,15 @@ export function Wallet({ ctx }) {
     <div className="stage-pad">
       <div className="bal-row">
         <div className="bal-card">
-          <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
+          <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />
           <b>{fmt(b.silver)}</b>
         </div>
         <div className="bal-card">
-          <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          <img src="/assets/ui/coin_gold.webp" alt="золоті монети" />
           <b>{fmt(b.yellow)}</b>
         </div>
         <div className="bal-card">
-          <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 35 }} />
+          <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: 35 }} />
           <b>{fmt(b.beans)}</b>
         </div>
       </div>
@@ -102,7 +102,7 @@ export function Wallet({ ctx }) {
         <div className="sectionTitle">Заробляй монети безкоштовно</div>
         <div className="task-list">
           <Task
-            badge="/assets/ui/coin_silver.png"
+            badge="/assets/ui/coin_silver.webp"
             reward={profile?.reward ?? 75}
             title="Розкажи про себе"
             note={profile?.done ? "Пройдено" : inProgress ? `Крок ${step} з ${steps}, відповіді збережено` : "Одноразово"}
@@ -120,14 +120,14 @@ export function Wallet({ ctx }) {
                 </div>
                 <div className="task-note">
                   Нарахуємо всі {profile?.reward ?? 75}{" "}
-                  <img src="/assets/ui/coin_silver.png" alt="срібних монет" /> після останнього кроку.
+                  <img src="/assets/ui/coin_silver.webp" alt="срібних монет" /> після останнього кроку.
                 </div>
               </>
             )}
           </Task>
 
           <Task
-            badge="/assets/ui/coin_silver.png"
+            badge="/assets/ui/coin_silver.webp"
             reward={drink?.reward ?? 15}
             title="Опитування про напій"
             note={drink?.credits ? `доступно ${drink.credits}, про будь-який напій` : "Поки недоступне"}
@@ -138,7 +138,7 @@ export function Wallet({ ctx }) {
           />
 
           <Task
-            badge="/assets/ui/coin_silver.png"
+            badge="/assets/ui/coin_silver.webp"
             reward={repost?.reward ?? 20}
             title="Пост у соцмережі"
             note={repost?.limit_reached
@@ -158,17 +158,17 @@ export function Wallet({ ctx }) {
       <div className="tiles">
         <button className="tile" onClick={() => ctx.push("transfer")}>
           <span className="tile-stack">
-            <img src="/assets/ui/nav_profile.png" alt="" />
-            <img src="/assets/ui/coin_gold.png" alt="" />
+            <img src="/assets/ui/nav_profile.webp" alt="" />
+            <img src="/assets/ui/coin_gold.webp" alt="" />
           </span>
           <span>Переказати</span>
         </button>
         <button className="tile" onClick={openExchange}>
-          <img src="/assets/ui/beans_to_coins.png" alt="" style={{ width: 45, height: 48 }} />
+          <img src="/assets/ui/beans_to_coins.webp" alt="" style={{ width: 45, height: 48 }} />
           <span>Обміняти</span>
         </button>
         <button className="tile" onClick={() => ctx.push("coinPacks")}>
-          <img src="/assets/ui/pack_barrel.png" alt="набір монет" style={{ width: 42, height: 48 }} />
+          <img src="/assets/ui/pack_barrel.webp" alt="набір монет" style={{ width: 42, height: 48 }} />
           <span>Поповнити</span>
         </button>
       </div>

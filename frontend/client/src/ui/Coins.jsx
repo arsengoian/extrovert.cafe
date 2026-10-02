@@ -9,24 +9,24 @@
 // показувалась однією золотою (23.09.2026).
 
 export const Gold = ({ w = 14, h = 15 }) => (
-  <img src="/assets/ui/coin_gold.png" alt="золоті монети"
+  <img src="/assets/ui/coin_gold.webp" alt="золоті монети"
        style={{ width: w, height: h, display: "inline", verticalAlign: -3 }} />
 );
 
 export const Silver = ({ w = 14, h = 15 }) => (
-  <img src="/assets/ui/coin_silver.png" alt="срібні монети"
+  <img src="/assets/ui/coin_silver.webp" alt="срібні монети"
        style={{ width: w, height: h, display: "inline", verticalAlign: -3 }} />
 );
 
 export const Bean = ({ w = 14, h = 16 }) => (
-  <img src="/assets/ui/bean.png" alt="зерна"
+  <img src="/assets/ui/bean.webp" alt="зерна"
        style={{ width: w, height: h, display: "inline", verticalAlign: -3 }} />
 );
 
 // size — сторона монети, overlap — на скільки золота заходить на срібну.
 export const Coins2 = ({ size = 16, overlap = 7 }) => (
   <span className="coins2">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: size, height: size + 1 }} />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: size, height: size + 1, marginLeft: -overlap }} />
+    <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: size, height: size + 1 }} />
+    <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: size, height: size + 1, marginLeft: -overlap }} />
   </span>
 );

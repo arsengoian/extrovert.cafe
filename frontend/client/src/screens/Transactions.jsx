@@ -48,9 +48,9 @@ function detail(e) {
 }
 
 const CURRENCIES = [
-  ["delta_yellow", "/assets/ui/coin_gold.png", "жовті монети"],
-  ["delta_silver", "/assets/ui/coin_silver.png", "срібні монети"],
-  ["delta_beans", "/assets/ui/bean.png", "зерна"],
+  ["delta_yellow", "/assets/ui/coin_gold.webp", "жовті монети"],
+  ["delta_silver", "/assets/ui/coin_silver.webp", "срібні монети"],
+  ["delta_beans", "/assets/ui/bean.webp", "зерна"],
 ];
 
 const dayOf = (iso) => new Date(iso).toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" });

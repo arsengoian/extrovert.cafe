@@ -70,7 +70,7 @@ export function BonusPopup({ tokens, ctx, onClose, onDone }) {
       {state && (
         <div className="loot">
           <div className="loot-tile">
-            <span className="fx-pop"><img ref={markCoinSource} src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+            <span className="fx-pop"><img ref={markCoinSource} src="/assets/ui/coin_gold.webp" alt="золоті монети" /></span>
             <b>+{state.coins}</b>
           </div>
           {items.map((item, n) => (

@@ -93,7 +93,7 @@ export default async function routes(app) {
         kind: "delivery",
         title: "Кава 250 г",
         name: product("coffee_250g")?.name ?? "Кава 250 г",
-        subtitle: "Наше зерно, свіже обсмаження",
+        subtitle: "Власне зерно, з кислинкою",
         icon: "assets/ui/coffee250.png",
         price: beans.coffee_250g.beans,
         currency: "beans",

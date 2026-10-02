@@ -18,13 +18,13 @@ const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 // у гардеробі. Раніше рядки з іконками були флексами, і текст розсипався на
 // шматки з розривами до і після монети (скарга власника 23.09.2026).
 const coin = (w, h) => ({ width: w, height: h, display: "inline", verticalAlign: -3 });
-const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={coin(w, h)} />;
-const Bean = ({ w = 14, h = 16 }) => <img src="/assets/ui/bean.png" alt="зерна" style={coin(w, h)} />;
-const Silver = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={coin(w, h)} />;
+const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={coin(w, h)} />;
+const Bean = ({ w = 14, h = 16 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={coin(w, h)} />;
+const Silver = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={coin(w, h)} />;
 const Coins2 = () => (
   <span className="coins2">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 16, height: 17 }} />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
+    <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 16, height: 17 }} />
+    <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
   </span>
 );
 
@@ -83,12 +83,12 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
           {/* Кава на точці — перша: це основний спосіб, а не крайній
               (рішення власника 23.09.2026). */}
           {ways.drinkCoins && (
-            <Way icon={<img src="/assets/drinks/latte.png" alt="" style={{ width: 30, height: 30 }} />}
+            <Way icon={<img src="/assets/drinks/latte.webp" alt="" style={{ width: 30, height: 30 }} />}
                  title="Купити каву на точці"
                  sub={<>від {ways.drinkCoins[0]} до {ways.drinkCoins[1]} <Gold /> за напій</>} />
           )}
           {ways.pack && (
-            <Way accent primary icon={<img src="/assets/ui/coin_gold.png" alt="" style={{ width: 30, height: 31 }} />}
+            <Way accent primary icon={<img src="/assets/ui/coin_gold.webp" alt="" style={{ width: 30, height: 31 }} />}
                  title="Купити набір монет"
                  sub={<>{fmt(ways.pack.coins)} <Gold /> за {fmt(ways.pack.price_uah)} ₴, одразу</>}
                  pill="Купити" onClick={go(() => ctx.push("coinPacks"))} />
@@ -97,11 +97,11 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                title="Опитування про напій"
                sub={ways.quiz.credits ? <>+{ways.quiz.reward} <Silver />, доступне зараз</> : "поки недоступне"}
                pill="Пройти" onClick={go(() => ctx.openTab("history"))} />
-          <Way off={!beans} icon={<img src="/assets/ui/beans_to_coins.png" alt="" style={{ width: 26, height: 28 }} />}
+          <Way off={!beans} icon={<img src="/assets/ui/beans_to_coins.webp" alt="" style={{ width: 26, height: 28 }} />}
                title={<>Обміняти <Bean w={15} h={17} /></>}
                sub={beans ? <>{beans} <Bean /> → {fmt(beans * rate)} <Gold /></> : "зерен поки немає"}
                pill="Обмін" onClick={go(() => ctx.push("shopProduct", { item: ways.exchange }))} />
-          <Way off={!ways.free} icon={<img src="/assets/ui/cowboy_body.png" alt="" style={{ width: 27, height: 28 }} />}
+          <Way off={!ways.free} icon={<img src="/assets/ui/cowboy_body.webp" alt="" style={{ width: 27, height: 28 }} />}
                title="Продати одяг на ринку"
                sub={ways.free ? `вільних предметів: ${ways.free}` : "вільних предметів немає"}
                pill="Склад" onClick={go(() => ctx.openTab("stock"))} />
@@ -149,12 +149,12 @@ export function NotEnoughBeans({ what, price, have, ctx, onClose }) {
       {ways && (
         <div className="earn-list">
           <Way accent primary off={!ways.plant}
-               icon={<img src="/assets/ui/bean.png" alt="" style={{ width: 26, height: 29 }} />}
+               icon={<img src="/assets/ui/bean.webp" alt="" style={{ width: 26, height: 29 }} />}
                title="Виростити кавенятко"
                sub={ways.plant ? `стадія ${ways.stage} – зерна дає доросле кавенятко` : "кавенятка ще немає"}
                pill="Кавенятко" onClick={go(() => ctx.openTab("plant"))} />
           <Way off={!ways.canDress}
-               icon={<img src="/assets/ui/cowboy_body.png" alt="" style={{ width: 27, height: 28 }} />}
+               icon={<img src="/assets/ui/cowboy_body.webp" alt="" style={{ width: 27, height: 28 }} />}
                title="Подарувати комплект кавенятку"
                sub={ways.canDress
                  ? "повний комплект одягу дає зерна – тим більше, чим вища рідкість"

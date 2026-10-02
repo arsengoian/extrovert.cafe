@@ -8,12 +8,13 @@ import { ResultPopup } from "../ui/Popup.jsx";
 import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { beans as beansText, coins as coinsText } from "../ui/plural.js";
+import { Img, webp } from "../ui/img.jsx";
 
-const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: w, height: h }} />;
+const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: w, height: h }} />;
 const Coins2 = () => (
   <span className="coins2">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
+    <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 20, height: 21 }} />
+    <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
   </span>
 );
 
@@ -39,9 +40,9 @@ ABOUT.sapling_beans = ABOUT.sapling;
 // Кава 250 г — історія пачки (власник, 01.10.2026). Що саме в купажі й від
 // якого обсмажувальника — внутрішня кухня, гравцю цього не пишемо.
 ABOUT.coffee_250g = [
-  "Ця кава починається далеко звідси – на зелених пагорбах Уганди, де екваторіальне сонце, теплі дощі й червона земля дають зерну щільність і глибокий, впевнений смак.",
-  "Звідти зелене зерно вирушає в довгу дорогу через океан і кордони, а вже тут його обсмажують невеликими партіями – уважно й з любовʼю – і пакують, поки аромат на піку.",
-  "Насичена, з шоколадною гірчинкою й горіховим післясмаком, вона однаково добра і чорною, і з молоком. А найприємніше – ця пачка виросла з твоїх зерен.",
+  "Подорож цієї кави починається на іншому континенті – на зелених пагорбах Уганди, де екваторіальне сонце, теплі дощі й червона земля дають зерну щільність і глибокий, впевнений смак.",
+  "Звідти зелене зерно вирушає в довгу дорогу через океан і кордони, його обсмажують невеликими партіями – уважно й з любовʼю – і пакують, поки аромат на піку.",
+  "Насичена, з шоколадною гірчинкою й цитрусовим післясмаком, вона однаково добра і сама по собі, і з молоком. А найприємніше – ця пачка виросла з твоїх зерен.",
 ];
 
 // Тіри одягу для «Як дістати зерна»: комплект платить за найслабшою річчю.
@@ -99,7 +100,7 @@ function ExchangePicker({ amount, setAmount, have, rate }) {
       </div>
       <div className="exch-sum">
         Ти отримаєш <b>{coinsText((Number(amount) || 0) * rate)}</b>
-        <img src="/assets/ui/coin_gold.png" alt="" style={{ width: 17, height: 18 }} />
+        <img src="/assets/ui/coin_gold.webp" alt="" style={{ width: 17, height: 18 }} />
       </div>
     </div>
   );
@@ -132,15 +133,15 @@ function Hero({ item }) {
   if (item.kind === "sapling") {
     return (
       <div className="shop-hero sky">
-        <img className="platform" src="/assets/ui/platform.png" alt="" />
-        <img className="sprout" src="/assets/ui/sprout.png" alt="паросток" />
+        <Img className="platform" src="/assets/ui/platform.png" sizes="222px" alt="" />
+        <img className="sprout" src="/assets/ui/sprout.webp" alt="паросток" />
       </div>
     );
   }
   const water = item.code === "water";
   return (
     <div className={`shop-hero${water ? " water" : item.kind === "care" ? " care" : ""}`}>
-      <img src={`/${item.icon}`} alt="" style={water ? { transform: "scaleX(-1)" } : undefined} />
+      <img src={webp(`/${item.icon}`)} alt="" style={water ? { transform: "scaleX(-1)" } : undefined} />
     </div>
   );
 }
@@ -181,7 +182,7 @@ export function ShopItem({ item, ctx }) {
       const close = () => ctx.notify(null);
       ctx.pop();
       ctx.notify(
-        <ResultPopup art={<img src={`/${target.icon}`} alt="" style={{ width: 62, height: 62, objectFit: "contain" }} />}
+        <ResultPopup art={<img src={webp(`/${target.icon}`)} alt="" style={{ width: 62, height: 62, objectFit: "contain" }} />}
                      title="Готово" onClose={close}>
           <div className="result-note">{DONE[r.kind]?.(r, target) ?? "Покупка вже твоя."}</div>
         </ResultPopup>
@@ -231,7 +232,7 @@ export function ShopItem({ item, ctx }) {
             <b>Як це працює</b>
             <p><Bean /> списуються одразу після підтвердження. Далі – доставка Новою Поштою у відділення або поштомат; статус видно в «Моїх замовленнях».</p>
             <div className="how-balance">
-              <span>Твій баланс <Bean w={15} h={17} /></span>
+              <span>Твій баланс</span>
               <b>{beansHave} <Bean />{lack > 0 ? `, не вистачає ${lack}` : ""}</b>
             </div>
           </div>
@@ -301,7 +302,7 @@ export function ShopItem({ item, ctx }) {
         const ex = t.kind === "exchange";
         const qty = Math.max(1, Number(amount) || 1);
         return (
-          <BuyConfirm art={<img src={`/${t.icon}`} alt="" style={{ width: 120, height: 120, objectFit: "contain" }} />}
+          <BuyConfirm art={<img src={webp(`/${t.icon}`)} alt="" style={{ width: 120, height: 120, objectFit: "contain" }} />}
                       /* Скільки монет дасть обмін — у самій назві: рядка під назвою більше немає. */
                       title={ex ? `Обмін на ${coinsText(qty * (item.gives_coins ?? 15))}` : t.unit ? `${t.title} (${t.unit})` : t.title}
                       price={ex ? qty : t.price} currency={ex || t.currency === "beans" ? "beans" : "coins"}

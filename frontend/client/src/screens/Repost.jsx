@@ -75,7 +75,7 @@ export function Repost() {
     <div className="quiz" style={{ gap: 16 }}>
       <div className="repost-head">
         <div className="badge-coin">
-          <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
+          <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />
           <span>+{state.reward}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>

@@ -7,13 +7,13 @@ import { ttnOf } from "./Orders.jsx";
 import { uploadPrint } from "../plant/print.js";
 
 const ART = {
-  merch_cup: ["/assets/ui/merch.png", 36, 44],
-  custom_print: ["/assets/ui/custom_print.png", 42, 42],
-  coffee_250g: ["/assets/ui/coffee250.png", 33, 44],
+  merch_cup: ["/assets/ui/merch.webp", 36, 44],
+  custom_print: ["/assets/ui/custom_print.webp", 42, 42],
+  coffee_250g: ["/assets/ui/coffee250.webp", 33, 44],
 };
 const LABEL = { new: "Нове", printing: "Друкуємо", packing: "Пакуємо", shipped: "Відправлено", arrived: "Прибуло у відділення", received: "Отримано" };
 const when = (iso) => new Date(iso).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-const Bean = () => <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 14, height: 16 }} />;
+const Bean = () => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: 14, height: 16 }} />;
 
 // Принт чашки чи футболки — те кавенятко, яке друкуємо, і файл для друку.
 // Якщо після оплати файл не доїхав (обрив звʼязку), домальовуємо його тут

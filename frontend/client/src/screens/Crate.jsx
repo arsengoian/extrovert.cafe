@@ -23,7 +23,7 @@ export function CrateOpened({ result, nickname, onClose, onStock, onSell }) {
   const [first, ...rest] = item.name.split("-");
   return (
     <ResultPopup
-      decor={<img className="crate-glow" src="/assets/ui/crate_glow.png" alt="" />}
+      decor={<img className="crate-glow" src="/assets/ui/crate_glow.webp" alt="" />}
       title="Скриньку відкрито"
       offset={88}
       side={16}
@@ -41,7 +41,7 @@ export function CrateOpened({ result, nickname, onClose, onStock, onSell }) {
           <small>{rest.length ? <>{first}-<br />{rest.join("-")}</> : item.name}</small>
         </div>
         <div className="loot-tile">
-          <span className="fx-pop" style={{ animationDelay: "200ms" }}><img ref={markCoinSource} src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+          <span className="fx-pop" style={{ animationDelay: "200ms" }}><img ref={markCoinSource} src="/assets/ui/coin_gold.webp" alt="золоті монети" /></span>
           <b>+{coins}</b>
         </div>
       </div>
@@ -81,10 +81,10 @@ export function CrateOpening({ request, onDone, onError }) {
     <>
       <div className="sheet-backdrop" />
       <div className="crate-opening" ref={art}>
-        <img className="crate-opening-glow" src="/assets/ui/crate_glow.png" alt="" />
+        <img className="crate-opening-glow" src="/assets/ui/crate_glow.webp" alt="" />
         <div className="crate-opening-body">
-          <img src="/assets/ui/crate.png" alt="щаслива скринька" />
-          <div className="crate-opening-lid"><img src="/assets/ui/crate_lid.png" alt="" /></div>
+          <img src="/assets/ui/crate.webp" alt="щаслива скринька" />
+          <div className="crate-opening-lid"><img src="/assets/ui/crate_lid.webp" alt="" /></div>
         </div>
       </div>
     </>,
@@ -166,8 +166,8 @@ export function CratePreview({ item, ctx }) {
     <div className="quiz">
       <div className="crate-hero">
         <span className="crate-art big">
-          <img src="/assets/ui/crate.png" alt="щаслива скринька" />
-          <img src="/assets/ui/crate_lid.png" alt="" />
+          <img src="/assets/ui/crate.webp" alt="щаслива скринька" />
+          <img src="/assets/ui/crate_lid.webp" alt="" />
         </span>
       </div>
 
@@ -190,8 +190,8 @@ export function CratePreview({ item, ctx }) {
       <div className="buy-row">
         <button className="cta" disabled={busy} onClick={() => setConfirm(true)}>
           <span className="coins2">
-            <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
-            <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
+            <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 20, height: 21 }} />
+            <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
           </span>
           {busy ? "…" : price}
         </button>
@@ -201,7 +201,7 @@ export function CratePreview({ item, ctx }) {
       </div>
 
       {confirm && (
-        <BuyConfirm art={<span className="crate-art big"><img src="/assets/ui/crate.png" alt="щаслива скринька" /><img src="/assets/ui/crate_lid.png" alt="" /></span>}
+        <BuyConfirm art={<span className="crate-art big"><img src="/assets/ui/crate.webp" alt="щаслива скринька" /><img src="/assets/ui/crate_lid.webp" alt="" /></span>}
                     title="Щаслива скринька"
                     price={price} currency="coins" balances={ctx.me?.balances} busy={busy}
                     onCancel={() => setConfirm(false)} onBuy={buy} />

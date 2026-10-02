@@ -35,7 +35,7 @@ function LotTile({ lot }) {
       <ItemIcon sprite={lot.item?.sprite_id} size={38} style={{ width: 38 }} />
     </span>
   ) : (
-    <span className="lot-tile plant"><img src="/assets/ui/sprout.png" alt="" /></span>
+    <span className="lot-tile plant"><img src="/assets/ui/sprout.webp" alt="" /></span>
   );
 }
 
@@ -46,7 +46,7 @@ const lotKind = (lot) => (lot.kind === "item"
 
 const Price = ({ lot }) => (
   <b className="lot-price-b">
-    <img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />{lot.price}
+    <img src={lot.currency === "beans" ? "/assets/ui/bean.webp" : "/assets/ui/coin_gold.webp"} alt="" />{lot.price}
   </b>
 );
 

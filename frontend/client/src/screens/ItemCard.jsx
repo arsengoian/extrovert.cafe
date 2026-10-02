@@ -121,7 +121,7 @@ export function ItemCard({ item, ctx }) {
             {/* Без двокрапки й пояснення про найслабший предмет
                 (власник, 27.09.2026). */}
             У тебе вже {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {item.set_beans ?? SET_BEANS[item.tier] ?? 3}{" "}
-            <img src="/assets/ui/bean.png" alt="кавових зерна" />
+            <img src="/assets/ui/bean.webp" alt="кавових зерна" />
           </div>
         )}
       </div>
@@ -147,7 +147,7 @@ export function ItemCard({ item, ctx }) {
                   <em>{`${tierOf(lot.item?.tier ?? item.tier)}, ${(SLOT_OF[lot.item?.slot ?? item.slot] ?? "").toLowerCase()}`}</em>
                 </div>
                 <div className="offer-buy">
-                  <b><img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />{lot.price}</b>
+                  <b><img src={lot.currency === "beans" ? "/assets/ui/bean.webp" : "/assets/ui/coin_gold.webp"} alt="" />{lot.price}</b>
                   <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy} onClick={() => setConfirm({ lot })}>Купити</button>
                 </div>
               </div>
@@ -178,8 +178,8 @@ export function ItemCard({ item, ctx }) {
       <div className="buy-row">
         <button className="cta" disabled={busy || !price} onClick={() => setConfirm({})}>
           <span className="coins2">
-            <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 20, height: 21 }} />
-            <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
+            <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 20, height: 21 }} />
+            <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
           </span>
           {price ?? "—"}
         </button>

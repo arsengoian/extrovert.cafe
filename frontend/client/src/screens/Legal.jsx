@@ -10,11 +10,11 @@ import { api } from "../api.js";
 // {coins} і {beans}, а посилання на підтримку — {support:текст}.
 const Coins = () => (
   <span className="doc-coins">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+    <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />
+    <img src="/assets/ui/coin_gold.webp" alt="золоті монети" />
   </span>
 );
-const Beans = () => <img className="doc-bean" src="/assets/ui/bean.png" alt="кавові зерна" />;
+const Beans = () => <img className="doc-bean" src="/assets/ui/bean.webp" alt="кавові зерна" />;
 
 function Rich({ text, onSupport }) {
   const [head, ...rest] = text.split("{");

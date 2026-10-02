@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
+import { webp } from "../ui/img.jsx";
 
 const Bean = ({ size = 18 }) => (
-  <img src="/assets/ui/bean.png" alt="боби" style={{ width: size, height: size + 2 }} />
+  <img src="/assets/ui/bean.webp" alt="боби" style={{ width: size, height: size + 2 }} />
 );
 
 // Розміри картинок — з макета: у кожної свої пропорції, і «вписати в
@@ -19,7 +20,7 @@ const ART = {
 };
 const Art = ({ item }) => {
   const [width, height] = ART[item.code] ?? [];
-  return <img src={`/${item.icon}`} alt="" style={width ? { width, height, maxHeight: "none" } : undefined} />;
+  return <img src={webp(`/${item.icon}`)} alt="" style={width ? { width, height, maxHeight: "none" } : undefined} />;
 };
 
 const price = (item) => (item.price_range ? item.price_range.join("-") : item.price);
@@ -57,7 +58,7 @@ function BeanRow({ item, onOpen }) {
       <span className="name">
         {item.title}
         {exchange ? (
-          <small className="rate">1 <img src="/assets/ui/bean.png" alt="боб" /> → {item.gives_coins} <img src="/assets/ui/coin_gold.png" alt="золотих монет" /></small>
+          <small className="rate">1 <img src="/assets/ui/bean.webp" alt="боб" /> → {item.gives_coins} <img src="/assets/ui/coin_gold.webp" alt="золотих монет" /></small>
         ) : (
           <small>{item.subtitle}</small>
         )}
@@ -175,8 +176,8 @@ export function Shop({ ctx }) {
               <div className="sectionTitle">Перевір удачу</div>
               <button className="crate-row" onClick={() => open(crate)}>
                 <span className="crate-art">
-                  <img src="/assets/ui/crate.png" alt="щаслива скринька" />
-                  <img src="/assets/ui/crate_lid.png" alt="" />
+                  <img src="/assets/ui/crate.webp" alt="щаслива скринька" />
+                  <img src="/assets/ui/crate_lid.webp" alt="" />
                 </span>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800 }}>{crate.title}</span>
                 <span className="crate-price">

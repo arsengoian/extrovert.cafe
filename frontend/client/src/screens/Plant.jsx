@@ -21,6 +21,7 @@ import {
 import { takeHandoff } from "../plant/handoff.js";
 import { useConfirmWord } from "../ui/confirmWord.js";
 import { rememberPlant, selectedIndex } from "../plant/selected.js";
+import { Img } from "../ui/img.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -174,7 +175,7 @@ function CareFx({ pour, areaRef }) {
       const el = document.createElement(spec.parts === "drop" ? "img" : "i");
       let kf, dur, delay;
       if (spec.parts === "drop") {
-        el.src = "/assets/ui/droplet.png";
+        el.src = "/assets/ui/droplet.webp";
         Object.assign(el.style, { position: "absolute", width: "13px", height: "18px", left: `${spout.x + i * 6 - 6}px`, top: `${spout.y}px`, zIndex: 61 });
         kf = [{ transform: "translateY(0) scale(.7)", opacity: 0 }, { offset: 0.2, opacity: 1 }, { transform: `translateY(${fall}px) scale(1)`, opacity: 0 }];
         dur = 700; delay = CARE_FX_MS * 0.46 + i * 120;
@@ -213,12 +214,12 @@ function Shelf({ care, onApply, onWrong, need, canWater }) {
   useEffect(() => { shown.current = care; });
   return (
     <div className="shelf">
-      <img className="shelf-board" src="/assets/ui/shelf.png" alt="Поличка з препаратами" />
+      <img className="shelf-board" src="/assets/ui/shelf.webp" alt="Поличка з препаратами" />
       {SHELF.map((s) => {
         const n = care[s.key] ?? 0;
         const [src, x, y, w, h, alt] = n > 0 ? s.full : s.empty;
         const img = (
-          <img src={`/assets/ui/${src}.png`} alt={alt}
+          <img src={`/assets/ui/${src}.webp`} alt={alt}
                style={{ left: x, top: y, width: w, height: h, transform: s.mirror ? "scaleX(-1)" : undefined }} />
         );
         const changed = (shown.current[s.key] ?? 0) !== n;
@@ -237,7 +238,7 @@ function Shelf({ care, onApply, onWrong, need, canWater }) {
             {s.crop ? <span className="shelf-crop">{img}</span>
               : img}
             <span className="shelf-ring" data-empty={n <= 0 || undefined} style={{ left: s.ring[0], top: s.ring[1] }}>
-              <img src="/assets/ui/ring.png" alt="" />
+              <img src="/assets/ui/ring.webp" alt="" />
               <span><b key={n} className={changed ? "fx-count" : undefined}>{n}</b><small>{s.unit}</small></span>
             </span>
           </button>
@@ -362,7 +363,7 @@ function ScytheSheet({ plant, onClose, onDone }) {
         <b className="plant-sheet-title">Ну що ти за звір?</b>
       </div>
       <p style={{ lineHeight: 1.5 }}>Використовуй цю опцію лише якщо кавенятко зовсім негарне вдалося і хочеш виростити нове. Ресурси, витрачені на кавенятко, та подаровані комплекти буде втрачено.</p>
-      <div className="scythe-keep"><img src="/assets/ui/sprout.png" alt="" /><b>Ти отримаєш лише: 1 саджанець</b></div>
+      <div className="scythe-keep"><img src="/assets/ui/sprout.webp" alt="" /><b>Ти отримаєш лише: 1 саджанець</b></div>
       <input ref={check.ref} className="confirm-input" value={word} placeholder={`напиши «${SCYTHE_WORD}»`} data-invalid={check.invalid || undefined}
              autoComplete="off" spellCheck={false} onChange={(e) => { setWord(e.target.value); check.reset(); }} />
       {check.invalid && <p className="confirm-hint">Напиши «{SCYTHE_WORD}», щоб підтвердити</p>}
@@ -556,7 +557,7 @@ export function Plant({ ctx }) {
     return (
       <div className="stage-pad">
         <div className="panel" style={{ textAlign: "center" }}>
-          <img src="/assets/ui/sprout.png" alt="" style={{ width: 48, margin: "8px auto 12px" }} />
+          <img src="/assets/ui/sprout.webp" alt="" style={{ width: 48, margin: "8px auto 12px" }} />
           <div className="h2">Кавенятка ще немає</div>
           <p className="muted">Саджанець можна купити в Магазині – за монети або за зерна.</p>
           <button className="btn btn-primary" onClick={() => ctx.push("plantMarket")}>Обрати кавенятко</button>
@@ -696,14 +697,14 @@ export function Plant({ ctx }) {
     <div className="plant-screen" {...swipe}>
       <div className="plant-layer" ref={layer} style={{ "--pf": pf }}>
         <div className="plant-area" ref={area}>
-          <img className="plant-platform" src="/assets/ui/platform.png" alt="" />
+          <Img className="plant-platform" src="/assets/ui/platform.png" sizes="444px" alt="" />
           {want && (
             <button className="wish" data-tap="off" title={want.title} onClick={wish} style={{ left: cx, top: cy }}>
-              <img src="/assets/ui/cloud_p1.png" alt="" />
-              <img src="/assets/ui/cloud_p2.png" alt="" />
-              <img src="/assets/ui/cloud_p3.png" alt="" />
+              <img src="/assets/ui/cloud_p1.webp" alt="" />
+              <img src="/assets/ui/cloud_p2.webp" alt="" />
+              <img src="/assets/ui/cloud_p3.webp" alt="" />
               <span className="wish-icon">
-                <img src={`/assets/ui/${want.src}.png`} alt={want.title}
+                <img src={`/assets/ui/${want.src}.webp`} alt={want.title}
                      style={{ left: want.at[0], top: want.at[1], width: want.at[2], height: want.at[3] }} />
               </span>
             </button>
@@ -727,7 +728,7 @@ export function Plant({ ctx }) {
           <CareFx pour={pour} areaRef={area} />
           {plant.growth_stage >= 10 && (
             <button ref={barrel} className={`plant-barrel${fx?.to === 10 ? " fx-barrel-in" : ""}`} title="Бочка з зерном" onClick={() => say(BARREL)}>
-              <img src="/assets/ui/barrel.png" alt="" className={giftFx ? "fx-pulse" : undefined} />
+              <img src="/assets/ui/barrel.webp" alt="" className={giftFx ? "fx-pulse" : undefined} />
             </button>
           )}
           {fx && <GrowthFx fx={fx} instances={instances} />}
@@ -757,7 +758,7 @@ export function Plant({ ctx }) {
         {onSale && plant.listing && (
           <div className="plant-sale">
             <span>
-              <img src={plant.listing.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />
+              <img src={plant.listing.currency === "beans" ? "/assets/ui/bean.webp" : "/assets/ui/coin_gold.webp"} alt="" />
               На продажу за {new Intl.NumberFormat("uk-UA").format(plant.listing.price)}
             </span>
           </div>
@@ -770,7 +771,7 @@ export function Plant({ ctx }) {
           </button>
           <button className="plant-chat" title="Чат з кавенятком" disabled={Boolean(lock)} onClick={() => ctx.push("chat", { plant })}>
             {plant.chat_unread > 0 && <i>{plant.chat_unread}</i>}
-            <img src="/assets/ui/chat.png" alt="" />
+            <img src="/assets/ui/chat.webp" alt="" />
             {lock && <Lock size={18} title={lock} />}
           </button>
           <button className="plant-act" title="Дії з кавенятком" data-open={popup === "menu" || onSale || undefined}
@@ -847,7 +848,7 @@ function GrowthFx({ fx, instances }) {
           {fruits.slice(0, 7).map((f, n) => {
             const p = inArea(f);
             return (
-              <img key={`b${n}`} className="fx-bean" src="/assets/ui/bean.png" alt=""
+              <img key={`b${n}`} className="fx-bean" src="/assets/ui/bean.webp" alt=""
                    style={{ left: p.x - 9, top: p.y - 10, "--bx": `${BARREL_AT.x - p.x}px`, "--by": `${BARREL_AT.y - p.y}px`, animationDelay: `${n * 90}ms` }} />
             );
           })}

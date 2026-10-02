@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f301466</p>
+  <p class="eyebrow">extrovert.cafe · джерело 64c00b5</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -10684,6 +10684,10 @@ z=28, що лежав явно глибше решти) — тобто зона 
 <td><code>frontend/client/public/assets/sprites/sizes.json</code> — <code>bun run sprites:sizes</code> після заміни спрайтів: без розміру спрайт до завантаження має нульову висоту й підскакує, коли доїде</td>
 </tr>
 <tr>
+<td>WebP-копії спрайтів і картинок</td>
+<td><code>bun run images:webp</code> після заміни будь-якого PNG у <code>sprites/</code>, <code>ui/</code>, <code>drinks/</code> (<code>scripts/build-webp.mjs</code>, 02.10.2026): поруч із <code>x.png</code> лягають <code>x.webp</code> і зменшені <code>x-256w/512w/1024w.webp</code>, а <code>src/images.gen.json</code> каже бандлу, які ширини є. Сцена дає браузеру <code>srcset</code> і свій розмір на екрані (міряє власний масштаб), і браузер, помноживши на щільність екрана, бере найменшу копію, якої вистачає: головний екран на телефоні з щільністю ×3 — 0,2–0,5 МБ (стадія 1–10) замість 2,2–4 МБ PNG. CI (<code>images:webp:check</code>) падає, якщо копію забули. PNG лишаються для PNG принта, листів і кіоска</td>
+</tr>
+<tr>
 <td>Математика (корінь↔центр, криві, зони, камера)</td>
 <td><code>frontend/client/src/plant/geometry.js</code></td>
 </tr>
@@ -12394,7 +12398,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел f301466 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 64c00b5 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -25,6 +25,8 @@
     "seed:apply": "bun scripts/seed.mjs apply",
     "planting:data": "bun scripts/build-planting-data.mjs",
     "sprites:sizes": "bun scripts/build-sprite-sizes.mjs",
+    "images:webp": "bun scripts/build-webp.mjs",
+    "images:webp:check": "bun scripts/build-webp.mjs --check",
     "dev:seed": "bun scripts/dev-seed.mjs",
     "dev:plant": "bun scripts/dev-plant.mjs",
     "kb:check": "bun scripts/kb.mjs check",
@@ -45,6 +47,7 @@
     "eslint-plugin-react": "^7.37.5",
     "globals": "^17.12.0",
     "marked": "^18.0.13",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "sharp": "^0.34"
   }
 }

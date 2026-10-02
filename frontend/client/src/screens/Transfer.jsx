@@ -14,12 +14,12 @@ const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n);
 export function TransferDone({ done, onClose }) {
   return (
     <ResultPopup
-      art={<img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 62, height: 65 }} />}
+      art={<img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 62, height: 65 }} />}
       title="Переказ виконано"
       onClose={onClose}
     >
       <div className="result-sum">
-        <img src="/assets/ui/coin_gold.png" alt="золотих монет" />{fmt(done.amount)}
+        <img src="/assets/ui/coin_gold.webp" alt="золотих монет" />{fmt(done.amount)}
         <small>→ {done.to}</small>
       </div>
       <div className="result-note">
@@ -88,7 +88,7 @@ export function Transfer({ ctx }) {
       <div className="field">
         <div className="sectionTitle">Скільки</div>
         <div className="input-row amount-row">
-          <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          <img src="/assets/ui/coin_gold.webp" alt="золоті монети" />
           <input inputMode="numeric" value={amount}
                  onChange={(e) => setAmount(e.target.value.replace(/\D/g, "").slice(0, 6))} />
           <span>з {fmt(balance)}</span>
@@ -115,7 +115,7 @@ export function Transfer({ ctx }) {
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <button className="cta wide" style={{ marginTop: "auto", height: 52, gap: 7 }} disabled={!ready || busy} onClick={send}>
-        {busy ? "Переказуємо…" : <>Переказати {fmt(value)} <img src="/assets/ui/coin_gold.png" alt="золотих монет" style={{ width: 20, height: 21 }} /></>}
+        {busy ? "Переказуємо…" : <>Переказати {fmt(value)} <img src="/assets/ui/coin_gold.webp" alt="золотих монет" style={{ width: 20, height: 21 }} /></>}
       </button>
 
     </div>

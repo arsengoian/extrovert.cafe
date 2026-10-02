@@ -22,12 +22,12 @@ export function haveFor(currency, balances = {}) {
 // Іконка каже, чим саме заплатиш: лот на ринку — лише золотими, магазин —
 // будь-якими, спершу срібними (тому пара монет).
 export function CurrencyIcon({ currency }) {
-  if (currency === "beans") return <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 15, height: 17 }} />;
-  if (currency === "yellow") return <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17 }} />;
+  if (currency === "beans") return <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: 15, height: 17 }} />;
+  if (currency === "yellow") return <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 16, height: 17 }} />;
   return (
     <span className="coins2">
-      <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 16, height: 17 }} />
-      <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
+      <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 16, height: 17 }} />
+      <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
     </span>
   );
 }

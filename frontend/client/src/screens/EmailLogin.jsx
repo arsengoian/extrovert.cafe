@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 import { clearLoginWait, readLoginWait, saveLoginWait } from "../loginWait.js";
+import { Img } from "../ui/img.jsx";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ERRORS = {
@@ -96,7 +97,7 @@ export function EmailLogin({ next = "/", ctx }) {
     return (
       <div className="form18" style={{ gap: 16 }}>
         <div className="email-sent">
-          <img src="/assets/ui/hero_bush.png" alt="" />
+          <Img src="/assets/ui/hero_bush.png" sizes="132px" alt="" />
           <b>Лист уже летить</b>
           <div className="lead14">
             Ми надіслали лінк для входу на <b>{sent.email}</b>. Посилання діє {sent.minutes} хвилин.

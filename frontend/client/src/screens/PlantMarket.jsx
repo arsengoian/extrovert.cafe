@@ -18,8 +18,8 @@ const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
 const Coins2 = () => (
   <span className="coins2">
-    <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 18, height: 19 }} />
-    <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 18, height: 19, marginLeft: -6 }} />
+    <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 18, height: 19 }} />
+    <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 18, height: 19, marginLeft: -6 }} />
   </span>
 );
 
@@ -73,7 +73,7 @@ export function PlantMarket({ ctx }) {
       ctx.openTab("plant");
       const close = () => ctx.notify(null);
       ctx.notify(
-        <ResultPopup art={<img src="/assets/ui/sprout.png" alt="" style={{ width: 40, height: 62, objectFit: "contain" }} />}
+        <ResultPopup art={<img src="/assets/ui/sprout.webp" alt="" style={{ width: 40, height: 62, objectFit: "contain" }} />}
                      title={lack.what === "Саджанець" ? "Саджанець твій!" : "Кавенятко твоє!"} onClose={close}>
           <div className="result-note">
             {lack.what === "Саджанець"
@@ -100,10 +100,10 @@ export function PlantMarket({ ctx }) {
           <button key={item.code} className="pm-sapling" disabled={busy}
                   onClick={() => setPicked({ what: "Саджанець", name: "Саджанець", currency: item.currency, price: item.price,
                                              request: () => api.post("/shop/buy", { code: item.code }) })}>
-            <img src="/assets/ui/sprout.png" alt="" />
+            <img src="/assets/ui/sprout.webp" alt="" />
             <b>Саджанець</b>
             <span>
-              {item.currency === "beans" ? <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 17, height: 19 }} /> : <Coins2 />}
+              {item.currency === "beans" ? <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: 17, height: 19 }} /> : <Coins2 />}
               {fmt(item.price)}
             </span>
           </button>
@@ -135,8 +135,8 @@ export function PlantMarket({ ctx }) {
             <div className="pm-buy">
               <span>
                 {lot.currency === "beans"
-                  ? <img src="/assets/ui/bean.png" alt="зерна" style={{ width: 16, height: 18 }} />
-                  : <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 17, height: 18 }} />}
+                  ? <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: 16, height: 18 }} />
+                  : <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 17, height: 18 }} />}
                 {fmt(lot.price)}
               </span>
               <button className={`pill${i === 0 ? " pill-primary" : ""}`} disabled={busy}
@@ -165,7 +165,7 @@ function PlantBuyConfirm({ picked, me, busy, onCancel, onBuy }) {
         <PlantView plant={{ growth_stage: picked.lot.plant?.growth_stage ?? 0, appearance: picked.lot.plant?.appearance, mood: "healthy" }}
                    worn={picked.lot.plant?.worn} width={120} height={138} platform={false} pad={4} />
       </span>
-    : <img src="/assets/ui/sprout.png" alt="" style={{ width: 78, height: 120, objectFit: "contain" }} />;
+    : <img src="/assets/ui/sprout.webp" alt="" style={{ width: 78, height: 120, objectFit: "contain" }} />;
   return (
     <BuyConfirm art={art} title={picked.name}
                 price={picked.price} currency={currency} balances={me?.balances} busy={busy} onCancel={onCancel} onBuy={onBuy} />

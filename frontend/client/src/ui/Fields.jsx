@@ -1,3 +1,4 @@
+import { Img } from "./img.jsx";
 // Поля форм — за макетом (кадри «Розкажи про себе · крок 1–6»): один
 // варіант — великий рядок із кружечком, сегмент — рівні кнопки в ряд,
 // кілька варіантів — чипи, що переносяться, текст — поле на два рядки.
@@ -79,7 +80,7 @@ export function DrinkGrid({ options, sprites = {}, value, onChange }) {
     <div className="drink-grid">
       {options.map((o) => (
         <button key={o} className="drink-cell" aria-pressed={value === o} onClick={() => onChange(o)}>
-          <span className="cup">{sprites[o] && <img src={`/assets/drinks/${sprites[o]}.png`} alt="" />}</span>
+          <span className="cup">{sprites[o] && <Img src={`/assets/drinks/${sprites[o]}.png`} sizes="76px" alt="" />}</span>
           <b>{o}</b>
         </button>
       ))}

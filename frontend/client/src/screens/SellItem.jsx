@@ -10,7 +10,7 @@ import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
 import { SLOT_OF, TIER_LABEL } from "./ItemCard.jsx";
 
-const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: w, height: h }} />;
+const Gold = ({ w = 14, h = 15 }) => <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: w, height: h }} />;
 const freeWord = (n) => (n === 1 ? "одна вільна" : `${n} ${plural(n, "вільна", "вільні", "вільних")}`);
 
 export function SellItem({ item, ctx }) {
@@ -65,7 +65,7 @@ export function SellItem({ item, ctx }) {
         {/* Одяг продається лише за золоті — зерна показані, але вимкнені. */}
         <div className="seg">
           <button data-on="true"><Gold w={16} h={17} /></button>
-          <button disabled style={{ opacity: 0.4 }}><img src="/assets/ui/bean.png" alt="кавові боби" style={{ width: 15, height: 17 }} /></button>
+          <button disabled style={{ opacity: 0.4 }}><img src="/assets/ui/bean.webp" alt="кавові боби" style={{ width: 15, height: 17 }} /></button>
         </div>
         <label className="sell-price">
           <input inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value.replace(/\D/g, "").slice(0, 6))} />

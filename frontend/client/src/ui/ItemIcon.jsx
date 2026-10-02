@@ -1,4 +1,5 @@
-// Іконка предмета одягу: конвенція одна — /assets/ui/<sprite_id>.png.
+// Іконка предмета одягу: конвенція одна — /assets/ui/<sprite_id>.webp (WebP-копія
+// PNG, scripts/build-webp.mjs).
 // Частина спрайтів ще не намальована, тому замість
 // битої картинки показуємо заглушку: порожня клітинка виглядала б як
 // «нічого не вдягнено», а це неправда. Там, де назва вже підписана поруч
@@ -21,7 +22,7 @@ export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
 
   return (
     <img
-      src={`/assets/ui/${ALIAS[sprite] ?? sprite}.png`}
+      src={`/assets/ui/${ALIAS[sprite] ?? sprite}.webp`}
       alt={alt}
       style={{ width: "100%", height: size, objectFit: "contain", ...style }}
       onError={() => setBroken(true)}

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
+import { Img } from "../ui/img.jsx";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 const dayOf = (d) => d.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" });
@@ -60,7 +61,7 @@ export function History({ ctx }) {
     <div className="stage-pad">
       {quiz.credits > 0 && (
         <div className="credit-banner">
-          <img src="/assets/ui/coin_silver.png" alt="срібні монети" />
+          <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />
           <div>
             {/* «Кредит» — наше внутрішнє слово, і на екрані воно нічого не
                 пояснює (зауваження власника 23.09.2026). */}
@@ -73,7 +74,7 @@ export function History({ ctx }) {
         <h1>Замовлення кави</h1>
         <span>
           {drinks} {plural(drinks, "напій", "напої", "напоїв")}<i className="vsep" />{fmt(coins)}
-          <img src="/assets/ui/coin_gold.png" alt="золоті монети" />
+          <img src="/assets/ui/coin_gold.webp" alt="золоті монети" />
         </span>
       </div>
 
@@ -90,7 +91,7 @@ export function History({ ctx }) {
           return (
             <div className="order" key={o.key} data-bonus={bonus || undefined}>
               <div className="order-top">
-                <img src={o.item?.sprite ? `/assets/drinks/${o.item.sprite}.png` : "/assets/ui/coffee250.png"} alt="" />
+                <Img src={o.item?.sprite ? `/assets/drinks/${o.item.sprite}.png` : "/assets/ui/coffee250.png"} sizes="44px" alt="" />
                 <div className="order-main">
                   <b>{o.name}</b>
                   <small>
@@ -102,7 +103,7 @@ export function History({ ctx }) {
                 <div className="order-badges">
                   {o.coins > 0 && (
                     <div className="coin-badge">
-                      <span><img src="/assets/ui/coin_gold.png" alt="золоті монети" /></span>
+                      <span><img src="/assets/ui/coin_gold.webp" alt="золоті монети" /></span>
                       <b>+{o.coins}</b>
                     </div>
                   )}
@@ -123,7 +124,7 @@ export function History({ ctx }) {
                       «+40» (власник, 26.09.2026). Перед нагородою — широкий пробіл
                       U+2003, як у макеті. */}
                   <Check />Опитування пройдено
-                  {o.item.quiz_coins > 0 && <>{" "}+{o.item.quiz_coins} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>}
+                  {o.item.quiz_coins > 0 && <>{" "}+{o.item.quiz_coins} <img src="/assets/ui/coin_silver.webp" alt="срібні монети" /></>}
                 </div>
               ) : (
                 // Кредити скінчились — кнопка лишається: відгук про напій,
@@ -133,7 +134,7 @@ export function History({ ctx }) {
                 // лишаємо тому, що дає монети (власник, 28.09.2026).
                 <button className={`order-cta${quiz.credits > 0 ? "" : " plain"}`} onClick={() => ctx.push("quizDrink", { item: { ...o.item, fiscal_date: o.at.toISOString(), point_name: o.point } })}>
                   {quiz.credits > 0
-                    ? <>Пройти опитування +{quiz.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>
+                    ? <>Пройти опитування +{quiz.reward} <img src="/assets/ui/coin_silver.webp" alt="срібні монети" /></>
                     : "Лишити відгук"}
                 </button>
               ))}

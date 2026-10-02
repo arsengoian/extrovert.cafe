@@ -62,7 +62,7 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
       <div className="sheet-backdrop" onClick={onClose} />
       <div className="care-card" style={wide ? undefined : { bottom }}>
         <div className="care-card-head">
-          <img src={`/assets/ui/${k.src}.png`} alt="" style={{ width: Math.round(44 * k.ratio), height: 44 }} />
+          <img src={`/assets/ui/${k.src}.webp`} alt="" style={{ width: Math.round(44 * k.ratio), height: 44 }} />
           <b>Не вистачає {k.of}</b>
         </div>
         <p>{error ?? `Кавенятку ${k.need}, щоб рости далі. У запасі зараз ${have} ${k.unit}.`}</p>
@@ -77,8 +77,8 @@ export function NoSupply({ kind, ctx, onClose, onBought }) {
             </div>
             <div className="care-card-balance">
               <span>Баланс <span className="coins2">
-                <img src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 16, height: 17 }} />
-                <img src="/assets/ui/coin_gold.png" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
+                <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 16, height: 17 }} />
+                <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 16, height: 17, marginLeft: -7 }} />
               </span></span>
               <b>{fmt(balance)} → {fmt(Math.max(0, balance - pack.price))}</b>
             </div>

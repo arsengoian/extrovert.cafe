@@ -24,11 +24,11 @@ export function Hud({ me, onOpen, onWallet, onSupport }) {
   const silverRef = useRef(null);
   const goldRef = useRef(null);
   const beanRef = useRef(null);
-  useCoinFlight(b.silver, silverRef, "/assets/ui/coin_silver.png");
-  useCoinFlight(b.yellow, goldRef, "/assets/ui/coin_gold.png");
+  useCoinFlight(b.silver, silverRef, "/assets/ui/coin_silver.webp");
+  useCoinFlight(b.yellow, goldRef, "/assets/ui/coin_gold.webp");
   // Зерна летять лише звідти, де їх позначили джерелом, — з бочки після
   // подарованого комплекту (Plant.jsx).
-  useCoinFlight(b.beans, beanRef, "/assets/ui/bean.png", { onlyFromSource: true });
+  useCoinFlight(b.beans, beanRef, "/assets/ui/bean.webp", { onlyFromSource: true });
 
   return (
     <div className="hud">
@@ -39,18 +39,18 @@ export function Hud({ me, onOpen, onWallet, onSupport }) {
           перемикаємо на неї: відкритий поверх як окремий екран, він мав
           порожній заголовок, а в меню світилась попередня вкладка. */}
       <button className="hud-pill" aria-label="Гаманець" onClick={onWallet}>
-        <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.png" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
-        <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.png" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
-        <span className="hud-val"><img ref={beanRef} src="/assets/ui/bean.png" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
+        <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.webp" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
+        <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.webp" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
+        <span className="hud-val"><img ref={beanRef} src="/assets/ui/bean.webp" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
       </button>
       <button className="icon-btn" aria-label="Повідомити про проблему" onClick={() => onOpen("problem")}>
-        <img src="/assets/ui/nav_problem.png" alt="" style={{ width: 24, height: 23 }} />
+        <img src="/assets/ui/nav_problem.webp" alt="" style={{ width: 24, height: 23 }} />
       </button>
       <button className="icon-btn" aria-label="Підтримка" onClick={onSupport}>
-        <img src="/assets/ui/nav_support.png" alt="" style={{ width: 22, height: 23 }} />
+        <img src="/assets/ui/nav_support.webp" alt="" style={{ width: 22, height: 23 }} />
       </button>
       <button className="icon-btn" data-active="true" aria-label="Профіль" onClick={() => onOpen("profile")}>
-        <img src="/assets/ui/nav_profile.png" alt="" style={{ width: 20, height: 23 }} />
+        <img src="/assets/ui/nav_profile.webp" alt="" style={{ width: 20, height: 23 }} />
       </button>
     </div>
   );

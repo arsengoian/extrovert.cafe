@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { markCoinSource } from "../ui/fx.jsx";
 import { api } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
+import { Img } from "../ui/img.jsx";
 
 export function QuizDrink({ item: picked = null, ctx }) {
   const [data, setData] = useState(null);
@@ -69,14 +70,14 @@ export function QuizDrink({ item: picked = null, ctx }) {
   return (
     <div className="quiz">
       <div className="drink-card">
-        <img src={item.sprite ? `/assets/drinks/${item.sprite}.png` : "/assets/ui/coffee250.png"} alt="" />
+        <Img src={item.sprite ? `/assets/drinks/${item.sprite}.png` : "/assets/ui/coffee250.png"} sizes="46px" alt="" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <b>{item.name}</b>
           <small>
             {item.point_name}, {when.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}<i className="vsep" />{price} ₴
           </small>
         </div>
-        {paid && <span><img src="/assets/ui/coin_silver.png" alt="" />+{data.reward}</span>}
+        {paid && <span><img src="/assets/ui/coin_silver.webp" alt="" />+{data.reward}</span>}
       </div>
 
       <div className="section" style={{ gap: 12 }}>
@@ -102,18 +103,18 @@ export function QuizDrink({ item: picked = null, ctx }) {
 
       <button className="cta wide" disabled={busy || !complete} onClick={send}>
         {busy ? "Надсилаємо…"
-          : paid ? <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.png" alt="срібні монети" /></>
+          : paid ? <>Надіслати й отримати {data.reward} <img src="/assets/ui/coin_silver.webp" alt="срібні монети" /></>
           : "Надіслати відгук"}
       </button>
 
       {done && (
         <ResultPopup
-          art={<img ref={markCoinSource} className="fx-pop" src="/assets/ui/coin_silver.png" alt="срібні монети" style={{ width: 62, height: 65 }} />}
+          art={<img ref={markCoinSource} className="fx-pop" src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 62, height: 65 }} />}
           title="Дякуємо за відгук"
           onClose={ctx.pop}
         >
           {paid
-            ? <div className="result-sum"><img src="/assets/ui/coin_silver.png" alt="срібних монет" />{data.reward}</div>
+            ? <div className="result-sum"><img src="/assets/ui/coin_silver.webp" alt="срібних монет" />{data.reward}</div>
             : <div className="short-note" style={{ textAlign: "center" }}>Ми його обовʼязково прочитаємо.</div>}
         </ResultPopup>
       )}
