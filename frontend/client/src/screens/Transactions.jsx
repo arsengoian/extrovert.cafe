@@ -6,6 +6,9 @@ import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 
 const CARE = { water: "вода", compost: "компост", fertilizer: "добриво", insecticide: "інсектицид" };
+// Одиниця — та сама, що на полиці й у Магазині: вода в літрах, компост і
+// добриво в кілограмах. Досі тут для всього стояло «шт» — «вода · 5 шт».
+const CARE_UNIT = { water: "л", compost: "кг", fertilizer: "кг", insecticide: "шт" };
 const PRODUCT = { coffee_250g: "кава 250 г", merch_cup: "чашка з принтом", custom_print: "футболка з принтом" };
 
 // Назва операції людською мовою — за причиною й тим, що лежить у meta.
@@ -42,7 +45,7 @@ function detail(e) {
   const time = new Date(e.created_at).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
   const extra = e.reason === "purchase" && m.uah ? `${m.uah} ₴`
     : e.reason === "market" && m.commission ? `комісія ${m.commission}`
-    : e.reason === "care" && m.amount ? `${m.amount} шт`
+    : e.reason === "care" && m.amount ? `${m.amount} ${CARE_UNIT[m.pack] ?? "шт"}`
     : null;
   return extra ? `${time} · ${extra}` : time;
 }

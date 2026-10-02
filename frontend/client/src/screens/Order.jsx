@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { ttnOf } from "./Orders.jsx";
 import { uploadPrint } from "../plant/print.js";
+import { toast } from "../ui/Net.jsx";
 
 const ART = {
   merch_cup: ["/assets/ui/merch.webp", 36, 44],
@@ -70,7 +71,10 @@ export function Order({ id, ctx }) {
   const [src, w, h] = ART[order.product] ?? ART.coffee_250g;
 
   const copy = async () => {
-    try { await navigator.clipboard.writeText(order.ttn); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* без дозволу */ }
+    // Без дозволу на буфер кнопка мовчала — тепер тост (03.10.2026); сам
+    // номер виділяється й копіюється вручну (.selectable).
+    try { await navigator.clipboard.writeText(order.ttn); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch { toast("Не вдалось скопіювати – виділи номер і скопіюй вручну"); }
   };
 
   const sub = (s) => {

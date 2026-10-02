@@ -3,6 +3,7 @@
 // кольору тіру й ціна всього комплекту. Ціна рахується з тіру (economy §5.1).
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 
@@ -12,9 +13,11 @@ const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 export function Catalog({ ctx }) {
   const [items, setItems] = useState(() => api.peek("/catalog/items")?.items ?? null);
 
-  useEffect(() => { api.get("/catalog/items").then((r) => setItems(r.items)).catch(() => setItems([])); }, []);
+  const [failed, setFailed] = useState(false);
+  const load = () => api.get("/catalog/items").then((r) => { setFailed(false); setItems(r.items); }).catch(() => setFailed(true));
+  useEffect(() => { load(); }, []);
 
-  if (!items) return <div className="stage-pad"><div className="skeleton" /></div>;
+  if (!items) return failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="stage-pad"><div className="skeleton" /></div>;
 
   // Порядок наборів і слотів уже задає api — лишається згрупувати.
   const sets = [];

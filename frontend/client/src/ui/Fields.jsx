@@ -69,6 +69,7 @@ export function TextField({ value, onChange, placeholder, rows = 2, tall = false
       className={tall ? "textarea tall" : "textarea"}
       value={value}
       rows={rows}
+      maxLength={2000}
       placeholder={placeholder ?? "Напиши своїми словами"}
       onChange={(e) => onChange(e.target.value)}
     />

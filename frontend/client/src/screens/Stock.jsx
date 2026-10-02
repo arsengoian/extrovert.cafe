@@ -5,6 +5,7 @@
 // бо п'ять слотів комплекту впізнаються за силуетом.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
 import { StockItemSheet, stockState } from "./StockItem.jsx";
@@ -19,13 +20,14 @@ export function Stock({ ctx }) {
   const [crates, setCrates] = useState(() => api.peek("/me/items")?.crates ?? 0);
   const [lots, setLots] = useState(() => api.peek("/me/listings")?.listings ?? []);
 
-  const loadItems = () => api.get("/me/items").then((r) => { setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setItems([]));
+  const [failed, setFailed] = useState(false);
+  const loadItems = () => api.get("/me/items").then((r) => { setFailed(false); setItems(r.items); setCrates(r.crates ?? 0); }).catch(() => setFailed(true));
   useEffect(() => {
     loadItems();
     api.get("/me/listings").then((r) => setLots(r.listings ?? [])).catch(() => {});
   }, []);
 
-  if (!items) return <div className="stage-pad"><div className="skeleton" /></div>;
+  if (!items) return failed ? <LoadFailed onRetry={() => { setFailed(false); loadItems(); }} /> : <div className="stage-pad"><div className="skeleton" /></div>;
 
   const byCollection = items.reduce((acc, it) => {
     (acc[it.collection ?? "Інше"] ??= []).push(it);

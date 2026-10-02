@@ -40,6 +40,10 @@ export function DeleteAccount({ ctx }) {
     setError(null);
     try {
       setDone(await api.post("/me/deletion", { confirm: word.trim().toLowerCase() }));
+      // Токен видаленого акаунта більше нічого не відкриває: лишений у
+      // памʼяті, він після «Закрити» давав на старті «Немає зв'язку з
+      // сервером» (03.10.2026). logout чистить і токен, і чуже на пристрої.
+      api.logout().catch(() => {});
     } catch (e) {
       setError(e.body?.error === "confirm_required" ? `Напиши «${WORD}», щоб підтвердити` : errText(e));
     } finally {

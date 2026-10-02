@@ -43,10 +43,18 @@ async function drinkCount(userId) {
 // Відповіді анкети без порожніх: незаповнене питання не має потрапляти в
 // базу як "" чи [] — статистика рахує кожне питання лише серед тих, хто
 // справді відповів.
+//
+// Лише відомі питання й обмеженої довжини (03.10.2026): досі сюди лягало
+// будь-що, що надіслав клієнт, — і довільні ключі, і текст на мегабайт.
+const PROFILE_IDS = new Set(quiz.profile.steps.flatMap((s) => s.questions.map((q) => q.id)));
+export const TEXT_MAX = 2000;
 function profileAnswers(raw) {
   const out = {};
   for (const [k, raw_] of Object.entries(raw && typeof raw === "object" ? raw : {})) {
-    const v = typeof raw_ === "string" ? raw_.trim() : raw_;
+    if (!PROFILE_IDS.has(k)) continue;
+    let v = typeof raw_ === "string" ? raw_.trim().slice(0, TEXT_MAX) : raw_;
+    if (Array.isArray(v)) v = v.filter((x) => typeof x === "string").slice(0, 30).map((x) => x.slice(0, 200));
+    else if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") continue;
     if (v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length)) continue;
     out[k] = v;
   }
@@ -193,7 +201,7 @@ export default async function routes(app) {
     const itemId = Number(req.body?.receipt_item_id);
     const raw = req.body?.answers;
     const answers = raw && typeof raw === "object" && !Array.isArray(raw) ? { ...raw } : {};
-    const freeText = String(req.body?.free_text ?? "").trim() || null;
+    const freeText = String(req.body?.free_text ?? "").trim().slice(0, TEXT_MAX) || null;
 
     if (!Number.isInteger(itemId)) return reply.code(400).send({ error: "bad_item" });
 

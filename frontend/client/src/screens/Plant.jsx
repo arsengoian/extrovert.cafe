@@ -22,6 +22,7 @@ import { takeHandoff } from "../plant/handoff.js";
 import { useConfirmWord } from "../ui/confirmWord.js";
 import { rememberPlant, selectedIndex } from "../plant/selected.js";
 import { Img } from "../ui/img.jsx";
+import { toast } from "../ui/Net.jsx";
 
 // Хмаринка стоїть над верхівкою крони — у макеті її позиція своя на кожній стадії.
 const CLOUD_AT = [[219, 199], [225, 183], [263, 106], [273, 83], [280, 68], [282, 55], [282, 45], [282, 37], [282, 30], [282, 23], [282, 17]];
@@ -278,14 +279,19 @@ function ActionMenu({ onGift, onSell, onScythe, only }) {
 
 // Кадр «На продажу»: догляд і чат під замками, а знизу — чому й кнопка зняття.
 function SaleCard({ plant, onDone }) {
-  const [error, setError] = useState(null);
+  // Лот могли щойно купити (чи зняти в іншій вкладці): тоді не код помилки
+  // в картці, а тост і свіжий стан куща (03.10.2026).
   const unlist = async () => {
     try { await api.del(`/market/listings/${plant.listing.id}`); onDone(); }
-    catch (e) { setError(errText(e)); }
+    catch (e) {
+      const code = e.body?.error;
+      if (code === "not_active" || code === "no_such_listing") { toast("Лот уже неактивний – можливо, його щойно купили"); onDone(); }
+      else if (!e.offline) toast(errText(e) ?? "Не вийшло зняти з продажу – спробуй ще раз");
+    }
   };
   return (
     <div className="sale-card">
-      <p>{error ?? "Поки кавенятко на ринку, догляд і чат заблоковані, а настрій не показується. Якщо ти знімеш його з продажу і пройшло досить часу, може бути необхідно його полити."}</p>
+      <p>Поки кавенятко на ринку, догляд і чат заблоковані, а настрій не показується. Якщо ти знімеш його з продажу і пройшло досить часу, може бути необхідно його полити.</p>
       <button onClick={unlist}>Зняти з продажу</button>
     </div>
   );
@@ -314,7 +320,7 @@ function GiftSheet({ plant, onClose, onDone }) {
     } catch (e) {
       const c = e.body?.error;
       setError(c === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
-        : c === "no_such_user" ? "Такого нікнейма не знайдено" : c === "self_gift" ? "Це ти сам" : c ?? e.message);
+        : c === "no_such_user" ? "Такого нікнейма не знайдено" : c === "self_gift" ? "Це ти сам" : e.message);
     }
   };
 
@@ -490,14 +496,32 @@ export function Plant({ ctx }) {
 
   // Кавенят може бути скільки завгодно (gamification_ui §MVP): стрілка
   // ліворуч і свайп листають, плюс праворуч — нове кавенятко.
+  // fresh — список уже з сервера, а не з кеша api.peek. До того обране не
+  // перезаписуємо: у кеші ще немає щойно купленого саджанця, і перший рендер
+  // запам'ятовував замість нього перший кущ — новий так і не відкривався, а
+  // з ним і «Як його звати?» (03.10.2026).
+  const fresh = useRef(false);
   const reload = () => api.get("/me/plants").then((r) => {
+    fresh.current = true;
     setPlants(r.plants);
     setIndex(() => selectedIndex(r.plants));
     return r.plants;
   });
   useEffect(() => { reload().catch((e) => setError(e.message)); }, []);
+  // Подія з сервера (ws → refreshMe → rev): кущ могли купити, поки він
+  // висів на екрані «На продажу», подарувати чи змінити з іншої вкладки.
+  // Досі шапка оновлювалась, а кущ ні: проданий лишався «на продажу», і
+  // «Зняти» відповідало кодом помилки (03.10.2026). Свою дію екран
+  // перечитує сам і з паузою під анімацію — тоді не втручаємось (acting).
+  const acting = useRef(false);
+  const seenRev = useRef(ctx.rev);
+  useEffect(() => {
+    if (ctx.rev === seenRev.current) return;
+    seenRev.current = ctx.rev;
+    if (!acting.current && fresh.current) reload().catch(() => {});
+  }, [ctx.rev]);
   useEffect(() => { setNote(null); setPopup(null); }, [index]);
-  useEffect(() => { if (plants?.[index]) rememberPlant(plants[index].id); }, [plants, index]);
+  useEffect(() => { if (fresh.current && plants?.[index]) rememberPlant(plants[index].id); }, [plants, index]);
 
   // Спершу гортаємо до подарованого кавенятка, а коли воно на екрані й
   // бочка намальована — позначаємо бочку джерелом і оновлюємо баланс:
@@ -540,15 +564,13 @@ export function Plant({ ctx }) {
   }, [replay, assets, plant?.id]);
   // Нове кавенятко (купив саджанець чи скосив старе) спершу отримує ім'я.
   //
-  // «Уже пропонували» памʼятає sessionStorage, а не ref: коли попап
-  // закривають, стек порожніє, .stage міняє key — і екран кавенятка
-  // монтується наново разом з усіма своїми ref-ами. Без цієї позначки
-  // попап відкривався б назад тієї ж миті, і «Пізніше» не працювало б
-  // (23.09.2026).
+  // Щоразу, коли на екрані кущ без імені: ім'я обов'язкове, «Пізніше»
+  // прибрали ще 28.09.2026. Досі тут стояла позначка «уже пропонували» в
+  // sessionStorage — лишок від «Пізніше», — і після апаратної «Назад» з
+  // екрана імені кущ лишався безіменним до кінця сесії (03.10.2026).
+  // Подвійний push від StrictMode ловить сам push (app.jsx).
   useEffect(() => {
     if (!plant || plant.name) return;
-    const key = `extrovert.named.${plant.id}`;
-    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { /* приватний режим */ }
     ctx.push("plantName", { plant });
   }, [plant?.id]);
 
@@ -642,6 +664,7 @@ export function Plant({ ctx }) {
     setNote(null);
     const prev = instances;
     const from = plant.growth_stage;
+    acting.current = true;
     try {
       const r = await api.post(`/me/plants/${plant.id}/care`, { kind });
       setPour({ id: Date.now(), kind });
@@ -665,6 +688,8 @@ export function Plant({ ctx }) {
       else if (code === "no_supply") setPopup(`supply:${kind}`);
       else if (code === "fully_grown") say(GROWN);
       else if (!e.offline) say(OOPS);   // про обрив звʼязку вже каже тост
+    } finally {
+      acting.current = false;
     }
   };
 

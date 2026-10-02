@@ -44,6 +44,9 @@ export function Chat({ ctx, plant }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const endRef = useRef(null);
+  // sending зі стану в обробнику другого швидкого тапу ще старий (той самий
+  // рендер), і репліка з відповіддю дублювались на екрані (03.10.2026).
+  const inFlight = useRef(false);
 
   const id = plant?.id;
   useEffect(() => {
@@ -59,7 +62,8 @@ export function Chat({ ctx, plant }) {
 
   const send = async () => {
     const message = text.trim();
-    if (!message || sending) return;
+    if (!message || inFlight.current) return;
+    inFlight.current = true;
     setSending(true);
     setError(null);
     // Показуємо репліку одразу: чекати на мережу, щоб побачити власний
@@ -90,6 +94,7 @@ export function Chat({ ctx, plant }) {
         setError(errText(e));
       }
     } finally {
+      inFlight.current = false;
       setSending(false);
     }
   };
@@ -131,6 +136,7 @@ export function Chat({ ctx, plant }) {
             <>
               <textarea
                 rows={1}
+                maxLength={800}
                 value={text}
                 placeholder="Написати…"
                 onChange={(e) => setText(e.target.value)}

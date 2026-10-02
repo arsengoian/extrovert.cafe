@@ -86,11 +86,19 @@ function fitsPostomat(warehouse, packed) {
   return box.every((side, i) => side <= cell[i]);
 }
 
+// Рядок пошуку по довіднику НП. Апостроф у назвах там — ASCII «'», а
+// українська розкладка й автозаміна iOS дають «ʼ» чи «’»: «Камʼянець» не
+// знаходився зовсім (03.10.2026). % і _ — символи шаблону ilike, а не
+// літери назви: «_» знаходив усе підряд.
+function searchText(raw) {
+  return String(raw ?? "").trim().replace(/[ʼ’‘`´]/g, "'").replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export default async function routes(app) {
   app.get("/np/cities", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
-    const q = String(req.query?.q ?? "").trim();
+    const q = searchText(req.query?.q);
     // Без запиту — міста з найбільшою кількістю відділень: шторка вибору
     // міста в макеті одразу показує список, а не порожнє поле.
     if (q.length < 2) {
@@ -114,7 +122,7 @@ export default async function routes(app) {
     if (!user) return;
     const city = String(req.query?.city ?? "");
     if (!city) fail(400, "city_required");
-    const q = String(req.query?.q ?? "").trim();
+    const q = searchText(req.query?.q);
     const packed = product(String(req.query?.product ?? ""))?.packed ?? null;
 
     const rows = await many(

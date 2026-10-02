@@ -64,7 +64,7 @@ export function Transfer({ ctx }) {
       setError(code === "no_such_user" ? "Такого нікнейма не знайдено"
         : code === "self_transfer" ? "Це ти сам"
         : code === "not_enough" ? "Не вистачає жовтих монет"
-        : code ?? e.message);
+        : e.message);
     } finally {
       setBusy(false);
     }

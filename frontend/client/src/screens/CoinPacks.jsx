@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { markCoinSource } from "../ui/fx.jsx";
 import { api, errText } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { ConfirmSheet, ResultPopup } from "../ui/Popup.jsx";
 
 export const PENDING_KEY = "extrovert.pending_invoice";
@@ -48,9 +49,11 @@ export function CoinPacks({ ctx }) {
   // «до → після» (кадр «Попап · оплата mono pay»), лише потім банк.
   const [picked, setPicked] = useState(null);
 
-  useEffect(() => { api.get("/shop/coin-packs").then((r) => setPacks(r.packs)).catch(() => setPacks([])); }, []);
+  const [failed, setFailed] = useState(false);
+  const load = () => api.get("/shop/coin-packs").then((r) => { setFailed(false); setPacks(r.packs); }).catch(() => setFailed(true));
+  useEffect(() => { load(); }, []);
 
-  if (!packs) return <div className="stage-pad"><div className="skeleton" /></div>;
+  if (!packs) return failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="stage-pad"><div className="skeleton" /></div>;
 
   const pay = async (pack) => {
     setBusy(pack.code);

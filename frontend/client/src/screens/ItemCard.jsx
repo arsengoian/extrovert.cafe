@@ -93,7 +93,7 @@ export function ItemCard({ item, ctx }) {
       else if (c === "not_enough") {
         ctx.notify(<NotEnoughBeans what={item.name} price={lot.price} have={ctx.me?.balances?.beans ?? 0}
                                    ctx={ctx} onClose={() => ctx.notify(null)} />);
-      } else setError(c === "already_gone" ? "Лот уже купили" : c ?? e.message);
+      } else setError(c === "already_gone" ? "Лот уже купили" : e.message);
       await load();
     } finally {
       setBusy(false);

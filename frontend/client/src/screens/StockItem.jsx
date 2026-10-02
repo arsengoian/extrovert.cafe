@@ -40,11 +40,14 @@ const moved = (name) => {
 const WORN_POPUP_MS = 1600;
 function showWorn(ctx, item) {
   const close = () => ctx.notify(null);
-  ctx.notify(
+  const popup = (
     <ResultPopup art={<ItemIcon sprite={item.sprite_id} size={62} alt={item.name} style={{ width: 62 }} />}
                  title="Успішно вдягнено!" action={null} onClose={close} />
   );
-  setTimeout(close, WORN_POPUP_MS);
+  ctx.notify(popup);
+  // Прибираємо лише себе: за 1,6 с гравець устигав відкрити картку
+  // наступного предмета, і таймер закривав уже її (03.10.2026).
+  setTimeout(() => ctx.notify((cur) => (cur === popup ? null : cur)), WORN_POPUP_MS);
 }
 
 const slotName = (slot) => {
@@ -183,7 +186,7 @@ export function WearSheet({ item, wearId, plants, ctx, onClose, onChanged }) {
       showWorn(ctx, item);
     } catch (e) {
       const code = e.body?.error;
-      setError(WEAR_ERROR[code] ?? code ?? e.message);
+      setError(WEAR_ERROR[code] ?? e.message);
     }
   };
 

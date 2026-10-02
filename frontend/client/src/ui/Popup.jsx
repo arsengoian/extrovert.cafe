@@ -62,7 +62,11 @@ export function ConfirmSheet({ children, onCancel, closable = false, gap, paddin
   return createPortal(
     <>
       <div className="sheet-backdrop" onClick={onCancel} />
-      <div className="confirm-sheet" style={wide ? { gap, padding } : { bottom, gap, padding }}>
+      {/* Висота — від того, що лишилось над меню, а не від усієї сцени:
+          інакше на 320×568 довга шторка («Бракує монет» з усіма способами)
+          піднімалась на свої 90 px від низу й ховала заголовок і «×» за
+          верхній край, де їх уже не прокрутити (03.10.2026). */}
+      <div className="confirm-sheet" style={wide ? { gap, padding } : { bottom, maxHeight: `calc(100% - ${bottom + 14}px)`, gap, padding }}>
         {closable && (
           <button className="sheet-x" title="Закрити" aria-label="Закрити" onClick={onCancel}>
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">

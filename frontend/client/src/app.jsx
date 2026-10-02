@@ -7,7 +7,7 @@
 // шторки (поверх поточної вкладки) — як у макетах.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { openSupport } from "./ui/support.jsx";
-import { api, getToken } from "./api.js";
+import { api, getToken, setToken } from "./api.js";
 import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
 import { clarityScreen, clarityUser } from "./clarity.js";
 import { trackScreen } from "./analytics.js";
@@ -155,7 +155,10 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
           // цій вкладці до виходу був відкритий «Склад» чи «Гаманець»: вхід,
           // зокрема нового гравця, — це початок, а не продовження (власник,
           // 28.09.2026).
-          if (e.status === 401) {
+          // 410 — акаунт видалено (routes/me.js): так само «сесії немає»,
+          // а не «немає зв'язку», як було досі.
+          if (e.status === 401 || e.status === 410) {
+            if (e.status === 410) setToken(null);
             try { sessionStorage.removeItem(TAB_KEY); } catch { /* приватний режим */ }
             setTab("plant");
             return true;
@@ -173,13 +176,45 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     return () => { alive = false; };
   }, [refreshMe, login]);
 
-  const push = useCallback((name, props = {}) => setStack((s) => [...s, { name, props }]), []);
-  const pop = useCallback(() => setStack((s) => s.slice(0, -1)), []);
+  // Той самий екран двічі за мить — це подвійний тап по рядку чи кнопці, а
+  // не намір: «Назад» тоді вело на його ж копію (03.10.2026). Те саме
+  // ловить і другий обробник однієї відповіді api (api.js, once).
+  //
+  // Стек і історія браузера йдуть разом: кожен екран стеку — свій запис
+  // історії з state.depth, і закриття екрана будь-чим (← у топбарі, апаратна
+  // «назад», перехід на вкладку) повертає історію на стільки ж кроків. Досі
+  // запис додавався на кожну зміну довжини стеку, і на закриття стрілкою
+  // теж: за пів години історія мала півсотні записів, і апаратна «назад»
+  // на Android по кілька разів поспіль не робила нічого (03.10.2026).
+  // stackLen — глибина синхронно, без чекання на рендер.
+  const stackLen = useRef(0);
+  useEffect(() => { stackLen.current = stack.length; }, [stack.length]);
+  const lastPush = useRef({ name: null, at: 0 });
+  const push = useCallback((name, props = {}) => {
+    const now = Date.now();
+    if (lastPush.current.name === name && now - lastPush.current.at < 700) return;
+    lastPush.current = { name, at: now };
+    stackLen.current += 1;
+    window.history.pushState({ depth: stackLen.current }, "");
+    setStack((s) => [...s, { name, props }]);
+  }, []);
+  const pop = useCallback(() => {
+    if (stackLen.current > 0 && window.history.state?.depth === stackLen.current) {
+      stackLen.current -= 1;
+      window.history.back();          // сам стек зменшить popstate нижче
+      return;
+    }
+    stackLen.current = Math.max(0, stackLen.current - 1);
+    setStack((s) => s.slice(0, -1));
+  }, []);
   // Заміна верхнього екрана без кроку назад: вкладки «Умови / Приватність»
   // міняють і текст, і заголовок топбару, як два окремі кадри макета.
   const replace = useCallback((name, props = {}) => setStack((s) => [...s.slice(0, -1), { name, props }]), []);
   const openTab = useCallback((next) => {
     setTab(next);
+    const depth = stackLen.current;
+    if (depth > 0 && window.history.state?.depth === depth) window.history.go(-depth);
+    stackLen.current = 0;
     setStack([]);
     try { sessionStorage.setItem(TAB_KEY, next); } catch { /* приватний режим — просто не памʼятаємо */ }
   }, []);
@@ -197,7 +232,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
     openTab("plant");
     setNotice(<BonusPopup tokens={tokens} ctx={{ me, refreshMe }}
                           onDone={clearBonuses} onClose={() => setNotice(null)} />);
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState(window.history.state, "", "/");
   }, [bonusToken, Boolean(me?.consent)]);
 
   // Повернення з банку: показуємо статус оплати й прибираємо ?pay з адреси,
@@ -205,7 +240,7 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   useEffect(() => {
     if (!returningFromPayment || !me) return;
     push("paymentResult", {});
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState(window.history.state, "", "/");
   }, [returningFromPayment, Boolean(me)]);
 
   // Події з ws: після будь-якої зміни в акаунті перечитуємо профіль —
@@ -249,6 +284,8 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // раніше за онбординг.
   useEffect(() => {
     if (me?.consent && legalDoc && guest?.name === legalDoc) {
+      window.history.pushState({ depth: 1 }, "");
+      stackLen.current = 1;
       setStack([{ name: legalDoc, props: {} }]);
       setGuest(null);
     }
@@ -258,19 +295,28 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // відкривало б його знову.
   useEffect(() => {
     if (!legalDoc || window.location.pathname === "/") return;
-    if (guest?.name !== legalDoc && !stack.some((s) => s.name === legalDoc)) window.history.replaceState({}, "", "/");
+    if (guest?.name !== legalDoc && !stack.some((s) => s.name === legalDoc)) window.history.replaceState(window.history.state, "", "/");
   }, [legalDoc, guest, stack]);
 
   // Апаратна «назад» на телефоні має закривати екран, а не виходити із
-  // застосунку: кладемо запис в історію на кожен push.
+  // застосунку: стек обрізається до глибини запису, на який повернулась
+  // історія (push кладе запис на кожен екран).
+  //
+  // Після перезавантаження стек порожній, а записи історії лишаються зі
+  // старими глибинами: поточний ставимо на нуль, а глибший за стек запис,
+  // на який повернулись, — залишок до перезавантаження — проскакуємо
+  // далі назад, інакше «назад» на ньому нічого б не закрила.
   useEffect(() => {
-    const onPop = () => setStack((s) => (s.length ? s.slice(0, -1) : s));
+    if (window.history.state?.depth) window.history.replaceState({ ...window.history.state, depth: 0 }, "");
+    const onPop = (e) => {
+      const depth = e.state?.depth ?? 0;
+      if (depth > stackLen.current) { window.history.back(); return; }
+      stackLen.current = depth;
+      setStack((s) => (s.length > depth ? s.slice(0, depth) : s));
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  useEffect(() => {
-    if (stack.length) window.history.pushState({ depth: stack.length }, "");
-  }, [stack.length]);
 
   // «Підтримка» звідусіль веде в Telegram-бот, а не на екран застосунку.
   const support = useCallback(() => openSupport(setNotice), []);

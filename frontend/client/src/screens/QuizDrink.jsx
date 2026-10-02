@@ -95,7 +95,7 @@ export function QuizDrink({ item: picked = null, ctx }) {
         ))}
       </div>
 
-      <textarea className="textarea lg" value={text} rows={2}
+      <textarea className="textarea lg" value={text} rows={2} maxLength={2000}
                 placeholder={data.free_text?.placeholder ?? "Що покращити? (не обов'язково)"}
                 onChange={(e) => setText(e.target.value)} />
 

@@ -124,7 +124,7 @@ export function Problem({ ctx }) {
           (кадри «Повідомити про проблему» і «Проблема · заповнено»). */}
       <div className={`field details-field${photo ? "" : " grow"}`}>
         <div className="sectionTitle">Деталі</div>
-        <textarea ref={bodyRef} className="textarea details" value={body} rows={1}
+        <textarea ref={bodyRef} className="textarea details" value={body} rows={1} maxLength={4000}
                   placeholder="Опишіть, що трапилося" onChange={(e) => setBody(e.target.value)} />
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
                onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }} />

@@ -9,6 +9,7 @@ import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { beans as beansText, coins as coinsText } from "../ui/plural.js";
 import { Img, webp } from "../ui/img.jsx";
+import { rememberPlant } from "../plant/selected.js";
 
 const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: w, height: h }} />;
 const Coins2 = () => (
@@ -99,7 +100,9 @@ function ExchangePicker({ amount, setAmount, have, rate }) {
         <button className="exch-max" data-on={amount === max && have > 0} disabled={have < 1} onClick={() => setAmount(max)}>Максимум</button>
       </div>
       <div className="exch-sum">
-        Ти отримаєш <b>{coinsText((Number(amount) || 0) * rate)}</b>
+        {/* Та сама кількість, що й на кнопці: поки поле порожнє чи «0»,
+            кнопка міняє одне зерно, а тут було «0 монет» (03.10.2026). */}
+        Ти отримаєш <b>{coinsText(have < 1 ? 0 : Math.max(1, Number(amount) || 1) * rate)}</b>
         <img src="/assets/ui/coin_gold.webp" alt="" style={{ width: 17, height: 18 }} />
       </div>
     </div>
@@ -120,7 +123,7 @@ const DONE = {
   // Скільки додалось — з одиницею; скільки тепер усього, видно на полиці
   // (власник, 27.09.2026: «Додано 3 кг», без «тепер на поличці»).
   care: (r, item) => `Додано ${r.added} ${UNIT[item?.code] ?? ""}`.trim(),
-  sapling: () => "Саджанець твій – знайди його на головному екрані.",
+  sapling: () => "Він уже на головному екрані – дай йому ім'я, і можна поливати.",
   exchange: (r) => `Обміняно ${beansText(r.beans)} на ${coinsText(r.coins)}.`,
   // Діє — одразу; інша знижка на точці ще йде — стає в чергу за нею
   // (власник, 28.09.2026).
@@ -180,7 +183,12 @@ export function ShopItem({ item, ctx }) {
         : { code: target.code });
       await ctx.refreshMe();
       const close = () => ctx.notify(null);
-      ctx.pop();
+      // Саджанець — одразу на головний екран і обраним, як і з «Нове
+      // кавенятко»: там він попросить ім'я (gamification_ui.md, «Після
+      // покупки – екран "Як його звати?"»). Досі гравець лишався в Магазині
+      // з порадою знайти кущ самому (03.10.2026).
+      if (r.kind === "sapling") { rememberPlant(r.plant_id); ctx.openTab("plant"); }
+      else ctx.pop();
       ctx.notify(
         <ResultPopup art={<img src={webp(`/${target.icon}`)} alt="" style={{ width: 62, height: 62, objectFit: "contain" }} />}
                      title="Готово" onClose={close}>

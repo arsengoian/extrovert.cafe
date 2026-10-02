@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { days } from "../ui/plural.js";
+import { toast } from "../ui/Net.jsx";
 
 // Тексти — веселіші (власник, 27.09.2026), але правила ті самі, що рахує
 // сервер: публічний пост, монети після першого переходу, пауза між
@@ -52,8 +53,10 @@ export function Repost() {
   if (state.error) return <div className="stage-pad"><div className="panel">Не вдалось отримати посилання. Спробуй пізніше.</div></div>;
 
   const copy = async () => {
+    // Без дозволу на буфер (вбудовані браузери соцмереж) кнопка мовчала, і
+    // здавалось, що вона просто не працює (03.10.2026).
     try { await navigator.clipboard.writeText(state.link); }
-    catch { return; }                                 // без дозволу на буфер — просто нічого
+    catch { toast("Не вдалось скопіювати – виділи посилання й скопіюй вручну"); return; }
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };
@@ -107,7 +110,7 @@ export function Repost() {
         <div className="field">
           <div className="sectionTitle">Посилання для посту {state.counted + 1} з {state.max}</div>
           <div className="row" style={{ gap: 8 }}>
-            <div className="link-field">{state.link.replace(/^https?:\/\//, "")}</div>
+            <div className="link-field selectable">{state.link.replace(/^https?:\/\//, "")}</div>
             <button className="icon-sq" onClick={copy} aria-label="Скопіювати посилання">
               {copied ? "✓" : <CopyIcon />}
             </button>

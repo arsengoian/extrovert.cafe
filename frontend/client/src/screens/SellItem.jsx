@@ -41,7 +41,7 @@ export function SellItem({ item, ctx }) {
         : code === "item_in_set" ? "Річ зараз одягнена – спершу зніми її"
         : code === "already_listed" ? "Ця копія вже на продажу"
         : code === "price_too_low" ? `Мінімальна ціна – ${min}`
-        : code ?? e.message);
+        : e.message);
     } finally {
       setBusy(false);
     }

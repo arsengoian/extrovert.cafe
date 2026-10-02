@@ -5,6 +5,7 @@
 // не номер чека. Бонусний напій — окрема підсвічена картка з лутдропом.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { plural } from "../ui/plural.js";
 import { Img } from "../ui/img.jsx";
@@ -26,14 +27,16 @@ export function History({ ctx }) {
     return { credits: r?.credits ?? 0, reward: r?.reward ?? 15 };
   });
 
+  const [failed, setFailed] = useState(false);
+  const load = () => api.get("/me/history").then((d) => { setFailed(false); setData(d); }).catch(() => setFailed(true));
   useEffect(() => {
-    api.get("/me/history").then(setData).catch(() => setData({ receipts: [], totals: { drinks: 0, coins: 0 } }));
+    load();
     api.get("/quiz/drink").then((r) => setQuiz({ credits: r.credits ?? 0, reward: r.reward ?? 15 })).catch(() => {});
     // ctx.rev — щоб щойно забраний бонус з'явився тут одразу, без
     // перемикання вкладок.
   }, [ctx.rev]);
 
-  if (!data) return <div className="stage-pad"><div className="skeleton" /></div>;
+  if (!data) return failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="stage-pad"><div className="skeleton" /></div>;
 
   // Дата як у кадрі: сьогодні — жирна й з часом, учора — з часом, старші —
   // лише число.

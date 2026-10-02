@@ -21,6 +21,21 @@ const TOAST_MS = 4000;
 const OFFLINE = "Немає звʼязку. Спробуй ще раз";
 
 export const toast = (text) => window.dispatchEvent(new CustomEvent("extrovert:toast", { detail: text }));
+
+// Список не завантажився. Досі такі екрани показували «порожньо» —
+// «Склад порожній», «0 пропозицій», вітрину без товарів, — тобто неправду,
+// від якої гравець вирішував, що речі зникли (03.10.2026). Уже показані
+// дані екрани не затирають, а цей блок — лише коли показати нічого.
+export function LoadFailed({ onRetry }) {
+  return (
+    <div className="stage-pad">
+      <div className="panel" style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        Не вдалось завантажити – перевір звʼязок.
+        {onRetry && <button className="pill pill-primary" onClick={onRetry}>Спробувати ще</button>}
+      </div>
+    </div>
+  );
+}
 // Скільки терпіти мовчання ws, перш ніж сказати про це людині. Перепідключення
 // після викочування вкладається в секунду з невеликим розкидом (ws.js).
 const BANNER_AFTER_MS = 6000;

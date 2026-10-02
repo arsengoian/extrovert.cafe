@@ -3,6 +3,7 @@
 // однорядкові списки: структура з макета, вміст — із /shop.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { webp } from "../ui/img.jsx";
@@ -103,8 +104,10 @@ export function Shop({ ctx }) {
   const [mode, setMode] = useState(shopMode);
   const pick = (next) => { setMode(next); rememberShopMode(next); };
 
+  const [failed, setFailed] = useState(false);
+  const load = () => api.get("/shop").then((s) => { setFailed(false); setShop(s); }).catch(() => setFailed(true));
   useEffect(() => {
-    api.get("/shop").then(setShop).catch(() => setShop({ coins: [], beans: [] }));
+    load();
     // Три речі на вітрині — добова випадкова трійка з сервера
     // (/catalog/featured): однакова для всіх до київської півночі.
     api.get("/catalog/featured").then((r) => setClothes(r.items ?? [])).catch(() => {});
@@ -143,7 +146,7 @@ export function Shop({ ctx }) {
         </button>
       </div>
 
-      {!shop && <div className="skeleton" />}
+      {!shop && (failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="skeleton" />)}
 
       {shop && mode === "coins" && (
         <>

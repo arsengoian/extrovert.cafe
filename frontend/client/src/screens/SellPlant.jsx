@@ -49,7 +49,7 @@ export function SellPlant({ plant, ctx }) {
       setError(code === "last_plant" ? "Це твоє єдине кавенятко – спершу заведи ще одне"
         : code === "already_listed" ? "Кавенятко вже на ринку"
         : code === "price_too_low" ? `Мінімальна ціна – ${min[currency]}`
-        : code ?? e.message);
+        : e.message);
     } finally {
       setBusy(false);
     }

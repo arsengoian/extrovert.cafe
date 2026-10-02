@@ -161,7 +161,7 @@ export function Checkout({ item, ctx }) {
       setError(code === "bad_phone" ? "Перевір номер телефону: код країни й номер"
         : code === "bad_name" ? "Вкажи імʼя й прізвище"
         : code === "plant_required" ? "Обери кавенятко для принта"
-        : code ?? e.message);
+        : e.message);
     } finally {
       setBusy(false);
       setStage(null);
@@ -229,10 +229,10 @@ export function Checkout({ item, ctx }) {
 
       {/* Отримувач і адреса — під маскою в записах Clarity (clarity.js). */}
       <div className="co-row" data-clarity-mask="True">
-        <input className="co-input" value={form.first} placeholder="Імʼя" onChange={(e) => set({ first: e.target.value.slice(0, 30) })} />
-        <input className="co-input" value={form.last} placeholder="Прізвище" onChange={(e) => set({ last: e.target.value.slice(0, 30) })} />
+        <input className="co-input" value={form.first} placeholder="Імʼя" autoComplete="given-name" onChange={(e) => set({ first: e.target.value.slice(0, 30) })} />
+        <input className="co-input" value={form.last} placeholder="Прізвище" autoComplete="family-name" onChange={(e) => set({ last: e.target.value.slice(0, 30) })} />
       </div>
-      <input className="co-input" data-clarity-mask="True" value={formatPhone(form.phone)} inputMode="tel" placeholder="+380 XX XXX XX XX"
+      <input className="co-input" data-clarity-mask="True" value={formatPhone(form.phone)} inputMode="tel" autoComplete="tel" placeholder="+380 XX XXX XX XX"
              onChange={(e) => set({ phone: e.target.value })} />
       {/* Спершу — відділення чи поштомат, потім місто (власник, 01.10.2026):
           від типу залежить список у шторці, а місто обирають уже під нього. */}

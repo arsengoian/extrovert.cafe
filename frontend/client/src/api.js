@@ -48,9 +48,81 @@ export async function ensureToken() {
   return token;
 }
 
+// Текст для людини за кодом відповіді api. Сервер відповідає лише кодом
+// ({ error: "item_locked" }), і досі цей код у десятках місць ішов на екран
+// як є: «not_active» у картці кавенятка, «item_locked» під кнопкою
+// (03.10.2026). Тепер повідомлення помилки — завжди українською, а код
+// лишається в e.body.error для гілок, що на нього реагують по-своєму.
+const ERROR_TEXT = {
+  already_gone: "Цей лот уже купили",
+  not_active: "Лот уже неактивний – можливо, його щойно купили",
+  no_such_listing: "Лот уже неактивний – можливо, його щойно купили",
+  own_listing: "Свій лот купити не можна",
+  already_listed: "Уже виставлено на продаж",
+  not_for_sale: "Це не продається",
+  bad_price: "Перевір ціну",
+  price_too_low: "Ціна замала",
+  bad_amount: "Перевір кількість",
+  not_enough: "Не вистачає на рахунку",
+  not_enough_coins: "Не вистачає монет",
+  no_supply: "Препарат закінчився",
+  on_sale: "Кавенятко зараз на продажу",
+  no_such_plant: "Цього кавенятка вже немає – можливо, воно в іншого власника",
+  last_plant: "Це твоє єдине кавенятко",
+  not_grown: "Кавенятко ще не доросле",
+  fully_grown: "Кавенятко вже доросле",
+  mood: "Спершу полий кавенятко",
+  too_soon: "Ще зарано – приходь трохи згодом",
+  water_too_soon: "Кавенятко вже попило – приходь трохи згодом",
+  wrong_care: "Кавенятко хоче іншого",
+  needs_planting: "Спершу посади",
+  nothing_to_plant: "Нічого садити",
+  no_such_item: "Цього предмета вже немає",
+  item_locked: "Предмет заморожений: він на продажу або в комплекті",
+  item_in_set: "Предмет подаровано кавенятку разом із комплектом",
+  item_on_market: "Предмет зараз на продажу",
+  wrong_slot: "Цей предмет – для іншого слоту",
+  no_set: "Повного комплекту ще немає",
+  no_crates: "Скриньок немає",
+  no_such_user: "Такого нікнейма не знайдено",
+  self_transfer: "Собі переказати не можна",
+  self_gift: "Собі подарувати не можна",
+  nickname_taken: "Цей нікнейм уже зайнятий",
+  bad_nickname: "Нікнейм – 3–24 букви, цифри, _ або -",
+  bad_name: "Перевір ім'я",
+  empty_name: "Вкажи ім'я",
+  too_long: "Задовгий текст",
+  empty_message: "Напиши хоч щось",
+  confirm_required: "Підтверди дію",
+  size_required: "Обери розмір",
+  city_required: "Обери місто",
+  warehouse_required: "Обери відділення Нової Пошти",
+  no_such_warehouse: "Такого відділення не знайдено",
+  bad_phone: "Перевір номер телефону",
+  plant_required: "Обери кавенятко",
+  point_required: "Обери точку",
+  no_print: "Принт ще не готовий",
+  not_available: "Зараз це недоступно",
+  payments_not_connected: "Оплата тимчасово недоступна",
+  support_not_connected: "Підтримка тимчасово недоступна",
+  too_many: "Забагато спроб – спробуй трохи згодом",
+  too_many_uploads: "Забагато фото поспіль – спробуй за годину",
+  too_big: "Файл завеликий",
+  bad_type: "Цей формат не підходить",
+  link_expired: "Посилання застаріло – надішли нове",
+  mail_failed: "Лист не відправився – спробуй ще раз",
+  already_done: "Уже зроблено",
+  already_answered: "Відповідь уже є",
+  incomplete: "Дай відповідь на всі питання",
+  save_failed: "Не вдалось зберегти – спробуй ще раз",
+};
+export const humanError = (status, body) =>
+  ERROR_TEXT[body?.error]
+  ?? (status >= 500 || status === 0 ? "Сервер не відповів – спробуй ще раз за хвилину" : "Не вийшло – спробуй ще раз");
+
 export class ApiError extends Error {
   constructor(status, body, offline = false) {
-    super(offline ? "Немає звʼязку" : body?.error || `HTTP ${status}`);
+    super(offline ? "Немає звʼязку" : humanError(status, body));
     this.status = status;
     this.body = body;
     /* Запит не дійшов узагалі: мережі немає, api перезапускається, або
@@ -64,7 +136,7 @@ export class ApiError extends Error {
 // Текст помилки для екрана. null — коли показувати нічого не треба: про
 // обрив звʼязку вже сказав тост, і дублювати його блоком у пів-екрана
 // означало б двічі лякати тим самим.
-export const errText = (e) => (e?.offline ? null : e?.body?.error ?? e?.message ?? null);
+export const errText = (e) => (e?.offline ? null : e?.message ?? null);
 
 async function refresh() {
   refreshing ??= fetch(`${BASE}/auth/refresh`, { method: "POST", credentials: "include" })
@@ -134,14 +206,34 @@ async function request(path, { method = "GET", body, auth = true, retry = true }
   return data;
 }
 
+// Та сама зміна, що ще летить, — це подвійний тап, а не другий намір.
+// Кнопки вимикаються через setBusy, але лише з наступним рендером, і два
+// швидкі тапи встигали проскочити: три однакові скарги з одного «Надіслати»
+// (і три алерти в Telegram), подвійне списання за полив чи покупку
+// (03.10.2026). Тому вимикаємо тут, для всіх екранів одразу: дубль не
+// йде в мережу, а отримує ту саму відповідь, що й перший запит.
+//
+// Саме ту саму, а не «ніколи»: ефект, що монтується вдруге посеред запиту
+// (StrictMode у dev, зміна ключа екрана), інакше чекав би вічно — так
+// застрягала анімація відкриття скриньки. Подвійний перехід від двох
+// обробників ловить уже push() в app.jsx.
+const inflight = new Map();
+function once(method, path, body) {
+  const key = `${method} ${path} ${body === undefined ? "" : JSON.stringify(body)}`;
+  if (inflight.has(key)) return inflight.get(key);
+  const pending = request(path, { method, body }).finally(() => inflight.delete(key));
+  inflight.set(key, pending);
+  return pending;
+}
+
 export const api = {
   get: (path) => request(path).then((data) => { recent.set(path, data); return data; }),
   // Остання відповідь на цей GET або undefined — для початкового стану екрана.
   peek: (path) => recent.get(path),
-  post: (path, body) => request(path, { method: "POST", body }),
-  patch: (path, body) => request(path, { method: "PATCH", body }),
-  put: (path, body) => request(path, { method: "PUT", body }),
-  del: (path) => request(path, { method: "DELETE" }),
+  post: (path, body) => once("POST", path, body),
+  patch: (path, body) => once("PATCH", path, body),
+  put: (path, body) => once("PUT", path, body),
+  del: (path) => once("DELETE", path),
 
   // Лист із посиланням для входу; next — куди повернутись після входу.
   emailLogin: (email, next) => request("/auth/email", { method: "POST", body: { email, next }, auth: false }),
@@ -177,7 +269,16 @@ export const api = {
   // Вхід через Google — не fetch, а перехід: Google має показати свій
   // екран і повернути людину назад на api, який поставить куку.
   googleLoginUrl: (next = "/") => `${BASE}/auth/google?next=${encodeURIComponent(next)}`,
-  logout: () => request("/auth/logout", { method: "POST", auth: false }).finally(() => setToken(null)),
+  // Разом із токеном — і те, що належало саме цьому акаунту: обране
+  // кавенятко й незавершений рахунок mono. Інакше наступний, хто увійде на
+  // цьому пристрої, успадковував би чужі (03.10.2026). Тема й вкладка
+  // Магазину — налаштування пристрою, їх лишаємо.
+  logout: () => request("/auth/logout", { method: "POST", auth: false }).finally(() => {
+    setToken(null);
+    for (const key of ["extrovert.plant", "extrovert.pending_invoice"]) {
+      try { localStorage.removeItem(key); } catch { /* приватний режим */ }
+    }
+  }),
 
   // Спроба підняти сесію без екрана входу: якщо кука жива, застосунок
   // відкриється одразу.

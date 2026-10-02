@@ -79,13 +79,27 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .hud { flex: none; padding: 10px 12px; display: flex; align-items: center; gap: 8px }
 /* Це <button> (веде в гаманець), тож гасимо шрифт і колір від браузера —
    решта стилю та сама, що була в <div>. */
+/* Плашка займає рівно те, що лишилось від трьох кнопок (flex-basis 0 і
+   min-width 0), а не стільки, скільки просять числа: з балансом у кілька
+   десятків тисяч на 320 px вона виштовхувала «Проблему», «Підтримку» й
+   «Профіль» за край екрана (03.10.2026). На вузьких екранах числа й кнопки
+   трохи дрібніші (медіа-запит нижче), а зайве обрізається — кнопки
+   лишаються на місці. */
 .hud-pill {
-  flex: 1; display: flex; align-items: center; justify-content: space-between;
+  flex: 1 1 0; min-width: 0; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel);
   color: inherit; font: inherit; text-align: inherit; cursor: pointer;
 }
-.hud-val { display: flex; align-items: center; gap: 3px; font-size: 14px; font-weight: 700 }
+.hud-val { display: flex; align-items: center; gap: 3px; font-size: 14px; font-weight: 700; white-space: nowrap }
 .hud-val img { width: 21px; height: 22px }
+@media (orientation: portrait) and (max-width: 359px) {
+  .hud { gap: 6px }
+  .hud .icon-btn { width: 36px; height: 36px }
+  .hud-pill { padding: 8px 10px; gap: 4px }
+  .hud-val { font-size: 12px; gap: 2px }
+  .hud-val img { width: 17px; height: 18px }
+}
 .icon-btn {
   width: 38px; height: 38px; flex: none; border: 1px solid var(--line); border-radius: var(--radius-sm);
   background: var(--panel); color: var(--muted); display: flex; align-items: center; justify-content: center;
@@ -1330,7 +1344,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .shelf-ring[data-empty] > span { color: rgb(142, 27, 27) }
 .shelf-ring b { font-size: 11px; font-weight: 800 }
 .shelf-ring small { font-size: 8px; font-weight: 800 }
-.plant-top { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px; z-index: 90 }
+/* Рядок з ім'ям — на всю ширину й вище за хмаринку бажання, а на старших
+   стадіях хмаринка піднімається якраз під нього: тапи по ній ловило ім'я, і
+   «подаруй комплект» на дорослому кущі натискався лише за нижній край
+   (03.10.2026). Тапи ловлять тільки кнопки рядка. */
+.plant-top { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; align-items: center; gap: 8px; z-index: 90; pointer-events: none }
+.plant-top button { pointer-events: auto }
 .plant-slot { flex: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center }
 .plant-name { flex: 1; min-width: 0; text-align: center; font-size: 16px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .plant-round { flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--panel); color: var(--ink); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0, 0, 0, .18) }

@@ -19,6 +19,15 @@ function useCoinFlight(value, iconRef, src, opts) {
   }, [value]);
 }
 
+// Мільйони — коротко: «1,2 млн», «98 млн». Повне число — у Гаманці; у
+// шапці на 320 px і в бічній смузі ландшафту десять цифр не вміщаються.
+const hudNumber = (n) => {
+  const v = Number(n ?? 0);
+  if (v >= 1e7) return `${Math.floor(v / 1e6)} млн`;
+  if (v >= 1e6) return `${(Math.floor(v / 1e5) / 10).toLocaleString("uk-UA")} млн`;
+  return v.toLocaleString("uk-UA");
+};
+
 export function Hud({ me, onOpen, onWallet, onSupport }) {
   const b = me?.balances ?? {};
   const silverRef = useRef(null);
@@ -39,9 +48,9 @@ export function Hud({ me, onOpen, onWallet, onSupport }) {
           перемикаємо на неї: відкритий поверх як окремий екран, він мав
           порожній заголовок, а в меню світилась попередня вкладка. */}
       <button className="hud-pill" aria-label="Гаманець" onClick={onWallet}>
-        <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.webp" alt="срібні монети" /><RollingNumber value={b.silver} /></span>
-        <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.webp" alt="золоті монети" /><RollingNumber value={b.yellow} /></span>
-        <span className="hud-val"><img ref={beanRef} src="/assets/ui/bean.webp" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} /></span>
+        <span className="hud-val"><img ref={silverRef} src="/assets/ui/coin_silver.webp" alt="срібні монети" /><RollingNumber value={b.silver} format={hudNumber} /></span>
+        <span className="hud-val"><img ref={goldRef} src="/assets/ui/coin_gold.webp" alt="золоті монети" /><RollingNumber value={b.yellow} format={hudNumber} /></span>
+        <span className="hud-val"><img ref={beanRef} src="/assets/ui/bean.webp" alt="зерна" style={{ width: 20 }} /><RollingNumber value={b.beans} format={hudNumber} /></span>
       </button>
       <button className="icon-btn" aria-label="Повідомити про проблему" onClick={() => onOpen("problem")}>
         <img src="/assets/ui/nav_problem.webp" alt="" style={{ width: 24, height: 23 }} />

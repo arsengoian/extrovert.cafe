@@ -7,6 +7,7 @@
 // частіше (services.md §4), тож перший лот — головна пропозиція.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { LoadFailed } from "../ui/Net.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { PlantView } from "../plant/PlantView.jsx";
 import { plural } from "../ui/plural.js";
@@ -32,6 +33,7 @@ const lotFacts = (p) => {
 
 export function PlantMarket({ ctx }) {
   const [offers, setOffers] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [shop, setShop] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -41,7 +43,7 @@ export function PlantMarket({ ctx }) {
   const [picked, setPicked] = useState(null);
 
   const load = () => Promise.all([
-    api.get("/market/plants?limit=10").then((r) => setOffers(r.offers)).catch(() => setOffers([])),
+    api.get("/market/plants?limit=10").then((r) => { setFailed(false); setOffers(r.offers); }).catch(() => setFailed(true)),
     api.get("/shop").then(setShop).catch(() => setShop(null)),
   ]);
   useEffect(() => { load(); }, []);
@@ -86,7 +88,7 @@ export function PlantMarket({ ctx }) {
       setPicked(null);
       const code = e.body?.error;
       if (code === "not_enough") short(lack.currency, lack.what, lack.price);
-      else setError(code === "already_gone" ? "Цей лот уже купили" : code ?? e.message);
+      else setError(code === "already_gone" ? "Цей лот уже купили" : e.message);
       if (code === "already_gone") load();
     } finally {
       setBusy(false);
@@ -116,7 +118,7 @@ export function PlantMarket({ ctx }) {
       </div>
 
       {error && <div className="sell-note" style={{ color: "var(--accent-text)" }}>{error}</div>}
-      {offers === null && <div className="skeleton" />}
+      {offers === null && (failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="skeleton" />)}
       {offers?.length === 0 && (
         <div className="sell-note">Зараз ніхто не продає кавенят. Заглянь пізніше – лоти зʼявляються й зникають.</div>
       )}
