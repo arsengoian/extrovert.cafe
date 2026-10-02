@@ -161,13 +161,13 @@ function PlantBuyConfirm({ picked, me, busy, onCancel, onBuy }) {
   // Саджанець за монети платиться й срібними, лот на ринку — лише жовтими.
   const currency = picked.currency === "beans" ? "beans" : picked.lot ? "yellow" : "coins";
   const art = picked.lot
-    ? <span style={{ width: 49, height: 56, flex: "none" }}>
+    ? <span style={{ width: 120, height: 138, flex: "none" }}>
         <PlantView plant={{ growth_stage: picked.lot.plant?.growth_stage ?? 0, appearance: picked.lot.plant?.appearance, mood: "healthy" }}
-                   worn={picked.lot.plant?.worn} width={49} height={56} fit="stage" />
+                   worn={picked.lot.plant?.worn} width={120} height={138} platform={false} pad={4} />
       </span>
-    : <img src="/assets/ui/sprout.png" alt="" style={{ width: 36, height: 56, objectFit: "contain" }} />;
+    : <img src="/assets/ui/sprout.png" alt="" style={{ width: 78, height: 120, objectFit: "contain" }} />;
   return (
-    <BuyConfirm art={art} title={picked.name} subtitle={picked.seller ? `продає ${picked.seller}` : "від кафе, ростиме з нуля"}
+    <BuyConfirm art={art} title={picked.name}
                 price={picked.price} currency={currency} balances={me?.balances} busy={busy} onCancel={onCancel} onBuy={onBuy} />
   );
 }

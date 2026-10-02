@@ -201,8 +201,8 @@ export function CratePreview({ item, ctx }) {
       </div>
 
       {confirm && (
-        <BuyConfirm art={<img src="/assets/ui/crate.png" alt="" style={{ width: 52, height: 52, objectFit: "contain" }} />}
-                    title="Щаслива скринька" subtitle="ляже на Склад, відкриєш звідти"
+        <BuyConfirm art={<span className="crate-art big"><img src="/assets/ui/crate.png" alt="щаслива скринька" /><img src="/assets/ui/crate_lid.png" alt="" /></span>}
+                    title="Щаслива скринька"
                     price={price} currency="coins" balances={ctx.me?.balances} busy={busy}
                     onCancel={() => setConfirm(false)} onBuy={buy} />
       )}

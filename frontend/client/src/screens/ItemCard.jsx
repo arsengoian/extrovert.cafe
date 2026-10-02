@@ -135,7 +135,6 @@ export function ItemCard({ item, ctx }) {
             )}
           </div>
           {offers.offers.map((lot, i) => {
-            const cheaper = price && lot.currency === "yellow" && lot.price < price;
             return (
               <div key={lot.id} className="offer">
                 <span className={`offer-tile tier-${lot.item?.tier ?? item.tier}`}>
@@ -144,7 +143,8 @@ export function ItemCard({ item, ctx }) {
                 <div className="offer-main">
                   <b>{lot.item?.name ?? item.name}</b>
                   <small>продає {lot.seller}</small>
-                  <em>{cheaper ? `дешевше за магазин на ${price - lot.price}` : `${tierOf(lot.item?.tier ?? item.tier)}, ${(SLOT_OF[lot.item?.slot ?? item.slot] ?? "").toLowerCase()}`}</em>
+                  {/* Без «дешевше за магазин на…» (власник, 02.10.2026): ціну видно й так. */}
+                  <em>{`${tierOf(lot.item?.tier ?? item.tier)}, ${(SLOT_OF[lot.item?.slot ?? item.slot] ?? "").toLowerCase()}`}</em>
                 </div>
                 <div className="offer-buy">
                   <b><img src={lot.currency === "beans" ? "/assets/ui/bean.png" : "/assets/ui/coin_gold.png"} alt="" />{lot.price}</b>
@@ -167,8 +167,8 @@ export function ItemCard({ item, ctx }) {
       {confirm && (() => {
         const lot = confirm.lot;
         return (
-          <BuyConfirm art={<ItemIcon sprite={lot?.item?.sprite_id ?? item.sprite_id} size={52} alt={item.name} style={{ width: 52 }} />}
-                      title={lot?.item?.name ?? item.name} subtitle={lot ? `продає ${lot.seller}` : "у Магазині кафе"}
+          <BuyConfirm art={<ItemIcon sprite={lot?.item?.sprite_id ?? item.sprite_id} size={112} alt={item.name} style={{ width: 112 }} />}
+                      title={lot?.item?.name ?? item.name}
                       price={lot ? lot.price : price} currency={lot ? (lot.currency === "beans" ? "beans" : "yellow") : "coins"}
                       balances={ctx.me?.balances} busy={busy} onCancel={() => setConfirm(null)}
                       onBuy={() => (lot ? buyLot(lot) : buyFromShop())} />

@@ -301,12 +301,12 @@ export function ShopItem({ item, ctx }) {
         const ex = t.kind === "exchange";
         const qty = Math.max(1, Number(amount) || 1);
         return (
-          <BuyConfirm art={<img src={`/${t.icon}`} alt="" style={{ width: 52, height: 56, objectFit: "contain" }} />}
-                      title={ex ? "Обмін зерен на монети" : t.unit ? `${t.title} (${t.unit})` : t.title}
-                      subtitle={ex ? `отримаєш ${coinsText(qty * (item.gives_coins ?? 15))}` : null}
+          <BuyConfirm art={<img src={`/${t.icon}`} alt="" style={{ width: 120, height: 120, objectFit: "contain" }} />}
+                      /* Скільки монет дасть обмін — у самій назві: рядка під назвою більше немає. */
+                      title={ex ? `Обмін на ${coinsText(qty * (item.gives_coins ?? 15))}` : t.unit ? `${t.title} (${t.unit})` : t.title}
                       price={ex ? qty : t.price} currency={ex || t.currency === "beans" ? "beans" : "coins"}
                       balances={b} busy={busy} onCancel={() => setConfirm(null)} onBuy={() => buy(t)}
-                      cta={ex ? `Обміняти ${qty}` : undefined} />
+                      cta={ex ? "Обміняти" : undefined} />
         );
       })()}
     </div>

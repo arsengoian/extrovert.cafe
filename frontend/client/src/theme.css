@@ -723,7 +723,18 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--panel2); font-size: 13px;
 }
 .confirm-note > span:first-child { color: var(--muted) }
-.confirm-note > span:last-child { display: flex; align-items: center; gap: 5px; font-weight: 800 }
+.confirm-note > span:last-child { display: flex; align-items: center; gap: 5px; font-weight: 800; white-space: nowrap }
+/* Підтвердження покупки: шапка з небом і товаром, як у попапі імені
+   (власник, 02.10.2026). Від'ємні поля — щоб небо йшло від краю до краю
+   картки, а заокруглення верху обрізає overflow самої шторки. */
+.buy-hero {
+  margin: -20px -16px 0; height: 156px; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(120% 90% at 50% 78%, var(--sky1) 0%, var(--sky2) 74%); border-bottom: 1px solid var(--line);
+}
+.buy-hero > * { filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .35)) }
+.confirm-row.buy-row-title { align-items: flex-start; justify-content: space-between }
+.confirm-row.buy-row-title b { font-size: 16px; font-weight: 800; line-height: 1.25; min-width: 0; text-wrap: balance }
+.confirm-row.buy-row-title > strong { display: flex; align-items: center; gap: 4px; font-size: 18px; line-height: 1.1; white-space: nowrap }
 .confirm-note img { width: 15px; height: 16px }
 .confirm-btns { display: flex; gap: 10px }
 .confirm-btns button { height: 48px; border-radius: 14px; font-size: 15px }
