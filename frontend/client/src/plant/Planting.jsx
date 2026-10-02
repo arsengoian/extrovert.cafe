@@ -21,15 +21,16 @@ import { useLandscape } from "../ui/landscape.js";
 import { selectedPlantId } from "./selected.js";
 import { leaveHandoff } from "./handoff.js";
 import { toast } from "../ui/Net.jsx";
+import { webp } from "../ui/img.jsx";
 
 // Іскорки посадки — одна механіка, різний масштаб часток (дошка «Анімації»).
 const POP_SPARKS = { leafBg: "leaf", leafFg: "leaf", branch: "branch", bud: "bud" };
 
 // Препарат переходу: картинка з пропорціями файлу, назви й одиниця.
 const CARE = {
-  compost: { src: "/assets/ui/compost.png", ratio: 157 / 230, of: "компосту", stock: "Компост у запасі", key: "compost_kg", unit: "кг" },
-  fertilizer: { src: "/assets/ui/mineral.png", ratio: 114 / 229, of: "добрива", stock: "Добриво у запасі", key: "fertilizer_kg", unit: "кг" },
-  insecticide: { src: "/assets/ui/insecticide.png", ratio: 103 / 230, of: "інсектициду", stock: "Інсектицид у запасі", key: "insecticide_bottles", unit: "шт" },
+  compost: { src: "/assets/ui/compost.webp", ratio: 157 / 230, of: "компосту", stock: "Компост у запасі", key: "compost_kg", unit: "кг" },
+  fertilizer: { src: "/assets/ui/mineral.webp", ratio: 114 / 229, of: "добрива", stock: "Добриво у запасі", key: "fertilizer_kg", unit: "кг" },
+  insecticide: { src: "/assets/ui/insecticide.webp", ratio: 103 / 230, of: "інсектициду", stock: "Інсектицид у запасі", key: "insecticide_bottles", unit: "шт" },
 };
 const CareIcon = ({ need, h, style }) => (
   <img src={CARE[need].src} alt={CARE[need].of} style={{ width: Math.round(h * CARE[need].ratio), height: h, ...style }} />
@@ -100,10 +101,10 @@ const ringOf = (phase) => (phase === "bud" ? 0.42 : 0.44);
 
 // Іконка лічильника й її розмір — як у кадрах.
 const ICON = {
-  leafBg: ["/assets/sprites/leaves_batch_normal/leaf_skin1_normal.png", 22],
-  leafFg: ["/assets/sprites/leaves_batch_normal/leaf_skin1_normal.png", 22],
-  branch: ["/assets/sprites/branch_skins_custom/branch_custom_skin1.png", 24],
-  bud: ["/assets/sprites/fruit_bud_greenbean/fruit_bud.png", 20],
+  leafBg: ["/assets/sprites/leaves_batch_normal/leaf_skin1_normal.webp", 22],
+  leafFg: ["/assets/sprites/leaves_batch_normal/leaf_skin1_normal.webp", 22],
+  branch: ["/assets/sprites/branch_skins_custom/branch_custom_skin1.webp", 24],
+  bud: ["/assets/sprites/fruit_bud_greenbean/fruit_bud.webp", 20],
 };
 
 // Що садимо — у родовому для «Ти вже почав садити …» і в підтвердженні.
@@ -188,6 +189,13 @@ export function Planting({ ctx, plantId, title, resume }) {
   useEffect(() => {
     api.get(`/me/plants/${id}/planting`)
       .then((d) => {
+        // Поки діє «одна стадія на добу», садити не можна взагалі — на
+        // головному екрані в цей час хмарка з годинником (власник,
+        // 02.10.2026). Екран посадки відкривався й тоді, коли головний ще не
+        // знав про свіжий перехід (30.09: розставив листя — «Посадити»
+        // нічого не робить). Тепер такий екран мовчки закривається: жодних
+        // написів, кавенятко саме показує, що чекає.
+        if (d.state.ready_at && new Date(d.state.ready_at) > new Date()) { ctx.pop(); return; }
         setData(d);
         const first = phaseOf(d.state.planting);
         const draft = d.draft;   // сервер віддає лише чернетку цієї посадки (liveDraft)
@@ -493,19 +501,13 @@ export function Planting({ ctx, plantId, title, resume }) {
   if (!data.state.planting) {
     return <div className="stage-pad"><div className="panel">Зараз садити нічого – кавенятко просить догляду.</div></div>;
   }
-  // Добовий гейт — одразу, до розстановки: екран посадки відкривався й
-  // тоді, коли головний екран ще не знав про свіжий перехід (власник,
-  // 30.09.2026: розставив листя — а «Посадити» нічого не робить).
-  if (data.state.ready_at && new Date(data.state.ready_at) > new Date()) {
-    return <div className="stage-pad"><div className="panel">{TOO_SOON(data.state.ready_at)}. Кавенятко ще пускає корені після минулого кроку.</div></div>;
-  }
 
   const need = data.state.need;
   const what = WHAT[data.state.planting];
   const supplyLeft = data.supply?.[CARE[need].key] ?? 0;
   const item = selected !== null ? list[selected] : null;
   const enough = list.length >= min;
-  const skinSrc = (n) => `/assets/sprites/${cfg.group}/${spriteFor(phase, { skin: n })}`;
+  const skinSrc = (n) => webp(`/assets/sprites/${cfg.group}/${spriteFor(phase, { skin: n })}`);
   const sw = 2.9 / camera.k;
   const drafted = (items.bg?.length ?? 0) + (items.fg?.length ?? 0) + (items.branches?.length ?? 0) + (items.buds?.length ?? 0);
   const unit = `1 ${CARE[need].unit}`;
