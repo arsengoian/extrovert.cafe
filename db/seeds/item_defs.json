@@ -67,9 +67,9 @@
   },
   {
     "code": "cowboy_body",
-    "name": "Картата сорочка з метеликом",
+    "name": "Картата сорочка з жилетом і хусткою",
     "collection": "Ковбой",
-    "description_md": "Клітинка — для роботи на ранчо, метелик — для танців після неї. Кавенятко не бачить тут жодного протиріччя.",
+    "description_md": "Клітинка — для роботи на ранчо, замшевий жилет із бахромою й зіркою шерифа — для поваги в салуні. А червона хустка рятує і від пилу прерій, і від пари з кавоварки.",
     "slot": "body",
     "tier": "common",
     "sprite_id": "cowboy_body",
@@ -85,7 +85,7 @@
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_acc",
     "price_coins": 200,
-    "active": true
+    "active": false
   },
   {
     "code": "cowboy_deluxe_body",
@@ -96,7 +96,7 @@
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_body",
     "price_coins": 200,
-    "active": true
+    "active": false
   },
   {
     "code": "cowboy_deluxe_feet",
@@ -107,7 +107,7 @@
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_feet",
     "price_coins": 200,
-    "active": true
+    "active": false
   },
   {
     "code": "cowboy_deluxe_head",
@@ -118,7 +118,7 @@
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_head",
     "price_coins": 200,
-    "active": true
+    "active": false
   },
   {
     "code": "cowboy_deluxe_pants",
@@ -129,7 +129,7 @@
     "tier": "uncommon",
     "sprite_id": "cowboy_deluxe_pants",
     "price_coins": 200,
-    "active": true
+    "active": false
   },
   {
     "code": "cowboy_feet",
@@ -225,7 +225,7 @@
   },
   {
     "code": "hipster_acc",
-    "name": "Авіатори з прозорими скельцями",
+    "name": "Круглі окуляри в товстій оправі",
     "collection": "Кав'ярний хіпстер",
     "description_md": "Від сонця не рятують, зате пасують до флет вайту.",
     "slot": "acc_1",
@@ -280,9 +280,9 @@
   },
   {
     "code": "magnate_acc",
-    "name": "Окуляри-монокль",
+    "name": "Золотий кишеньковий годинник на ланцюжку",
     "collection": "Кавовий магнат",
-    "description_md": "Одне скло — щоб роздивитися ціну. Другого не знадобилось: ціни магната давно не цікавлять.",
+    "description_md": "Показує лише один час — час кави. Ланцюжок золотий: іншого магнат не носить.",
     "slot": "acc_1",
     "tier": "epic",
     "sprite_id": "magnate_acc",
@@ -335,9 +335,9 @@
   },
   {
     "code": "pirate_acc",
-    "name": "Круглі окуляри штурмана",
+    "name": "Папуга",
     "collection": "Пірат Кавових морів",
-    "description_md": "Штурману треба бачити і карту, і горизонт. А ще — чи не скінчилась кава в трюмі.",
+    "description_md": "Знає всі сорти арабіки напам'ять і повторює замовлення голосніше за баристу.",
     "slot": "acc_1",
     "tier": "rare",
     "sprite_id": "pirate_acc",
@@ -357,9 +357,9 @@
   },
   {
     "code": "pirate_feet",
-    "name": "Кросівки з зерновою підошвою",
+    "name": "Ботфорти",
     "collection": "Пірат Кавових морів",
-    "description_md": "Підошва лишає на піску сліди-зернятка — за ними команда завжди знайде скарб.",
+    "description_md": "Високі халяви не бояться ні шторму на палубі, ні калюжі розлитого еспресо в камбузі.",
     "slot": "feet",
     "tier": "rare",
     "sprite_id": "pirate_feet",
@@ -555,9 +555,9 @@
   },
   {
     "code": "space_barista_acc",
-    "name": "Окуляри із зірковим відблиском",
+    "name": "Бластер",
     "collection": "Космічний бариста",
-    "description_md": "У скельцях мерехтять далекі галактики. І, здається, кавове зерно на орбіті.",
+    "description_md": "Стріляє не променем, а ідеальною цівкою еспресо. Мирна зброя мирного космосу.",
     "slot": "acc_1",
     "tier": "rare",
     "sprite_id": "space_barista_acc",
@@ -588,9 +588,9 @@
   },
   {
     "code": "space_barista_head",
-    "name": "Шолом-візор космонавта",
+    "name": "Прозорий шолом-візор",
     "collection": "Космічний бариста",
-    "description_md": "Візор відбиває зорі, а всередині завжди пахне свіжим помелом.",
+    "description_md": "Скло прозоре — щоб усі бачили, яке задоволене обличчя в космонавта після першого ковтка. А всередині завжди пахне свіжим помелом.",
     "slot": "head",
     "tier": "rare",
     "sprite_id": "space_barista_head",
@@ -610,9 +610,9 @@
   },
   {
     "code": "sporty_acc",
-    "name": "Напульсник",
+    "name": "Баскетбольний м'яч",
     "collection": "Спортивний",
-    "description_md": "Витирає піт із чола після тренування — і молочну піну з носа після капучино.",
+    "description_md": "Кавенятко кидає з-за триочкової так само влучно, як бариста засипає зерно в гріндер.",
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "sporty_acc",
@@ -664,8 +664,63 @@
     "active": true
   },
   {
+    "code": "steampunk_acc",
+    "name": "Турка з шестернями",
+    "collection": "Паровий бариста",
+    "description_md": "Паровий механізм сам крутить турку над вогнем: шестерні цокають, пінка піднімається рівно до краю.",
+    "slot": "acc_1",
+    "tier": "uncommon",
+    "sprite_id": "steampunk_acc",
+    "price_coins": 200,
+    "active": true
+  },
+  {
+    "code": "steampunk_body",
+    "name": "Шкіряний жилет із шестернями й жабо",
+    "collection": "Паровий бариста",
+    "description_md": "Під жилетом — сорочка з мереживним жабо, на жилеті — латунні шестерні. Винахідник має виглядати пристойно навіть біля котла.",
+    "slot": "body",
+    "tier": "uncommon",
+    "sprite_id": "steampunk_body",
+    "price_coins": 200,
+    "active": true
+  },
+  {
+    "code": "steampunk_feet",
+    "name": "Чоботи на шнурівці з мідними пряжками",
+    "collection": "Паровий бариста",
+    "description_md": "Шнурувати довго, зате підошва витримує розпечену палубу дирижабля.",
+    "slot": "feet",
+    "tier": "uncommon",
+    "sprite_id": "steampunk_feet",
+    "price_coins": 200,
+    "active": true
+  },
+  {
+    "code": "steampunk_head",
+    "name": "Мідний циліндр із шестернями й гоглами",
+    "collection": "Паровий бариста",
+    "description_md": "Шестерні на стрічці починають крутитися, щойно десь поруч закипає вода. Гогли — на випадок, якщо котел пирхне парою.",
+    "slot": "head",
+    "tier": "uncommon",
+    "sprite_id": "steampunk_head",
+    "price_coins": 200,
+    "active": true
+  },
+  {
+    "code": "steampunk_pants",
+    "name": "Формені штани на портупеях",
+    "collection": "Паровий бариста",
+    "description_md": "Ремені портупеї тримають штани, ключ від котельні й запасну шестерню. Про всяк випадок.",
+    "slot": "pants",
+    "tier": "uncommon",
+    "sprite_id": "steampunk_pants",
+    "price_coins": 200,
+    "active": true
+  },
+  {
     "code": "student_acc",
-    "name": "Круглі окуляри",
+    "name": "Тонкі окуляри в дротяній оправі",
     "collection": "Студент",
     "description_md": "Роблять погляд розумнішим навіть о восьмій ранку, до першої кави.",
     "slot": "acc_1",
@@ -720,9 +775,9 @@
   },
   {
     "code": "surfer_acc",
-    "name": "Темні авіатори",
+    "name": "Кокосовий коктейль із соломинкою",
     "collection": "Тропічний серфер",
-    "description_md": "Темніші за подвійний еспресо. Пляжне сонце — не жарт.",
+    "description_md": "Усередині, звісно, колд брю на кокосовому молоці. Паперова парасолька — щоб лід на пляжі танув повільніше.",
     "slot": "acc_1",
     "tier": "common",
     "sprite_id": "surfer_acc",
