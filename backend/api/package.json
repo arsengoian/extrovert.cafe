@@ -14,7 +14,6 @@
     "@extrovert/lib": "workspace:*",
     "fastify": "^5.0.0",
     "pg": "^8.13.0",
-    "ioredis": "^5.4.1",
-    "@sentry/node": "^8.0.0"
+    "ioredis": "^5.4.1"
   }
 }
