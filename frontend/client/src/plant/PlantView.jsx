@@ -22,6 +22,7 @@ export function PlantView({ plant, appearance, stage, mood, worn, width = 250, h
     stage: s,
     mood: m,
     worn,
+    faceSet: plant?.face_set_id,
   });
   if (!platform) instances = instances.filter((i) => i.group !== "platform" && i.group !== "ground_shadow");
 

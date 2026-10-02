@@ -33,7 +33,7 @@ const calm = () => typeof matchMedia === "function" && matchMedia("(prefers-redu
 const isLeaf = (g) => /leaf|leav/i.test(g || "");
 const isBranch = (g) => /branch/i.test(g || "");
 const isFruit = (g) => /^fruit_/.test(g || "");
-const isFace = (g) => /^face_setA/.test(g || "");
+const isFace = (g) => /^face_set/.test(g || "");
 const isGroundShadow = (g) => g === "ground_shadow";
 // Погойдування (bush_graphics_customization §10.16): листя, гілки й крона
 // з обличчям — кожне зі своєю силою; пориви вмикає data-gust сцени (нижче).
@@ -72,6 +72,28 @@ function pivotOf(meta, w) {
   const [nw, nh] = meta.natural;
   const F = w / nw;
   return [meta.root.x * F - w / 2, meta.root.y * F - (nh * F) / 2];
+}
+
+// Зіниця наборів B–E обрізається білком свого ока (clipTo у
+// face_sets_layout.json): так вона ніколи не вилазить за око, а повіка, що
+// лягає зверху, накриває її верх. Маска — CSS mask-image самого білка в
+// координатах коробки зіниці. Обидва спрайти без повороту (так їх і
+// розставляє build_face_sets_layout.py), тож вистачає зсуву й розміру.
+// Тінь зіниці (drop-shadow) теж під маскою: filter іде раніше за mask.
+function clipMaskOf(inst, w, h, instances, sizes) {
+  if (!inst.clipTo) return null;
+  const m = instances.find((i) => i.group === inst.group && i.sprite === inst.clipTo);
+  if (!m) return null;
+  const mw = W0 * m.scale;
+  const size = sizes?.[`${m.group}/${m.sprite}`];
+  const mh = size ? (mw * size[1]) / size[0] : mw;
+  const url = `url("${webp(`/assets/sprites/${m.group}/${m.sprite}`)}")`;
+  const pos = `${m.x - mw / 2 - (inst.x - w / 2)}px ${m.y - mh / 2 - (inst.y - h / 2)}px`;
+  const sz = `${mw}px ${mh}px`;
+  return {
+    maskImage: url, maskPosition: pos, maskSize: sz, maskRepeat: "no-repeat",
+    WebkitMaskImage: url, WebkitMaskPosition: pos, WebkitMaskSize: sz, WebkitMaskRepeat: "no-repeat",
+  };
 }
 
 const filterCss = (cfg) => {
@@ -199,7 +221,9 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
         const tint = isFruit(inst.group) ? fruitFilter : moodFilter;
         if (tint) parts.push(tint);
         if ((isLeaf(inst.group) || isBranch(inst.group) || isFruit(inst.group)) && dropShadow) parts.push(dropShadow);
-        if (isFace(inst.group) && faceShadow.enabled) {
+        // noShadow — внутрішні шари ока B–E (білок, повіка): тінь ока дає ціле
+        // око під ними, а друга тінь лягла б усередину ока.
+        if (isFace(inst.group) && faceShadow.enabled && !inst.noShadow) {
           const sp = (inst.sprite || "").toLowerCase();
           // Брови кидають тінь вниз, решта деталей обличчя — вгору.
           const side = sp.includes("_brow") ? 1 : /_eye|_pupil|_mouth/.test(sp) ? -1 : 0;
@@ -217,6 +241,13 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
         // краще з'явитись із запізненням, ніж підстрибнути.
         const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
         const url = `/assets/sprites/${inst.group}/${inst.sprite}`;
+        const h = size ? (w * size[1]) / size[0] : w;
+        const mask = clipMaskOf(inst, w, h, instances, assets?.sizes);
+        // Порив: деталі обличчя — з однією затримкою, щоб шари ока (ціле око,
+        // білок, зіниця, повіка) не розходились між собою на хвилі.
+        const gustDelay = isFace(inst.group)
+          ? Math.round(GUST_TRAVEL_MS / 2)
+          : Math.round((inst.x / STAGE_W) * GUST_TRAVEL_MS + (n % 3) * 40);
         return (
           <img
             key={`l${n}`}
@@ -235,9 +266,10 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
                 : `translate(-50%,-50%) rotate(${inst.rotation ?? 0}deg)`,
               zIndex: inst.z, filter: parts.join(" ") || "none",
               opacity: inst.opacity ?? 1,
+              ...mask,
               // Коли до цього спрайта дійде хвиля пориву: чим правіше, тим
               // пізніше; крихітна розбіжність сусідам, щоб не рухались строєм.
-              ...(sway ? { "--gd": `${Math.round((inst.x / STAGE_W) * GUST_TRAVEL_MS + (n % 3) * 40)}ms` } : {}),
+              ...(sway ? { "--gd": `${gustDelay}ms` } : {}),
             }}
           />
         );

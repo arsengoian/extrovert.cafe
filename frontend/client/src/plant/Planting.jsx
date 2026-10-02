@@ -267,7 +267,7 @@ export function Planting({ ctx, plantId, title, resume }) {
   // Сцена: кущ цільової стадії + уже посаджене + чернетка поверх.
   const instances = useMemo(() => {
     if (!assets || !data || !cfg) return [];
-    const base = baseInstances(assets.layout, stage, "healthy")
+    const base = baseInstances(assets.layout, stage, "healthy", data.face_set_id)
       .map((i) => (i.group === "platform" ? { ...i, scale: i.scale * 0.72 } : i));
     const planted = playerInstances(data.appearance, stage, "healthy");
     const draft = (it, kind, z) => ({

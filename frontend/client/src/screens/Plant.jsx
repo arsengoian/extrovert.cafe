@@ -525,7 +525,8 @@ export function Plant({ ctx }) {
   useEffect(() => {
     if (!replay || !assets || !plant) return undefined;
     if (plant.id !== replay.plantId) { setReplay(null); return undefined; }
-    const prev = buildScene({ layout: assets.layout, appearance: replay.appearance, stage: replay.from, mood: plant.mood, worn: plant.worn })
+    const prev = buildScene({ layout: assets.layout, appearance: replay.appearance, stage: replay.from, mood: plant.mood, worn: plant.worn,
+                               faceSet: plant.face_set_id })
       .filter((i) => i.group !== "platform");
     setOldScene(prev);
     setPour({ id: Date.now(), kind: replay.kind });
@@ -680,7 +681,7 @@ export function Plant({ ctx }) {
   const [cx, cy] = CLOUD_AT[Math.min(10, plant.growth_stage)] ?? CLOUD_AT[10];
   const instances = assets
     ? buildScene({ layout: assets.layout, appearance: plant.appearance, stage: plant.growth_stage, mood: plant.mood, worn: plant.worn,
-                   extra: draftOf(assets, plant) })
+                   faceSet: plant.face_set_id, extra: draftOf(assets, plant) })
       .filter((i) => i.group !== "platform")
     : [];
 

@@ -1,0 +1,770 @@
+{
+ "$comment": "Обличчя наборів B–E на кавенятку (настрої normal/sad/very_sad): позиції в координатах дорослого макета, як tree_layout.json. Копія design/sprites/generated/_review/face_sets_layout.json (design/sprites/pipeline/build_face_sets_layout.py) — руками не редагувати, перегенеровувати там. Набір A береться з tree_layout.json. clipTo — маска (білок того ж ока), noShadow — без контактної тіні; шари з однаковим z малюються в порядку списку.",
+ "generated": "2026-10-02",
+ "sets": {
+  "B": {
+   "normal": {
+    "group": "face_setB_normal",
+    "instances": [
+     {
+      "sprite": "face_B_normal_eye_L.png",
+      "x": 375.3677,
+      "y": 594.7053,
+      "scale": 0.7933,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_B_normal_sclera_L.png",
+      "x": 375.3677,
+      "y": 594.7053,
+      "scale": 0.7933,
+      "rotation": 0,
+      "z": 47,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_B_normal_pupil_L.png",
+      "x": 374.0043,
+      "y": 601.4875,
+      "scale": 0.3818,
+      "rotation": 0,
+      "z": 48,
+      "clipTo": "face_B_normal_sclera_L.png"
+     },
+     {
+      "sprite": "face_B_normal_eyelid_L.png",
+      "x": 375.3677,
+      "y": 594.7053,
+      "scale": 0.7933,
+      "rotation": 0,
+      "z": 48,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_B_normal_brow_L.png",
+      "x": 365.5368,
+      "y": 503.5101,
+      "scale": 0.4636,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_B_normal_eye_R.png",
+      "x": 630.0669,
+      "y": 602.285,
+      "scale": 0.811,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_B_normal_sclera_R.png",
+      "x": 630.0669,
+      "y": 602.285,
+      "scale": 0.811,
+      "rotation": 0,
+      "z": 50,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_B_normal_pupil_R.png",
+      "x": 631.1044,
+      "y": 609.5834,
+      "scale": 0.3962,
+      "rotation": 0,
+      "z": 51,
+      "clipTo": "face_B_normal_sclera_R.png"
+     },
+     {
+      "sprite": "face_B_normal_eyelid_R.png",
+      "x": 630.0669,
+      "y": 602.285,
+      "scale": 0.811,
+      "rotation": 0,
+      "z": 51,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_B_normal_brow_R.png",
+      "x": 651.9185,
+      "y": 522.5838,
+      "scale": 0.4427,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_B_normal_mouth.png",
+      "x": 495.1245,
+      "y": 715.5388,
+      "scale": 0.5195,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "sad": {
+    "group": "face_setB_sad",
+    "instances": [
+     {
+      "sprite": "face_B_sad_pupil_L.png",
+      "x": 376.0434,
+      "y": 596.9223,
+      "scale": 0.7864,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_B_sad_brow_L.png",
+      "x": 365.1383,
+      "y": 516.646,
+      "scale": 0.3678,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_B_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 602.6695,
+      "scale": 0.7971,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_B_sad_brow_R.png",
+      "x": 651.9185,
+      "y": 522.1142,
+      "scale": 0.3658,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_B_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.0924,
+      "scale": 0.2946,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "very_sad": {
+    "group": "face_setB_very_sad",
+    "instances": [
+     {
+      "sprite": "face_B_very_sad_pupil_L.png",
+      "x": 375.3677,
+      "y": 591.0617,
+      "scale": 0.7796,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_B_very_sad_brow_L.png",
+      "x": 365.1383,
+      "y": 520.0864,
+      "scale": 0.3625,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_B_very_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 598.103,
+      "scale": 0.811,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_B_very_sad_brow_R.png",
+      "x": 651.9185,
+      "y": 524.106,
+      "scale": 0.3636,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_B_very_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.0924,
+      "scale": 0.2708,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   }
+  },
+  "C": {
+   "normal": {
+    "group": "face_setC_normal",
+    "instances": [
+     {
+      "sprite": "face_C_normal_eye_L.png",
+      "x": 375.3677,
+      "y": 594.0358,
+      "scale": 0.8074,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_C_normal_sclera_L.png",
+      "x": 375.3677,
+      "y": 594.0358,
+      "scale": 0.8074,
+      "rotation": 0,
+      "z": 47,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_C_normal_pupil_L.png",
+      "x": 388.4367,
+      "y": 609.29,
+      "scale": 0.528,
+      "rotation": 0,
+      "z": 48,
+      "clipTo": "face_C_normal_sclera_L.png"
+     },
+     {
+      "sprite": "face_C_normal_eyelid_L.png",
+      "x": 375.3677,
+      "y": 594.0358,
+      "scale": 0.8074,
+      "rotation": 0,
+      "z": 48,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_C_normal_brow_L.png",
+      "x": 365.1383,
+      "y": 484.9087,
+      "scale": 0.4725,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_C_normal_eye_R.png",
+      "x": 630.7827,
+      "y": 600.891,
+      "scale": 0.833,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_C_normal_sclera_R.png",
+      "x": 630.7827,
+      "y": 600.891,
+      "scale": 0.833,
+      "rotation": 0,
+      "z": 50,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_C_normal_pupil_R.png",
+      "x": 622.1507,
+      "y": 612.4428,
+      "scale": 0.5609,
+      "rotation": 0,
+      "z": 51,
+      "clipTo": "face_C_normal_sclera_R.png"
+     },
+     {
+      "sprite": "face_C_normal_eyelid_R.png",
+      "x": 630.7827,
+      "y": 600.891,
+      "scale": 0.833,
+      "rotation": 0,
+      "z": 51,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_C_normal_brow_R.png",
+      "x": 651.9185,
+      "y": 486.1488,
+      "scale": 0.4785,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_C_normal_mouth.png",
+      "x": 495.1245,
+      "y": 715.6092,
+      "scale": 0.6014,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "sad": {
+    "group": "face_setC_sad",
+    "instances": [
+     {
+      "sprite": "face_C_sad_pupil_L.png",
+      "x": 375.3677,
+      "y": 589.8969,
+      "scale": 0.7933,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_C_sad_brow_L.png",
+      "x": 364.8306,
+      "y": 491.9879,
+      "scale": 0.358,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_C_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 597.3496,
+      "scale": 0.811,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_C_sad_brow_R.png",
+      "x": 652.2297,
+      "y": 493.347,
+      "scale": 0.3622,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_C_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.0924,
+      "scale": 0.3815,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "very_sad": {
+    "group": "face_setC_very_sad",
+    "instances": [
+     {
+      "sprite": "face_C_very_sad_pupil_L.png",
+      "x": 376.0434,
+      "y": 587.8814,
+      "scale": 0.7864,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_C_very_sad_brow_L.png",
+      "x": 365.1383,
+      "y": 491.0413,
+      "scale": 0.336,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_C_very_sad_pupil_R.png",
+      "x": 629.376,
+      "y": 595.2889,
+      "scale": 0.804,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_C_very_sad_brow_R.png",
+      "x": 651.9185,
+      "y": 492.3549,
+      "scale": 0.3404,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_C_very_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.5561,
+      "scale": 0.5396,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   }
+  },
+  "D": {
+   "normal": {
+    "group": "face_setD_normal",
+    "instances": [
+     {
+      "sprite": "face_D_normal_eye_L.png",
+      "x": 375.3677,
+      "y": 592.592,
+      "scale": 0.8726,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_D_normal_sclera_L.png",
+      "x": 375.3677,
+      "y": 592.592,
+      "scale": 0.8726,
+      "rotation": 0,
+      "z": 47,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_D_normal_pupil_L.png",
+      "x": 392.8923,
+      "y": 611.6761,
+      "scale": 0.4448,
+      "rotation": 0,
+      "z": 48,
+      "clipTo": "face_D_normal_sclera_L.png"
+     },
+     {
+      "sprite": "face_D_normal_eyelid_L.png",
+      "x": 375.3677,
+      "y": 592.592,
+      "scale": 0.8726,
+      "rotation": 0,
+      "z": 48,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_D_normal_brow_L.png",
+      "x": 364.1154,
+      "y": 488.2388,
+      "scale": 0.5812,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_D_normal_eye_R.png",
+      "x": 630.0669,
+      "y": 601.6577,
+      "scale": 0.8921,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_D_normal_sclera_R.png",
+      "x": 630.0669,
+      "y": 601.6577,
+      "scale": 0.8921,
+      "rotation": 0,
+      "z": 50,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_D_normal_pupil_R.png",
+      "x": 634.3308,
+      "y": 616.9835,
+      "scale": 0.4653,
+      "rotation": 0,
+      "z": 51,
+      "clipTo": "face_D_normal_sclera_R.png"
+     },
+     {
+      "sprite": "face_D_normal_eyelid_R.png",
+      "x": 630.0669,
+      "y": 601.6577,
+      "scale": 0.8921,
+      "rotation": 0,
+      "z": 51,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_D_normal_brow_R.png",
+      "x": 654.1036,
+      "y": 515.894,
+      "scale": 0.6526,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_D_normal_mouth.png",
+      "x": 495.1245,
+      "y": 715.0924,
+      "scale": 0.6101,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "sad": {
+    "group": "face_setD_sad",
+    "instances": [
+     {
+      "sprite": "face_D_sad_pupil_L.png",
+      "x": 375.3677,
+      "y": 591.6095,
+      "scale": 0.8575,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_D_sad_brow_L.png",
+      "x": 364.4366,
+      "y": 511.1429,
+      "scale": 0.3738,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_D_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 584.0504,
+      "scale": 0.8768,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_D_sad_brow_R.png",
+      "x": 654.1036,
+      "y": 520.1193,
+      "scale": 0.4414,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_D_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.4382,
+      "scale": 0.4025,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "very_sad": {
+    "group": "face_setD_very_sad",
+    "instances": [
+     {
+      "sprite": "face_D_very_sad_pupil_L.png",
+      "x": 374.6243,
+      "y": 592.0965,
+      "scale": 0.865,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_D_very_sad_brow_L.png",
+      "x": 363.7746,
+      "y": 510.9824,
+      "scale": 0.3965,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_D_very_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 581.7239,
+      "scale": 0.8921,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_D_very_sad_brow_R.png",
+      "x": 654.1036,
+      "y": 517.0232,
+      "scale": 0.3999,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_D_very_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.0924,
+      "scale": 0.4222,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   }
+  },
+  "E": {
+   "normal": {
+    "group": "face_setE_normal",
+    "instances": [
+     {
+      "sprite": "face_E_normal_eye_L.png",
+      "x": 375.3677,
+      "y": 593.3419,
+      "scale": 1.0616,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_E_normal_sclera_L.png",
+      "x": 375.3677,
+      "y": 593.3419,
+      "scale": 1.0616,
+      "rotation": 0,
+      "z": 47,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_E_normal_pupil_L.png",
+      "x": 378.2095,
+      "y": 603.5961,
+      "scale": 0.5919,
+      "rotation": 0,
+      "z": 48,
+      "clipTo": "face_E_normal_sclera_L.png"
+     },
+     {
+      "sprite": "face_E_normal_eyelid_L.png",
+      "x": 375.3677,
+      "y": 593.3419,
+      "scale": 1.0616,
+      "rotation": 0,
+      "z": 48,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_E_normal_brow_L.png",
+      "x": 364.32,
+      "y": 474.7239,
+      "scale": 0.1657,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_E_normal_eye_R.png",
+      "x": 630.0669,
+      "y": 601.8237,
+      "scale": 1.0854,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_E_normal_sclera_R.png",
+      "x": 630.0669,
+      "y": 601.8237,
+      "scale": 1.0854,
+      "rotation": 0,
+      "z": 50,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_E_normal_pupil_R.png",
+      "x": 629.272,
+      "y": 610.9144,
+      "scale": 0.6229,
+      "rotation": 0,
+      "z": 51,
+      "clipTo": "face_E_normal_sclera_R.png"
+     },
+     {
+      "sprite": "face_E_normal_eyelid_R.png",
+      "x": 630.0669,
+      "y": 601.8237,
+      "scale": 1.0854,
+      "rotation": 0,
+      "z": 51,
+      "noShadow": true
+     },
+     {
+      "sprite": "face_E_normal_brow_R.png",
+      "x": 653.6666,
+      "y": 476.5969,
+      "scale": 0.1671,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_E_normal_mouth.png",
+      "x": 495.1245,
+      "y": 715.5062,
+      "scale": 0.4815,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "sad": {
+    "group": "face_setE_sad",
+    "instances": [
+     {
+      "sprite": "face_E_sad_pupil_L.png",
+      "x": 376.1521,
+      "y": 576.9377,
+      "scale": 0.9128,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_E_sad_brow_L.png",
+      "x": 364.32,
+      "y": 473.7417,
+      "scale": 0.2039,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_E_sad_pupil_R.png",
+      "x": 630.8689,
+      "y": 586.6557,
+      "scale": 0.9332,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_E_sad_brow_R.png",
+      "x": 653.6666,
+      "y": 475.3593,
+      "scale": 0.2042,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_E_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.3994,
+      "scale": 0.3573,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   },
+   "very_sad": {
+    "group": "face_setE_very_sad",
+    "instances": [
+     {
+      "sprite": "face_E_very_sad_pupil_L.png",
+      "x": 376.29,
+      "y": 592.6602,
+      "scale": 1.0732,
+      "rotation": 0,
+      "z": 47
+     },
+     {
+      "sprite": "face_E_very_sad_brow_L.png",
+      "x": 364.32,
+      "y": 472.5431,
+      "scale": 0.2157,
+      "rotation": 0,
+      "z": 46
+     },
+     {
+      "sprite": "face_E_very_sad_pupil_R.png",
+      "x": 630.0669,
+      "y": 599.9582,
+      "scale": 1.0854,
+      "rotation": 0,
+      "z": 50
+     },
+     {
+      "sprite": "face_E_very_sad_brow_R.png",
+      "x": 653.6666,
+      "y": 475.2491,
+      "scale": 0.2057,
+      "rotation": 0,
+      "z": 58
+     },
+     {
+      "sprite": "face_E_very_sad_mouth.png",
+      "x": 495.1245,
+      "y": 715.4286,
+      "scale": 0.3912,
+      "rotation": 0,
+      "z": 56
+     }
+    ]
+   }
+  }
+ }
+}

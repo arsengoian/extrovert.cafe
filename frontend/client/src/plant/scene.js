@@ -1,6 +1,7 @@
 // Складання сцени кавенятка: базові шари (платформа, стовбур, тіло, обличчя,
-// дві фіксовані «руки») беруться з еталонного макета tree_layout.json, а
-// листя, гілки й бутони — з appearance самого гравця (db-schema §0).
+// дві фіксовані «руки») беруться з еталонного макета tree_layout.json
+// (обличчя наборів B–E — з face_sets_layout.json, див. ownFace), а листя,
+// гілки й бутони — з appearance самого гравця (db-schema §0).
 //
 // Той самий список інстансів малює і головний екран, і екрани посадки:
 // різниця лише в тому, що на посадці зверху лягає ще чернетка й підсвічена
@@ -47,6 +48,25 @@ export function budsForStage(stage) {
   return 7;
 }
 
+// Набір обличчя (bush_graphics_customization §10.2): plants.face_set_id
+// 1…5 → набори A…E, обраний при створенні кавенятка й назавжди. Невідомий
+// номер (наборів стане більше, а клієнт ще старий) — обличчя A.
+export const FACE_SETS = ["A", "B", "C", "D", "E"];
+export const faceSetLetter = (id) => FACE_SETS[(Number(id) || 1) - 1] ?? "A";
+
+// Обличчя B–E — власна розкладка (assets/face_sets_layout.json, у макеті як
+// layout.faceSets): у кожного набору своя форма очей, тож позиції й розміри
+// деталей пораховані для нього окремо, а не взяті з набору A. Звичайний
+// настрій — око з шарів: ціле око → білок → зіниця (обрізана білком, clipTo)
+// → повіка, тому зіниця ховається під повіку. Сумний і зів'ялий — повне око
+// одним спрайтом, як у A. null — набір A або для цього набору ще немає даних.
+function ownFace(layout, faceSet, mood) {
+  const letter = faceSetLetter(faceSet);
+  if (letter === "A") return null;
+  const entry = layout.faceSets?.[letter]?.[ART_SUFFIX[mood] ?? "normal"];
+  return entry ? entry.instances.map((i) => ({ ...i, group: entry.group })) : null;
+}
+
 // Настрій змінює спрайт, а не позицію: тіло, обличчя й руки мають власні
 // версії, листя ще й провисає під власною вагою.
 function moodBase(inst, mood, layout) {
@@ -80,7 +100,7 @@ function moodBase(inst, mood, layout) {
 }
 
 // Базові шари під потрібну стадію: стовбур свого тіру, тіло, обличчя, руки.
-export function baseInstances(layout, stage, mood) {
+export function baseInstances(layout, stage, mood, faceSet = 1) {
   const f = growthFactor(stage);
   const platform = layout.instances.find((i) => i.group === "platform");
 
@@ -102,22 +122,27 @@ export function baseInstances(layout, stage, mood) {
     if (trunk) bodyShiftY = 0.25 * (W0 * applyGrowth(trunk, ANCHOR, f).scale);
   }
 
+  const face = ownFace(layout, faceSet, mood);
+  const place = (m) => {
+    const grown = applyGrowth(m, ANCHOR, f);
+    return bodyShiftY && /^(body_stage1|face_set)/.test(m.group) ? { ...grown, y: grown.y + bodyShiftY } : grown;
+  };
   for (const inst of layout.instances) {
     if (!BASE_GROUPS.has(inst.group)) continue;
     if (inst.group === "branch_arms_fixed" && stage < 3) continue;
+    if (face && inst.group === "face_setA_normal") continue;
     for (const m of moodBase(inst, mood, layout)) {
       if (m.group === "platform") { out.push({ ...m }); continue; }
       if (m.group === "trunk_tiers") {
         if (tierFile) out.push(applyGrowth({ ...m, sprite: tierFile }, ANCHOR, f));
         continue;
       }
-      const grown = applyGrowth(m, ANCHOR, f);
-      const shifted = bodyShiftY && /^(body_stage1|face_setA)/.test(m.group)
-        ? { ...grown, y: grown.y + bodyShiftY }
-        : grown;
-      out.push(shifted);
+      out.push(place(m));
     }
   }
+  // Росте й зсувається на стадії 1 так само, як обличчя A на його місці.
+  // Порядок шарів ока з однаковим z тримає стабільне сортування в buildScene.
+  if (face) out.push(...face.map(place));
   return out;
 }
 
@@ -232,9 +257,9 @@ export function draftInstances(layout, items, { stage, to, mood = "healthy", bud
 // дорослому»). Подаровані комплекти й так бувають лише в дорослих, а в
 // паростка тіла ще немає, і wornInstances нічого не малює. Положення речей
 // рахується від тіла, тож сидять вони на будь-якій стадії.
-export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [] }) {
+export function buildScene({ layout, appearance, stage, mood = "healthy", worn, extra = [], faceSet = 1 }) {
   if (!layout) return [];
-  const base = baseInstances(layout, stage, mood);
+  const base = baseInstances(layout, stage, mood, faceSet);
   const body = base.find((i) => /^body_stage1/.test(i.group));
   return [...base, ...playerInstances(appearance, stage, mood), ...wornInstances(layout, worn, body, mood), ...extra]
     .sort((a, b) => a.z - b.z);

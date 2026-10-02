@@ -30,9 +30,25 @@ function image(src) {
   });
 }
 
+// Зіниця наборів B–E обрізана білком свого ока (clipTo, як mask-image у
+// Scene.jsx): малюємо її на окреме полотно й лишаємо тільки те, що під
+// білком. Без повороту — так деталі обличчя й розставлені.
+function clipped(img, b, mask, maskImg, k) {
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(b.w * k));
+  c.height = Math.max(1, Math.round(b.h * k));
+  const cx = c.getContext("2d");
+  cx.drawImage(img, 0, 0, c.width, c.height);
+  cx.globalCompositeOperation = "destination-in";
+  cx.drawImage(maskImg,
+    (mask.inst.x - mask.w / 2 - (b.inst.x - b.w / 2)) * k, (mask.inst.y - mask.h / 2 - (b.inst.y - b.h / 2)) * k,
+    mask.w * k, mask.h * k);
+  return c;
+}
+
 /**
  * Знімок кавенятка → PNG (Blob). snapshot — те, що сервер зберіг у
- * замовленні: { growth_stage, appearance, worn }.
+ * замовленні: { growth_stage, appearance, worn, face_set_id }.
  */
 export async function renderPrint(snapshot) {
   const assets = await loadPlantAssets();
@@ -42,6 +58,9 @@ export async function renderPrint(snapshot) {
     stage: snapshot.growth_stage,
     mood: "healthy",
     worn: snapshot.worn,
+    // Знімки до 02.10.2026 номера набору не мають — тоді обличчя A, як і
+    // бачив гравець, коли замовляв.
+    faceSet: snapshot.face_set_id ?? 1,
   }).filter((i) => i.sprite && !SKIP.has(i.group));
 
   // Розмір кожного спрайта — з sizes.json, як у Scene.jsx; межі — повернутого
@@ -73,9 +92,14 @@ export async function renderPrint(snapshot) {
 
   const shadow = { offsetX: 6, offsetY: 6, blur: 6, opacity: 0.8, ...(assets.layout.shadow ?? {}) };
   const images = await Promise.all(boxes.map((b) => image(`/assets/sprites/${b.inst.group}/${b.inst.sprite}`)));
+  const indexOf = new Map(boxes.map((b, n) => [`${b.inst.group}/${b.inst.sprite}`, n]));
   boxes.forEach((b, n) => {
-    const img = images[n];
+    let img = images[n];
     if (!img) return;
+    if (b.inst.clipTo) {
+      const m = indexOf.get(`${b.inst.group}/${b.inst.clipTo}`);
+      if (m !== undefined && images[m]) img = clipped(img, b, boxes[m], images[m], k);
+    }
     ctx.save();
     // Тінь листя, гілок і плодів — як drop-shadow у Scene.jsx, у масштабі файла.
     if (shadow.enabled !== false && shadowed(b.inst.group)) {

@@ -124,7 +124,7 @@ export function PlantMarket({ ctx }) {
         {offers?.map((lot, i) => (
           <div key={lot.id} className="pm-lot">
             <div className="pm-thumb">
-              <PlantView plant={{ growth_stage: lot.plant?.growth_stage ?? 0, appearance: lot.plant?.appearance, mood: "healthy" }}
+              <PlantView plant={{ growth_stage: lot.plant?.growth_stage ?? 0, appearance: lot.plant?.appearance, face_set_id: lot.plant?.face_set_id, mood: "healthy" }}
                          worn={lot.plant?.worn} width={58} height={70} fit="stage" />
             </div>
             <div className="pm-info">
@@ -162,7 +162,7 @@ function PlantBuyConfirm({ picked, me, busy, onCancel, onBuy }) {
   const currency = picked.currency === "beans" ? "beans" : picked.lot ? "yellow" : "coins";
   const art = picked.lot
     ? <span style={{ width: 120, height: 138, flex: "none" }}>
-        <PlantView plant={{ growth_stage: picked.lot.plant?.growth_stage ?? 0, appearance: picked.lot.plant?.appearance, mood: "healthy" }}
+        <PlantView plant={{ growth_stage: picked.lot.plant?.growth_stage ?? 0, appearance: picked.lot.plant?.appearance, face_set_id: picked.lot.plant?.face_set_id, mood: "healthy" }}
                    worn={picked.lot.plant?.worn} width={120} height={138} platform={false} pad={4} />
       </span>
     : <img src="/assets/ui/sprout.webp" alt="" style={{ width: 78, height: 120, objectFit: "contain" }} />;

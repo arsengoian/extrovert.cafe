@@ -8,14 +8,20 @@ let cache = null;
 let pending = null;
 
 async function load() {
-  const [layout, placement, sprites, sizes] = await Promise.all([
+  const [layout, placement, sprites, sizes, faces] = await Promise.all([
     fetch("/assets/tree_layout.json").then((r) => r.json()),
     fetch("/assets/planting/placement.json").then((r) => r.json()),
     fetch("/assets/planting/sprites.json").then((r) => r.json()),
     // Без розмірів сцена все одно малюється — лише зі старим підскоком.
     fetch("/assets/sprites/sizes.json").then((r) => r.json()).catch(() => ({})),
+    // Обличчя наборів B–E (scene.js, faceInstances). Без файла кожне
+    // кавенятко малюється з обличчям A — як до 02.10.2026, а не без обличчя.
+    fetch("/assets/face_sets_layout.json").then((r) => r.json()).catch(() => ({})),
   ]);
-  cache = { layout, placement, sprites: sprites.sprites, sizes };
+  // Обличчя — частина макета: усі, хто складає сцену (головний екран,
+  // мініатюри, посадка, друк), уже передають layout, тож нових параметрів
+  // їм не треба — лише face_set_id кавенятка.
+  cache = { layout: { ...layout, faceSets: faces.sets ?? {} }, placement, sprites: sprites.sprites, sizes };
   return cache;
 }
 
