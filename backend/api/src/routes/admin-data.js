@@ -58,7 +58,7 @@ const quizDef = JSON.parse(readFileSync(path.join(HERE, "..", "..", "data", "qui
 const SHORT = {
   age: "Вік", how_found: "Як знайшли точку", favourite_drink: "Улюблена кава",
   frequency: "Частота", when: "Коли беруть каву", where: "Де пʼють",
-  sugar: "Цукор", values: "Що найважливіше", bean_sort: "Зерно",
+  sugar: "Цукор", values: "Що найважливіше", bean_sort: "Зерно", extras: "Що беруть до напою",
 };
 
 const PROFILE_Q = new Map();

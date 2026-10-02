@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { many, one, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { economy } from "../economy.js";
+import { credit, notifyPlant } from "../notify.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const quiz = JSON.parse(readFileSync(path.join(HERE, "..", "..", "data", "quiz.json"), "utf8"));
@@ -141,6 +142,9 @@ export default async function routes(app) {
         );
         if (!rows.length) return null;                   // анкета вже була
         await award(client, user.id, economy.quiz.profile_coins, "quiz", { quiz: "profile" });
+        // Нарахування срібла — рядком у чат кавенятка, як і за пост
+        // (gamification_ui.md, «Сповіщення»).
+        await notifyPlant(user.id, `Дякуємо за анкету: ${credit(economy.quiz.profile_coins, "silver")}.`, { client });
         return rows[0].id;
       });
 
@@ -234,7 +238,10 @@ export default async function routes(app) {
           [user.id, itemId, answers, freeText, reward]
         );
         if (!rows.length) return null;                   // про це замовлення вже відповідали
-        if (reward) await award(client, user.id, reward, "quiz", { quiz: "drink", receipt_item_id: itemId });
+        if (reward) {
+          await award(client, user.id, reward, "quiz", { quiz: "drink", receipt_item_id: itemId });
+          await notifyPlant(user.id, `Дякуємо за відгук про напій: ${credit(reward, "silver")}.`, { client });
+        }
         return rows[0].id;
       });
 

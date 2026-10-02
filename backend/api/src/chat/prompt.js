@@ -133,7 +133,9 @@ export function systemPrompt({ plant, user, facts, knowledge, points = [] }) {
 // Сповіщення пишуть валюту токеном (:gold: — іконка в чаті, lib/notify.js),
 // а моделі потрібні слова: інакше вона повторює двокрапки у відповідях.
 const CURRENCY_WORDS = { ":gold:": "золотих монет", ":silver:": "срібних монет", ":bean:": "зерен" };
-const words = (text) => String(text ?? "").replace(/:gold:|:silver:|:bean:/g, (t) => CURRENCY_WORDS[t]);
+const words = (text) => String(text ?? "")
+  .replace(/:gold:|:silver:|:bean:/g, (t) => CURRENCY_WORDS[t])
+  .replace(/\s*\[order:\d+\]/g, "");   // посилання на картку — кнопка в чаті, моделі воно ні до чого
 
 // Історія йде окремими репліками, а не злитим текстом: модель краще тримає
 // чергу «гравець — кавенятко», коли ролі розділені.

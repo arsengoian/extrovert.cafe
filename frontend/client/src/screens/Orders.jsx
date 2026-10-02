@@ -69,7 +69,8 @@ export function Orders({ ctx }) {
                     <b>№{o.id}<i className="vsep" />{o.name}</b>
                     {o.unseen && <i>1</i>}
                   </div>
-                  <small data-clarity-mask="True">{o.place}</small>
+                  {/* Дата замовлення — у рядку списку (gamification_ui.md, «Мої замовлення»). */}
+                  <small>{day(o.created_at)}<i className="vsep" /><span data-clarity-mask="True">{o.place}</span></small>
                   <span className="order-status" data-tone={tone(o.status)}><i />{statusLine(o)}</span>
                 </div>
                 <div className="order-row-end">

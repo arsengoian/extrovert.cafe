@@ -42,7 +42,9 @@ const view = (p, growth = growthState(p), draft = liveDraft(p, growth)) => ({
   draft: draft ? { kind: draft.kind, count: draft.count ?? null } : null,
   on_sale: Boolean(p.listing_id),
   // Ціна лота — для плашки «На продажу · 1 800» на головному екрані.
-  listing: p.listing_price ? { id: p.listing_id, price: p.listing_price, currency: p.listing_currency } : null,
+  // Покази лота — для лічильника біля кавеняти на продажу (gamification_ui.md):
+  // з бази, без хвилинного хвоста з Redis (його домальовує лише «На продаж»).
+  listing: p.listing_price ? { id: p.listing_id, price: p.listing_price, currency: p.listing_currency, impressions: p.listing_impressions ?? 0 } : null,
   // Скільки реплік кавенятка й системи гравець ще не бачив у чаті.
   chat_unread: p.chat_unread ?? 0,
   worn_set_id: p.worn_set_id,
@@ -54,7 +56,11 @@ const view = (p, growth = growthState(p), draft = liveDraft(p, growth)) => ({
 // Одяг кавенятка при зміні власника чи скошуванні (gamification_ui.md,
 // меню дій): подаровані комплекти замкнені назавжди й живуть із кущем,
 // а примірочна — просто речі гравця, які повертаються на його склад.
-async function releaseFittingRoom(client, plantId) {
+// Вміст примірочної (незібрані й неподаровані комплекти) — назад на склад
+// власника. Потрібно скрізь, де кущ іде від людини: подарунок, скошування,
+// виставлення на ринок (market.js) — інакше речі лишались прив'язаними до
+// чужого куща.
+export async function releaseFittingRoom(client, plantId) {
   await client.query(
     `update user_items set set_id = null
       where set_id in (select id from wardrobe_sets where plant_id = $1 and not gifted)`, [plantId]);
@@ -158,7 +164,7 @@ export default async function routes(app) {
     const user = requireUser(req, reply);
     if (!user) return;
     const rows = await many(
-      `select p.*, l.price_amount as listing_price, l.price_currency as listing_currency,
+      `select p.*, l.price_amount as listing_price, l.price_currency as listing_currency, l.impressions as listing_impressions,
               (select count(*)::int from chat_messages m
                 where m.plant_id = p.id and m.user_id = p.owner_id and m.role <> 'user'
                   and (p.chat_seen_at is null or m.created_at > p.chat_seen_at)) as chat_unread,

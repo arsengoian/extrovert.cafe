@@ -11,6 +11,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { moodOf } from "./plants.js";
+import { spendCoins } from "./purchases.js";
 import { growthState } from "./planting.js";
 import { search } from "../chat/knowledge.js";
 import { buildMessages, factLines, prompts } from "../chat/prompt.js";
@@ -189,16 +190,16 @@ export default async function routes(app) {
     // Списання й репліка гравця — атомарно. Якщо монет немає, нічого не
     // записуємо: інакше в історії висіли б питання без відповідей.
     const saved = await tx(async (client) => {
+      // Як і будь-яка оплата монетами: спершу срібні, потім золоті
+      // (purchases.js, economy §2.1; власник 03.10.2026 — досі чат брав лише
+      // золоті). Бракує — та сама відповідь, що й раніше, клієнт її знає.
       if (price > 0) {
-        const { rows } = await client.query(
-          "update users set coins_yellow = coins_yellow - $2 where id = $1 and coins_yellow >= $2 returning coins_yellow",
-          [user.id, price]
-        );
-        if (!rows.length) fail(409, "not_enough_coins", { need: price });
-        await client.query(
-          "insert into ledger_entries (user_id, delta_yellow, reason, meta) values ($1, $2, 'chat', $3)",
-          [user.id, -price, { plant_id: plant.id }]
-        );
+        try {
+          await spendCoins(client, user.id, price, "chat", { plant_id: plant.id });
+        } catch (e) {
+          if (e.body?.error === "not_enough") fail(409, "not_enough_coins", { need: price });
+          throw e;
+        }
       }
       const { rows } = await client.query(
         `insert into chat_messages (plant_id, user_id, role, body, coins_charged)

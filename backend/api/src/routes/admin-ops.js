@@ -10,6 +10,9 @@ import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 import { presign } from "@extrovert/lib/r2.js";
 import { printLinks } from "./delivery.js";
+import { enqueue } from "@extrovert/lib/outbox.js";
+import { orderNotice } from "@extrovert/lib/orders.js";
+import { notifyPlant } from "../notify.js";
 
 // Як показувати ціль здоровʼя: група, назва, підпис. Порядок тут — порядок
 // на екрані.
@@ -496,6 +499,55 @@ export default async function routes(app) {
     return row;
   });
 
+  // ── Розсилки новин у чат кавенятка ──────────────────────────────────
+  // gamification_ui.md, «Сповіщення»: новина приходить кожному гравцю
+  // системним рядком у чат того кавенятка, чий чат він відкривав останнім
+  // (той самий вибір, що й у lib/notify.js). Без кавенятка — у
+  // pending_notices: рядок переїде в чат першого куща. Видалені акаунти не
+  // отримують нічого. Одна транзакція: або дійшло всім, або нікому.
+  app.get("/admin/broadcasts", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const rows = await many(
+      `select b.id, b.title, b.body, b.sent_at, b.recipients, a.email as author
+         from news_broadcasts b left join admin_users a on a.id = b.created_by
+        order by b.id desc limit 50`
+    );
+    const audience = await one("select count(*)::int as n from users where deleted_at is null");
+    return { broadcasts: rows, audience: audience.n };
+  });
+
+  app.post("/admin/broadcasts", async (req, reply) => {
+    const admin = requireAdmin(req, reply);
+    if (!admin) return;
+    const title = String(req.body?.title ?? "").trim().slice(0, 120);
+    const body = String(req.body?.body ?? "").trim().slice(0, 1500);
+    if (!title || !body) fail(400, "empty_broadcast");
+    const text = `${title}
+${body}`;
+    return tx(async (client) => {
+      const { rows: [b] } = await client.query(
+        "insert into news_broadcasts (created_by, title, body, audience) values ($1, $2, $3, 'all') returning id",
+        [admin.id, title, body]
+      );
+      const { rowCount: chats } = await client.query(
+        `insert into chat_messages (plant_id, user_id, role, body)
+         select distinct on (p.owner_id) p.id, p.owner_id, 'system', $1
+           from plants p join users u on u.id = p.owner_id
+          where u.deleted_at is null
+          order by p.owner_id, p.chat_seen_at desc nulls last, p.created_at`,
+        [text]
+      );
+      const { rowCount: pending } = await client.query(
+        `insert into pending_notices (user_id, body)
+         select u.id, $1 from users u
+          where u.deleted_at is null and not exists (select 1 from plants p where p.owner_id = u.id)`,
+        [text]
+      );
+      await client.query("update news_broadcasts set sent_at = now(), recipients = $2 where id = $1", [b.id, chats + pending]);
+      return { ok: true, id: b.id, recipients: chats + pending };
+    });
+  });
+
   // ── Замовлення за зерна ─────────────────────────────────────────────
   app.get("/admin/orders", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
@@ -559,16 +611,29 @@ export default async function routes(app) {
     // Статус і подія — однією транзакцією: історія замовлення не має
     // розходитися з його станом.
     return tx(async (client) => {
+      const { rows: before } = await client.query("select status from redemptions where id = $1 for update", [req.params.id]);
+      if (!before[0]) fail(404, "no_such_order");
+      const changed = before[0].status !== status;
+      // status_changed_at — те, на чому живе лічильник непереглянутих змін у
+      // «Моїх замовленнях»; без нього зміна з адмінки не підсвічувала нічого
+      // (до 03.10.2026 так і було — оновлював його лише трекінг НП).
       const { rows } = await client.query(
-        `update redemptions set status = $2, np_ttn = coalesce($3, np_ttn) where id = $1 returning id, status, np_ttn`,
-        [req.params.id, status, ttn]
+        `update redemptions set status = $2, np_ttn = coalesce($3, np_ttn),
+                status_changed_at = case when $4 then now() else status_changed_at end
+          where id = $1 returning id, status, np_ttn, user_id, np_warehouse_kind`,
+        [req.params.id, status, ttn, changed]
       );
-      if (!rows[0]) fail(404, "no_such_order");
       await client.query(
         `insert into redemption_events (redemption_id, status, source, note) values ($1, $2, 'admin', $3)`,
         [rows[0].id, status, req.body?.note ? String(req.body.note).slice(0, 300) : null]
       );
-      return rows[0];
+      if (changed) {
+        // Той самий шлях, що й у трекінгу НП: подія в застосунок (лічильник
+        // оновиться одразу) і рядок у чат кавенятка з кнопкою на картку.
+        await enqueue(client, `user:${rows[0].user_id}`, "order_status", { redemption_id: Number(rows[0].id), status });
+        await notifyPlant(rows[0].user_id, orderNotice(rows[0].id, status, rows[0].np_warehouse_kind), { client });
+      }
+      return { id: rows[0].id, status: rows[0].status, np_ttn: rows[0].np_ttn };
     });
   });
 }

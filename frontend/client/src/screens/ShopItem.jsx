@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { api, errText } from "../api.js";
 import { ResultPopup } from "../ui/Popup.jsx";
 import { BuyConfirm } from "../ui/BuyConfirm.jsx";
-import { NotEnoughCoins } from "../ui/NotEnough.jsx";
+import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { beans as beansText, coins as coinsText } from "../ui/plural.js";
 import { Img, webp } from "../ui/img.jsx";
 
@@ -188,17 +188,35 @@ export function ShopItem({ item, ctx }) {
         </ResultPopup>
       );
     } catch (e) {
-      if (e.body?.error === "not_enough" && target.currency !== "beans") {
+      if (e.body?.error === "not_enough" && target.currency !== "beans" && target.kind !== "exchange") {
         ctx.notify(<NotEnoughCoins what={item.title} price={target.price} have={coinsHave} ctx={ctx} onClose={() => ctx.notify(null)} />);
+      } else if (e.body?.error === "not_enough") {
+        // Зерна — той самий попап нестачі зі способами їх отримати, а не
+        // рядок під кнопкою (gamification_ui.md, попап нестачі; 03.10.2026).
+        const need = target.kind === "exchange" ? Math.max(1, Number(amount) || 1) : target.price;
+        ctx.notify(<NotEnoughBeans what={target.kind === "exchange" ? "Обмін" : item.title} price={need} have={beansHave} ctx={ctx} onClose={() => ctx.notify(null)} />);
       } else {
-        setError(e.body?.error === "not_enough" ? `Не вистачає зерен: треба ${target.price}, є ${beansHave}` : errText(e));
+        setError(errText(e));
       }
     } finally {
       setBusy(false);
       setConfirm(null);
     }
   };
-  const ask = (target = item) => setConfirm(target);
+  // Бракує — одразу попап нестачі зі способами дібрати, а не підтвердження
+  // покупки, яку сервер однаково відхилить (і не неактивна кнопка, з якої
+  // незрозуміло, що робити; власник, 03.10.2026).
+  const ask = (target = item) => {
+    if (target.kind !== "exchange" && target.currency === "beans" && target.price > beansHave) {
+      ctx.notify(<NotEnoughBeans what={item.title} price={target.price} have={beansHave} ctx={ctx} onClose={() => ctx.notify(null)} />);
+      return;
+    }
+    if (target.kind !== "exchange" && target.currency !== "beans" && target.price > coinsHave) {
+      ctx.notify(<NotEnoughCoins what={item.title} price={target.price} have={coinsHave} ctx={ctx} onClose={() => ctx.notify(null)} />);
+      return;
+    }
+    setConfirm(target);
+  };
 
   const chip = delivery
     ? <span className="shop-chip price"><Bean w={20} h={22} />{item.price_range ? item.price_range.join("-") : item.price}</span>
@@ -287,7 +305,7 @@ export function ShopItem({ item, ctx }) {
         ) : item.available === false ? (
           <button className="cta" disabled>Скоро на точці</button>
         ) : item.currency === "beans" ? (
-          <button className="cta" disabled={busy || lack > 0} onClick={() => ask()}>
+          <button className="cta" disabled={busy} onClick={() => ask()}>
             <Bean w={19} h={21} />{item.price}
           </button>
         ) : (

@@ -56,7 +56,9 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
       api.get("/quiz/drink").catch(() => ({ credits: 0, reward: 15 })),
       api.get("/shop").catch(() => ({ beans: [] })),
       api.get("/me/items").catch(() => ({ items: [] })),
-    ]).then(([packs, drinks, quiz, shop, items]) => {
+      api.get("/quiz/profile").catch(() => ({ done: true })),
+      api.get("/repost").catch(() => null),
+    ]).then(([packs, drinks, quiz, shop, items, profile, repost]) => {
       const cheapest = [...(packs.packs ?? [])].sort((a, b) => a.price_uah - b.price_uah)[0] ?? null;
       const coins = (drinks.drinks ?? []).map((d) => d.coins).filter((c) => c > 0);
       setWays({
@@ -65,6 +67,8 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
         quiz,
         exchange: (shop.beans ?? []).find((i) => i.code === "beans_to_coins") ?? null,
         free: (items.items ?? []).reduce((n, it) => n + (it.free ?? 0), 0),
+        profile,
+        repost,
       });
     });
   }, []);
@@ -93,10 +97,29 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                  sub={<>{fmt(ways.pack.coins)} <Gold /> за {fmt(ways.pack.price_uah)} ₴, одразу</>}
                  pill="Купити" onClick={go(() => ctx.push("coinPacks"))} />
           )}
+          {/* Усі безкоштовні способи — як у «Free coins» гаманця (gamification_ui.md,
+              попап нестачі): анкета, квіз про напій, пост. Срібні витрачаються
+              нарівні з золотими. Недоступні — приглушені з причиною. */}
+          <Way primary off={ways.profile?.done} icon={<Silver w={28} h={29} />}
+               title="Анкета «Розкажи про себе»"
+               sub={ways.profile?.done ? "уже пройдено" : <>+{ways.profile?.reward ?? 75} <Silver />, одноразово</>}
+               pill="Пройти" onClick={go(() => ctx.push("quizProfile"))} />
           <Way primary off={!ways.quiz.credits} icon={<Silver w={28} h={29} />}
                title="Опитування про напій"
                sub={ways.quiz.credits ? <>+{ways.quiz.reward} <Silver />, доступне зараз</> : "поки недоступне"}
                pill="Пройти" onClick={go(() => ctx.openTab("history"))} />
+          {(() => {
+            const r = ways.repost;
+            const off = !r || r.limit_reached || r.days_left > 0;
+            return (
+              <Way primary off={off} icon={<Silver w={28} h={29} />}
+                   title="Пост у соцмережі"
+                   sub={!r ? "поки недоступно" : r.limit_reached ? `${r.counted} з ${r.max}, більше не рахується`
+                     : r.days_left ? `ще ${r.days_left} ${plural(r.days_left, "день", "дні", "днів")} до наступного`
+                     : <>+{r.reward ?? 20} <Silver />, можна зараз</>}
+                   pill="Поділитись" onClick={go(() => ctx.push("repost"))} />
+            );
+          })()}
           <Way off={!beans} icon={<img src="/assets/ui/beans_to_coins.webp" alt="" style={{ width: 26, height: 28 }} />}
                title={<>Обміняти <Bean w={15} h={17} /></>}
                sub={beans ? <>{beans} <Bean /> → {fmt(beans * rate)} <Gold /></> : "зерен поки немає"}

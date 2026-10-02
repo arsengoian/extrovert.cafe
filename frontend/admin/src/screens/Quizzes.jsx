@@ -28,7 +28,9 @@ const answers = (n) => `${fmt.int(n)} ${fmt.plural(n, "відповідь", "в�
 // займали чверть екрана заради трьох рядків.
 const ROWS = [
   [{ id: "age", ring: true, note: "анкети" }, { id: "gender", ring: true }, { id: "how_found", ring: true }],
-  [{ id: "favourite_drink" }, { id: "frequency", also: "sugar", color: BLUE }, { id: "when", also: "where", color: BLUE }],
+  // «Що беруть до напою» (мішалки, кришки, трубочки, сироп — власник,
+  // 03.10.2026) — поруч із цукром: обидва про те, як людина бере каву.
+  [{ id: "favourite_drink" }, { id: "frequency", also: ["sugar", "extras"], color: BLUE }, { id: "when", also: "where", color: BLUE }],
   // «Зерно» (арабіка / бленд / робуста, власник 28.09.2026) — у картці
   // молока: така сама дрібна шкала на три варіанти.
   [{ id: "values" }, { id: "milk", also: "bean_sort", color: BLUE, grow: 0.8 }, { id: "other_drinks", color: VIOLET, grow: 1.15 }],
@@ -125,7 +127,7 @@ export function Quizzes() {
           <div className="cols" key={n}>
             {row.map((spec) => {
               const q = find(profile.questions, spec.id);
-              const extra = spec.also ? find(profile.questions, spec.also) : null;
+              const extras = [].concat(spec.also ?? []).map((id) => find(profile.questions, id)).filter(Boolean);
               return (
                 <Card
                   key={spec.id}
@@ -134,13 +136,13 @@ export function Quizzes() {
                   style={{ flex: spec.grow ?? 1 }}
                 >
                   <Question q={q} spec={spec} />
-                  {extra && (
-                    <>
+                  {extras.map((extra) => (
+                    <div key={extra.question}>
                       <div className="hr" style={{ margin: "10px 0 8px" }} />
-                      <div className="sub-head" style={{ marginBottom: 8 }}>{extra.title}</div>
+                      <div className="sub-head" style={{ marginBottom: 8 }}>{extra.title}{hint(extra) ? <span className="muted"> · {hint(extra)}</span> : null}</div>
                       <Shares q={extra} color={spec.color ?? "var(--grad)"} />
-                    </>
-                  )}
+                    </div>
+                  ))}
                 </Card>
               );
             })}

@@ -776,6 +776,7 @@ erDiagram
         text body
         text audience
         timestamptz sent_at
+        int recipients "скільки гравців отримали"
     }
     ADMIN_USERS {
         uuid id PK

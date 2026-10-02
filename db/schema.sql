@@ -713,7 +713,8 @@ CREATE TABLE public.news_broadcasts (
     title text NOT NULL,
     body text NOT NULL,
     audience text,
-    sent_at timestamp with time zone
+    sent_at timestamp with time zone,
+    recipients integer
 );
 
 
@@ -3749,4 +3750,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261001180000'),
     ('20261001190000'),
     ('20261002120000'),
-    ('20261002200000');
+    ('20261002200000'),
+    ('20261003100000');

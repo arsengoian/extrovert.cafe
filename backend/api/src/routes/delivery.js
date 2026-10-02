@@ -11,6 +11,7 @@ import { economy, shopProducts } from "../economy.js";
 import { notifyPlant } from "../notify.js";
 import { presign } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
+import { ORDER_STATUS_LABEL, orderLink } from "@extrovert/lib/orders.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
 // У замовленнях — коротко й з розміром: «Футболка, M» (кадр «Мої замовлення»).
@@ -55,17 +56,8 @@ const printView = (row) => (row.print_snapshot
     }
   : null);
 
-// Назви статусів — як у кадрах «Мої замовлення».
-export const STATUS_LABEL = {
-  new: "Нове",
-  printing: "Друкуємо",
-  packing: "Пакуємо",
-  shipped: "Відправлено",
-  arrived: "Прибуло у відділення",
-  received: "Отримано",
-  returned: "Повернуто",
-  cancelled: "Скасовано",
-};
+// Назви статусів — спільні з scheduler (lib/orders.js).
+export const STATUS_LABEL = ORDER_STATUS_LABEL;
 
 // «Київ, відділення №12» — коротке місце для списку й картки. Беремо з
 // довідника за ref; якщо відділення з довідника зникло — знімок адреси.
@@ -237,7 +229,7 @@ export default async function routes(app) {
         "insert into redemption_events (redemption_id, status, source) values ($1, 'new', 'system')",
         [rows[0].id]
       );
-      await notifyPlant(user.id, `Замовлення прийнято: ${p.name} → ${address}.`, { client });
+      await notifyPlant(user.id, `Замовлення №${rows[0].id} прийнято: ${p.name} → ${address}. ${orderLink(rows[0].id)}`, { client });
 
       // Замовлення — одразу власнику в Telegram, з усім, що треба, щоб його
       // зібрати й відправити (власник, 02.10.2026). Подія йде в канал admin

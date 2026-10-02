@@ -7,6 +7,7 @@
 // зазвичай немає, а сервіс має підніматись і без нього.
 import { readCursor, writeCursor } from "@extrovert/lib/jobs.js";
 import { notifyPlant } from "@extrovert/lib/notify.js";
+import { orderNotice } from "@extrovert/lib/orders.js";
 
 const API = "https://api.novaposhta.ua/v2.0/json/";
 const PAGE = 500;                          // НП більше за раз не віддає
@@ -149,8 +150,8 @@ export async function trackShipments({ pool, log }) {
         // Той самий вибір куща, що й в інших сповіщеннях (lib/notify.js):
         // чат, який гравець відкривав останнім, а не найстаріший кущ; без
         // куща рядок чекає в pending_notices.
-        const { rows: owner } = await client.query("select user_id from redemptions where id = $1", [row.id]);
-        if (owner[0]) await notifyPlant(owner[0].user_id, `Замовлення: ${item.Status ?? next}.`, { client });
+        const { rows: owner } = await client.query("select user_id, np_warehouse_kind from redemptions where id = $1", [row.id]);
+        if (owner[0]) await notifyPlant(owner[0].user_id, orderNotice(row.id, next, owner[0].np_warehouse_kind), { client });
         await client.query("commit");
         moved += 1;
       } catch (e) {

@@ -761,6 +761,12 @@ export function Plant({ ctx }) {
             <span>
               <img src={plant.listing.currency === "beans" ? "/assets/ui/bean.webp" : "/assets/ui/coin_gold.webp"} alt="" />
               На продажу за {new Intl.NumberFormat("uk-UA").format(plant.listing.price)}
+              {/* Скільки разів лот показали покупцям — чи варто знижувати ціну. */}
+              <i className="vsep" />
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-label="переглядів">
+                <path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" /><circle cx="12" cy="12" r="2.6" />
+              </svg>
+              {new Intl.NumberFormat("uk-UA").format(plant.listing.impressions ?? 0)}
             </span>
           </div>
         )}

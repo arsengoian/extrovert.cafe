@@ -3,6 +3,7 @@
 // репліками (gamification_ui §«Сповіщення» — пушів ми не робимо).
 import { Fragment, useEffect, useRef, useState } from "react";
 import { api, errText } from "../api.js";
+import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 
 const BLOCKED = {
   mood: "Кавенятко засумувало й мовчить. Полий його – і воно знову заговорить.",
@@ -26,8 +27,16 @@ const CURRENCY = {
   ":silver:": ["/assets/ui/coin_silver.webp", "срібних монет"],
   ":bean:": ["/assets/ui/bean.webp", "зерен"],
 };
-const withCurrency = (text) => String(text ?? "").split(/(:gold:|:silver:|:bean:)/).map((part, i) =>
-  CURRENCY[part] ? <img key={i} className="chat-cur" src={CURRENCY[part][0]} alt={CURRENCY[part][1]} /> : part);
+// [order:12] — посилання на картку замовлення (lib/orders.js): кнопка
+// відкриває «Мої замовлення → картку», а не голий номер, який довелося б
+// шукати в списку (gamification_ui.md, «Сповіщення»).
+const ORDER = /^\[order:(\d+)\]$/;
+const withTokens = (text, ctx) => String(text ?? "").split(/(:gold:|:silver:|:bean:|\[order:\d+\])/).map((part, i) => {
+  if (CURRENCY[part]) return <img key={i} className="chat-cur" src={CURRENCY[part][0]} alt={CURRENCY[part][1]} />;
+  const order = part.match(ORDER);
+  if (order) return <button key={i} className="chat-link" onClick={() => ctx.push("order", { id: Number(order[1]) })}>Відкрити замовлення</button>;
+  return part;
+});
 
 export function Chat({ ctx, plant }) {
   const [data, setData] = useState(null);
@@ -70,7 +79,16 @@ export function Chat({ ctx, plant }) {
     } catch (e) {
       setData((d) => ({ ...d, messages: d.messages.filter((m) => m.id !== optimistic.id) }));
       setText(message);
-      setError(e.body?.error === "not_enough_coins" ? "no_coins" : errText(e));
+      if (e.body?.error === "not_enough_coins") {
+        // Той самий попап «Бракує монет» зі способами їх отримати, що й на
+        // будь-якій покупці (gamification_ui.md, попап нестачі), а не рядок
+        // над полем вводу (власник, 03.10.2026).
+        const b = ctx.me?.balances ?? {};
+        ctx.notify(<NotEnoughCoins what="Повідомлення кавенятку" price={e.body.need ?? data.price}
+                                   have={(b.silver ?? 0) + (b.yellow ?? 0)} ctx={ctx} onClose={() => ctx.notify(null)} />);
+      } else {
+        setError(errText(e));
+      }
     } finally {
       setSending(false);
     }
@@ -97,7 +115,7 @@ export function Chat({ ctx, plant }) {
           return (
             <Fragment key={m.id}>
               {separator && <div className="chat-day">{separator}</div>}
-              <div className={`chat-msg chat-${m.role}`}>{m.role === "system" ? <span>{withCurrency(m.body)}</span> : m.body}</div>
+              <div className={`chat-msg chat-${m.role}`}>{m.role === "system" ? <span>{withTokens(m.body, ctx)}</span> : m.body}</div>
             </Fragment>
           );
         })}
@@ -105,17 +123,11 @@ export function Chat({ ctx, plant }) {
         <div ref={endRef} />
       </div>
 
-      {error && error !== "no_coins" && <div className="chat-error">{error}</div>}
+      {error && <div className="chat-error">{error}</div>}
       {data.blocked ? (
         <div className="chat-input"><p>{BLOCKED[data.blocked]}</p></div>
       ) : (
         <div className="chat-input">
-          {error === "no_coins" ? (
-            <>
-              <p>Не вистачає монет на повідомлення.</p>
-              <button className="pill pill-primary" onClick={() => ctx.openTab("shop")}>Поповнити</button>
-            </>
-          ) : (
             <>
               <textarea
                 rows={1}
@@ -128,10 +140,18 @@ export function Chat({ ctx, plant }) {
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15" /><path d="M13 6l6 6-6 6" /></svg>
                 {/* Ціна — лише коли за повідомлення справді треба платити;
                     безкоштовні нічим не позначаємо (власник, 26.09.2026). */}
-                {data.price > 0 && <span>{data.price}<img src="/assets/ui/coin_gold.webp" alt="золота монета" /></span>}
+                {/* Платиться будь-якими монетами, спершу срібними — тому пара монет. */}
+                {data.price > 0 && (
+                  <span>
+                    {data.price}
+                    <span className="coins2">
+                      <img src="/assets/ui/coin_silver.webp" alt="срібні монети" />
+                      <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ marginLeft: -7 }} />
+                    </span>
+                  </span>
+                )}
               </button>
             </>
-          )}
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ import { PlantView } from "../plant/PlantView.jsx";
 import { uploadPrint } from "../plant/print.js";
 import { preferSelected } from "../plant/selected.js";
 import { webp } from "../ui/img.jsx";
+import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 
 const KIND_TITLE = { branch: "Відділення", postomat: "Поштомат" };
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -71,6 +72,9 @@ export function Checkout({ item, ctx }) {
   const [plants, setPlants] = useState(() => api.peek("/me/plants")?.plants ?? []);
   const [picker, setPicker] = useState(null);       // city | warehouse
   const [busy, setBusy] = useState(false);
+  // Зерна списуються лише після підтвердження — як і будь-яка покупка
+  // (ui/BuyConfirm.jsx, власник 03.10.2026).
+  const [confirm, setConfirm] = useState(false);
   const [stage, setStage] = useState(null);         // print — малюємо й заливаємо принт
   const [error, setError] = useState(null);
 
@@ -142,7 +146,9 @@ export function Checkout({ item, ctx }) {
         } catch { /* домалює картка замовлення */ }
       }
       await ctx.refreshMe();
-      ctx.replace("orders");
+      // Одразу картка нового замовлення, а не список (gamification_ui.md,
+      // чекаут): там статус, принт і що далі.
+      ctx.replace("order", { id: r.id });
     } catch (e) {
       const code = e.body?.error;
       if (code === "not_enough") {
@@ -253,9 +259,18 @@ export function Checkout({ item, ctx }) {
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className="cta wide" style={{ height: 52 }} disabled={!ready || busy} onClick={order}>
+      <button className="cta wide" style={{ height: 52 }} disabled={!ready || busy} onClick={() => setConfirm(true)}>
         {stage === "print" ? "Готуємо принт…" : busy ? "Оформлюємо…" : <>Замовити за {product.price_beans} <Bean w={18} h={20} /></>}
       </button>
+
+      {confirm && (
+        <BuyConfirm art={<img src={webp(`/${item.icon}`)} alt="" style={{ width: 120, height: 120, objectFit: "contain" }} />}
+                    title={form.size ? `${product.name}, ${form.size}` : product.name}
+                    price={product.price_beans} currency="beans" balances={ctx.me?.balances}
+                    busy={busy} cta="Замовити" busyLabel={stage === "print" ? "Готуємо принт…" : "Оформлюємо…"}
+                    onCancel={() => { if (!busy) setConfirm(false); }}
+                    onBuy={async () => { await order(); setConfirm(false); }} />
+      )}
 
       {picker === "city" && (
         <CityPicker current={form.city} onClose={() => setPicker(null)}

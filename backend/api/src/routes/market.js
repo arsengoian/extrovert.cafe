@@ -14,6 +14,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { credit, notifyPlant } from "../notify.js";
+import { releaseFittingRoom } from "./plants.js";
 
 export const IMPRESSIONS_KEY = "market:impressions";
 
@@ -221,6 +222,11 @@ export default async function routes(app) {
         [user.id, plant.id, price, currency, commission]
       );
       await client.query("update plants set listing_id = $2 where id = $1", [plant.id, rows[0].id]);
+      // Кущ заморожується лише з подарованими наборами; вміст примірочної
+      // повертається на склад (gamification_ui.md, продаж кавенятка). До
+      // 03.10.2026 цього не було, і після продажу речі продавця лишались
+      // у комплекті куща, який уже належав покупцю.
+      await releaseFittingRoom(client, plant.id);
       return { ok: true, listing_id: rows[0].id, commission_pct: commission };
     });
   });
@@ -293,6 +299,9 @@ export default async function routes(app) {
           [listing.user_item_id, user.id]
         );
       } else {
+        // Лоти, виставлені до виправлення, ще можуть тримати примірочну —
+        // звільняємо й тут, поки кущ ще належить продавцю.
+        await releaseFittingRoom(client, listing.plant_id);
         await client.query(
           // Чернетку посадки продавця покупцю не передаємо — як і в подарунку (plants.js).
           "update plants set owner_id = $2, listing_id = null, worn_set_id = null, appearance = appearance - 'draft' where id = $1",

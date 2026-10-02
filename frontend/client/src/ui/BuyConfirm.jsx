@@ -34,7 +34,7 @@ export function CurrencyIcon({ currency }) {
 
 // art — уже розміром для шапки (до ~120 px заввишки): кожен екран знає, як
 // найкраще показати свій товар.
-export function BuyConfirm({ art, title, price, currency, balances, busy, onCancel, onBuy, cta = "Купити" }) {
+export function BuyConfirm({ art, title, price, currency, balances, busy, onCancel, onBuy, cta = "Купити", busyLabel = "…" }) {
   const have = haveFor(currency, balances);
   return (
     <ConfirmSheet onCancel={onCancel}>
@@ -49,7 +49,7 @@ export function BuyConfirm({ art, title, price, currency, balances, busy, onCanc
       </div>
       <div className="confirm-btns">
         <button onClick={onCancel}>Скасувати</button>
-        <button disabled={busy} onClick={onBuy}>{busy ? "…" : cta}</button>
+        <button disabled={busy} onClick={onBuy}>{busy ? busyLabel : cta}</button>
       </div>
     </ConfirmSheet>
   );

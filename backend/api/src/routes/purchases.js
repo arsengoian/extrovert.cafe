@@ -45,7 +45,7 @@ async function spend(client, userId, currency, amount, reason, meta) {
 // Спершу витрачаються срібні, потім жовті. Срібні нікуди, крім гри, не
 // дінуться, а жовті ще можна переказати іншому гравцю — тож лишати гравцю
 // вигідніше саме жовті (economy §2.1: витрачаються вони нарівні).
-async function spendCoins(client, userId, amount, reason, meta) {
+export async function spendCoins(client, userId, amount, reason, meta) {
   const { rows } = await client.query("select coins_silver, coins_yellow from users where id = $1 for update", [userId]);
   const { coins_silver: silver, coins_yellow: yellow } = rows[0];
   if (silver + yellow < amount) fail(409, "not_enough", { currency: "coins", need: amount });

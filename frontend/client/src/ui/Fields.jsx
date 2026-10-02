@@ -3,13 +3,16 @@ import { Img } from "./img.jsx";
 // варіант — великий рядок із кружечком, сегмент — рівні кнопки в ряд,
 // кілька варіантів — чипи, що переносяться, текст — поле на два рядки.
 // Один набір на всі квізи й форми — інакше кожен екран малював би свої.
-export function Choice({ options, value, onChange, multi = false }) {
+// exclusive — варіанти на кшталт «нічого з цього», що знімають решту й
+// знімаються будь-яким іншим (як у Segment нижче).
+export function Choice({ options, value, onChange, multi = false, exclusive = [] }) {
   if (multi) {
     // Мультивибір віддає функцію, а не готовий масив: два швидкі тапи підряд
     // бачать однаковий value з пропсів, і другий затирав би перший.
     const toggle = (o) => onChange((prev) => {
       const list = prev ?? [];
-      return list.includes(o) ? list.filter((x) => x !== o) : [...list, o];
+      if (list.includes(o)) return list.filter((x) => x !== o);
+      return exclusive.includes(o) ? [o] : [...list.filter((x) => !exclusive.includes(x)), o];
     });
     return (
       <div className="chips">
