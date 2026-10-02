@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело e97b8c2</p>
+  <p class="eyebrow">extrovert.cafe · джерело 7187dcc</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -9944,8 +9944,14 @@ disabled-стан (приглушений колір/opacity, некликабе
 маскові шари: контейнер із CSS-маскою в <code>Scene.jsx</code> і <code>destination-in/out</code>
 у <code>print.js</code>:</p>
 <ul>
-<li><strong>рукави</strong>: поверх сорочки — копія рук-гілок у масці отворів рукавів, тож
-гілки виходять із рукавів, а не з-під тканини;</li>
+<li><strong>рукави</strong>: поверх сорочки — копія лише деревини рук (<code>branch_arms_wood</code>,
+без листя) у масці самих отворів рукавів, а обідок манжета лягає поверх
+гілки — вона виходить саме з рукава. Руки під кожну сорочку ще й повернуті
+навколо кореня (<code>layer.arms</code>, <code>poseArms</code> у <code>scene.js</code>), щоб гілка йшла через
+центр отвору: у першій версії (02.10.2026) маска захоплювала й тканину
+довкола отвору, і на скейтері, DJ, серфері гілка лягала поверх манжета, а
+отвір лишався порожнім. Прозорі пікселі в отворі (DJ) домальовано темним
+кольором внутрішності рукава;</li>
 <li><strong>«листя на чолі»</strong> (навушники DJ, пов&#39;язка ретро-геймера): убір стоїть
 над окулярами, але поверх нього — копії гілок і передніх листків гравця в
 масці самого убору; гілки ще й без кулі-голови (маска <code>ball_&lt;настрій&gt;</code>),
@@ -12578,7 +12584,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел e97b8c2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 7187dcc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
