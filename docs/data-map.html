@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело a0d9e28</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0e39991</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3045,10 +3045,18 @@ make deploy-redirect     # короткі посилання (deploy-redirect-dr
 знайшов. Адреса api зашивається в бандл на етапі збірки: один викочений
 прод із локальною адресою — і живий сайт стукає в ноутбук розробника,
 а дізнаємось ми про це зі скарг;</li>
+<li><strong>докладає в збірку попередні css і js</strong> (03.10.2026): ті, що сайт віддає
+зараз, і ті, що трималися з минулих деплоїв, — css 30 діб, js тиждень,
+список із датами лежить на самому сайті (<code>/assets/retained.json</code>).
+Файли збірки мають хеш у назві, і деплой досі прибирав попередні: записи
+Microsoft Clarity показували сторінку без стилів (плеєр бере css із
+сайту за адресою часу запису й отримував замість нього <code>index.html</code>),
+а вкладка, відкрита під час деплою, лишалась без свого js. Wrangler
+заливає лише нові за вмістом файли, тож старі не їдуть удруге;</li>
 <li>каже, чи є маршрут у <code>wrangler.toml</code> — тобто чи перехопить цей деплой
 продовий домен.</li>
 </ol>
-<p>Пункти 1–3 стосуються <code>client</code> і <code>admin</code>: <code>qr</code> і <code>redirect</code> — це один
+<p>Пункти 1–4 стосуються <code>client</code> і <code>admin</code>: <code>qr</code> і <code>redirect</code> — це один
 файл воркера без збірки, і зашивати в них нема чого.</p>
 <p><strong>Домени воркерів привʼязує terraform</strong> (22.09.2026,
 <code>cloudflare_workers_custom_domain</code> в <code>infra/terraform/cloudflare.tf</code>):
@@ -12591,7 +12599,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел a0d9e28 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0e39991 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

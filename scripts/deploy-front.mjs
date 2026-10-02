@@ -14,7 +14,7 @@
 // самим `VITE_API` каталась повз них.
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync, existsSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -30,11 +30,13 @@ const APPS = {
   client: {
     dir: "frontend/client",
     build: true,
+    site: "https://extrovert.cafe",
     hash: ["src", "public", "index.html", "vite.config.js", "wrangler.toml", "package.json", ".env.production"],
   },
   admin: {
     dir: "frontend/admin",
     build: true,
+    site: "https://admin.extrovert.cafe",
     hash: ["src", "public", "index.html", "vite.config.js", "wrangler.toml", "package.json", ".env.production"],
   },
   qr: { dir: "frontend/qr", build: false, hash: ["src", "wrangler.toml", "package.json"] },
@@ -146,6 +148,71 @@ if (app.build) {
   }
   console.log(`\nзібрано: ${bundles.length} js, усього ${(bytes / 1024 / 1024).toFixed(2)} МБ`);
 }
+
+// Файли збірки мають хеш у назві (index-<хеш>.css), і кожен деплой досі
+// прибирав попередні. Через це записи Microsoft Clarity виглядали «без css»
+// (власник, 03.10.2026): Clarity стилів у запис не кладе, а плеєр бере їх із
+// сайту за адресою часу запису — і замість старого css отримував index.html
+// (SPA-відповідь на неіснуючий шлях). Тож перед заливкою докладаємо в
+// збірку файли, які сайт віддає зараз, і ті, що трималися раніше, з датою,
+// коли кожен перестав бути поточним (assets/retained.json на самому сайті).
+// css — 30 діб, як живуть записи Clarity; js — тиждень: стільки вистачає
+// вкладці, яку гравець тримав відкритою під час деплою. Wrangler заливає
+// лише нові за вмістом файли, тож уже залиті старі не їдуть удруге.
+const RETAIN_DAYS = { css: 30, js: 7 };
+const HASHED = /\/assets\/[\w.-]+-[\w-]{8}\.(?:css|js)\b/g;
+
+async function grab(url) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    return { type: r.headers.get("content-type") ?? "", body: Buffer.from(await r.arrayBuffer()) };
+  } catch {
+    return null;
+  }
+}
+
+async function keepRetired(site) {
+  const now = Date.now();
+  const fresh = new Set(readdirSync(path.join(DIST, "assets")).map((f) => `assets/${f}`));
+
+  // Що сайт віддає зараз: css і js, на які посилається живий index.html.
+  const page = await grab(`${site}/`);
+  const live = page?.type.includes("text/html")
+    ? [...new Set(page.body.toString("utf8").match(HASHED) ?? [])].map((p) => p.slice(1))
+    : [];
+  // Що трималося з попередніх деплоїв. Перший раз списку ще немає — і сайт
+  // відповідає index.html, тож json тут лише справжній.
+  let before = {};
+  const listed = await grab(`${site}/assets/retained.json`);
+  if (listed?.type.includes("json")) {
+    try { before = JSON.parse(listed.body.toString("utf8")).files ?? {}; } catch { /* битий — почнемо заново */ }
+  }
+
+  const since = { ...before };
+  for (const p of live) since[p] ??= new Date(now).toISOString();
+
+  const kept = {};
+  let bytes = 0;
+  for (const [p, at] of Object.entries(since)) {
+    if (fresh.has(p)) continue;                         // знову в поточній збірці
+    const days = RETAIN_DAYS[p.split(".").pop()] ?? 0;
+    if (now - Date.parse(at) > days * 86_400_000) continue;
+    const file = await grab(`${site}/${p}`);
+    if (!file || file.type.includes("text/html")) continue;   // уже зник із сайту
+    writeFileSync(path.join(DIST, p), file.body);
+    kept[p] = at;
+    bytes += file.body.length;
+  }
+  writeFileSync(
+    path.join(DIST, "assets", "retained.json"),
+    `${JSON.stringify({ comment: "Попередні css/js, які ще тримаємо (scripts/deploy-front.mjs): шлях → коли перестав бути поточним.", files: kept }, null, 2)}\n`
+  );
+  console.log(`старі css/js: тримаємо ${Object.keys(kept).length} (${(bytes / 1024).toFixed(0)} КБ), css ${RETAIN_DAYS.css} діб, js ${RETAIN_DAYS.js}`);
+}
+
+// ── 5б. Старі css і js — ще кілька тижнів після заміни ───────────────────
+if (app.build && app.site) await keepRetired(app.site);
 
 // ── 6. Нагадування про домен ───────────────────────────────────────────────
 // У wrangler.toml маршрут навмисно закоментований, щоб випадковий deploy не
