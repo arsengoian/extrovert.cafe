@@ -99,6 +99,7 @@ export const api = {
   health: (range) => request(`/admin/health${qs({ range })}`),
   point: (id, range) => request(`/admin/points/${encodeURIComponent(id)}${qs({ range })}`),
   stats: (p) => request(`/admin/stats${qs(p)}`),
+  analytics: (days) => request(`/admin/analytics${qs({ days })}`),
   quizzes: (p) => request(`/admin/quizzes${qs(p)}`),
   quizResponses: () => request("/admin/quiz-responses"),
   prices: () => request("/admin/prices"),

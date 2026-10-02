@@ -77,6 +77,8 @@ table { border-collapse: collapse; width: 100% }
 .grid.k4 { grid-template-columns: repeat(4, 1fr) }
 .grid.k3 { grid-template-columns: repeat(3, 1fr) }
 .grid.k2 { grid-template-columns: repeat(2, 1fr) }
+/* Заголовок розділу всередині дашборда (Аналітика): розділяє питання, а не картки. */
+.section-title { margin: 22px 0 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 14px }
 .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px }
 .card-head h2 { font-size: 13px; font-weight: 800 }

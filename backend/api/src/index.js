@@ -34,6 +34,7 @@ import adminDataRoutes from "./routes/admin-data.js";
 import paymentRoutes from "./routes/payments.js";
 import supportRoutes from "./routes/support.js";
 import { ensureWebhook } from "./support/telegram.js";
+import analyticsRoutes, { registerAnalytics } from "./analytics.js";
 
 const app = Fastify({ logger: true });
 
@@ -98,6 +99,10 @@ app.addHook("onRequest", async (req, reply) => {
 
 app.get("/healthz", async () => ({ ok: true }));
 
+// Кожен запит — подія аналітики (analytics.js): метод, шаблон маршруту,
+// статус і час відповіді. Хук на onResponse, тож запиту він не гальмує.
+registerAnalytics(app);
+
 await app.register(authRoutes, { prefix: "/api/v1" });
 await app.register(meRoutes, { prefix: "/api/v1" });
 await app.register(nicknameRoutes, { prefix: "/api/v1" });
@@ -124,6 +129,7 @@ await app.register(adminOpsRoutes, { prefix: "/api/v1" });
 await app.register(adminDataRoutes, { prefix: "/api/v1" });
 await app.register(paymentRoutes, { prefix: "/api/v1" });
 await app.register(supportRoutes, { prefix: "/api/v1" });
+await app.register(analyticsRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT || 3001);
 try {

@@ -12,6 +12,7 @@ import { Login } from "./screens/Login.jsx";
 import { Health } from "./screens/Health.jsx";
 import { Pos } from "./screens/Pos.jsx";
 import { Stats } from "./screens/Stats.jsx";
+import { Analytics } from "./screens/Analytics.jsx";
 import { Quizzes } from "./screens/Quizzes.jsx";
 import { Prices } from "./screens/Prices.jsx";
 import { Promos } from "./screens/Promos.jsx";
@@ -42,6 +43,7 @@ const I = {
   video: "M3 7h12v10H3zM15 11l6-3v8l-6-3",
   events: "m13 3-8 10h6l-2 8 8-10h-6l2-8z",
   pie: "M12 3v9h9a9 9 0 1 1-9-9z",
+  analytics: "M4 18l5-6 4 3 7-9M15 6h5v5",
 };
 
 // Меню: групи й порядок — як у макеті.
@@ -49,6 +51,7 @@ const MENU = [
   ["управління", [
     ["health", "Здоров'я", I.health],
     ["stats", "Статистика", I.stats],
+    ["analytics", "Аналітика", I.analytics],
     ["quizzes", "Опитування", I.quiz],
   ]],
   ["операційка", [
@@ -96,6 +99,7 @@ function Screen({ name, arg, counts }) {
     case "health": return <Health />;
     case "pos": return <Pos id={arg} />;
     case "stats": return <Stats />;
+    case "analytics": return <Analytics />;
     case "quizzes": return <Quizzes />;
     case "prices": return <Prices />;
     case "promos": return <Promos />;

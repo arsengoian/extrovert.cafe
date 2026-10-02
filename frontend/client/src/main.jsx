@@ -7,6 +7,7 @@ import { installTapFx } from "./ui/fx.jsx";
 import { readLoginWait } from "./loginWait.js";
 import { initErrors } from "./errors.js";
 import { initClarity } from "./clarity.js";
+import { trackScreen } from "./analytics.js";
 import { Crash } from "./ui/Crash.jsx";
 import "./theme.css";
 
@@ -24,6 +25,8 @@ installTapFx();
 //   /b/<token> — бонус за чек із QR на кіоску: це той самий застосунок,
 //                просто з екраном бонусу поверх.
 const repost = window.location.pathname.match(/^\/r\/([^/?#]+)/);
+// Сторінка репосту живе поза App — її перегляд записуємо тут.
+if (repost) trackScreen("repostLanding");
 const bonus = window.location.pathname.match(/^\/b\/([^/?#]+)/);
 // Токен бонусу забираємо з адреси одразу, як і токен входу нижче: далі він
 // живе в памʼяті сторінки, а перезавантаження має відкривати звичайний

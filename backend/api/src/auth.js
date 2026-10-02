@@ -39,13 +39,17 @@ export function signToken(sub, role, extra = {}, ttlS = ACCESS_TTL_S) {
   return `${data}.${b64url(sign(null, Buffer.from(data), keys.privateKey))}`;
 }
 
-export function verifyToken(token) {
+// graceS — скільки секунд після закінчення ще приймати токен. Лише для
+// аналітики (analytics.js): там токен каже, ЧИЯ це подія, а не пускає
+// кудись, і хвилинний розрив між закінченням токена й оновленням не має
+// перетворювати гравця на «гостя». Доступ до api — завжди без запасу.
+export function verifyToken(token, graceS = 0) {
   const parts = String(token || "").split(".");
   if (parts.length !== 3) return null;
   const [header, payload, signature] = parts;
   if (!verify(null, Buffer.from(`${header}.${payload}`), keys.publicKey, unb64url(signature))) return null;
   const claims = JSON.parse(unb64url(payload).toString());
-  if (claims.exp && claims.exp < Math.floor(Date.now() / 1000)) return null;
+  if (claims.exp && claims.exp + graceS < Math.floor(Date.now() / 1000)) return null;
   return claims;
 }
 

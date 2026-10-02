@@ -161,6 +161,30 @@ function idealByDay(rows) {
 }
 
 export default async function routes(app) {
+  // ── Аналітика застосунку гравця ─────────────────────────────────────
+  // Готові зрізи за 1/7/30 діб і денні відра для трендів — рахує scheduler
+  // (jobs/analytics.js) раз на десять хвилин; тут лише читання й групування
+  // у { метрика: { розріз: значення } }. Тренд — щонайменше за 14 днів:
+  // на «добі» одна точка графіка нічого не показує.
+  app.get("/admin/analytics", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const days = [1, 7, 30].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
+    const rows = await many("select metric, dim, value, computed_at from analytics_window where days = $1", [days]);
+    const window = {};
+    for (const r of rows) (window[r.metric] ??= {})[r.dim] = Number(r.value);
+    const daily = await many(
+      `select day::text as day, metric, dim, value from analytics_daily
+        where day > (now() at time zone 'Europe/Kyiv')::date - $1::int order by day`,
+      [Math.max(days, 14)]
+    );
+    return {
+      days,
+      computed_at: rows[0]?.computed_at ?? null,
+      window,
+      daily: daily.map((r) => ({ ...r, value: Number(r.value) })),
+    };
+  });
+
   // ── Дашборд статистики ──────────────────────────────────────────────
   app.get("/admin/stats", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;

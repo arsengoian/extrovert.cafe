@@ -18,6 +18,7 @@ import { syncDirectory, trackShipments } from "./jobs/novaposhta.js";
 import { deployMenus } from "./jobs/menu.js";
 import { runDiscounts } from "./jobs/discounts.js";
 import { backupDatabase } from "./jobs/backup.js";
+import { aggregateAnalytics, flushAnalytics } from "./jobs/analytics.js";
 
 const log = makeLog("scheduler");
 initErrors("scheduler", { log });
@@ -31,6 +32,11 @@ const HOUR = 60 * MINUTE;
 const JOBS = [
   { name: "outbox", every: 500, ttl: 5_000, run: () => publishOutbox({ pool, redis, log }) },
   { name: "market-impressions", every: MINUTE, ttl: 55_000, run: () => flushImpressions({ pool, redis, log }) },
+  // Аналітика застосунку гравця (jobs/analytics.js): черга подій з Redis у
+  // таблицю — щохвилини, зрізи для дашборду — раз на десять хвилин: це
+  // оглядова картина, а не моніторинг, і свіжіше вона не стає корисніша.
+  { name: "analytics-flush", every: MINUTE, ttl: 55_000, run: () => flushAnalytics({ pool, redis }) },
+  { name: "analytics-aggregate", every: 10 * MINUTE, ttl: 9 * MINUTE, run: () => aggregateAnalytics({ pool }) },
   // Десять секунд: людина натиснула «викотити меню» й чекає, поки цифри
   // на екрані зміняться. Запит дешевий — один select у порожню чергу.
   { name: "menu-deploy", every: 10_000, ttl: 60_000, run: () => deployMenus({ pool, log }) },

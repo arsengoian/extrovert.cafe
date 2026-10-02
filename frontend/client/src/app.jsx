@@ -10,6 +10,7 @@ import { openSupport } from "./ui/support.jsx";
 import { api, getToken } from "./api.js";
 import { breadcrumb, setErrorScope, setErrorUser } from "./errors.js";
 import { clarityScreen, clarityUser } from "./clarity.js";
+import { trackScreen } from "./analytics.js";
 import { loadPlantAssets } from "./plant/assets.js";
 import { Hud } from "./ui/Hud.jsx";
 import { Nav } from "./ui/Nav.jsx";
@@ -64,6 +65,10 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Адреса документа (/privacy-policy) відкриває його одразу — спершу
   // екраном «поза авторизацією»; якщо акаунт є, нижче він переїде в стек.
   const [guest, setGuest] = useState(() => (legalDoc ? { name: legalDoc } : null));
+  // Власна аналітика навігації (analytics.js): екран застосунку, а до входу —
+  // екран «поза авторизацією» (старт, вхід поштою, скарга, документи).
+  const screen = booting ? null : me ? (me.consent ? where : "onboarding") : guest?.name ?? "start";
+  useEffect(() => { trackScreen(screen); }, [screen]);
   // Бонус із QR кіоска, який чекає на вхід: сума й перша річ для стартового
   // екрана. Без нього — варіант «без бонусів».
   const [pendingBonus, setPendingBonus] = useState(null);

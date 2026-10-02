@@ -4,7 +4,6 @@
 // (mail/login.js). Google — окремим кроком. Девелоперський вхід існує лише
 // там, де DEV (env.js), — у проді цих роутів просто немає.
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { isIP } from "node:net";
 import { one, query, tx } from "../db.js";
 import { signToken } from "../auth.js";
 import { DEV } from "../env.js";
@@ -14,6 +13,7 @@ import { loginEmail } from "../mail/login.js";
 import { mailConfigured, sendMail } from "../mail/mailgun.js";
 import { clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie, touchSession } from "../session.js";
 import { redisClient } from "@extrovert/lib/redis.js";
+import { clientIp } from "../ip.js";
 
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
 const API_ORIGIN = process.env.API_ORIGIN || "https://api.extrovert.cafe";
@@ -30,13 +30,6 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // який людина відкрила ще до входу. Лише ці шляхи — інакше посилання з
 // листа стало б відкритим редиректом.
 const NEXT = /^\/(b\/[A-Za-z0-9_-]{1,128})?$/;
-// За Caddy справжня адреса — у X-Real-IP (він її переписує, підробити
-// ззовні не вийде); локально Caddy немає, і там це неважливо. Не адреса —
-// null, щоб сміття в заголовку не валило запит на колонці inet.
-const clientIp = (req) => {
-  const ip = String(req.headers["x-real-ip"] || req.ip || "");
-  return isIP(ip) ? ip : null;
-};
 
 async function issue(reply, user) {
   const { id, ttl } = await createSession(user.id);

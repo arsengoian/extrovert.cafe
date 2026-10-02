@@ -94,6 +94,60 @@ CREATE TABLE public.admin_users (
 
 
 --
+-- Name: analytics_daily; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.analytics_daily (
+    day date NOT NULL,
+    metric text NOT NULL,
+    dim text DEFAULT ''::text NOT NULL,
+    value double precision NOT NULL
+);
+
+
+--
+-- Name: analytics_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.analytics_events (
+    id bigint NOT NULL,
+    at timestamp with time zone NOT NULL,
+    user_id uuid,
+    ip inet,
+    type text NOT NULL,
+    payload jsonb,
+    CONSTRAINT analytics_events_type_check CHECK ((type = ANY (ARRAY['nav'::text, 'api'::text])))
+);
+
+
+--
+-- Name: analytics_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.analytics_events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.analytics_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: analytics_window; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.analytics_window (
+    days integer NOT NULL,
+    metric text NOT NULL,
+    dim text DEFAULT ''::text NOT NULL,
+    value double precision NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: bonus_grants; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2056,6 +2110,30 @@ ALTER TABLE ONLY public.admin_users
 
 
 --
+-- Name: analytics_daily analytics_daily_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_daily
+    ADD CONSTRAINT analytics_daily_pkey PRIMARY KEY (day, metric, dim);
+
+
+--
+-- Name: analytics_events analytics_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_events
+    ADD CONSTRAINT analytics_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: analytics_window analytics_window_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.analytics_window
+    ADD CONSTRAINT analytics_window_pkey PRIMARY KEY (days, metric, dim);
+
+
+--
 -- Name: bonus_grants bonus_grants_claim_token_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2629,6 +2707,20 @@ ALTER TABLE ONLY public.wardrobe_sets
 
 ALTER TABLE ONLY public.webhook_keys
     ADD CONSTRAINT webhook_keys_pkey PRIMARY KEY (provider);
+
+
+--
+-- Name: analytics_events_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX analytics_events_at ON public.analytics_events USING btree (at);
+
+
+--
+-- Name: analytics_events_user_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX analytics_events_user_at ON public.analytics_events USING btree (user_id, at) WHERE (user_id IS NOT NULL);
 
 
 --
@@ -3655,4 +3747,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261001120000'),
     ('20261001150000'),
     ('20261001180000'),
-    ('20261001190000');
+    ('20261001190000'),
+    ('20261002120000');
