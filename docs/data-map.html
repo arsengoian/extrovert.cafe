@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 91c8fc8</p>
+  <p class="eyebrow">extrovert.cafe · джерело a0d9e28</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2107,6 +2107,13 @@ erDiagram
   <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">plant_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">user_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">role</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">user|plant|system</td></tr><tr><td class="c-name">body</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">coins_charged</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">1 монета, перші 10 безкоштовні</td></tr><tr><td class="c-name">tokens_in</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">tokens_out</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-plants">plants</a><span class="rel-label">AI-чат</span></li></ul>
 </article></div>
+<p><code>CHAT_MESSAGES</code> з <code>role = 'system'</code> — сповіщення гравцю (продаж, нарахування,
+замовлення, розсилки; <code>lib/notify.js</code>). Вони належать людині, а не кущу, тож
+не губляться разом із ним (03.10.2026): тригери на <code>plants</code> (зміна власника —
+продаж і подарунок; видалення — скошування) переселяють сповіщення старого
+власника в чат куща, який у нього лишається, а якщо іншого немає — у
+<code>pending_notices</code> з їхнім часом, звідки <code>flushNotices</code> переносить їх у чат
+нового куща. Розмова з кавеням (<code>user</code> / <code>plant</code>) лишається з кущем.</p>
 <p><code>PLANT_STAGE_TRANSITIONS</code> виглядає надлишковою поруч із
 <code>plants.last_stage_transition_at</code>, але саме вона робить перевіряємим
 головний гейт економіки — «не більше одного переходу на добу»
@@ -12584,7 +12591,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 91c8fc8 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел a0d9e28 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

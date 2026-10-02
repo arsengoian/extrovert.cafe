@@ -62,14 +62,17 @@ export async function notifyPlant(userId, text, { client, plantId = null } = {})
 export async function flushNotices(client, userId, plantId) {
   const run = client ? (sql, params) => client.query(sql, params) : (sql, params) => query(sql, params);
   const { rows } = await run(
-    "delete from pending_notices where user_id = $1 returning body, id", [userId]
+    "delete from pending_notices where user_id = $1 returning body, id, created_at", [userId]
   );
   if (!rows.length) return 0;
   rows.sort((a, b) => Number(a.id) - Number(b.id));
+  // Зі своїм часом: сповіщення, що переїжджають зі скошеного куща
+  // (міграція 20261003120000_rehome_notices), мають лягти в чат там, де
+  // й були в часі, а не всі разом «щойно».
   for (const r of rows) {
     await run(
-      "insert into chat_messages (plant_id, user_id, role, body) values ($1, $2, 'system', $3)",
-      [plantId, userId, r.body]
+      "insert into chat_messages (plant_id, user_id, role, body, created_at) values ($1, $2, 'system', $3, $4)",
+      [plantId, userId, r.body, r.created_at]
     );
   }
   return rows.length;

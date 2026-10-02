@@ -72,6 +72,66 @@ begin
 end $$;
 
 
+--
+-- Name: plants_rehome_on_delete(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.plants_rehome_on_delete() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  perform rehome_notices(old.id, old.owner_id);
+  return old;
+end $$;
+
+
+--
+-- Name: plants_rehome_on_owner(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.plants_rehome_on_owner() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.owner_id is distinct from old.owner_id then
+    perform rehome_notices(new.id, old.owner_id);
+  end if;
+  return new;
+end $$;
+
+
+--
+-- Name: rehome_notices(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.rehome_notices(p_plant uuid, p_owner uuid) RETURNS void
+    LANGUAGE plpgsql
+    AS $$
+declare
+  target uuid;
+begin
+  if p_owner is null then
+    return;
+  end if;
+  select id into target
+    from plants
+   where owner_id = p_owner and id <> p_plant
+   order by chat_seen_at desc nulls last, created_at
+   limit 1;
+  if target is not null then
+    update chat_messages set plant_id = target
+     where plant_id = p_plant and user_id = p_owner and role = 'system';
+  else
+    insert into pending_notices (user_id, body, created_at)
+    select user_id, body, created_at
+      from chat_messages
+     where plant_id = p_plant and user_id = p_owner and role = 'system'
+     order by created_at, id;
+    delete from chat_messages where plant_id = p_plant and user_id = p_owner and role = 'system';
+  end if;
+end $$;
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -3159,6 +3219,20 @@ CREATE TRIGGER plants_announce_owner AFTER UPDATE OF owner_id ON public.plants F
 
 
 --
+-- Name: plants plants_rehome_notices_delete; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER plants_rehome_notices_delete BEFORE DELETE ON public.plants FOR EACH ROW EXECUTE FUNCTION public.plants_rehome_on_delete();
+
+
+--
+-- Name: plants plants_rehome_notices_owner; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER plants_rehome_notices_owner AFTER UPDATE OF owner_id ON public.plants FOR EACH ROW EXECUTE FUNCTION public.plants_rehome_on_owner();
+
+
+--
 -- Name: users users_announce_balance; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -3751,4 +3825,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261001190000'),
     ('20261002120000'),
     ('20261002200000'),
-    ('20261003100000');
+    ('20261003100000'),
+    ('20261003120000');
