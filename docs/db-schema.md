@@ -1,10 +1,10 @@
 # Схема даних: Postgres і Redis
 
-Стан на 19.09.2026. Це **проєкт схеми**, зведений з усіх чинних доків
+Почався 19.09.2026 як **проєкт схеми**, зведений з усіх чинних доків
 (`gamification_economy.md`, `gamification_ui.md`, `bush_graphics_customization.md`,
-`admin_panel.md`, `video.md`, `checkbox.md`, `urls.md`). У коді поки нема
-жодної таблиці — сервіси стоять заглушками, тому міняти тут дешево, а після
-першої міграції на проді вже ні.
+`admin_panel.md`, `video.md`, `checkbox.md`, `urls.md`). Тепер схема живе в
+міграціях (`db/migrations`, дамп — `db/schema.sql`) і на проді; цей док
+пояснює її й звірений з кодом 03.10.2026. Правда про колонки — `schema.sql`.
 
 Діаграми — mermaid у цьому ж файлі: текст, який рендериться у вектор і
 правиться в дифі рядок за рядком. Окремої картинки, яку доведеться
@@ -102,7 +102,7 @@ Checkbox і оплати mono pay, на які рядок посилається
 до «рівно раз», що взагалі досяжне.
 
 **Зміни акаунта гравця пише в outbox сама база — тригерами** (міграція
-`announce_user_changes`, 27.09.2026; перші й поки єдині тригери в схемі).
+`announce_user_changes`, 27.09.2026; поруч живуть ще тригери `plants_rehome_*` — переселення сповіщень, §3).
 Будь-яка зміна балансів чи запасів у `users` дає подію `balance` у канал
 `user:<uuid>` (числа їдуть у самій події), перехід кавенятка до іншого
 власника — подію `plants` обом. Клієнт на будь-яку подію перечитує `/me`,
@@ -147,7 +147,7 @@ erDiagram
         text short_address "у виборі точки: «Мишуги 8»"
         text timezone
         text status "planned|live|paused"
-        text checkbox_branch_id "не використовується: точку розрізняє літера в коді товару"
+        text checkbox_branch_id "запасний спосіб знайти точку чека (receipts.js, pointFor); основний — літера в коді товару"
         text machine_letter "літера машини: код позиції = літера + drinks.slot"
         text key_hash "sha256 ключа з config/point.key на малині"
         text next_key_hash "ротація: видано, малина ще не підхопила"
@@ -161,6 +161,8 @@ erDiagram
         citext nickname UK "унікальний, автоген при реєстрації"
         timestamptz nickname_changed_at "зміна з профілю — раз на 30 днів"
         citext email "метч між провайдерами"
+        timestamptz deleted_at "акаунт видалено: пошта стерта, вхід закрито"
+        citext deleted_nickname "яким був нікнейм до видалення"
         int coins_yellow "check >= 0, передаються між гравцями"
         int coins_silver "check >= 0, НЕ передаються"
         int beans "check >= 0"
@@ -191,6 +193,10 @@ erDiagram
         timestamptz used_at "одноразове"
         inet ip
         text user_agent
+        bytea wait_hash "вкладка, що чекає підтвердження (long-poll)"
+        timestamptz approved_at
+        timestamptz claimed_at
+        timestamptz rejected_at "«це не я» з іншого браузера"
     }
     USER_IDENTITIES {
         uuid id PK
@@ -212,6 +218,7 @@ erDiagram
         text source "webhook|poll - хто записав першим"
         jsonb raw
         timestamptz created_at
+        timestamptz updated_at
     }
     RECEIPT_ITEMS {
         bigserial id PK
@@ -236,6 +243,8 @@ erDiagram
         text cup
         boolean active
         int sort_order
+        text color "колір стакана на кіоску"
+        text foam
     }
     PROMOS {
         bigserial id PK
@@ -247,6 +256,8 @@ erDiagram
         text drink_code FK "звідки спрайт"
         timestamptz used_at "коли востаннє поїхала на точку"
         timestamptz archived_at
+        boolean is_current "та, що зараз у меню (lib/menu.js)"
+        timestamptz created_at
     }
     MENU_DEPLOYMENTS {
         bigserial id PK
@@ -262,11 +273,12 @@ erDiagram
         text point_id FK
         uuid user_id FK "null — тестова з адмінки"
         bigint ledger_entry_id FK "списання зерен; за ним і повертаємо"
-        int uah "20"
+        int uah "30 (з 01.10.2026; до того 20)"
         int window_s "120"
         text status "queued|active|done|refunded; active — щонайбільше одна на точку"
         text ended_reason "time|receipt|failed"
         bigint deployment_id FK "знижене меню"
+        timestamptz created_at
         timestamptz started_at
         timestamptz ends_at
         timestamptz ended_at
@@ -275,7 +287,7 @@ erDiagram
         bigserial id PK
         bigint deployment_id FK
         text kind "r2|checkbox|jetinno"
-        text point_id FK "чия ціна їде; для checkbox — чию філію оновлюємо"
+        text point_id FK "чия ціна їде; для checkbox — чиї коди товарів (з літерою машини) пишемо в каталог"
         text status "queued|deploying|done|failed|skipped"
         timestamptz done_at
         timestamptz acked_at "кіоск підтвердив, що показує; немає за 3 хв — ціль failed (lib/deployments.js)"
@@ -297,7 +309,7 @@ erDiagram
     DEVICE_TELEMETRY {
         bigserial id PK
         text point_id FK
-        text source "pi|jetino|camera"
+        text source "pi|jetinno|camera"
         text idem_key UK "малина ретраїть зі збереженим ключем"
         timestamptz measured_at
         jsonb metrics
@@ -323,8 +335,9 @@ QR → скан забирає бонус на пристрій (`claimed_at`, �
 **Деплой меню — на всі точки одразу, якщо не вибрано інше.** Статус
 тримається на кожній цілі окремо: одна малина офлайн чи портал Jetinno
 впав — це `partial`, а не провал усього деплою. На кожну активну точку
-створюється ціль `r2` (меню, яке тягне кіоск), ціль `checkbox` (ціна філії
-цієї точки через `branches_info`, `checkbox.md`) і, якщо підтвердиться
+створюється ціль `r2` (меню, яке тягне кіоск), ціль `checkbox` (ціни товарів
+з кодами цієї точки в каталог каси; філії Checkbox для цього не потрібні,
+`checkbox-catalog.js`) і, якщо підтвердиться
 потреба, `jetinno` на точку (`services.md` §4). `acked_at` ставить сам кіоск, коли
 вже показує нові ціни, — «викотили в R2» і «висить на екрані» різні речі.
 
@@ -393,7 +406,7 @@ erDiagram
         int delta_yellow "знакова, 0 якщо не чіпали"
         int delta_silver "знакова"
         int delta_beans "знакова"
-        text reason "purchase|quiz|repost|crate|care|chat|transfer|market|exchange|pos_discount|delivery|sapling|admin"
+        text reason "purchase|quiz|repost|crate|care|chat|transfer|market|exchange|pos_discount|delivery|sapling|wardrobe_set|harvest|admin"
         text ref_type "receipt|crate_opening|market_trade|coin_transfer|redemption|user_crate"
         bigint ref_id
         text idem_key UK "повтор запиту не пише рядок удруге"
@@ -465,8 +478,8 @@ erDiagram
         bigserial id PK
         uuid seller_id FK
         text kind "item|plant"
-        bigint user_item_id FK
-        uuid plant_id FK
+        bigint user_item_id FK "null — річ видалено, лот лишився історією угоди"
+        uuid plant_id FK "null — кущ скошено; лише в неактивного лота"
         int price_amount
         text price_currency "yellow|beans"
         numeric commission_pct "10 одяг / до 2 кавенятко"
@@ -582,6 +595,15 @@ erDiagram
 - Предмет у подарованому комплекті не продається. `USER_ITEMS.locked` +
   часткові індекси: виставити можна лише те, де `locked = false`.
 
+**Лот переживає свій кущ чи річ** (03.10.2026, міграція
+`20261003140000_market_history_survives_deletes`). Лот — це історія угоди,
+на нього посилається `market_trades`, і з нього адмінка рахує оборот
+ринку. Тому коли кущ скошують чи річ із подарованого комплекту зникає,
+`plant_id` / `user_item_id` лота стає `null`, а сам лот лишається. Досі
+видалення каскадом тягло за собою й старі лоти — і кущ, який хоч раз
+продавали, скосити було неможливо: угода тримала лот, і весь запит падав.
+Порожнім посилання може бути лише в неактивного лота.
+
 **`redemptions` — лише те, що їде Новою Поштою** (17.09.2026). Раніше таблиця
 дублювала журнал: знижка на POS, саджанець, обмін на монети — це просто
 рядки `ledger_entries` з відповідним `reason`. Окремий рядок потрібен лише там, де є фізичний світ:
@@ -662,6 +684,7 @@ erDiagram
         uuid plant_id FK
         uuid user_id FK
         text role "user|plant|system"
+        text kind "message|echo — echo: репліка кавенятка з головного екрана"
         text body
         int coins_charged "1 монета, перші 10 безкоштовні"
         int tokens_in
@@ -682,8 +705,10 @@ erDiagram
 `plants.last_stage_transition_at`, але саме вона робить перевіряємим
 головний гейт економіки — «не більше одного переходу на добу»
 (`gamification_economy.md` §3.1) — і дає адмінці історію без реконструкції
-з журналу валют. `unique (plant_id, to_stage)` заразом робить подвійний
-перехід неможливим, а не лише незручним.
+з журналу валют. Подвійного переходу не дає сам код: догляд і посадка
+беруть рядок куща `for update` і перевіряють гейт усередині транзакції.
+Унікального ключа `(plant_id, to_stage)`, який тут колись стояв у планах,
+у схемі немає.
 
 **Крейт завжди дає і предмет, і монети** (20.09.2026). Тому в
 `crate_openings` немає `result_type`: `result_item_id` і `result_coins`
@@ -808,11 +833,12 @@ erDiagram
         timestamptz password_set_at
         timestamptz disabled_at "вимкнений; рядок лишається заради історії"
         timestamptz last_login_at
+        timestamptz created_at
     }
     OUTBOX {
         bigserial id PK
-        text channel "point:kyiv-01|user:uuid"
-        text event "sale|bonus.claimed|menu.deployed|order.updated"
+        text channel "point:kyiv-01|user:uuid|admin"
+        text event "bonus_ready|bonus_taken|menu.deployed|order_status|balance|plants|discount_refunded|order_created|order_print_ready|problem_reported|support_message"
         jsonb payload "з outbox.id, щоб клієнт відкинув повтор"
         timestamptz created_at
         timestamptz published_at "null - ще не в Redis"
@@ -825,7 +851,7 @@ erDiagram
         timestamptz registered_at
     }
     SYNC_CURSORS {
-        text name PK "checkbox:receipts|np:directory|np:tracking"
+        text name PK "checkbox-receipts|np-directory|np-tracking"
         timestamptz cursor_at "до якого моменту все забрано"
         timestamptz run_at
         text last_error
@@ -948,17 +974,20 @@ Redis тут — **не база**. Втрата всього кейспейсу
 | `sess:user:<user_id>` | set id сесій | 180 діб, ковзний | api | api | усі сесії гравця: видалення акаунта гасить вхід на кожному пристрої |
 | `sess:<id>` (адмінська) | string JSON | 7 діб, ковзний | api | api | та сама структура й той самий ключ, що в гравця, з `admin: true` всередині; вікно коротше. Окремого `sess:admin:<id>` немає й не було — тут стояв опис неіснуючого ключа |
 | `admin:login:fail:<email>` | string `INCR` | 15 хв | api | api | перебір пароля адміна впирається в лічильник, а не в базу (`services.md` §3) |
-| `revoked:point:<id>` | string | 1 год | api | api, ws | відкликаний ключ малини діє одразу, а не коли спливе її JWT |
 | `market:impressions` | hash `listing_id → n` | до перенесення | api (`HINCRBY`) | scheduler, раз на хвилину | покази лотів без запису в Postgres на кожен запит (`services.md` §4) |
 | `analytics:events` | list JSON-подій, стеля 500 тис. | до перенесення | api (`RPUSH` на кожен запит і пачку навігації) | scheduler, раз на хвилину (перейменування в `analytics:events:flush`, далі пачками по 5000) | аналітика без insert у Postgres на кожен запит гравця |
-| `rl:<scope>:<id>` | string лічильник | 60 с | api | api | rate limit (чат — без ліміту, решта — є) |
-| `bonus:claim:<token>` | hash | 120 с | api | api | вікно сканування QR, дзеркало `bonus_grants` |
+| `rl:photo:<user або ip>` | string лічильник | 1 год | api | api | ліміт заливок фото до скарги (`too_many_uploads`). Інших `rl:*` немає: ліміти входу поштою рахує SQL по `login_links` |
 | `support:start:<code>` | string → user_id | 1 год | api (кнопка «Підтримка») | api (вебхук бота) | одноразовий код у `t.me/<бот>?start=`: привʼязує тред до акаунта, після використання видаляється |
-| `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |
-| `lock:<job>` | string `SET NX PX` | за роботою | scheduler, checkbox, overseer, worker | вони ж | щоб дві копії фонової роботи не робили одне й те саме |
-| `health:last:<target>` | hash | 1 год | overseer | api (адмінка) | останній стан без запиту в Postgres |
+| `lock:<job>` | string `SET NX PX` | за роботою | scheduler, checkbox, overseer | вони ж | щоб дві копії фонової роботи не робили одне й те саме |
+| `health:last:<target>` | hash | 1 год | overseer | (поки ніхто) | останній стан проби; адмінка читає відра з `health_samples`, а цей ключ лишився запасом |
+| `hb:<сервіс>` | string ISO-час | 120 с (двічі інтервал) | scheduler, overseer (`lib/jobs.js`, heartbeat) | overseer | «живий» для сервісів без порту: немає ключа — немає сервісу |
+| `oauth:google:<state>` | string | 10 хв | api | api | state і куди повернути після входу через Google |
+| `stats:v2:default` | string JSON | до 04:00 за Києвом | api | api | кеш дашборда статистики адмінки за типовий період |
 | `server:containers` | string JSON | 10 хв | overseer | api (адмінка), overseer | контейнери останньої проби: стан, health, аптайм, перезапуски, OOM, CPU, памʼять, образ — таблиці «зараз» в історії не місце |
 | `overseer:restarts:<контейнер>` | string | 30 діб | overseer | overseer | лічильник перезапусків з попередньої проби: зріс — контейнер падав сам |
+| `overseer:<перевірка>` | string стан | без TTL | overseer | overseer | попередній стан алерту: повідомлення лише на зміну стану |
+| `overseer:device:<подія>` | string | 7 діб | overseer | overseer | одноразові події заліза (перезавантаження) — щоб сказати рівно раз |
+| `overseer:report:<дата>` | string | 26 год | overseer | overseer | щоденний звіт о 9:00 — рівно раз, навіть після рестарту |
 
 ### Канали pub/sub
 
@@ -966,9 +995,11 @@ Redis тут — **не база**. Втрата всього кейспейсу
 
 | Канал | Публікує | Слухає | Подія |
 |---|---|---|---|
-| `point:<id>` | публікатор `outbox` у `scheduler` | ws → кіоск | `sale` (QR бонусу), `bonus.claimed`, `bonus.expired`, `menu.deployed`, `promo.deployed` |
-| `user:<uuid>` | публікатор `outbox` у `scheduler` | ws → телефон | `balance` і `plants` — пишуть тригери бази (§0); задумані ще бонус, продаж на маркеті, розсилка, `order.updated` |
-| `admin:health` | overseer | ws | зміна стану сервісу для живої адмінки |
+| `point:<id>` | публікатор `outbox` у `scheduler` | ws → кіоск | `bonus_ready` (QR бонусу), `bonus_taken` (забрали — прибрати QR), `menu.deployed` (і нове меню, і зміна акції) |
+| `user:<uuid>` | публікатор `outbox` у `scheduler` | ws → телефон | `balance` і `plants` — пишуть тригери бази (§0); `order_status` (зміна статусу замовлення: адмінка й трекінг НП), `discount_refunded` (знижка не доїхала — зерна повернуто) |
+| `admin` | публікатор `outbox` у `scheduler` (події api) | overseer (Telegram), ws → жива адмінка | `order_created`, `order_print_ready`, `problem_reported`, `support_message` |
+| `points` | CI (`deploy.yml`, реліз малини) напряму `redis-cli publish` | ws → усі кіоски | `pi_release` — апдейтер не чекає наступного опитування маніфесту |
+| `login:wake:<hash>` | api (лист підтверджено) | api (довгий запит вкладки, що чекає) | будить вкладку «Лист уже летить», щойно вхід підтверджено в іншому браузері |
 
 ### Чому pub/sub, а не Streams
 
@@ -1053,7 +1084,9 @@ db/
    міграцією, а `dbmate load` підіймає структуру без них — цей шлях
    годиться для тестів, а не для відтворення стейджа.
 4. **CI: чиста база → `dbmate up` → диф `schema.sql` порожній → `dbmate
-   rollback` → `dbmate up`.** Повторний `up` сам по собі нічого не
+   rollback` → `dbmate up`.** Задумано, **у `deploy.yml` такого кроку поки
+   немає**: забутий дамп ловить хіба що рев'ю, а міграції на проді накочує
+   `rollout.sh` (`docker compose run migrate up`). Повторний `up` сам по собі нічого не
    перевіряє: dbmate памʼятає накочені версії й просто нічого не робить.
    Порожній диф ловить забутий дамп, а `rollback` + `up` — зламаний `down`,
    який інакше знайдеться лише тоді, коли відкочуватись уже треба.
@@ -1082,13 +1115,13 @@ JSON на таблицю. Інструмент уміє рівно дві реч
 
 Точний перелік колонок — у `manifest.json`. Не контент і в сіди не
 потрапляє ніколи: усе, що створюють гравці й події (чеки, журнал,
-інвентар, кавенятка, маркет), довідник НП (його щоночі синхронізує
-`scheduler`), `admin_users` і будь-які секрети.
+інвентар, кавенятка, маркет), довідник НП (його приблизно раз на добу
+синхронізує `scheduler`), `admin_users` і будь-які секрети.
 
 **Параметри економіки в базі не лежать взагалі** (20.09.2026). Множник
-монет, курс зерен, таблиця рідкості, ціна крейта, `market_offer_bias` — це
-`backend/api/data/economy.json` поруч із `shop-products.json`, який `api` читає на
-старті. Змінити курс — коміт і реліз, а не рядок у базі: крутити ці числа
+монет, курс зерен, таблиця рідкості, ціна крейта, `market.offer_bias_k` — це
+`backend/lib/data/economy.json` (спільний для сервісів; товари за зерна —
+`backend/api/data/shop-products.json`), який сервіси читають на старті. Змінити курс — коміт і реліз, а не рядок у базі: крутити ці числа
 однаково нікому, крім нас, а таблиця під них означала б ще й екран в
 адмінці, аудит і сід — три шари навколо десятка констант.
 
@@ -1146,7 +1179,8 @@ Deluxe», який 02.10.2026 замінив «Паровий кавоман» (
 видаляти не вміє (нижче) — таке робить міграція.
 
 Сам інструмент — `scripts/seed.mjs` (запуск `bun`) у корені, поруч із `build-data-map.mjs`:
-у `db/` навмисно немає `package.json` (§6). Його ще немає.
+у `db/` навмисно немає `package.json` (§6). Таблиці сідів — `points`,
+`drinks`, `item_defs` і `nickname_words` (`db/seeds/manifest.json`).
 
 ### Команди
 
@@ -1159,10 +1193,11 @@ bun run seed:apply --env prod --apply --table item_defs
 
 Оточення — `DATABASE_URL_LOCAL`, `DATABASE_URL_STAGE`, `DATABASE_URL_PROD` у
 `.env`, поруч, як і решта тестових і справжніх ключів. Без `--env` — це
-`local`; до проду лише явним `--env prod`. База проду слухає тільки петлю
-на дроплеті, тож іде через SSH-тунель
-(`ssh -N -L 15432:127.0.0.1:5432 <дроплет>`), і `DATABASE_URL_PROD` дивиться
-на `localhost:15432`.
+`local`; до проду лише явним `--env prod`. Порт бази проду не опублікований
+навіть на петлі дроплета (вона лише в мережі compose), тож `scripts/prod-db.sh`
+піднімає SSH-тунель на IP контейнера postgres і віддає його на
+`localhost:5455`; команду можна передати йому одразу:
+`bash scripts/prod-db.sh sh -c 'DATABASE_URL_PROD="$DATABASE_URL" bun run seed:apply --env prod …'`.
 
 ### `apply`
 
@@ -1215,10 +1250,10 @@ bun run seed:apply --env prod --apply --table item_defs
 
 Каталог напоїв — таблиця `drinks`, у git вона лежить сідом
 `db/seeds/drinks.json` (21.09.2026). Меню кіоска збирається з неї:
-`pos/scripts/push-prices.mjs` бере активні напої, додає оформлення з
-`pos/data/menu-chrome.json` (тема, бренд, стакани, акція — те, що напоями не
-є) і кладе готовий `points/<point>/menu.json` у R2. Звідти ж беруться ціни
-для звірки каталогу каси (`checkbox.md`).
+`lib/menu.js` бере активні напої й поточну акцію, а робота `menu-deploy` у
+`scheduler` (`jobs/menu.js`) кладе готовий `points/<point>/menu.json` у R2 і
+ціни — в каталог каси (`checkbox.md`). Оформлення (бренд, стакани) зашите в
+кіоск (`services.md`, «Що лежить у menu.json»).
 
 **Код напою збирається з двох частин** (23.09.2026). У `drinks` лежить
 лише номер позиції — `slot`, «033». Нумерацію задає оператор машини, і на
