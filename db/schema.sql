@@ -110,7 +110,7 @@ CREATE FUNCTION public.rehome_notices(p_plant uuid, p_owner uuid) RETURNS void
 declare
   target uuid;
 begin
-  if p_owner is null then
+  if p_owner is null or not exists (select 1 from users where id = p_owner) then
     return;
   end if;
   select id into target
@@ -621,7 +621,7 @@ CREATE TABLE public.market_listings (
     status text DEFAULT 'active'::text NOT NULL,
     impressions integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT market_listings_check CHECK ((((kind = 'item'::text) AND (user_item_id IS NOT NULL) AND (plant_id IS NULL)) OR ((kind = 'plant'::text) AND (plant_id IS NOT NULL) AND (user_item_id IS NULL)))),
+    CONSTRAINT market_listings_check CHECK ((((kind = 'item'::text) AND (plant_id IS NULL) AND ((user_item_id IS NOT NULL) OR (status <> 'active'::text))) OR ((kind = 'plant'::text) AND (user_item_id IS NULL) AND ((plant_id IS NOT NULL) OR (status <> 'active'::text))))),
     CONSTRAINT market_listings_impressions_check CHECK ((impressions >= 0)),
     CONSTRAINT market_listings_kind_check CHECK ((kind = ANY (ARRAY['item'::text, 'plant'::text]))),
     CONSTRAINT market_listings_price_amount_check CHECK ((price_amount > 0)),
@@ -3360,7 +3360,7 @@ ALTER TABLE ONLY public.ledger_entries
 --
 
 ALTER TABLE ONLY public.market_listings
-    ADD CONSTRAINT market_listings_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES public.plants(id) ON DELETE CASCADE;
+    ADD CONSTRAINT market_listings_plant_id_fkey FOREIGN KEY (plant_id) REFERENCES public.plants(id) ON DELETE SET NULL;
 
 
 --
@@ -3376,7 +3376,7 @@ ALTER TABLE ONLY public.market_listings
 --
 
 ALTER TABLE ONLY public.market_listings
-    ADD CONSTRAINT market_listings_user_item_id_fkey FOREIGN KEY (user_item_id) REFERENCES public.user_items(id);
+    ADD CONSTRAINT market_listings_user_item_id_fkey FOREIGN KEY (user_item_id) REFERENCES public.user_items(id) ON DELETE SET NULL;
 
 
 --
@@ -3855,4 +3855,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261002200000'),
     ('20261003100000'),
     ('20261003120000'),
-    ('20261003130000');
+    ('20261003130000'),
+    ('20261003140000'),
+    ('20261003150000');
