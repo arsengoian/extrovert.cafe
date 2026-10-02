@@ -2439,7 +2439,7 @@
       },
       "arms": {
        "L": {
-        "rot": -3.0,
+        "rot": -1.7,
         "pivot": [
          470.0,
          814.5
@@ -2462,15 +2462,7 @@
        "under": "branch_arms_fixed",
        "copy": "branch_arms_wood"
       },
-      "arms": {
-       "L": {
-        "rot": -1.7,
-        "pivot": [
-         468.5,
-         817.25
-        ]
-       }
-      }
+      "arms": {}
      }
     ],
     "very_sad": [
@@ -2489,7 +2481,7 @@
       },
       "arms": {
        "R": {
-        "rot": -3.0,
+        "rot": -3.4,
         "pivot": [
          543.5,
          818.0
