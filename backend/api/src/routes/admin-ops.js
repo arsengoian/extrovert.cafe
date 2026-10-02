@@ -13,6 +13,10 @@ import { printLinks } from "./delivery.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { orderNotice } from "@extrovert/lib/orders.js";
 import { notifyPlant } from "../notify.js";
+import { redisClient } from "@extrovert/lib/redis.js";
+import { SERVER_LIMITS } from "@extrovert/lib/server-limits.js";
+
+const redis = redisClient();
 
 // Як показувати ціль здоровʼя: група, назва, підпис. Порядок тут — порядок
 // на екрані.
@@ -198,6 +202,66 @@ export default async function routes(app) {
           telemetry: bySource.get(p.id) ?? {},
         };
       }),
+    };
+  });
+
+  // Сервер: процесор, памʼять, диск, бази й контейнери (overseer/server.js,
+  // проба раз на дві хвилини). Крок — той самий, що в смужок здоровʼя за
+  // цей період: числа усереднюємо, а пік процесора віддаємо окремо (max),
+  // бо на місячному графіку середнє за дві години пік просто розмазує.
+  app.get("/admin/server", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const range = rangeOf(req.query?.range);
+    const args = [range.hours, range.stepMin];
+    const bin = "date_bin(make_interval(mins => $2), taken_at, timestamptz '2000-01-01')";
+
+    const series = await many(
+      `select ${bin} as t,
+              avg(cpu_pct)::real as cpu, max(cpu_pct)::real as cpu_max, avg(load1)::real as load1,
+              avg(mem_used)::float8 as mem_used, max(mem_total)::float8 as mem_total, avg(swap_used)::float8 as swap_used,
+              max(disk_used)::float8 as disk_used, max(disk_total)::float8 as disk_total,
+              avg(redis_bytes)::float8 as redis_bytes
+         from server_samples
+        where taken_at > now() - make_interval(hours => $1)
+        group by 1 order by 1`,
+      args
+    );
+    const databases = await many(
+      `select ${bin} as t, d.key as name, max(d.value::float8) as bytes
+         from server_samples s, jsonb_each(s.databases) d
+        where taken_at > now() - make_interval(hours => $1)
+        group by 1, 2 order by 1`,
+      args
+    );
+    const services = await many(
+      `select ${bin} as t, c.key as service,
+              avg((c.value->>'cpu')::real)::real as cpu, avg((c.value->>'mem')::float8) as mem
+         from server_samples s, jsonb_each(s.containers) c
+        where taken_at > now() - make_interval(hours => $1)
+        group by 1, 2 order by 1`,
+      args
+    );
+    const latest = await one(
+      `select taken_at, cpu_pct as cpu, cpus, load1, mem_used::float8, mem_total::float8, swap_used::float8,
+              disk_used::float8, disk_total::float8, databases, redis_bytes::float8, current_database() as db
+         from server_samples order by taken_at desc limit 1`
+    );
+    // Контейнери «зараз» — подробиці останньої проби в Redis (стан,
+    // аптайм, образ, перезапуски): в історію їх не пишемо.
+    let containers = null;
+    try {
+      containers = JSON.parse((await redis.get("server:containers")) ?? "null");
+    } catch { /* немає — таблиця скаже, що проксі не відповідає */ }
+
+    return {
+      range: range.key,
+      window: { hours: range.hours, step: range.stepMin * 60_000 },
+      limits: SERVER_LIMITS,
+      latest,
+      series,
+      databases,
+      services,
+      containers,
     };
   });
 

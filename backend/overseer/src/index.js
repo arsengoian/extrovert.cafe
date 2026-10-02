@@ -17,6 +17,7 @@ import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { checkDevices, checkMenuAcks, checkMenuCheckbox, checkPoints, checkWebhook, dailyReport, outageKind } from "./checks.js";
 import { ACK_DEADLINE_MIN } from "@extrovert/lib/deployments.js";
 import { sampleHealth } from "./health.js";
+import { checkServer, containerRestarts, sampleServer } from "./server.js";
 import { send } from "./telegram.js";
 
 const log = makeLog("overseer");
@@ -96,6 +97,13 @@ async function tick() {
       ? "✅ Вебхук Checkbox: помилок немає"
       : `⚠️ Вебхук Checkbox: ${webhook.message}`);
   }
+
+  // Сам сервер: процесор, памʼять і диск біля стелі, контейнер, що впав і
+  // піднявся сам (server.js; пороги — lib/server-limits.js).
+  for (const c of await checkServer(pool)) {
+    if (await changed(`server:${c.key}`, c.state)) lines.push(c.text);
+  }
+  lines.push(...(await containerRestarts(redis)));
 
   // Поганим — нагору: коли в одному повідомленні і «картка read-only», і
   // «монітор увімкнено», перше має бути першим рядком, бо саме його читають
@@ -202,6 +210,12 @@ const stops = [
   every(2 * MINUTE, "health-samples", async () => {
     const { skipped } = await withLock(redis, "health-samples", 110_000, () => sampleHealth({ pool, redis, log }));
     if (skipped) log.info("проби здоровʼя вже йдуть в іншій копії");
+  }, log),
+  // Телеметрія сервера — з тим самим кроком, що й проби: на графіку за
+  // 6 годин це 180 точок, і пік на чотири хвилини не губиться.
+  every(2 * MINUTE, "server-samples", async () => {
+    const { skipped } = await withLock(redis, "server-samples", 110_000, () => sampleServer({ pool, redis, log }));
+    if (skipped) log.info("телеметрія сервера вже йде в іншій копії");
   }, log),
   every(INTERVAL, "overseer-checks", async () => {
     const { skipped } = await withLock(redis, "overseer-checks", INTERVAL - 1000, tick);

@@ -7,6 +7,7 @@ import { Fragment } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { BeatRow, BeatScale } from "../charts.jsx";
+import { ServerSection } from "./Server.jsx";
 import { Card, Empty, Kpi, METRIC_LABELS, RangePicker, fmt, metricValue, rangeLabel, useData, useRange } from "../ui.jsx";
 
 // Підсумок по точці: зелена крапка лише тоді, коли зелене все, що ми вміємо
@@ -228,6 +229,11 @@ export function Health() {
         )}
         <BeatScale history={data.points[0]?.history} />
       </Card>
+
+      {/* Залізо самого дроплета — окремим розділом у кінці (03.10.2026):
+          смужки вище відповідають «живе / ні», а тут — чи не впирається
+          воно в стелю. */}
+      <ServerSection range={range} span={span} />
     </>
   );
 }

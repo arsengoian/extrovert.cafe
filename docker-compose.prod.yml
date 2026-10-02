@@ -8,6 +8,9 @@
 # без жодного bind-mount і майже без публічних портів. Спроба звести це в
 # один файл закінчується десятком умовних змінних і тим, що на проді
 # випадково зібрався образ із чиєїсь робочої машини.
+#
+# Єдиний виняток із «без bind-mount» — сокет докера в docker-proxy (нижче):
+# інакше стану контейнерів не побачити.
 
 name: extrovert
 
@@ -150,8 +153,32 @@ services:
     image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-overseer:${TAG:-latest}
     environment:
       <<: *net
+      DOCKER_PROXY_URL: http://docker-proxy:2375
+    # docker-api — лише заради проксі докера; решта сусідів — у default.
+    networks: [default, docker-api]
     depends_on:
       postgres: { condition: service_healthy }
+      docker-proxy: { condition: service_started }
+
+  # Стан контейнерів для телеметрії сервера в адмінці (overseer/server.js,
+  # 03.10.2026). Сокет докера — це root над усім хостом, тому overseer його
+  # не отримує: проксі пропускає тільки GET на /containers, а запис (POST),
+  # exec, образи, томи й решту API відкидає з 403.
+  #
+  # Окрема внутрішня мережа, де лише проксі й overseer: навіть «тільки
+  # читання» /containers віддає змінні оточення контейнерів, тобто всі
+  # секрети з .env. Api за caddy дивиться в інтернет — дістатись проксі
+  # з нього не має бути як. Портів назовні, звісно, теж немає.
+  docker-proxy:
+    <<: *defaults
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    mem_limit: 64m
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [docker-api]
 
   # Єдиний, хто дивиться в інтернет. TLS і маршрути — у Caddyfile всередині
   # образу; домени підставляються зі змінних .env.
@@ -199,6 +226,11 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-extrovert}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
       SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?задай у .env}
     depends_on: [glitchtip]
+
+networks:
+  # internal — без виходу в інтернет: проксі він і не потрібен.
+  docker-api:
+    internal: true
 
 volumes:
   pgdata:

@@ -162,7 +162,9 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 .chart { width: 100%; display: block }
 .chart .grid-line { stroke: rgba(242, 239, 230, .07) }
 .chart .axis { fill: var(--muted); font-size: 9px }
-.legend { display: flex; gap: 14px; font-size: 10.5px; color: var(--muted); margin-top: 6px }
+/* wrap — на картці контейнерів ліній з десяток, і в один рядок легенда
+   розпирала колонку сітки ширше за її частку. */
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 10.5px; color: var(--muted); margin-top: 6px }
 .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px }
 /* Підписи під колонками: рівно стільки ж комірок, скільки колонок, тож
    кожен підпис стоїть точно під своєю — навіть якщо він порожній. */

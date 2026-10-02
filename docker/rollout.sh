@@ -22,7 +22,8 @@ WAIT_HEALTHY="${WAIT_HEALTHY:-90}"
 ROLLING="api ws checkbox"
 # Решта — звичайний перезапуск: трафіку ззовні в них немає, і те, що вони на
 # півхвилини зникають, не бачить ніхто.
-PLAIN="scheduler overseer glitchtip glitchtip-worker"
+# docker-proxy — перед overseer: --no-deps нижче сам його не підніме.
+PLAIN="scheduler docker-proxy overseer glitchtip glitchtip-worker"
 # Caddy тут немає навмисно — він єдиний тримає 80/443 і має власний крок
 # нижче (caddy_step).
 

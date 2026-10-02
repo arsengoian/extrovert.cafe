@@ -97,6 +97,7 @@ export const api = {
 
   overview: () => request("/admin/overview"),
   health: (range) => request(`/admin/health${qs({ range })}`),
+  server: (range) => request(`/admin/server${qs({ range })}`),
   point: (id, range) => request(`/admin/points/${encodeURIComponent(id)}${qs({ range })}`),
   stats: (p) => request(`/admin/stats${qs(p)}`),
   analytics: (days) => request(`/admin/analytics${qs({ days })}`),

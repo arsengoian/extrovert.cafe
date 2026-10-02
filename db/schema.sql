@@ -1510,6 +1510,26 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: server_samples; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.server_samples (
+    taken_at timestamp with time zone DEFAULT now() NOT NULL,
+    cpu_pct real,
+    cpus smallint,
+    load1 real,
+    mem_used bigint,
+    mem_total bigint,
+    swap_used bigint,
+    disk_used bigint,
+    disk_total bigint,
+    databases jsonb DEFAULT '{}'::jsonb NOT NULL,
+    redis_bytes bigint,
+    containers jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+
+--
 -- Name: support_messages; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2600,6 +2620,14 @@ ALTER TABLE ONLY public.repost_verifications
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: server_samples server_samples_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.server_samples
+    ADD CONSTRAINT server_samples_pkey PRIMARY KEY (taken_at);
 
 
 --
@@ -3826,4 +3854,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261002120000'),
     ('20261002200000'),
     ('20261003100000'),
-    ('20261003120000');
+    ('20261003120000'),
+    ('20261003130000');

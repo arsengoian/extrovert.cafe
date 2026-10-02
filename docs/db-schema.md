@@ -767,6 +767,20 @@ erDiagram
         int ms_count "скільки з них були з відповіддю"
         int samples
     }
+    SERVER_SAMPLES {
+        timestamptz taken_at PK "проба раз на 2 хв, місяць історії"
+        real cpu_pct "середнє між пробами; null - перша після рестарту"
+        smallint cpus
+        real load1
+        bigint mem_used "MemTotal - MemAvailable, без кешу ядра"
+        bigint mem_total
+        bigint swap_used
+        bigint disk_used "як у df: резерв root не рахується"
+        bigint disk_total
+        jsonb databases "назва бази - байти"
+        bigint redis_bytes
+        jsonb containers "сервіс compose - cpu, mem, restarts"
+    }
     PROBLEM_REPORTS {
         bigserial id PK
         uuid user_id FK
@@ -866,6 +880,15 @@ erDiagram
 27.09.2026 відро було півгодинне, і смужка за 6 годин мала 12 квадратиків;
 зміна не потребувала міграції — у рядку лише час початку відра.
 
+`SERVER_SAMPLES` (03.10.2026) — навпаки, сирі проби, рядок на пробу: це
+числа, а не «так / ні», і адмінка усереднює їх під крок періоду сама
+(`date_bin`), а пік процесора віддає окремо (`max`), бо середнє за дві
+години його розмазує. Місяць — 22 тисячі рядків, близько десятка
+мегабайтів; старше затирає overseer. Контейнери — по сервісу compose, а не
+по контейнеру: копії api під час викочування складаються, бо імʼя
+контейнера (`api-1`, `api-2`) після кожного деплою інше
+(`services.md`, «Телеметрія сервера»).
+
 **Адміна не видаляють, а вимикають** (20.09.2026). На `admin_users`
 посилаються деплої цін, розсилки в чат кавенятка й відповіді підтримки —
 видалений рядок забрав би з історії того, хто це зробив. `disabled_at` гасить
@@ -934,6 +957,8 @@ Redis тут — **не база**. Втрата всього кейспейсу
 | `idem:<scope>:<key>` | string | 24 год | api | api | ідемпотентність телеметрії й заливок |
 | `lock:<job>` | string `SET NX PX` | за роботою | scheduler, checkbox, overseer, worker | вони ж | щоб дві копії фонової роботи не робили одне й те саме |
 | `health:last:<target>` | hash | 1 год | overseer | api (адмінка) | останній стан без запиту в Postgres |
+| `server:containers` | string JSON | 10 хв | overseer | api (адмінка), overseer | контейнери останньої проби: стан, health, аптайм, перезапуски, OOM, CPU, памʼять, образ — таблиці «зараз» в історії не місце |
+| `overseer:restarts:<контейнер>` | string | 30 діб | overseer | overseer | лічильник перезапусків з попередньої проби: зріс — контейнер падав сам |
 
 ### Канали pub/sub
 
