@@ -209,6 +209,8 @@ export default async function routes(app) {
       state,
       draft: liveDraft(plant, state),
       appearance: plant.appearance ?? {},
+      // Набір обличчя: екран посадки малює той самий кущ, що й головний.
+      face_set_id: plant.face_set_id,
       supply,
     };
   });

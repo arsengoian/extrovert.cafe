@@ -7,6 +7,7 @@ import { TERMS_VERSION } from "./legal.js";
 import { SET_ORDER, SLOT_ORDER, TIER_ORDER } from "./catalog.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
+import { pickFaceSet } from "../faceSets.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -232,7 +233,7 @@ export async function nicknameRoutes(app) {
         for (let i = have.length; i < s.plants; i++) {
           const { rows: made } = await client.query(
             "insert into plants (owner_id, face_set_id) values ($1, $2) returning id",
-            [user.id, 1 + Math.floor(Math.random() * 3)]
+            [user.id, await pickFaceSet(client, user.id)]
           );
           first ??= made[0].id;
         }

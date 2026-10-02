@@ -128,7 +128,7 @@ export default async function routes(app) {
     // заздалегідь, ніж дати натиснути й відмовити.
     const grown = growthState(plant).done;
     return {
-      plant: { id: plant.id, name: plant.name, growth_stage: plant.growth_stage },
+      plant: { id: plant.id, name: plant.name, growth_stage: plant.growth_stage, face_set_id: plant.face_set_id },
       worn: {
         kind: wornKind,
         set_id: wornKind ? plant.worn_set_id : null,

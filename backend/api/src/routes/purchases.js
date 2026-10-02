@@ -13,6 +13,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
+import { pickFaceSet } from "../faceSets.js";
 import { queueDiscount } from "@extrovert/lib/discounts.js";
 
 const CARE = {
@@ -89,11 +90,10 @@ export default async function routes(app) {
         const spent = beans
           ? await spend(client, user.id, "beans", price, "sapling", { paid: "beans" })
           : await spendCoins(client, user.id, price, "sapling", { paid: "coins" });
-        // Обличчя обирається випадково: наборів поки один, але id вже
-        // зберігається — домалюють решту, і старі кавенятка не зміняться.
+        // Обличчя — з тих наборів, яких у гравця ще немає (faceSets.js).
         const { rows } = await client.query(
           "insert into plants (owner_id, face_set_id) values ($1, $2) returning id, face_set_id",
-          [user.id, 1 + Math.floor(Math.random() * 3)]
+          [user.id, await pickFaceSet(client, user.id)]
         );
         // Кущ зʼявився — віддаємо в його чат те, що чекало без куща.
         await flushNotices(client, user.id, rows[0].id);

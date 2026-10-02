@@ -182,7 +182,7 @@ export default async function routes(app) {
     if (printed(p)) {
       const plantId = String(req.body?.print_plant_id ?? "");
       const plant = UUID.test(plantId)
-        ? await one("select id, name, growth_stage, appearance, worn_set_id from plants where id = $1 and owner_id = $2", [plantId, user.id])
+        ? await one("select id, name, growth_stage, face_set_id, appearance, worn_set_id from plants where id = $1 and owner_id = $2", [plantId, user.id])
         : null;
       if (!plant) fail(400, "plant_required");
       const worn = plant.worn_set_id
@@ -195,7 +195,8 @@ export default async function routes(app) {
           )
         : [];
       const { draft: _draft, ...appearance } = plant.appearance ?? {};   // чернетку посадки не друкуємо
-      snapshot = { plant_id: plant.id, name: plant.name, growth_stage: plant.growth_stage, appearance, worn, taken_at: new Date().toISOString() };
+      snapshot = { plant_id: plant.id, name: plant.name, growth_stage: plant.growth_stage, face_set_id: plant.face_set_id,
+                   appearance, worn, taken_at: new Date().toISOString() };
     }
 
     const warehouse = await one(

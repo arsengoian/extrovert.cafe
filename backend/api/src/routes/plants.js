@@ -6,6 +6,7 @@ import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { flushNotices, notifyPlant } from "../notify.js";
 import { growthState, liveDraft } from "./planting.js";
+import { pickFaceSet } from "../faceSets.js";
 
 const DAYS = 24 * 60 * 60 * 1000;
 const SAD_AFTER_DAYS = 3;
@@ -131,7 +132,7 @@ export default async function routes(app) {
       await client.query("delete from plants where id = $1", [plant.id]);
       const { rows } = await client.query(
         "insert into plants (owner_id, face_set_id) values ($1, $2) returning id",
-        [user.id, 1 + Math.floor(Math.random() * 3)]
+        [user.id, await pickFaceSet(client, user.id)]
       );
       await flushNotices(client, user.id, rows[0].id);
       return { ok: true, plant_id: rows[0].id };
