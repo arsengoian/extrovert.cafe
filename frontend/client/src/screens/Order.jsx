@@ -30,6 +30,20 @@ function PrintCard({ order, onReady }) {
       .catch(() => setState("failed"));
   }, [print.url, print.upload_url]);
 
+  // Сам файл лежить у бакеті назавжди, а посилання на нього підписане на
+  // годину від відкриття картки (delivery.js, printLinks): картка, що
+  // провисіла відкритою довше, віддавала б «доступ заборонено». Тому свіже
+  // посилання — в мить натискання (03.10.2026).
+  const download = async (e) => {
+    e.preventDefault();
+    try {
+      const fresh = await api.get(`/me/redemptions/${order.id}`);
+      window.location.assign(fresh.print?.download_url ?? print.download_url);
+    } catch (err) {
+      if (!err.offline) toast("Не вдалось отримати файл – спробуй ще раз");
+    }
+  };
+
   return (
     <div className="order-print">
       {print.url
@@ -43,7 +57,7 @@ function PrintCard({ order, onReady }) {
             : print.upload_url ? "Готуємо файл для друку…"
             : "Файл для друку ще не готовий."}
         </small>
-        {print.download_url && <a className="co-link" href={print.download_url} download>Завантажити PNG</a>}
+        {print.download_url && <a className="co-link" href={print.download_url} download onClick={download}>Завантажити PNG</a>}
       </div>
     </div>
   );

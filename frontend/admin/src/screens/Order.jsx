@@ -79,7 +79,13 @@ export function Order({ id }) {
                 <div className="stack" style={{ gap: 10, alignItems: "flex-start" }}>
                   <img src={data.print.url} alt="принт для друку"
                        style={{ width: "100%", maxWidth: 280, borderRadius: 10, background: "repeating-conic-gradient(rgba(242,239,230,.08) 0 25%, transparent 0 50%) 0 0 / 14px 14px" }} />
-                  <a className="btn" href={data.print.download_url}>Завантажити PNG</a>
+                  {/* Посилання підписане на годину від відкриття сторінки — беремо
+                      свіже в мить натискання, як фото скарг (03.10.2026). */}
+                  <a className="btn" href={data.print.download_url} onClick={async (e) => {
+                    e.preventDefault();
+                    const fresh = await api.order(id).catch(() => null);
+                    window.location.assign(fresh?.print?.download_url ?? data.print.download_url);
+                  }}>Завантажити PNG</a>
                 </div>
               ) : (
                 <span className="muted">Файл ще не залитий: застосунок гравця домалює його, щойно той відкриє замовлення.</span>
