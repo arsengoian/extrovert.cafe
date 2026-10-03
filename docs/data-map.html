@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 9ecbffc</p>
+  <p class="eyebrow">extrovert.cafe · джерело 2ce6ce1</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -648,17 +648,20 @@ access-логах, історії й <code>Referer</code>, а заголовок
 <p>Меню й релізи малина бере з публічного бакета без жодного токена. Токен їй
 потрібен для вебсокета подій (<code>point:&lt;id&gt;</code>), знімка стану
 (<code>GET /points/&lt;id&gt;/state</code>) і телеметрії.</p>
-<p>Як є зараз: <strong>довгий JWT точки</strong> (рік за замовчуванням), який видається
-руками — <code>bun scripts/point-token.mjs &lt;точка&gt; [--days N]</code> — і лежить на
+<p><strong>Довгий JWT точки</strong> — на кілька років (<code>--days</code>; без нього скрипт дає рік),
+видається руками — <code>bun scripts/point-token.mjs &lt;точка&gt; [--days N]</code> — і лежить на
 малині (<code>WS_TOKEN</code> / <code>WS_TOKEN_FILE</code>). Обмінника ключа на короткий токен
 немає: короткий токен вимагав би від залізяки в кутку ще одного секрета й
 уміння оновлюватись — за тієї самої захищеності, бо обидва лежать на одній
 флешці (пояснення — у самому скрипті).</p>
 <ul>
-<li><code>api</code> і <code>ws</code> перевіряють лише підпис і <code>exp</code>. <strong>Відкликати окремий
-токен зараз нічим</strong>: стовпці <code>points.key_hash</code> і <code>points.key_revoked_at</code>
-є (адмінка показує «Ключ точки»), але жоден сервіс їх не читає. Вкрадений
-токен діє до свого <code>exp</code> або до заміни ключа підпису JWT для всіх.</li>
+<li><code>api</code> і <code>ws</code> перевіряють лише підпис і <code>exp</code>. <strong>Відкликання — вручну,
+коли знадобиться</strong> (рішення власника 03.10.2026): автоматичного немає й
+не плануємо, стовпці <code>points.key_hash</code> і <code>points.key_revoked_at</code> ніхто
+не читає. Найпростіше ручне — новий ключ підпису JWT (<code>JWT_PRIVATE_KEY</code> /
+<code>JWT_PUBLIC_KEY</code>): гравців і адмінів це не розлогінить — їхні сесії в
+Redis, і refresh видасть токен уже новим ключем, — а на малину треба
+покласти свіжий токен точки.</li>
 <li>Що відкриває витік: QR-бонуси цієї точки (ті самі, що світяться на
 екрані) і запис телеметрії від її імені.</li>
 <li>Задуманий раніше обмін <code>config/point.key</code> на годинний токен
@@ -12785,7 +12788,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 9ecbffc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 2ce6ce1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
