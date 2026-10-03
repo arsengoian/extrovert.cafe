@@ -145,18 +145,24 @@ export default async function routes(app) {
     });
   });
 
-  // Імʼя кавенятка: бачить його лише власник, тому обмеження мʼякі —
-  // тільки довжина (16, як лічильник у попапі) й заборона порожнього рядка.
+  // Імʼя кавенятка дається один раз (власник, 03.10.2026): екран «Як його
+  // звати?» каже, що перейменувати потім не можна, і сервер це тримає —
+  // ім'я видно іншим гравцям на ринку. Обмеження довжини — 16, як лічильник
+  // у попапі. Повтор із тим самим ім'ям (запит дійшов, а відповідь — ні)
+  // відповідає ok, щоб екран не показав помилку на вже збереженому.
   app.patch("/me/plants/:id", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
     const name = String(req.body?.name ?? "").trim().slice(0, 16);
     if (!name) return reply.code(400).send({ error: "empty_name" });
+    const plant = await one("select id, name from plants where id = $1 and owner_id = $2", [req.params.id, user.id]);
+    if (!plant) return reply.code(404).send({ error: "no_such_plant" });
+    if (plant.name === name) return { ok: true, name };
     const row = await one(
-      "update plants set name = $3 where id = $1 and owner_id = $2 returning id, name",
+      "update plants set name = $3 where id = $1 and owner_id = $2 and name is null returning id, name",
       [req.params.id, user.id, name]
     );
-    if (!row) return reply.code(404).send({ error: "no_such_plant" });
+    if (!row) return reply.code(409).send({ error: "already_named" });
     return { ok: true, name: row.name };
   });
 

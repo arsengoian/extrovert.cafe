@@ -32,7 +32,7 @@
   <rect x="0.75" y="0.75" width="1198.5" height="886.5" rx="33.25" ry="33.25" fill="none" stroke="#F2EFE6" stroke-opacity="0.1" stroke-width="1.5"></rect>
 
   <text x="600" y="125.1" text-anchor="middle" font-family="Extro1000" font-size="52" fill="#F2EFE6">Кава готується</text>
-  <text x="600" y="185.9" text-anchor="middle" font-family="Extro700" font-size="30" fill="url(#ring)">А тобі — бонус!</text>
+  <text x="600" y="185.9" text-anchor="middle" font-family="Extro700" font-size="30" fill="url(#ring)">А тобі – бонус!</text>
 
   <g transform="translate(0 424)">
     <ellipse cx="600" cy="158" rx="248" ry="206" fill="url(#popGlow)"></ellipse>
