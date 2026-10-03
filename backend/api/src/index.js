@@ -14,7 +14,6 @@ import catalogRoutes from "./routes/catalog.js";
 import shopRoutes from "./routes/shop.js";
 import plantRoutes from "./routes/plants.js";
 import crateRoutes from "./routes/crate.js";
-import devRoutes from "./routes/dev.js";
 import problemRoutes from "./routes/problems.js";
 import quizRoutes from "./routes/quiz.js";
 import repostRoutes from "./routes/repost.js";
@@ -110,7 +109,6 @@ await app.register(catalogRoutes, { prefix: "/api/v1" });
 await app.register(shopRoutes, { prefix: "/api/v1" });
 await app.register(plantRoutes, { prefix: "/api/v1" });
 await app.register(crateRoutes, { prefix: "/api/v1" });
-await app.register(devRoutes, { prefix: "/api/v1" });
 await app.register(problemRoutes, { prefix: "/api/v1" });
 await app.register(quizRoutes, { prefix: "/api/v1" });
 await app.register(repostRoutes, { prefix: "/api/v1" });
@@ -140,7 +138,6 @@ try {
   // стартувати зовсім: rollout.sh лишить стару версію працювати.
   if (ephemeralKey && !DEV) throw new Error("JWT_PRIVATE_KEY не заданий — у проді api без нього не стартує");
   if (ephemeralKey) app.log.warn("JWT_PRIVATE_KEY не заданий — ключ згенеровано на час процесу, рестарт розлогінить усіх");
-  if (DEV) app.log.warn("DEV: девелоперський вхід, тестова оплата й /dev/* увімкнені (env.js)");
   await app.listen({ port, host: "0.0.0.0" });
 } catch (e) {
   app.log.error(e);

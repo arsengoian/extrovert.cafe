@@ -15,6 +15,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+if (!process.argv.includes("--yes")) {
+  console.error("✗ dev-sales пробиває чеки тестовим касиром, і вони доїдуть до ПРОДУ (вебхук і опитування). Додай --yes і прибери їх потім.");
+  process.exit(1);
+}
 const args = process.argv.slice(2);
 const flag = (name, fallback) => { const i = args.indexOf(`--${name}`); return i >= 0 ? args[i + 1] : fallback; };
 const every = Math.max(5, Number(flag("every", 20)) || 20);
@@ -36,7 +40,7 @@ for (let n = 1; n <= count && !stopped; n++) {
   console.log(`\n── продаж ${n} з ${count}: ${d.name} (${code}), ${d.price_uah} ₴ ──`);
   // process.execPath, а не "bun": make з PowerShell кличе bun повним шляхом
   // ($(BUN) у Makefile), а в PATH його там немає — "bun" падав з ENOENT.
-  const proc = Bun.spawn([process.execPath, path.join(ROOT, "scripts", "dev-sale.mjs"), "--drink", code, "--pay", pay], {
+  const proc = Bun.spawn([process.execPath, path.join(ROOT, "scripts", "dev-sale.mjs"), "--drink", code, "--pay", pay, "--yes"], {
     cwd: ROOT, stdout: "inherit", stderr: "inherit",
   });
   const code_ = await proc.exited;

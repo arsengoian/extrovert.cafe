@@ -112,4 +112,6 @@ fi
 # (спіймано 23.09.2026). Дев-скрипти дивляться спершу на …_LOCAL, тож хай
 # обидві вказують в одне місце: куди б скрипт не глянув, це прод.
 url="postgres://extrovert:$pass@127.0.0.1:$PORT/extrovert"
-DATABASE_URL_LOCAL="$url" DATABASE_URL="$url" "$@"
+# EXTROVERT_PROD — для scripts/lib/dev-guard.mjs: дев-скрипт, що міняє дані,
+# на проді без --prod не стартує (03.10.2026).
+EXTROVERT_PROD=1 DATABASE_URL_LOCAL="$url" DATABASE_URL="$url" "$@"

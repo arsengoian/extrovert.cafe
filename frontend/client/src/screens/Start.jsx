@@ -4,8 +4,8 @@
 //
 // Входів два: Google і пошта (docs/services.md §3). У макеті під Google
 // стоїть інша кнопка входу — пошта зайняла її місце тим самим стилем.
-// Google ще не підключений: у dev-збірці він веде в девелоперський вхід, у
-// проді чесно каже, що його ще немає.
+// Google — перехід на /auth/google (вмикається GOOGLE_CLIENT_* на сервері).
+// Девелоперського входу більше немає ніде (03.10.2026).
 import { useState } from "react";
 import { api } from "../api.js";
 import { ItemIcon } from "../ui/ItemIcon.jsx";

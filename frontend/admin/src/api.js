@@ -90,10 +90,6 @@ export const api = {
     request("/admin/login", { method: "POST", body: { email, password }, retry: false }).then((r) => { setToken(r.token); return r.admin; }),
   restore: () => refresh().then((r) => r.admin),
   logout: () => request("/admin/logout", { method: "POST" }).finally(() => setToken(null)),
-  // Локальний вхід без пароля — лише там, де api його має (env.js).
-  devLogin: import.meta.env.DEV
-    ? () => request("/admin/dev-login", { method: "POST", retry: false }).then((r) => { setToken(r.token); return r.admin; })
-    : null,
 
   overview: () => request("/admin/overview"),
   health: (range) => request(`/admin/health${qs({ range })}`),
@@ -119,7 +115,7 @@ export const api = {
   problemStatus: (id, status) => request(`/admin/problems/${id}`, { method: "PATCH", body: { status } }),
   // Фото лежить у приватному бакеті: спершу беремо підписане посилання,
   // потім браузер іде в R2 сам.
-  problemPhoto: (id, download) => request(`/admin/problems/${id}/photo${download ? "?download=1" : ""}`),
+  problemPhoto: (id, n, download) => request(`/admin/problems/${id}/photo?n=${n}${download ? "&download=1" : ""}`),
   orders: (p) => request(`/admin/orders${qs(p)}`),
   order: (id) => request(`/admin/orders/${id}`),
   orderStatus: (id, body) => request(`/admin/orders/${id}/status`, { method: "POST", body }),

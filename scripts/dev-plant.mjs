@@ -12,6 +12,9 @@
 // Проти прод-бази запускається через scripts/prod-db.sh (make d-plant),
 // бо роута для цього немає й не буде: це пряма правка бази.
 import { SQL } from "bun";
+import { devGuard } from "./lib/dev-guard.mjs";
+
+devGuard("dev-plant", { note: "Перемотує стадії, знімає добовий гейт і сипле препарати — кущ виростає не так, як у гравців." });
 
 const args = process.argv.slice(2);
 const flag = (name, fallback = null) => {

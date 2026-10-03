@@ -43,11 +43,6 @@ export function Login({ onIn }) {
         </label>
         {error && <div className="err">{error}</div>}
         <button className="btn primary" disabled={busy || !email || !password}>{busy ? "Заходимо…" : "Увійти"}</button>
-        {api.devLogin && (
-          <button type="button" className="btn" onClick={() => api.devLogin().then(onIn).catch((e) => setError(e.message))}>
-            Девелоперський вхід
-          </button>
-        )}
       </form>
     </div>
   );

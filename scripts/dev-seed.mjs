@@ -10,6 +10,12 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { SQL } from "bun";
+import { devGuard } from "./lib/dev-guard.mjs";
+
+if (devGuard("dev-seed", { note: "Заводить дев-гравця з балансами, кавенятком і одягом." }).prod) {
+  console.error("✗ dev-seed — лише для локальної бази");
+  process.exit(1);
+}
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (name, fallback) => {

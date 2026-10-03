@@ -12,7 +12,6 @@ import { queueDiscount } from "@extrovert/lib/discounts.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { requireAdmin, signToken } from "../auth.js";
 import { verifyPassword } from "../admin-auth.js";
-import { DEV } from "../env.js";
 import { fail } from "../errors.js";
 import { ADMIN_COOKIE, clearCookie, cookieFrom, createSession, dropSession, readSession, sessionCookie, touchSession } from "../session.js";
 
@@ -192,22 +191,5 @@ export default async function routes(app) {
     await dropSession(cookieFrom(req, ADMIN_COOKIE));
     reply.header("set-cookie", clearCookie(ADMIN_COOKIE));
     return { ok: true };
-  });
-
-  // Девелоперський вхід в адмінку — рівно як /auth/dev для гравця й з тією
-  // самою умовою (env.js): у проді його немає.
-  app.post("/admin/dev-login", async (req, reply) => {
-    if (!DEV) return reply.code(404).send({ error: "not_found" });
-
-    const admin =
-      (await one("select * from admin_users where email = $1", ["dev@extrovert.cafe"])) ||
-      (await one(
-        `insert into admin_users (email, role) values ($1, 'owner') returning *`,
-        ["dev@extrovert.cafe"]
-      ));
-
-    // Сесія така сама, як у справжнього входу: перезавантаження сторінки
-    // локально не має викидати на екран входу.
-    return issueAdmin(reply, admin);
   });
 }

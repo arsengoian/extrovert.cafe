@@ -17,6 +17,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { assertTestCashier, cashierToken } from "../backend/checkbox/src/cashier.js";
+import { devGuard } from "./lib/dev-guard.mjs";
+
+// Чек тестового касира — у тій самій організації Checkbox, що й бойова
+// каса, тож прод-приймач (вебхук і опитування) підбирає його так само, як
+// справжній: так 22.09.2026 у прод-базу потрапили 39 тестових чеків. Тому —
+// лише з явним --yes, і прибрати чек і бонус після перевірки.
+devGuard("dev-sale", { writes: false, note: "Пробиває чек тестовим касиром Checkbox. Чек доїде й до ПРОДУ (вебхук і опитування) і дасть бонус на кіоску." });
+if (!process.argv.includes("--yes") && !process.argv.includes("--list")) {
+  console.error("✗ додай --yes, якщо справді хочеш тестовий продаж (і прибери його потім із прод-бази)");
+  process.exit(1);
+}
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const API = (process.env.CHECKBOX_API || "https://api.checkbox.ua").replace(/\/+$/, "");

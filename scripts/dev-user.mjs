@@ -6,6 +6,9 @@
 // Дивиться в базу напряму, бо це інструмент перевірки, а не екран: тут
 // корисно бачити й те, чого гравцю не показують (гейт, час переходу).
 import { SQL } from "bun";
+import { devGuard } from "./lib/dev-guard.mjs";
+
+devGuard("dev-user", { writes: false, note: "Лише читає: баланси, кущі, чеки гравця." });
 
 const args = process.argv.slice(2);
 const flag = (name, fallback = null) => {

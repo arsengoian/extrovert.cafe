@@ -1,12 +1,16 @@
 // Вхід і оновлення сесії (docs/services.md §3).
 //
 // Гравець входить посиланням із пошти: пароля немає, щоразу приходить лист
-// (mail/login.js). Google — окремим кроком. Девелоперський вхід існує лише
-// там, де DEV (env.js), — у проді цих роутів просто немає.
+// (mail/login.js). Google — окремим кроком.
+//
+// Девелоперського входу (/auth/dev) і посилання для входу в лозі замість
+// листа більше немає ніде, навіть локально (власник, 03.10.2026): обидва
+// трималися на одній умові «не прод», і помилка в оточенні сервера
+// відкривала б будь-який акаунт. Локально входять так само, як у проді, —
+// поштою (одноразова скринька на кшталт temp-mail.org).
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { one, query, tx } from "../db.js";
 import { signToken } from "../auth.js";
-import { DEV } from "../env.js";
 import { fail } from "../errors.js";
 import { generateNickname } from "../nickname.js";
 import { loginEmail } from "../mail/login.js";
@@ -150,7 +154,7 @@ export default async function routes(app) {
     if (email.length > 254 || !EMAIL.test(email)) fail(400, "bad_email");
     const next = typeof req.body?.next === "string" && NEXT.test(req.body.next) ? req.body.next : null;
     const ip = clientIp(req);
-    if (!mailConfigured() && !DEV) fail(503, "mail_not_configured");
+    if (!mailConfigured()) fail(503, "mail_not_configured");
 
     const recent = await one(
       `select
@@ -183,18 +187,14 @@ export default async function routes(app) {
     // «перевіряють» посилання GET-запитом, нічого не витрачають — вхід
     // відбувається лише тоді, коли сторінка сама надішле токен.
     const link = `${APP_ORIGIN}/login#${token}`;
-    if (!mailConfigured()) {
-      req.log.warn({ link }, "пошта не налаштована — посилання для входу лише тут, у лозі");
-    } else {
-      try {
-        await sendMail({ to: email, tag: "login", ...loginEmail({ link, minutes: LINK_TTL_MIN, origin: APP_ORIGIN }) });
-      } catch (e) {
-        // Лист не пішов — рядок прибираємо, щоб хвилинна пауза не заважала
-        // спробувати ще раз.
-        await query("delete from login_links where token_hash = $1", [hash(token)]);
-        req.log.error({ err: e.message }, "лист для входу не відправився");
-        fail(502, "mail_failed");
-      }
+    try {
+      await sendMail({ to: email, tag: "login", ...loginEmail({ link, minutes: LINK_TTL_MIN, origin: APP_ORIGIN }) });
+    } catch (e) {
+      // Лист не пішов — рядок прибираємо, щоб хвилинна пауза не заважала
+      // спробувати ще раз.
+      await query("delete from login_links where token_hash = $1", [hash(token)]);
+      req.log.error({ err: e.message }, "лист для входу не відправився");
+      fail(502, "mail_failed");
     }
     return { ok: true, cooldown: LIMITS.cooldownS, minutes: LINK_TTL_MIN, wait };
   });
@@ -338,34 +338,6 @@ export default async function routes(app) {
     const session = await issue(reply, user);
     if (link.wait_hash) await wakeWaiter(link.wait_hash);
     return { ...session, next: link.next_path ?? "/", waiting: Boolean(link.wait_hash) };
-  });
-
-  // Девелоперський вхід: створює гравця з metadata.dev = true, щоб скрипти
-  // розробника мали право його чіпати (roadmap, крок 0-біс).
-  app.post("/auth/dev", async (req, reply) => {
-    if (!DEV) return reply.code(404).send({ error: "not_found" });
-    const nickname = (req.body?.nickname || "").trim() || (await generateNickname());
-
-    const existing = await one("select * from users where nickname = $1 and deleted_at is null", [nickname]);
-    // Нікнейм міг лишитись за видаленим акаунтом: увійти в нього не можна,
-    // але й зайняти його ім'я теж — тоді видаємо нове, замість падати на
-    // унікальному індексі.
-    const free = existing
-      ? nickname
-      : (await one("select 1 from users where nickname = $1", [nickname]))
-        ? await generateNickname()
-        : nickname;
-
-    const user =
-      existing ||
-      (await one(
-        `insert into users (id, nickname, metadata, consent_at, terms_version)
-         values ($1, $2, '{"dev": true}'::jsonb, now(), 'dev')
-         returning *`,
-        [randomUUID(), free]
-      ));
-
-    return issue(reply, user);
   });
 
   // Обмін куки на свіжий access-токен. Клієнт кличе це сам, коли впіймав

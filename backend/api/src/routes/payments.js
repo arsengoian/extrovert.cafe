@@ -6,15 +6,16 @@
 // гарантувати можна ідемпотентність. Тут її тримає `credited_at`, який
 // ставиться тією ж транзакцією, що й нарахування.
 //
-// Без MONO_TOKEN (локально) працює тестова оплата: рахунок «оплачується»
-// одразу, щоб екран можна було пройти цілком. У проді такого шляху немає.
+// Без MONO_TOKEN оплати немає ніде, і локально теж: «тестова оплата», що
+// зараховувала монети без банку, трималась на умові «не прод» і прибрана
+// разом з іншими dev-шляхами (власник, 03.10.2026). Локально — тестовий
+// токен mono. Рядки provider = 'test' у payments лишились від неї.
 import { one, query, tx } from "../db.js";
 import { requireUser } from "../auth.js";
 import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { credit, notifyPlant } from "../notify.js";
 import { createInvoice, hasToken, invoiceStatus, verifyWebhook } from "../payments/mono.js";
-import { DEV } from "../env.js";
 
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
 const API_ORIGIN = process.env.API_ORIGIN || "https://api.extrovert.cafe";
@@ -91,19 +92,7 @@ export default async function routes(app) {
     const pack = packBy(String(req.params.code));
     if (!pack) fail(404, "no_such_pack");
 
-    if (!hasToken()) {
-      if (!DEV) fail(501, "payments_not_connected");
-      // Локальний шлях: «оплата» проходить одразу, екран перевіряється
-      // цілком, і жодного стосунку до прода це не має.
-      const invoiceId = `test-${crypto.randomUUID()}`;
-      await query(
-        `insert into payments (user_id, provider, invoice_id, pack_code, coins, amount_uah, status)
-         values ($1, 'test', $2, $3, $4, $5, 'processing')`,
-        [user.id, invoiceId, pack.code, pack.coins, pack.price_uah]
-      );
-      await settle(invoiceId, "success", { test: true });
-      return { test: true, invoice_id: invoiceId, status: "success", product: "coins", coins: pack.coins, pack_code: pack.code };
-    }
+    if (!hasToken()) fail(501, "payments_not_connected");
 
     const reference = crypto.randomUUID();
     const { invoiceId, pageUrl } = await createInvoice({
@@ -141,17 +130,7 @@ export default async function routes(app) {
     if (!user) return;
     const price = economy.crate.price_uah;
 
-    if (!hasToken()) {
-      if (!DEV) fail(501, "payments_not_connected");
-      const invoiceId = `test-${crypto.randomUUID()}`;
-      await query(
-        `insert into payments (user_id, provider, invoice_id, product, pack_code, coins, amount_uah, status)
-         values ($1, 'test', $2, 'crate', 'crate', 0, $3, 'processing')`,
-        [user.id, invoiceId, price]
-      );
-      await settle(invoiceId, "success", { test: true });
-      return { test: true, invoice_id: invoiceId, status: "success", product: "crate" };
-    }
+    if (!hasToken()) fail(501, "payments_not_connected");
 
     const reference = crypto.randomUUID();
     const { invoiceId, pageUrl } = await createInvoice({

@@ -13,6 +13,9 @@
 // Мінус у балансі база не дозволить (CHECK >= 0) — забрати більше, ніж є,
 // не вийде, і це правильно: від'ємний баланс зламав би всі екрани.
 import { SQL } from "bun";
+import { devGuard } from "./lib/dev-guard.mjs";
+
+devGuard("dev-give", { note: "Накидає або забирає монети й зерна гравцю — з рядком у журналі (reason admin)." });
 
 const args = process.argv.slice(2);
 const flag = (name, fallback = null) => {

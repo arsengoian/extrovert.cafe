@@ -256,16 +256,6 @@ export const api = {
       return r;
     }),
 
-  // Девелоперський вхід одним запитом. Лише в dev-збірці: у прод-бандл Vite
-  // цю гілку не кладе зовсім, а api в проді такого роуту не має (env.js).
-  devLogin: import.meta.env.DEV
-    ? (nickname) =>
-        request("/auth/dev", { method: "POST", body: { nickname }, auth: false }).then((r) => {
-          setToken(r.token);
-          return r.user;
-        })
-    : null,
-
   // Вхід через Google — не fetch, а перехід: Google має показати свій
   // екран і повернути людину назад на api, який поставить куку.
   googleLoginUrl: (next = "/") => `${BASE}/auth/google?next=${encodeURIComponent(next)}`,
