@@ -1197,7 +1197,7 @@ bun run seed:apply --env prod --apply --table item_defs
 `local`; до проду лише явним `--env prod`. Порт бази проду не опублікований
 навіть на петлі дроплета (вона лише в мережі compose), тож `scripts/prod-db.sh`
 піднімає SSH-тунель на IP контейнера postgres і віддає його на
-`localhost:5455`; команду можна передати йому одразу:
+`localhost:5455` (`make d-tunnel`, `dev.mk`); команду можна передати йому одразу:
 `bash scripts/prod-db.sh sh -c 'DATABASE_URL_PROD="$DATABASE_URL" bun run seed:apply --env prod …'`.
 
 ### `apply`

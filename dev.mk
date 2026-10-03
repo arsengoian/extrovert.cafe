@@ -26,6 +26,11 @@
 # Чеки створює **тільки тестовий касир** (scripts/dev-sale.mjs це перевіряє
 # і без CHECKBOX_TEST_* просто не працює), але чек летить у справжній
 # Checkbox, вебхук — у прод, і бонус з'являється на справжньому кіоску.
+#
+# Дев-скрипти на прод-базі без --prod (а продаж без --yes) не стартують
+# (scripts/lib/dev-guard.mjs). Тут ці прапорці стоять у самих рецептах:
+# ціль d-* і є явне «так, на проді» — make власні опції з дефісом однаково
+# не пропустив би (03.10.2026). Червоне попередження скрипт друкує все одно.
 
 .PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel
 
@@ -65,24 +70,24 @@ d-list:
 # Checkbox → вебхук → бонус → QR на екрані точки.
 d-sale:
 	@$(if $(strip $(DRINK)),,$(error вкажи напій: make d-sale DRINK=a033 (список - make d-list)))
-	$(BUN) scripts/dev-sale.mjs --drink $(DRINK) --pay $(PAY)
+	$(BUN) scripts/dev-sale.mjs --drink $(DRINK) --pay $(PAY) --yes
 
 # Потік продажів: раз на EVERY секунд випадковий активний напій, до COUNT
 # штук (типово 20 раз на 20 с) або до Ctrl+C. Кожен — той самий d-sale.
 d-sales:
-	$(BUN) scripts/dev-sales.mjs --every $(EVERY) --count $(COUNT) --pay $(PAY)
+	$(BUN) scripts/dev-sales.mjs --every $(EVERY) --count $(COUNT) --pay $(PAY) --yes
 
 d-plant:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-plant MAIL=пошта STAGE=1))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,) $(if $(PLANT),--plant $(PLANT),)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs --prod $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(STAGE),--stage $(STAGE),) $(if $(RESET),--reset,) $(if $(PLANT),--plant $(PLANT),)
 
 d-skip:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-skip MAIL=пошта))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip $(if $(DAYS),$(DAYS),1) $(if $(PLANT),--plant $(PLANT),)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs --prod $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --skip $(if $(DAYS),$(DAYS),1) $(if $(PLANT),--plant $(PLANT),)
 
 d-supply:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-supply MAIL=пошта))
-	$(PRODDB) $(BUN) scripts/dev-plant.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --supply $(SUPPLY)
+	$(PRODDB) $(BUN) scripts/dev-plant.mjs --prod $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) --supply $(SUPPLY)
 
 # Монети й зерна — щоб не чекати добу заради перевірки екрана, якому
 # потрібен баланс. Рядок у журналі пишеться теж (reason='admin'), інакше
@@ -90,7 +95,7 @@ d-supply:
 d-give:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-give MAIL=пошта COINS=500))
 	@$(if $(strip $(COINS)$(SILVER)$(BEANS)),,$(error нема що нараховувати: COINS=, SILVER= або BEANS=))
-	$(PRODDB) $(BUN) scripts/dev-give.mjs $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(COINS),--coins $(COINS),) $(if $(SILVER),--silver $(SILVER),) $(if $(BEANS),--beans $(BEANS),)
+	$(PRODDB) $(BUN) scripts/dev-give.mjs --prod $(if $(MAIL),--email $(MAIL),--nickname $(NICK)) $(if $(COINS),--coins $(COINS),) $(if $(SILVER),--silver $(SILVER),) $(if $(BEANS),--beans $(BEANS),)
 
 d-user:
 	@$(if $(strip $(MAIL)$(NICK)),,$(error вкажи гравця: make d-user MAIL=пошта))

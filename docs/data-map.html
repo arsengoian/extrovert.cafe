@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело df52072</p>
+  <p class="eyebrow">extrovert.cafe · джерело d9de929</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -2908,7 +2908,7 @@ bun run seed:apply --env prod --apply --table item_defs
 <code>local</code>; до проду лише явним <code>--env prod</code>. Порт бази проду не опублікований
 навіть на петлі дроплета (вона лише в мережі compose), тож <code>scripts/prod-db.sh</code>
 піднімає SSH-тунель на IP контейнера postgres і віддає його на
-<code>localhost:5455</code>; команду можна передати йому одразу:
+<code>localhost:5455</code> (<code>make d-tunnel</code>, <code>dev.mk</code>); команду можна передати йому одразу:
 <code>bash scripts/prod-db.sh sh -c 'DATABASE_URL_PROD=&quot;$DATABASE_URL&quot; bun run seed:apply --env prod …'</code>.</p>
 <h3 id="db-apply"><a class="anchor" href="#db-apply" aria-hidden="true">#</a><code>apply</code></h3>
 <ol>
@@ -12801,7 +12801,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел df52072 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел d9de929 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

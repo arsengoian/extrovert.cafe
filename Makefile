@@ -9,7 +9,13 @@
 # (%USERPROFILE%\.bun\bin): термінал або IDE, відкриті до встановлення bun,
 # тримають старий PATH без нього, і make падав з «CreateProcess ... failed».
 ifeq ($(OS),Windows_NT)
-BUN_EXE := $(subst \,/,$(USERPROFILE))/.bun/bin/bun.exe
+# Консоль Windows за замовчуванням не в UTF-8 (866/1251), а make пише
+# повідомлення як є, байтами UTF-8: «вкажи гравця» з $(error) і всі
+# українські @echo виходили кракозябрами (03.10.2026). chcp 65001 перемикає
+# сторінку коду самої консолі ще до розбору цілей; PowerShell і cmd свій
+# текст виводять Юнікодом, тож для них це нічого не ламає.
+_utf8 := $(shell chcp 65001 >NUL 2>&1)
+BUN_EXE :=$(subst \,/,$(USERPROFILE))/.bun/bin/bun.exe
 BUN ?= $(if $(wildcard $(BUN_EXE)),$(BUN_EXE),bun)
 else
 BUN ?= bun
