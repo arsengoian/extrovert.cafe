@@ -373,6 +373,36 @@ export async function checkMenuCheckbox(pool) {
   }));
 }
 
+// Ціна в чеку проти ціни з меню (власник, 03.10.2026). Автомат пробиває
+// свій прайс, а не наш: нову ціну з адмінки в машину досі ставлять руками,
+// і поки не поставили, чеки йдуть зі старою. Правда — чек (checkbox пише
+// його ціну як є), тут лише сигнал. На кожен напій точки дивимось на
+// останній чек за тиждень: розходження — стан «ціна в чеку/ціна в меню»,
+// і алерт іде лише на зміну цього стану, тож потік однакових чеків не дає
+// потоку однакових повідомлень. Наступний чек із ціною меню — «✅».
+export async function checkReceiptPrices(pool) {
+  const { rows } = await pool.query(
+    `select distinct on (r.point_id, ri.slot) r.point_id, p.name as point_name, ri.slot, ri.system_code,
+            ri.name, ri.price_uah::float8 as price, ri.menu_price_uah::float8 as menu
+       from receipt_items ri
+       join receipts r on r.id = ri.receipt_id
+       join points p on p.id = r.point_id
+      where ri.menu_price_uah is not null and r.fiscal_date > now() - interval '7 days'
+      order by r.point_id, ri.slot, r.fiscal_date desc, ri.id desc`
+  );
+  const uah = (n) => `${Number(n).toLocaleString("uk-UA", { maximumFractionDigits: 2 })} ₴`;
+  return rows.map((r) => {
+    const same = Math.abs(r.price - r.menu) < 0.005;
+    return {
+      key: `${r.point_id}:${r.slot}`,
+      state: same ? "ok" : `${r.price}/${r.menu}`,
+      text: same
+        ? `✅ ${r.point_name}: ${r.name} — ціна в чеку знову як у меню (${uah(r.menu)})`
+        : `🏷 ${r.point_name}: ${r.name} (${r.system_code}) — у чеку ${uah(r.price)}, у меню ${uah(r.menu)}. Рахуємо за чеком; ціну в автоматі чи в меню варто звести`,
+    };
+  });
+}
+
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {

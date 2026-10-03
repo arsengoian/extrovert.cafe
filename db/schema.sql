@@ -1162,9 +1162,9 @@ CREATE TABLE public.problem_reports (
     point_id text,
     categories text[] DEFAULT '{}'::text[] NOT NULL,
     body text,
-    image_r2_key text,
     status text DEFAULT 'new'::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    image_r2_keys text[] DEFAULT '{}'::text[] NOT NULL,
     CONSTRAINT problem_reports_status_check CHECK ((status = ANY (ARRAY['new'::text, 'read'::text, 'closed'::text])))
 );
 
@@ -1310,7 +1310,8 @@ CREATE TABLE public.receipt_items (
     price_uah numeric(10,2) NOT NULL,
     sum_uah numeric(12,2) NOT NULL,
     is_bonus_drink boolean DEFAULT false NOT NULL,
-    slot text
+    slot text,
+    menu_price_uah numeric(10,2)
 );
 
 
@@ -3857,4 +3858,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261003120000'),
     ('20261003130000'),
     ('20261003140000'),
-    ('20261003150000');
+    ('20261003150000'),
+    ('20261003160000');

@@ -102,7 +102,7 @@ export function PlantName({ plant, ctx }) {
                    onChange={(e) => { setName(e.target.value.slice(0, MAX)); setError(null); }} />
             <span>{name.length} / {MAX}</span>
           </label>
-          <p>{error ?? "Ім'я бачитимеш тільки ти – його можна змінити будь-коли."}</p>
+          <p>{error ?? "Ім'я бачитимеш ти та інші гравці на ринку – його можна змінити будь-коли."}</p>
           <button className="cta" disabled={busy || !name.trim()} onClick={save}>Готово</button>
         </div>
       </div>

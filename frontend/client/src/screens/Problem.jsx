@@ -12,6 +12,11 @@ const CATEGORIES = [
   { id: "idea", label: "Хочу запропонувати ідею" },
 ];
 
+// Скільки фото в одній скарзі — та сама межа, що в api (routes/problems.js,
+// PHOTOS_PER_REPORT). «Ще фото» з дизайну тепер справді додає, а не заміняє
+// перше (власник, 03.10.2026).
+const MAX_PHOTOS = 3;
+
 export function Problem({ ctx }) {
   const [point, setPoint] = useState(null);
   // Перша категорія відмічена одразу — як у кадрі «Повідомити про проблему».
@@ -22,7 +27,7 @@ export function Problem({ ctx }) {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [photo, setPhoto] = useState(null);      // { key, name, preview }
+  const [photos, setPhotos] = useState([]);      // [{ key, name, size, preview }]
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef(null);
   const bodyRef = useRef(null);
@@ -33,8 +38,8 @@ export function Problem({ ctx }) {
     const el = bodyRef.current;
     if (!el) return;
     el.style.height = "";
-    if (photo) el.style.height = `${el.scrollHeight + 2}px`;
-  }, [body, photo]);
+    if (photos.length) el.style.height = `${el.scrollHeight + 2}px`;
+  }, [body, photos.length]);
 
   useEffect(() => { api.get("/points/current").then((r) => setPoint(r.point)).catch(() => {}); }, []);
 
@@ -55,7 +60,7 @@ export function Problem({ ctx }) {
         body: file,
       });
       if (!res.ok) throw new Error(`сховище відповіло ${res.status}`);
-      setPhoto({ key: link.key, name: file.name, size: file.size, preview: URL.createObjectURL(file) });
+      setPhotos((list) => [...list, { key: link.key, name: file.name, size: file.size, preview: URL.createObjectURL(file) }].slice(0, MAX_PHOTOS));
     } catch (e) {
       const code = e.body?.error;
       setError(code === "bad_type" ? "Підійде JPEG, PNG або WebP"
@@ -72,7 +77,7 @@ export function Problem({ ctx }) {
     setError(null);
     try {
       await api.post("/problems", {
-        categories: picked, body, point_id: point?.id ?? null, image_key: photo?.key ?? null,
+        categories: picked, body, point_id: point?.id ?? null, image_keys: photos.map((p) => p.key),
       });
       setSent(true);
     } catch (e) {
@@ -122,28 +127,29 @@ export function Problem({ ctx }) {
       {/* Без фото поле тягнеться на весь залишок екрана, а «Додати фото» —
           велика кнопка; з фото поле за вмістом і під ним рядок файлу
           (кадри «Повідомити про проблему» і «Проблема · заповнено»). */}
-      <div className={`field details-field${photo ? "" : " grow"}`}>
+      <div className={`field details-field${photos.length ? "" : " grow"}`}>
         <div className="sectionTitle">Деталі</div>
         <textarea ref={bodyRef} className="textarea details" value={body} rows={1} maxLength={4000}
                   placeholder="Опишіть, що трапилося" onChange={(e) => setBody(e.target.value)} />
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
                onChange={(e) => { pickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
-        {photo && (
-          <div className="file-row">
+        {photos.map((photo) => (
+          <div className="file-row" key={photo.key}>
             <img src={photo.preview} alt="" />
             <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 3 }}>
               <b>{photo.name}</b>
               <small>{mb(photo.size)} МБ, завантажено</small>
             </div>
-            <button aria-label="Прибрати фото" onClick={() => setPhoto(null)}>
+            <button aria-label="Прибрати фото" onClick={() => setPhotos((list) => list.filter((p) => p.key !== photo.key))}>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
               </svg>
             </button>
           </div>
-        )}
-        <button className={`dashed-btn${photo ? "" : " big"}`} disabled={uploading} onClick={() => fileRef.current?.click()}>
-          {photo ? (
+        ))}
+        {photos.length < MAX_PHOTOS && (
+        <button className={`dashed-btn${photos.length ? "" : " big"}`} disabled={uploading} onClick={() => fileRef.current?.click()}>
+          {photos.length ? (
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M12 6v12M6 12h12" />
             </svg>
@@ -152,13 +158,14 @@ export function Problem({ ctx }) {
               <rect x="3.5" y="5.5" width="17" height="13" rx="2.6" /><circle cx="12" cy="12" r="3.2" />
             </svg>
           )}
-          {uploading ? "Завантажуємо…" : photo ? "Ще фото" : "Додати фото"}
+          {uploading ? "Завантажуємо…" : photos.length ? "Ще фото" : "Додати фото"}
         </button>
+        )}
       </div>
 
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
-      <button className={`cta send${photo ? "" : " flush"}`} disabled={busy || !picked.length} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
+      <button className={`cta send${photos.length ? "" : " flush"}`} disabled={busy || !picked.length} onClick={send}>{busy ? "Надсилаємо…" : "Надіслати"}</button>
 
       {sent && (
         <ResultPopup

@@ -36,6 +36,22 @@ async function pointFor(client, receipt) {
   return rows[0]?.id ?? null;
 }
 
+// Знижка в кав'ярні, що діяла на точці біля моменту чека. Дві хвилини
+// запасу в обидва боки: годинник каси й момент, коли автомат реально
+// перемкнув ціну, не збігаються до секунди, а чек на межі знижки не має
+// ставати «розходженням з меню».
+async function discountAround(client, pointId, fiscalDate) {
+  const { rows } = await client.query(
+    `select uah from point_discounts
+      where point_id = $1 and status <> 'queued' and started_at is not null
+        and started_at <= $2::timestamptz + interval '2 minutes'
+        and coalesce(ended_at, ends_at) >= $2::timestamptz - interval '2 minutes'
+      order by started_at desc limit 1`,
+    [pointId, fiscalDate]
+  );
+  return rows[0] ? Number(rows[0].uah) : 0;
+}
+
 export async function ingest(receipt, { source, log }) {
   const client = await pool.connect();
   try {
@@ -74,6 +90,8 @@ export async function ingest(receipt, { source, log }) {
     await endActive(client, pointId, "receipt", { after: receipt.fiscal_date ?? new Date().toISOString() });
 
     const goods = receipt.goods ?? [];
+    const fiscalDate = receipt.fiscal_date ?? new Date().toISOString();
+    const discountUah = await discountAround(client, pointId, fiscalDate);
     let coins = 0;
     // Напій, який поїде на екран кіоска в рядку бонусу. Беремо той, що
     // дав монети (перший платний із каталогу) — саме його людина щойно
@@ -89,7 +107,7 @@ export async function ingest(receipt, { source, log }) {
       const qty = Number(line.quantity ?? 1000) / 1000;      // Checkbox: тисячні
       const price = uah(g.price);
       const { rows: drink } = await client.query(
-        "select coins, is_bonus from drinks where slot = $1", [slot]
+        "select coins, is_bonus, price_uah from drinks where slot = $1", [slot]
       );
       // Код, якого немає в каталозі, — це не дрібниця: монет за такий напій
       // не нарахується, і мовчки. Найімовірніша причина — позицію завели в
@@ -108,10 +126,23 @@ export async function ingest(receipt, { source, log }) {
         shown ??= { code, name: g.name ?? code };
       }
 
+      // Ціна з меню на мить чека — поруч із ціною з чека (власник,
+      // 03.10.2026). Правда — чек: його пробив автомат і бачить ДПС, тож
+      // нічого не виправляємо й монети від ціни не залежать; розходження
+      // лише показує overseer (checks.js, checkReceiptPrices). Під знижкою
+      // підходить і знижена ціна (як у lib/menu.js: рівно на uah, не нижче
+      // гривні). Бонусний напій і невідомий код — без ціни з меню.
+      let menuPrice = null;
+      if (drink.length && !isBonus) {
+        const full = Number(drink[0].price_uah);
+        const lowered = Math.max(1, full - discountUah);
+        menuPrice = discountUah > 0 && Math.abs(price - lowered) < 0.005 ? lowered : full;
+      }
+
       await client.query(
-        `insert into receipt_items (receipt_id, system_code, slot, name, qty, price_uah, sum_uah, is_bonus_drink)
-         values ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [receiptId, code, slot, g.name ?? code, qty, price, uah(line.sum ?? g.price), isBonus]
+        `insert into receipt_items (receipt_id, system_code, slot, name, qty, price_uah, sum_uah, is_bonus_drink, menu_price_uah)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [receiptId, code, slot, g.name ?? code, qty, price, uah(line.sum ?? g.price), isBonus, menuPrice]
       );
 
       // Лутдроп (economy §4, §4.1): бонус-напій несе предмет завжди, звичайний —

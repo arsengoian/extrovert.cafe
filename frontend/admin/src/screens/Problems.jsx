@@ -16,8 +16,8 @@ const BTN = { height: 24, padding: "0 8px" };
 // Посилання підписане й живе пʼять хвилин, тому беремо його на клік, а не
 // разом зі списком: інакше половина посилань у таблиці протухла б раніше,
 // ніж до них дійшли руки.
-async function photo(id, download) {
-  const { url } = await api.problemPhoto(id, download);
+async function photo(id, n, download) {
+  const { url } = await api.problemPhoto(id, n, download);
   window.open(url, "_blank", "noopener");
 }
 
@@ -85,12 +85,13 @@ export function Problems() {
             key: "body", title: "деталі", render: (p) => (
               <span className="row" style={{ gap: 6 }}>
                 <span title={p.body ?? ""}>{(p.body ?? "").slice(0, 90) || <span className="muted">без тексту</span>}</span>
-                {p.image_r2_key && (
-                  <>
-                    <button className="btn" style={BTN} title="відкрити фото" onClick={(e) => { e.stopPropagation(); photo(p.id, false); }}>📎</button>
-                    <button className="btn" style={BTN} title="зберегти фото" onClick={(e) => { e.stopPropagation(); photo(p.id, true); }}>⤓</button>
-                  </>
-                )}
+                {/* Кілька фото (з 03.10.2026) — пара кнопок на кожне: відкрити й зберегти. */}
+                {Array.from({ length: p.photos ?? 0 }, (_, n) => (
+                  <span key={n} className="row" style={{ gap: 2 }}>
+                    <button className="btn" style={BTN} title={`відкрити фото ${n + 1}`} onClick={(e) => { e.stopPropagation(); photo(p.id, n, false); }}>📎{p.photos > 1 ? n + 1 : ""}</button>
+                    <button className="btn" style={BTN} title={`зберегти фото ${n + 1}`} onClick={(e) => { e.stopPropagation(); photo(p.id, n, true); }}>⤓</button>
+                  </span>
+                ))}
               </span>
             ),
           },

@@ -518,7 +518,7 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
     const status = String(req.query.status ?? "");
     const rows = await many(
-      `select r.id, r.categories, r.body, r.image_r2_key, r.status, r.created_at,
+      `select r.id, r.categories, r.body, cardinality(r.image_r2_keys)::int as photos, r.status, r.created_at,
               r.point_id, p.name as point_name, u.nickname, u.id as user_id
          from problem_reports r
          left join points p on p.id = r.point_id
@@ -539,17 +539,19 @@ export default async function routes(app) {
   // Фото зі скарги лежить у приватному бакеті, тож адмінці потрібне
   // підписане посилання. ?download=1 віддає його з Content-Disposition —
   // інакше картинка просто відкривається вкладкою, а зберегти її окремим
-  // рухом не вийде (прохання власника 23.09.2026).
+  // рухом не вийде (прохання власника 23.09.2026). ?n= — котре фото зі
+  // скарги, з нуля (кілька фото — з 03.10.2026).
   app.get("/admin/problems/:id/photo", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
-    const row = await one("select image_r2_key from problem_reports where id = $1", [req.params.id]);
-    if (!row?.image_r2_key) fail(404, "no_photo");
+    const n = Math.max(0, Number.parseInt(req.query.n ?? "0", 10) || 0);
+    const row = await one("select image_r2_keys[$2] as key from problem_reports where id = $1", [req.params.id, n + 1]);
+    if (!row?.key) fail(404, "no_photo");
     const link = presign({
       method: "GET",
       purpose: "uploads",
-      key: row.image_r2_key,
+      key: row.key,
       expiresIn: 300,
-      filename: req.query.download ? `скарга-${req.params.id}.${row.image_r2_key.split(".").pop()}` : null,
+      filename: req.query.download ? `скарга-${req.params.id}${n ? `-${n + 1}` : ""}.${row.key.split(".").pop()}` : null,
     });
     return { url: link.url, expires_in: link.expires_in };
   });

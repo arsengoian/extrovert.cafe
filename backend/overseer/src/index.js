@@ -14,7 +14,7 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
-import { checkDevices, checkMenuAcks, checkMenuCheckbox, checkPoints, checkWebhook, dailyReport, outageKind } from "./checks.js";
+import { checkDevices, checkMenuAcks, checkMenuCheckbox, checkPoints, checkReceiptPrices, checkWebhook, dailyReport, outageKind } from "./checks.js";
 import { ACK_DEADLINE_MIN } from "@extrovert/lib/deployments.js";
 import { sampleHealth } from "./health.js";
 import { checkServer, containerRestarts, sampleServer } from "./server.js";
@@ -88,6 +88,11 @@ async function tick() {
     lines.push(m.state === "ok"
       ? `✅ ${m.name}: ціни в Checkbox знову збігаються з меню`
       : `💳 ${m.name}: ціни деплою №${m.deployment} не записались у Checkbox — ${m.error ?? "без пояснення"}`);
+  }
+
+  // Ціна в чеку розійшлась із меню — автомат пробиває свій прайс.
+  for (const c of await checkReceiptPrices(pool)) {
+    if (await changed(`receipt-price:${c.key}`, c.state)) lines.push(c.text);
   }
 
   const webhook = await checkWebhook();
@@ -185,10 +190,13 @@ sub.on("message", async (_channel, raw) => {
   // мегабайти через бота, щоб їх потім тримав телеграм, немає за що.
   // Доба — щоб посилання лишалось робочим, коли алерт читають зранку
   // (прохання власника 24.09.2026).
-  let photo = null;
-  if (event.image_key) {
+  // Кілька фото (з 03.10.2026) — по посиланню на кожне; image_key — подія,
+  // що лежала в outbox зі старого api.
+  const keys = event.image_keys ?? (event.image_key ? [event.image_key] : []);
+  const photos = [];
+  for (const key of keys) {
     try {
-      photo = presign({ method: "GET", purpose: "uploads", key: event.image_key, expiresIn: 24 * 3600 }).url;
+      photos.push(presign({ method: "GET", purpose: "uploads", key, expiresIn: 24 * 3600 }).url);
     } catch (e) {
       log.warn({ err: e.message }, "не підписали посилання на фото скарги");
     }
@@ -197,7 +205,7 @@ sub.on("message", async (_channel, raw) => {
     `🛠 Нова скарга${event.nickname ? ` від ${event.nickname}` : " (без входу)"}`,
     what ? `Про що: ${what}` : null,
     event.preview ? `«${event.preview}»` : null,
-    photo ?? (event.photo ? "З фото" : null),
+    ...(photos.length ? photos : event.photo ? ["З фото"] : []),
   ].filter(Boolean);
   await send(lines.join("\n"), { log });
 });

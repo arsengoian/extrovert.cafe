@@ -23,6 +23,10 @@ export const CATEGORIES = ["coffee_machine", "monitor", "site", "supplies", "ide
 // й іншим правом доступу — гравець пише, адмінка читає.
 const PHOTO_TYPES = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024;
+// Скільки фото в одній скарзі (власник, 03.10.2026: «декілька»). Трьох
+// вистачає на «екран автомата, чек і калюжу під ним», а ліміт заливок на
+// годину (вище) однаково стоїть окремо.
+export const PHOTOS_PER_REPORT = 3;
 
 export default async function routes(app) {
   // Точка, до якої прив'язана скарга. Поки точка одна — віддаємо активну;
@@ -78,11 +82,11 @@ export default async function routes(app) {
     // до скарги чуже фото. У гостя «свій» — це гостьовий префікс: id немає,
     // а вгадати випадковий uuid чужого знімка не вийде.
     const owns = (key) => (user ? key.includes(`/${user.id}/`) : key.includes("/guest/"));
-    const photoKey = typeof req.body?.image_key === "string"
-      && req.body.image_key.startsWith("problems/")
-      && owns(req.body.image_key)
-      ? req.body.image_key
-      : null;
+    // image_keys — масив; image_key — одиночне фото від клієнта, що лишився
+    // відкритим зі старою збіркою (до 03.10.2026).
+    const raw = Array.isArray(req.body?.image_keys) ? req.body.image_keys : [req.body?.image_key];
+    const photoKeys = [...new Set(raw.filter((k) => typeof k === "string" && k.startsWith("problems/") && owns(k)))]
+      .slice(0, PHOTOS_PER_REPORT);
 
     // Що саме не працює — обовʼязково хоча б одне (власник, 26.09.2026).
     // Раніше вистачало тексту чи фото, а форма ще й підставляла «Кавомашину»
@@ -100,9 +104,9 @@ export default async function routes(app) {
     // (прохання власника 23.09.2026).
     const row = await tx(async (client) => {
       const { rows } = await client.query(
-        `insert into problem_reports (user_id, point_id, categories, body, image_r2_key)
+        `insert into problem_reports (user_id, point_id, categories, body, image_r2_keys)
          values ($1, $2, $3, $4, $5) returning id, created_at`,
-        [user?.id ?? null, pointId, categories, body || null, photoKey]
+        [user?.id ?? null, pointId, categories, body || null, photoKeys]
       );
       // Нікнейм у токені не лежить — дістаємо його тут, щоб в алерті було
       // видно, хто пише, а не лише uuid.
@@ -113,16 +117,16 @@ export default async function routes(app) {
         report_id: Number(rows[0].id),
         categories,
         preview: (body || "").slice(0, 160),
-        photo: Boolean(photoKey),
-        // Ключ, а не готове посилання: підпис живе обмежений час, а подія
+        photo: photoKeys.length > 0,
+        // Ключі, а не готові посилання: підпис живе обмежений час, а подія
         // може полежати в outbox — хай overseer підписує в мить відправки.
-        image_key: photoKey,
+        image_keys: photoKeys,
         point_id: pointId,
         nickname: who,
       });
       return rows[0];
     });
-    return { id: row.id, created_at: row.created_at, photo: Boolean(photoKey) };
+    return { id: row.id, created_at: row.created_at, photos: photoKeys.length };
   });
 
   // Свої скарги — щоб екран міг показати «ми отримали» без окремого стану.
@@ -130,7 +134,7 @@ export default async function routes(app) {
     const user = userFromRequest(req);
     if (!user) return { reports: [] };
     const rows = await many(
-      `select id, categories, body, status, created_at, image_r2_key is not null as has_photo
+      `select id, categories, body, status, created_at, cardinality(image_r2_keys) > 0 as has_photo
          from problem_reports
         where user_id = $1 order by created_at desc limit 20`,
       [user.id]
