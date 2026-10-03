@@ -227,9 +227,10 @@ erDiagram
         text slot "номер без літери: 034 — по ньому шукається напій"
         text name
         numeric qty
-        numeric price_uah
+        numeric price_uah "як пробив автомат — правда"
         numeric sum_uah
         boolean is_bonus_drink
+        numeric menu_price_uah "ціна з меню на мить чека; null — бонус чи невідомий код"
     }
     DRINKS {
         bigserial id PK
@@ -812,7 +813,7 @@ erDiagram
         text point_id FK
         text categories "масив: кавомашина, монітор, сайт, матеріали, ідея"
         text body
-        text image_r2_key
+        text image_r2_keys "масив, до 3 фото (з 03.10.2026; до того одне)"
         text status "new|read|closed"
         timestamptz created_at
     }

@@ -105,8 +105,8 @@ Vite — раніше він заливав той `dist`, що лежав.
 
 Вхід — поштою й паролем (`POST /admin/login`, `scrypt` у
 `admin_users.password_hash`, ліміт спроб у Redis; `services.md` §3).
-Адмінів заводить `backend/api/scripts/admin.mjs`. Девелоперський вхід
-(`POST /admin/dev-login`) існує лише поза продом.
+Адмінів заводить `backend/api/scripts/admin.mjs`. Девелоперського входу
+немає ніде, і локально теж (з 03.10.2026, `services.md` §3).
 
 ### QR-наклейка → воркер `qr`
 
