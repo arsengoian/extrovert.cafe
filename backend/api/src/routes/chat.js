@@ -235,11 +235,24 @@ export default async function routes(app) {
       answer = { text: prompts.unavailable, tokens_in: null, tokens_out: null };
     }
     if (!answer.text) answer.text = prompts.fallback;
+    // Тире в текстах застосунку коротке (власник, 03.10.2026). Правило є й у
+    // промпті, але довге модель усе одно час від часу ставить.
+    answer.text = answer.text.replaceAll("—", "–");
 
     const answered = await one(
       `insert into chat_messages (plant_id, user_id, role, body, tokens_in, tokens_out)
        values ($1, $2, 'plant', $3, $4, $5) returning *`,
       [plant.id, user.id, answer.text, answer.tokens_in, answer.tokens_out]
+    );
+    // Відповідь гравець бачить тут же, у чаті. chat_seen_at досі ставив лише
+    // GET (відкриття чату), тож кожна відповідь лишалась «непрочитаною», і
+    // на головному лічильник світився після розмови (власник, 03.10.2026).
+    // Час — із самого рядка в SQL: Date у JS обрізає мікросекунди, і
+    // відповідь лишалась «новішою» за позначку.
+    await one(
+      `update plants p set chat_seen_at = m.created_at from chat_messages m
+        where p.id = $1 and m.id = $2 returning p.id`,
+      [plant.id, answered.id]
     );
 
     return {

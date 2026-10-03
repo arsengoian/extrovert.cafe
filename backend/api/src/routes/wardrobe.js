@@ -307,7 +307,7 @@ export default async function routes(app) {
 
       // Саме від цього куща: подяка за одяг від сусіднього кавенятка —
       // дрібниця, яку видно одразу (24.09.2026).
-      await notifyPlant(user.id, `Дякую за комплект! Тримай ${credit(beans, "beans")} — заслужено.`, { client, plantId: plant.id });
+      await notifyPlant(user.id, `Дякую за комплект! Тримай ${credit(beans, "beans")} – заслужено.`, { client, plantId: plant.id });
       return { ok: true, beans, tier: state.tier };
     });
   });

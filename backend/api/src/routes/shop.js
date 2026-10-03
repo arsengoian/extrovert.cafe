@@ -29,7 +29,7 @@ export default async function routes(app) {
         code: "crate",
         kind: "crate",
         title: "Щаслива скринька",
-        subtitle: "предмет і монети — завжди обидва",
+        subtitle: "предмет і монети – завжди обидва",
         icon: "assets/ui/crate.png",
         price: e.crate.price_coins,
         price_uah: e.crate.price_uah,

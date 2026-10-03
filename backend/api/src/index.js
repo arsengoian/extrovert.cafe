@@ -96,6 +96,15 @@ app.addHook("onRequest", async (req, reply) => {
   if (req.method === "OPTIONS") reply.code(204).send();
 });
 
+// Відповіді api браузер не кешує, якщо роут сам не сказав інакше (points,
+// фото підтримки). Без заголовка 410/404 кешуються евристично, і ключ кешу —
+// адреса без токена: після видалення акаунта браузер віддавав закешоване
+// «account_deleted» на GET /me і новому акаунту в тій самій вкладці
+// (03.10.2026, знайдено на локальному тесті).
+app.addHook("onSend", async (req, reply) => {
+  if (!reply.hasHeader("cache-control")) reply.header("cache-control", "no-store");
+});
+
 app.get("/healthz", async () => ({ ok: true }));
 
 // Кожен запит — подія аналітики (analytics.js): метод, шаблон маршруту,

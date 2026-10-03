@@ -94,7 +94,7 @@ export function Problem({ ctx }) {
       <div className="field">
         <div className="sectionTitle">Точка</div>
         <div className="select-field">
-          <span>{point ? `${point.name}, ${point.short_address ?? point.address}` : "—"}</span>
+          <span>{point ? `${point.name}, ${point.short_address ?? point.address}` : "–"}</span>
           <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
             <path d="M6 9.5 12 15.5 18 9.5" />
           </svg>

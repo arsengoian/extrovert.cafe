@@ -110,8 +110,10 @@ export function ItemCard({ item, ctx }) {
         <h2>{item.name}</h2>
         <div className="item-meta">
           <span className={`tier-chip tier-${item.tier}`}>{tierOf(item.tier)}</span>
-          <span>{SLOT_OF[item.slot] ?? item.slot}{item.collection ? `, комплект «${item.collection}»` : ""}</span>
+          <span>{SLOT_OF[item.slot] ?? item.slot}</span>
         </div>
+        {/* Комплект — окремим рядком, не через кому після слота (власник, 03.10.2026). */}
+        {item.collection && <div className="item-set">Комплект «{item.collection}»</div>}
       </div>
 
       <div className="item-text">
@@ -120,7 +122,7 @@ export function ItemCard({ item, ctx }) {
           <div>
             {/* Без двокрапки й пояснення про найслабший предмет
                 (власник, 27.09.2026). */}
-            У тебе вже {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {item.set_beans ?? SET_BEANS[item.tier] ?? 3}{" "}
+            У тебе {slotsOwned} з 5 предметів комплекту. За повний комплект кавенятко дасть {item.set_beans ?? SET_BEANS[item.tier] ?? 3}{" "}
             <img src="/assets/ui/bean.webp" alt="кавових зерна" />
           </div>
         )}
@@ -181,7 +183,7 @@ export function ItemCard({ item, ctx }) {
             <img src="/assets/ui/coin_silver.webp" alt="срібні монети" style={{ width: 20, height: 21 }} />
             <img src="/assets/ui/coin_gold.webp" alt="золоті монети" style={{ width: 20, height: 21, marginLeft: -6 }} />
           </span>
-          {price ?? "—"}
+          {price ?? "–"}
         </button>
       </div>
     </div>

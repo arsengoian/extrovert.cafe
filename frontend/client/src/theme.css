@@ -961,12 +961,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .set-tiles::-webkit-scrollbar { display: none }
 .set-tiles > .set-tile { scroll-snap-align: start }
-/* Ряд поміщається від 370 px і ширше — на вужчому екрані край підтирається,
-   щоб було видно, що він їде далі, а не просто обрізаний. */
-@media (max-width: 369px) {
-  .set-tiles { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
-               mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent) }
-}
+/* Ряд поміщається від 370 px і ширше. На вужчому екрані край підтирається,
+   щоб було видно, що ряд їде далі, а не просто обрізаний, — лише з того
+   боку, куди ще є що гортати (data-fade ставить SetTiles у Catalog.jsx). */
+.set-tiles[data-fade="r"] { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent);
+                            mask-image: linear-gradient(90deg, #000 calc(100% - 22px), transparent) }
+.set-tiles[data-fade="l"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 22px);
+                            mask-image: linear-gradient(90deg, transparent, #000 22px) }
+.set-tiles[data-fade="l r"] { -webkit-mask-image: linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent);
+                              mask-image: linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent) }
 .set-tile { flex: none; width: 62px; height: 62px; border-radius: 14px; background: rgba(var(--t), .16); border: 1.5px solid rgba(var(--t), .45); display: flex; align-items: center; justify-content: center }
 .set-total { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted) }
 .set-total img { width: 12px; height: 13px }
@@ -1035,6 +1038,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: radial-gradient(circle at 50% 58%, rgba(var(--chip), .20) 0%, rgba(var(--chip), 0) 68%), var(--panel);
 }
 .item-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted) }
+.item-set { font-size: 12px; color: var(--muted) }
 .tier-chip { padding: 5px 10px; border-radius: var(--radius-pill); background: rgba(var(--chip), .18); border: 1px solid rgba(var(--chip), .5); font-size: 11px; font-weight: 800; color: rgb(var(--chip)) }
 .tier-chip.tier-common { color: var(--muted) }
 .item-text { flex: none; display: flex; flex-direction: column; gap: 9px; font-size: 13px; line-height: 1.5; color: var(--muted) }

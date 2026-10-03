@@ -16,7 +16,7 @@ export function ItemIcon({ sprite, size = 64, alt = "", name, style }) {
   if (broken) {
     return (
       <div className="item-stub" style={{ height: size, ...style }} title={name || alt}>
-        {name ? name.slice(0, 18) : "—"}
+        {name ? name.slice(0, 18) : "–"}
       </div>
     );
   }

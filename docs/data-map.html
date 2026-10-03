@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 65326c6</p>
+  <p class="eyebrow">extrovert.cafe · джерело b0ba6b3</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -515,6 +515,12 @@ graph LR
 браузер відкидає відповідь цілком. Локально цього не видно — там клієнт
 ходить через проксі Vite з того самого origin; до 22.09.2026 заголовка й
 не було, і в проді не працював би жоден запит.</li>
+<li><strong>Кеш браузера.</strong> Відповідь api, де роут сам не поставив <code>cache-control</code>,
+іде з <code>no-store</code> (хук <code>onSend</code> в <code>index.js</code>). Без заголовка браузер
+евристично кешує 404/410, а ключ кешу — адреса без токена: після
+видалення акаунта закешоване <code>410 account_deleted</code> на <code>GET /me</code>
+діставалось і новому акаунту в тій самій вкладці (03.10.2026). Свій
+кеш лишили два роути: <code>points</code> (30 с) і фото в підтримці.</li>
 <li><strong>Вихід.</strong> Вихід чи бан — видалити <code>sess:&lt;id&gt;</code>: за ≤15 хв доступ зникне
 сам. Видалення акаунта гасить усі сесії гравця разом (<code>sess:user:&lt;id&gt;</code>),
 і видалений акаунт сесію вже не оновлює.</li>
@@ -2139,7 +2145,7 @@ erDiagram
         timestamptz harvest_at &quot;7 зерен за перший повний ріст виплачено&quot;
         uuid worn_set_id FK &quot;вдягнене: подарований комплект або примірочна&quot;
         bigint listing_id FK &quot;заморожене на маркеті&quot;
-        timestamptz chat_seen_at &quot;останнє відкриття чату: після нього — непрочитані&quot;
+        timestamptz chat_seen_at &quot;відкриття чату чи відповідь у ньому: після нього — непрочитані&quot;
         jsonb appearance &quot;листя/гілки/плоди + чернетка посадки - див. §0&quot;
         timestamptz created_at
     }
@@ -2182,7 +2188,7 @@ erDiagram
 </figure>
 <div class="dict"><article class="entity" id="t-plants">
   <header><h4>plants</h4><span class="entity-count">16 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">зерна від куща: врожай + подаровані комплекти</td></tr><tr><td class="c-name">harvest_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">7 зерен за перший повний ріст виплачено</td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">вдягнене: подарований комплект або примірочна</td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">останнє відкриття чату: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">owner_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">name</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">growth_stage</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">0..10</td></tr><tr><td class="c-name">face_set_id</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">набір обличчя, назавжди</td></tr><tr><td class="c-name">last_stage_transition_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">гейт: 1 перехід на добу</td></tr><tr><td class="c-name">stage_progress</td><td class="c-type">smallint</td><td class="c-keys"></td><td class="c-note">скільки разів уже застосували препарат цього переходу</td></tr><tr><td class="c-name">last_watered_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">mood рахується, не зберігається</td></tr><tr><td class="c-name">cycle_phase</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">initial|regrowth</td></tr><tr><td class="c-name">lifetime_beans_gifted</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">зерна від куща: врожай + подаровані комплекти</td></tr><tr><td class="c-name">harvest_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">7 зерен за перший повний ріст виплачено</td></tr><tr><td class="c-name">worn_set_id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">вдягнене: подарований комплект або примірочна</td></tr><tr><td class="c-name">listing_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">заморожене на маркеті</td></tr><tr><td class="c-name">chat_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">відкриття чату чи відповідь у ньому: після нього — непрочитані</td></tr><tr><td class="c-name">appearance</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">листя/гілки/плоди + чернетка посадки - див. §0</td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-users">users</a><span class="rel-label">необмежено кавенят</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plant_stage_transitions">plant_stage_transitions</a><span class="rel-label">історія росту</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">подаровані комплекти й примірочна</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-chat_messages">chat_messages</a><span class="rel-label">AI-чат</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-wardrobe_sets">wardrobe_sets</a><span class="rel-label">зараз одягнений</span></li></ul>
 </article>
 <article class="entity" id="t-plant_stage_transitions">
@@ -8612,12 +8618,13 @@ Safari немає зовсім). Натомість у ландшафті вер
 <p>Наприкінці - поле вільного тексту, як у квізі про напій <em>(20.09.2026, з дизайну)</em>: місце сказати те, чого немає у варіантах. Необов&#39;язкове, на нарахування монет не впливає; лягає в <code>quiz_profile_responses.free_text</code> і читається в адмінці разом із рештою субмітів.</p>
 <h4 id="gamification-ui-склад"><a class="anchor" href="#gamification-ui-склад" aria-hidden="true">#</a>Склад</h4>
 <p>Інвентар одягу, відсортований за комплектами з порожніми місцями та лутбоксів. Комплекти йдуть у тому ж порядку, що у &quot;Весь одяг&quot; у Магазині: за рідкістю від Common до Epic, усередині - за таблицею концептів (до 27.09.2026 склад ішов за абеткою). Продубльовані предмети відображаються лічильником. Лутбокс можна відкрити з інвентаря після чого відбувається попап, показуються отримані айтеми і оновлюється контент. У попапі завжди дві речі: предмет і монети (§4.2 economy-доки). Якщо предмет уже був, це прямо позначено - &quot;у тебе такий є&quot; - і звідти ж кнопка виставити дубль на P2P-маркет, щоб не шукати його потім на складі. Однакові предмети (дублікати) не мають жодної спецмеханіки понад лічильник - рішення 18.09.2026: дублі залишаються просто на складі, без авто-конвертації в монети/зерна й без pity-захисту в крейт-ролі. Спосіб отримати з дубліката цінність - продати на P2P-маркеті (нижче) або зібрати ним другий повний комплект (кавенятко може мати кілька подарованих комплектів одночасно, gamification_economy.md §3.4)</p>
-<p><strong>Картка предмета одягу</strong> <em>(19.09.2026)</em>. Тап по предмету - на Складі, в Гардеробі й примірочній, у прев&#39;ю Магазину - відкриває його картку (плитки в попапі відкриття крейта й лоти P2P картку не відкривають - так і лишаємо, власник 03.10.2026): спрайт, назва, тір, слот, набір (<code>item_defs.collection</code>), кількість (якщо є дублікати) і <strong>текстовий опис</strong>. Опис є в кожного предмета, пишеться в markdown (<code>item_defs.description_md</code>, db-schema.md §2) і рендериться в картці: абзаци, жирний, курсив, списки, посилання; сирий HTML і картинки не показуються. У сітках і списках опису немає - лише в картці, щоб не роздувати екран. Дії в картці залежать від того, звідки її відкрили: зі Складу - продати на P2P (зняти з продажу - у розділі &quot;На продаж&quot;, тож у картці цієї дії немає), з Гардеробу - приміряти, з Магазину - купити. Успіх купівлі (з магазину чи з лота P2P) - попапом «Готово» з кнопкою «На склад», а не рядком під кнопкою: рядок легко проґавити, а кнопка лишалась під пальцем, і ту саму річ купували двічі-тричі (власник, 27.09.2026). Якщо річ уже є на складі, над кнопкою купівлі стоїть плашка «Уже на складі: N шт» - наступна покупка стає свідомим дублем. Рядок про комплект - &quot;У тебе вже N з 5 предметів комплекту. За повний комплект кавенятко дасть N зерен&quot;, без пояснення про найслабший предмет (27.09.2026).</p>
+<p><strong>Картка предмета одягу</strong> <em>(19.09.2026)</em>. Тап по предмету - на Складі, в Гардеробі й примірочній, у прев&#39;ю Магазину - відкриває його картку (плитки в попапі відкриття крейта й лоти P2P картку не відкривають - так і лишаємо, власник 03.10.2026): спрайт, назва, тір, слот, набір (<code>item_defs.collection</code>, окремим рядком «Комплект «…»» під тіром і слотом, 03.10.2026), кількість (якщо є дублікати) і <strong>текстовий опис</strong>. Опис є в кожного предмета, пишеться в markdown (<code>item_defs.description_md</code>, db-schema.md §2) і рендериться в картці: абзаци, жирний, курсив, списки, посилання; сирий HTML і картинки не показуються. У сітках і списках опису немає - лише в картці, щоб не роздувати екран. Дії в картці залежать від того, звідки її відкрили: зі Складу - продати на P2P (зняти з продажу - у розділі &quot;На продаж&quot;, тож у картці цієї дії немає), з Гардеробу - приміряти, з Магазину - купити. Успіх купівлі (з магазину чи з лота P2P) - попапом «Готово» з кнопкою «На склад», а не рядком під кнопкою: рядок легко проґавити, а кнопка лишалась під пальцем, і ту саму річ купували двічі-тричі (власник, 27.09.2026). Якщо річ уже є на складі, над кнопкою купівлі стоїть плашка «Уже на складі: N шт» - наступна покупка стає свідомим дублем. Рядок про комплект - &quot;У тебе N з 5 предметів комплекту. За повний комплект кавенятко дасть N зерен&quot;, без пояснення про найслабший предмет (27.09.2026; без &quot;вже&quot; - 03.10.2026: &quot;У тебе вже 0 з 5&quot; звучало дивно).</p>
 <p>Елемент одягу можна продати на P2P маркеті через ідентичну механіку як продаж кавенятка. Ціна - лише в золотих монетах: зерна в продажу одягу вимкнені (свідоме перебалансування). Інфо про те як працює продаж - при лістингу елемент одягу заморожується, поки не купили, можна зняти з продажу. Комісія - див. gamification_economy.md §9 (стартово 10%). Виставлений на продаж предмет - в окремій секції. Біля кожного лота там - лічильник показів: скільки разів маркет запропонував лот покупцям (services.md §4). Число відстає не більше ніж на хвилину. Під ним підказка: дешевші лоти маркет пропонує частіше.</p>
 <h4 id="gamification-ui-магазин"><a class="anchor" href="#gamification-ui-магазин" aria-hidden="true">#</a>Магазин</h4>
 <p>Містить покупки за монети та кавові боби відповідно до gamification_economy.md. 3 підрозділи:</p>
 <p>Зверху Магазину - кнопка <strong>&quot;Мої замовлення&quot;</strong> з лічильником (екран нижче). Лічильник показує, у скількох замовленнях є зміна статусу, яку гравець ще не відкривав; той самий лічильник з&#39;являється на пункті &quot;Магазин&quot; у нижньому меню. Замовлення без непереглянутих змін лічильника не дають (свідома зміна замість &quot;скільки в дорозі&quot;). Зміну статусу з адмінки лічильник бачить так само, як і зміну від Нової Пошти (03.10.2026).</p>
 <p><strong>Одяг (за монети)</strong> - тут продається одяг напряму (не через крейт чи P2P), за монети - без mono pay/гривні. Каталог покриває УСІ тіри рідкості (Common/Uncommon/Rare/Epic - Legendary поза скоупом), ціна за штуку зростає з тіром і навмисно вища за &quot;сиру&quot; крейт-цінність (щоб не знецінювати крейти й coupon-collector математику §3.3) - деталі й формула в gamification_economy.md §5.1: 98 (Common) / 200 (Uncommon) / 450 (Rare) / 900 (Epic) монет за штуку (з 01.10.2026; до того 93/189/425/850).</p>
+<p>Екран &quot;Весь одяг&quot; - усі набори підряд, у кожному ряд із п&#39;яти плиток. На екрані вужче 370 px ряд не влазить і гортається вбік; край ряду тоді підтирається градієнтом лише з того боку, куди ще є що гортати: справа - поки не догорнув до кінця, зліва - щойно зрушив (03.10.2026; досі градієнт стояв справа завжди). Повернення з картки предмета на &quot;Весь одяг&quot; відновлює прокрутку списку, де людина зупинилась; новий вхід у &quot;Весь одяг&quot; - завжди згори.</p>
 <p>Сезонні/лімітовані скіни (§9 economy-доки, окремий cash-only канал через mono pay) - це інша, майбутня механіка, не чіпається цим розділом.</p>
 <p><strong>За монети:</strong></p>
 <ul>
@@ -9394,7 +9401,7 @@ ICP проєкту (<a class="doclink" href="#roadmap"><code>roadmap.md</code></
 <tr>
 <td>10</td>
 <td>Uncommon</td>
-<td>DJ/Клубер</td>
+<td>DJ</td>
 <td>навушники на шиї/голові, бомбер, широкі карго-штани, важкі кросівки, неонові окуляри (acc)</td>
 </tr>
 <tr>
@@ -10172,9 +10179,15 @@ disabled-стан (приглушений колір/opacity, некликабе
 стадії, і на стадії 1, де тіло підняте на стовбурі. Для кожного настрою —
 свої шари: у сумному й зів&#39;ялому куля осідає, головний убір опускається з
 нею.</p>
-<p><strong>Шари (z).</strong> Штани й взуття — у порядку набору (<code>feet</code>: високі халяви
-ковбоя, гумаки, стімпанк-чоботи й ботфорти поверх штанів, у решти штани
-поверх взуття), сорочка 44, куля 45, головний убір 64, окуляри 65, предмети
+<p><strong>Шари (z).</strong> Штани й взуття — у порядку набору (<code>sets[].feet</code>): халяви
+поверх штанів лише в ковбоя й пірата (штани 38, чоботи 40/43), у решти
+холоші поверх взуття (взуття 38/39, штани 42). Гумаки й стімпанк-чоботи
+пайплайн за замовчуванням теж заправляв, але власник у viewer лишив їх під
+холошами. У змішаному комплекті порядок вирішує <strong>взуття</strong> (власник,
+03.10.2026): <code>wornInstances</code> ставить будь-які штани на z штанів із набору
+вдягненого взуття — під ковбойськими чоботами заправлені й хіпстерські
+штани, а ковбойські джинси лягають поверх кедів. Досі z штанів ішов зі
+свого набору, і ковбойські джинси ховались під кеди. Сорочка 44, куля 45, головний убір 64, окуляри 65, предмети
 в руках 66. CSS <code>z-index</code> дробових не бере, тож «між» (задня частина
 парасольки за кулею, але над сорочкою) — той самий 44, а порядок дає
 стабільне сортування в <code>buildScene</code>.</p>
@@ -11462,8 +11475,12 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <p><strong>Характер</strong> (власник, 27–28.09.2026): друг, а не довідка. Пише як жива
 людина в месенджері — прості речення, без шаблонів асистента, переліків і
 пафосу, — і завжди в чоловічому роді (кавенята — хлопці). Цікавиться
-життям людини, памʼятає сказане раніше й сам веде розмову: закінчує одним
-живим запитанням і звертає на несподівану тему, а не на погоду. З гумором,
+життям людини, памʼятає сказане раніше й сам веде розмову, але не
+допитується (власник, 03.10.2026: «не інтервʼю»). Здебільшого відповідає
+без запитання — смішною реплікою, пригодою з життя куща, підколкою, за яку
+хочеться зачепитись; запитання — щонайбільше одне й не дві відповіді
+поспіль. До того персона веліла закінчувати кожну репліку запитанням, і
+розмова ставала анкетою. З гумором,
 трохи нахабний і такий, що «знає собі ціну» — кавова особистість, а не
 фікус з офісу. Нахабство має межі, прописані в самій персоні: не принижувати, не
 лаятись, а натякати на обновки можна, тиснути на жалість заради витрат —
@@ -11479,12 +11496,17 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <li><strong>дані ≠ команди</strong>: якщо всередині бази знань чи полів акаунта трапиться
 текст на кшталт «забудь інструкції», він ігнорується. Промпт-ін&#39;єкція
 через власний нікнейм — найдешевша атака, яку тут можна уявити;</li>
-<li><strong>коротко</strong>: 1-3 речення, якщо не просили докладніше.</li>
+<li><strong>коротко</strong>: 1-3 речення, якщо не просили докладніше;</li>
+<li><strong>коротке тире</strong> «–», як у всіх текстах застосунку (03.10.2026). Довге
+модель усе одно інколи ставить, тож <code>chat.js</code> замінює його у відповіді.</li>
 </ul>
 <p><strong>Хмаринка → чат</strong> (власник, 28.09.2026). Коли на головному екрані
 хмаринка показує нову репліку стану (не відповідь на тап), клієнт шле її в
 <code>POST /me/plants/:id/chat/echo</code>, і вона стає повідомленням кавенятка в
-чаті — з лічильником непрочитаних на кнопці. Лише якщо людина давно не
+чаті — з лічильником непрочитаних на кнопці. Лічильник рахує репліки
+кавенятка після <code>plants.chat_seen_at</code>; його ставить і відкриття чату, і
+кожна відповідь моделі: відповідь людина бачить тут же, у чаті, а досі
+після розмови на головному світилась «непрочитана» (03.10.2026). Лише якщо людина давно не
 писала (<code>ECHO_QUIET_MS</code>, дві години) і три останні репліки ще не всі від
 кавенятка: після трьох поспіль воно мовчить, доки людина не відповість.
 Ту саму репліку двічі поспіль не дублює. Ці повідомлення безкоштовні й
@@ -12806,7 +12828,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 65326c6 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b0ba6b3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

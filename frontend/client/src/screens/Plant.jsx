@@ -501,8 +501,10 @@ export function Plant({ ctx }) {
   // запам'ятовував замість нього перший кущ — новий так і не відкривався, а
   // з ним і «Як його звати?» (03.10.2026).
   const fresh = useRef(false);
+  const [loaded, setLoaded] = useState(false);
   const reload = () => api.get("/me/plants").then((r) => {
     fresh.current = true;
+    setLoaded(true);
     setPlants(r.plants);
     setIndex(() => selectedIndex(r.plants));
     return r.plants;
@@ -569,10 +571,14 @@ export function Plant({ ctx }) {
   // sessionStorage — лишок від «Пізніше», — і після апаратної «Назад» з
   // екрана імені кущ лишався безіменним до кінця сесії (03.10.2026).
   // Подвійний push від StrictMode ловить сам push (app.jsx).
+  //
+  // Лише за списком із сервера (loaded): поки екран імені зверху, цей екран
+  // демонтований, а після «Зберегти» монтується наново з кешем api.peek, де
+  // кущ іще безіменний, — і попап вилазив удруге (03.10.2026).
   useEffect(() => {
-    if (!plant || plant.name) return;
+    if (!loaded || !plant || plant.name) return;
     ctx.push("plantName", { plant });
-  }, [plant?.id]);
+  }, [plant?.id, loaded]);
 
   if (error) return <div className="stage-pad"><div className="panel">Не вдалось завантажити: {error}</div></div>;
   if (!plants) return <div className="stage-pad"><div className="skeleton" /></div>;

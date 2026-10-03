@@ -114,7 +114,7 @@ export function Shop({ ctx }) {
   }, []);
 
   const open = (item) => {
-    if (item.code === "clothing") return ctx.push("catalog");
+    if (item.code === "clothing") return ctx.push("catalog", { visit: Date.now() });
     ctx.push(item.kind === "crate" ? "shopItem" : "shopProduct", { item });
   };
 
@@ -153,7 +153,7 @@ export function Shop({ ctx }) {
           <div className="section">
             <div className="section-head">
               <div className="sectionTitle">Сьогодні у моді</div>
-              <button className="link-more" data-tap="off" onClick={() => ctx.push("catalog")}>
+              <button className="link-more" data-tap="off" onClick={() => ctx.push("catalog", { visit: Date.now() })}>
                 Весь одяг
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
                   <path d="M9.5 6 15.5 12 9.5 18" />

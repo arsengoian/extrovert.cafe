@@ -252,10 +252,25 @@ export function wornInstances(layout, worn, body, mood = "healthy", base = [], p
 
   const items = worn.map((w) => clothes.items[w.sprite_id]).filter(Boolean)
     .sort((a, b) => (SLOT_RANK[a.slot] ?? 9) - (SLOT_RANK[b.slot] ?? 9));
+
+  // Штани в чоботах чи чоботи під холошами — вирішує взуття, а не штани
+  // (власник, 03.10.2026). Пайплайн ставить z штанам і взуттю кожного набору
+  // разом (sets[].feet у clothes_layout.json: у ковбоя й пірата over_pants —
+  // халяви поверх холош, у решти навпаки). У змішаному комплекті штани брали
+  // висоту зі свого набору: ковбойські джинси лягали під кеди, а штани
+  // хіпстера — поверх ковбойських чобіт. Тепер штани стають на ту висоту,
+  // яку їм відвів набір вдягненого взуття.
+  const layersOf = (item) => item?.moods?.[art] ?? item?.moods?.normal ?? [];
+  const feetId = worn.map((w) => w.sprite_id).find((id) => clothes.items[id]?.slot === "feet");
+  const feetSet = feetId ? (clothes.sets ?? []).find((st) => st.codes?.feet === feetId) : null;
+  const pantsOfFeet = feetId ? layersOf(clothes.items[feetSet?.codes?.pants ?? feetId.replace(/_feet$/, "_pants")])[0] : null;
+
   const out = [];
   for (const item of items) {
-    for (const raw of item.moods?.[art] ?? item.moods?.normal ?? []) {
-      const l = at(raw);
+    const layers = layersOf(item);
+    const shift = item.slot === "pants" && pantsOfFeet && layers[0] ? pantsOfFeet.z - layers[0].z : 0;
+    for (const raw of layers) {
+      const l = at(shift ? { ...raw, z: raw.z + shift } : raw);
       out.push(sprite(l));
       if (l.reveal) {
         // base — уже з руками, повернутими під цю сорочку (poseArms)

@@ -652,7 +652,7 @@ erDiagram
         timestamptz harvest_at "7 зерен за перший повний ріст виплачено"
         uuid worn_set_id FK "вдягнене: подарований комплект або примірочна"
         bigint listing_id FK "заморожене на маркеті"
-        timestamptz chat_seen_at "останнє відкриття чату: після нього — непрочитані"
+        timestamptz chat_seen_at "відкриття чату чи відповідь у ньому: після нього — непрочитані"
         jsonb appearance "листя/гілки/плоди + чернетка посадки - див. §0"
         timestamptz created_at
     }

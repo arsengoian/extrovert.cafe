@@ -90,7 +90,7 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
       lines.push(`сьогодні ти вже підріс; наступний крок (${[need, planting].filter(Boolean).join(" і ")}) відкриється ${when}, до того нічого робити не треба`);
     } else {
       lines.push(`ти хочеш зараз: ${need}${progress}`);
-      if (planting) lines.push(`разом із ним — ${planting}: гравець сам розставляє їх на тобі на екрані посадки`);
+      if (planting) lines.push(`разом із ним – ${planting}: гравець сам розставляє їх на тобі на екрані посадки`);
     }
   }
 
@@ -100,7 +100,7 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
 
   lines.push(...wardrobeLines(wardrobe ?? [], plant.worn_set_id, user.nickname));
   if (orders?.length) {
-    lines.push(`замовлення: ${orders.map((o) => `${o.title} — ${o.status}`).join("; ")}`);
+    lines.push(`замовлення: ${orders.map((o) => `${o.title} – ${o.status}`).join("; ")}`);
   }
   if (lastDrinks?.length) {
     lines.push(`останні напої: ${lastDrinks.map((d) => `${d.name} (${new Date(d.fiscal_date).toLocaleDateString("uk-UA")})`).join(", ")}`);
@@ -111,7 +111,7 @@ export function factLines({ user, plant, growth, care, counts, wardrobe, orders,
 // Точки з бази, а не з бази знань: адреса й статус міняються без релізу,
 // і кавенятко має знати їх усі, про що б не питали (власник, 28.09.2026).
 export function pointLines(points) {
-  return points.map((p) => `${p.name}: ${p.address ?? p.short_address ?? "адресу ще уточнюємо"} — ${POINT_STATUS[p.status] ?? p.status}`);
+  return points.map((p) => `${p.name}: ${p.address ?? p.short_address ?? "адресу ще уточнюємо"} – ${POINT_STATUS[p.status] ?? p.status}`);
 }
 
 export function systemPrompt({ plant, user, facts, knowledge, points = [] }) {
