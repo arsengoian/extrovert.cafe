@@ -54,6 +54,10 @@ export function CoinPacks({ ctx }) {
   useEffect(() => { load(); }, []);
 
   if (!packs) return failed ? <LoadFailed onRetry={() => { setFailed(false); load(); }} /> : <div className="stage-pad"><div className="skeleton" /></div>;
+  // Продаж монет вимкнено (features.js, coin_packs): api віддає порожній
+  // список. Кнопки сюди тоді немає, але старе посилання чи «Назад» можуть
+  // привести — порожній екран без пояснення гірший за одне речення.
+  if (!packs.length) return <div className="stage-pad"><div className="panel">Поповнення за гривні зараз недоступне.</div></div>;
 
   const pay = async (pack) => {
     setBusy(pack.code);

@@ -8,6 +8,7 @@ import { SET_ORDER, SLOT_ORDER, TIER_ORDER } from "./catalog.js";
 import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
 import { pickFaceSet } from "../faceSets.js";
+import { FEATURES } from "../features.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -63,6 +64,8 @@ export default async function routes(app) {
       ...profile(row),
       identity: { provider: identity?.provider ?? "dev", email: row.email },
       badges: { orders: unseen.n },
+      // Що зараз продається (features.js): клієнт ховає вимкнене.
+      features: FEATURES,
     };
   });
 

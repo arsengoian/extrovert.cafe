@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { economy } from "../economy.js";
+import { FEATURES } from "../features.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const prompts = JSON.parse(readFileSync(path.join(HERE, "..", "..", "data", "prompts.json"), "utf8"));
@@ -30,7 +31,12 @@ function economyLines() {
   return [
     `вода: пачка ${c.water.batch_liters} л за ${c.water.price_coins} монет, 1 л = 1 полив`,
     `компост ${c.compost.unit_price_coins}, добриво ${c.fertilizer.unit_price_coins}, інсектицид ${c.insecticide.unit_price_coins} монет за одиницю`,
-    `скринька: ${economy.crate.price_coins} монет або ${economy.crate.price_uah} грн`,
+    // Гривневу ціну — лише коли скринька за гривні продається (features.js):
+    // інакше кавенятко радило б те, чого в Магазині немає.
+    FEATURES.crate_cash
+      ? `скринька: ${economy.crate.price_coins} монет або ${economy.crate.price_uah} грн`
+      : `скринька: ${economy.crate.price_coins} монет, лише за монети`,
+    ...(FEATURES.coin_packs ? [] : ["монети за гривні зараз не продаються"]),
     `одяг напряму: ${real(economy.clothing_direct_price_coins).map(([t, p]) => `${t} ${p}`).join(", ")} монет`,
     `зерна за комплект: ${real(economy.set.beans_by_tier).map(([t, b]) => `${t} ${b}`).join(", ")}`,
     `повідомлення в чаті: перші ${economy.chat.free_messages} безкоштовні, далі ${economy.chat.price_coins} монета`,

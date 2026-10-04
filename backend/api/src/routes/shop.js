@@ -2,6 +2,7 @@
 // (gamification_ui.md, Магазин). Ціни беремо з backend/api/data/economy.json, а
 // габарити товарів — із shop-products.json (вони потрібні для НП).
 import { economy, shopProducts } from "../economy.js";
+import { FEATURES } from "../features.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
 
@@ -32,7 +33,9 @@ export default async function routes(app) {
         subtitle: "предмет і монети – завжди обидва",
         icon: "assets/ui/crate.png",
         price: e.crate.price_coins,
-        price_uah: e.crate.price_uah,
+        // Ціна в гривнях — лише коли скринька за гривні ввімкнена (features.js):
+        // без неї вітрина й прев'ю показують одну ціну, у монетах.
+        ...(FEATURES.crate_cash ? { price_uah: e.crate.price_uah } : {}),
         currency: "yellow",
         odds: e.crate.odds,
         coins_range: [e.crate.coins.min, e.crate.coins.max],
@@ -158,5 +161,7 @@ export default async function routes(app) {
 
   // Набори монет за гривню (§9.1). Ціни ще не затверджені — віддаємо як є,
   // клієнт покаже «—» замість вигаданого числа.
-  app.get("/shop/coin-packs", async () => ({ packs: economy.coin_packs }));
+  // Вимкнений продаж монет (features.js) — порожній список, а не помилка:
+  // «Не вистачає монет» просто не покаже способу «Купити набір».
+  app.get("/shop/coin-packs", async () => ({ packs: FEATURES.coin_packs ? economy.coin_packs : [] }));
 }

@@ -203,7 +203,7 @@ make env-push         # /opt/extrovert/.env.prod, а .env — симлінк н�
 | `SUPPORT_BOT_USERNAME` | кнопка «Підтримка» каже, що підтримка ще не підключена |
 | `SUPPORT_BOT_TOKEN`/`SECRET` | бот підтримки мовчить: вебхук не реєструється, відповісти з адмінки нема чим |
 | `GOOGLE_CLIENT_ID`/`SECRET` | вхід через Google відповідає `google_not_configured` |
-| `MONO_TOKEN` | набори монет і скринька за гривні відповідають 501 (`payments_not_connected`) |
+| `MONO_TOKEN` | набори монет і скринька за гривні відповідають 501 (`payments_not_connected`); вимкнені перемикачем у `features.js` — 404 ще до перевірки токена |
 | `GLITCHTIP_DSN_<СЕРВІС>` | помилки сервісу лишаються лише в його лозі (`lib/errors.js`) |
 
 `.env.example` тримає тестові ключі Checkbox поруч зі справжніми навмисно —

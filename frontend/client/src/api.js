@@ -91,6 +91,7 @@ const ERROR_TEXT = {
   bad_nickname: "Нікнейм – 3–24 букви, цифри, _ або -",
   bad_name: "Перевір ім'я",
   empty_name: "Вкажи ім'я",
+  feature_off: "Зараз це недоступне",
   already_named: "У кавенятка вже є ім'я – перейменувати його не можна",
   too_long: "Задовгий текст",
   empty_message: "Напиши хоч щось",

@@ -16,6 +16,7 @@ import { fail } from "../errors.js";
 import { economy } from "../economy.js";
 import { credit, notifyPlant } from "../notify.js";
 import { createInvoice, hasToken, invoiceStatus, verifyWebhook } from "../payments/mono.js";
+import { requireFeature } from "../features.js";
 
 const APP_ORIGIN = process.env.APP_ORIGIN || "https://extrovert.cafe";
 const API_ORIGIN = process.env.API_ORIGIN || "https://api.extrovert.cafe";
@@ -89,6 +90,7 @@ export default async function routes(app) {
   app.post("/shop/coin-packs/:code/invoice", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
+    requireFeature("coin_packs");
     const pack = packBy(String(req.params.code));
     if (!pack) fail(404, "no_such_pack");
 
@@ -128,6 +130,8 @@ export default async function routes(app) {
   app.post("/shop/crate/invoice", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
+    // Вимкнено з 04.10.2026: скринька лише за монети (features.js).
+    requireFeature("crate_cash");
     const price = economy.crate.price_uah;
 
     if (!hasToken()) fail(501, "payments_not_connected");

@@ -1,6 +1,8 @@
 // Прев'ю скриньки — кадр «Прев'ю скриньки»: скринька в сяйві, опис, шанси
-// по тірах і дві ціни. Шанси показуємо до покупки — це вимога економіки
-// (розділ 0, етична рекомендація), а не прикраса.
+// по тірах і ціна. Шанси показуємо до покупки — це вимога економіки
+// (розділ 0, етична рекомендація), а не прикраса. Друга ціна, у гривнях, —
+// лише коли скринька за гривні ввімкнена (feature crate_cash, з 04.10.2026
+// вимкнена): тоді скринька купується тільки за монети.
 //
 // Купівля й відкриття — окремі кроки: куплена скринька (за монети чи через
 // mono) лягає на Склад, у картку «Щасливі скриньки», і відкривається звідти:
@@ -14,6 +16,7 @@ import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { Sparks, burst, calm, markCoinSource } from "../ui/fx.jsx";
 import { PENDING_KEY } from "./CoinPacks.jsx";
+import { feature } from "../features.js";
 
 const TIERS = [["common", "Common"], ["uncommon", "Uncommon"], ["rare", "Rare"], ["epic", "Epic"]];
 
@@ -119,6 +122,7 @@ export function CratePreview({ item, ctx }) {
   const [confirm, setConfirm] = useState(false);
   const odds = item?.odds ?? {};
   const price = item?.price ?? 90;   // запас, поки не прийшла ціна з api (economy.json crate.price_coins)
+  const cash = feature(ctx.me, "crate_cash") && Boolean(item?.price_uah);
 
   // Куплена скринька — на Складі: туди й ведемо, там вона чекає «Відкрити».
   const buy = async () => {
@@ -142,7 +146,8 @@ export function CratePreview({ item, ctx }) {
   };
 
   // mono: рахунок, банк, повернення з ?pay=1 — той самий шлях, що в наборів
-  // монет. Без ключа mono локально працює тестова оплата — одразу на склад.
+  // монет. Без ключа mono сервер відповідає 501, а вимкнена скринька за
+  // гривні — 404 feature_off (тоді й кнопки немає).
   const buyMono = async () => {
     setBusy(true);
     setError(null);
@@ -195,9 +200,11 @@ export function CratePreview({ item, ctx }) {
           </span>
           {busy ? "…" : price}
         </button>
-        <button className="cta ghost" disabled={busy} onClick={buyMono}>
-          {item?.price_uah ?? 99} ₴
-        </button>
+        {cash && (
+          <button className="cta ghost" disabled={busy} onClick={buyMono}>
+            {item.price_uah} ₴
+          </button>
+        )}
       </div>
 
       {confirm && (

@@ -8,6 +8,7 @@ import { api } from "../api.js";
 import { ConfirmSheet } from "./Popup.jsx";
 import { preferSelected } from "../plant/selected.js";
 import { plural } from "./plural.js";
+import { feature } from "../features.js";
 
 // Слоти повного комплекту — ті самі, що в гардеробі (economy.set.slots).
 const SET_SLOTS = ["head", "body", "pants", "feet", "acc_1"];
@@ -91,7 +92,7 @@ export function NotEnoughCoins({ what, price, have, ctx, onClose }) {
                  title="Купити каву на точці"
                  sub={<>від {ways.drinkCoins[0]} до {ways.drinkCoins[1]} <Gold /> за напій</>} />
           )}
-          {ways.pack && (
+          {ways.pack && feature(ctx.me, "coin_packs") && (
             <Way accent primary icon={<img src="/assets/ui/coin_gold.webp" alt="" style={{ width: 30, height: 31 }} />}
                  title="Купити набір монет"
                  sub={<>{fmt(ways.pack.coins)} <Gold /> за {fmt(ways.pack.price_uah)} ₴, одразу</>}

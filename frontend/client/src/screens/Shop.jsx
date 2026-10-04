@@ -7,6 +7,7 @@ import { LoadFailed } from "../ui/Net.jsx";
 import { Coins2 } from "../ui/Coins.jsx";
 import { ItemIcon } from "../ui/ItemIcon.jsx";
 import { webp } from "../ui/img.jsx";
+import { feature } from "../features.js";
 
 const Bean = ({ size = 18 }) => (
   <img src="/assets/ui/bean.webp" alt="боби" style={{ width: size, height: size + 2 }} />
@@ -185,7 +186,7 @@ export function Shop({ ctx }) {
                 <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 800 }}>{crate.title}</span>
                 <span className="crate-price">
                   <div><Coins2 size={18} overlap={6} />{crate.price}</div>
-                  {crate.price_uah ? <small>або {crate.price_uah} ₴</small> : null}
+                  {feature(ctx.me, "crate_cash") && crate.price_uah ? <small>або {crate.price_uah} ₴</small> : null}
                 </span>
               </button>
             </div>

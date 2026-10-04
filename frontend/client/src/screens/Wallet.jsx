@@ -7,6 +7,7 @@ import { api } from "../api.js";
 import { PROFILE_DRAFT } from "./QuizProfile.jsx";
 import { rememberShopMode } from "./Shop.jsx";
 import { days } from "../ui/plural.js";
+import { feature } from "../features.js";
 
 const fmt = (n) => new Intl.NumberFormat("uk-UA").format(n ?? 0);
 
@@ -167,10 +168,13 @@ export function Wallet({ ctx }) {
           <img src="/assets/ui/beans_to_coins.webp" alt="" style={{ width: 45, height: 48 }} />
           <span>Обміняти</span>
         </button>
-        <button className="tile" onClick={() => ctx.push("coinPacks")}>
-          <img src="/assets/ui/pack_barrel.webp" alt="набір монет" style={{ width: 42, height: 48 }} />
-          <span>Поповнити</span>
-        </button>
+        {/* Продаж монет за гривні — за перемикачем coin_packs (features.js). */}
+        {feature(ctx.me, "coin_packs") && (
+          <button className="tile" onClick={() => ctx.push("coinPacks")}>
+            <img src="/assets/ui/pack_barrel.webp" alt="набір монет" style={{ width: 42, height: 48 }} />
+            <span>Поповнити</span>
+          </button>
+        )}
       </div>
 
       {/* Історія — одна кнопка на всю ширину під плитками (власник, 01.10.2026). */}
