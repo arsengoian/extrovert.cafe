@@ -30,7 +30,10 @@ export function QuizResponses() {
           { key: "kind", title: "що", render: (r) => <Badge tone={r.kind === "profile" ? "accent" : ""}>{r.kind === "profile" ? (r.partial ? "анкета, не дописана" : "анкета") : r.drink ?? "напій"}</Badge> },
           {
             key: "nickname", title: "хто", render: (r) => (
-              <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${r.user_id}`)}>{r.nickname}</button>
+              <span>
+                <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${r.user_id}`)}>{r.nickname}</button>
+                {r.stats_excluded && <small>поза статистикою</small>}
+              </span>
             ),
           },
           { key: "answers", title: "відповіді", render: (r) => <span title={answers(r.answers)}>{answers(r.answers).slice(0, 110) || <span className="muted">—</span>}</span> },

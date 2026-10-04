@@ -480,19 +480,22 @@ export async function dailyReport(pool) {
     `select count(*)::int as receipts, coalesce(sum(total_sum), 0) as sum
        from receipts
       where fiscal_date >= date_trunc('day', now() - interval '1 day')
-        and fiscal_date <  date_trunc('day', now())`
+        and fiscal_date <  date_trunc('day', now())
+        and receipt_in_stats(id)`
   );
   const { rows: [bonuses] } = await pool.query(
     `select count(*)::int as granted,
             count(*) filter (where redeemed_by is not null)::int as redeemed
        from bonus_grants bg join receipts r on r.id = bg.receipt_id
       where r.fiscal_date >= date_trunc('day', now() - interval '1 day')
-        and r.fiscal_date <  date_trunc('day', now())`
+        and r.fiscal_date <  date_trunc('day', now())
+        and in_stats(bg.redeemed_by)`
   );
   const { rows: [players] } = await pool.query(
     `select count(*)::int as new_players from users
       where created_at >= date_trunc('day', now() - interval '1 day')
-        and created_at <  date_trunc('day', now())`
+        and created_at <  date_trunc('day', now())
+        and not stats_excluded`
   );
   const { rows: [orders] } = await pool.query(
     "select count(*)::int as open from redemptions where status not in ('received', 'cancelled', 'returned')"

@@ -121,6 +121,7 @@ export const api = {
   orderStatus: (id, body) => request(`/admin/orders/${id}/status`, { method: "POST", body }),
   users: (p) => request(`/admin/users${qs(p)}`),
   user: (id) => request(`/admin/users/${id}`),
+  userStats: (id, excluded) => request(`/admin/users/${id}/stats`, { method: "POST", body: { excluded } }),
   receipts: (p) => request(`/admin/receipts${qs(p)}`),
   video: (p) => request(`/admin/video${qs(p)}`),
   supportThreads: (status) => request(`/admin/support/threads` + qs({ status })),

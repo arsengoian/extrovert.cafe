@@ -14,7 +14,10 @@ ifeq ($(OS),Windows_NT)
 # українські @echo виходили кракозябрами (03.10.2026). chcp 65001 перемикає
 # сторінку коду самої консолі ще до розбору цілей; PowerShell і cmd свій
 # текст виводять Юнікодом, тож для них це нічого не ламає.
-_utf8 := $(shell chcp 65001 >NUL 2>&1)
+# chcp.com з розширенням і без перенаправлення в NUL: коли в PATH є sh із
+# Git, make запускає $(shell) через нього, а sh не знаходить «chcp» без .com
+# і створював у корені файл NUL (04.10.2026). Вивід ковтає сам $(shell).
+_utf8 := $(shell chcp.com 65001 2>&1)
 BUN_EXE :=$(subst \,/,$(USERPROFILE))/.bun/bin/bun.exe
 BUN ?= $(if $(wildcard $(BUN_EXE)),$(BUN_EXE),bun)
 else

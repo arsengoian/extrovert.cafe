@@ -18,7 +18,7 @@ export function Users() {
       <div className="head">
         <div>
           <h1>Користувачі</h1>
-          <p>{fmt.int(data.counts.total)} акаунтів – показуємо перші 200 за останньою появою</p>
+          <p>{fmt.int(data.counts.total)} акаунтів у статистиці – показуємо перші 200 за останньою появою, разом зі своїми й тестовими</p>
         </div>
         <div className="right">
           <form className="field" style={{ width: 240 }} onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
@@ -29,7 +29,7 @@ export function Users() {
       </div>
 
       <div className="grid k3" style={{ marginBottom: 12 }}>
-        <Kpi label="Усього" value={fmt.int(data.counts.total)} note="живих акаунтів" />
+        <Kpi label="Усього" value={fmt.int(data.counts.total)} note="живих, без тих, що поза статистикою" />
         <Kpi label="За тиждень" value={fmt.int(data.counts.week)} note="заходили" />
         <Kpi label="Нових за тиждень" value={fmt.int(data.counts.fresh)} note="зареєструвались" />
       </div>
@@ -44,7 +44,7 @@ export function Users() {
           { key: "plants", title: "кавенят", num: true, render: (u) => <span>{u.plants}{u.top_stage !== null && <small>стадія {u.top_stage}</small>}</span> },
           { key: "items", title: "речей", num: true },
           { key: "last_seen_at", title: "остання поява", render: (u) => (u.last_seen_at ? fmt.ago(u.last_seen_at) : <span className="muted">не заходив</span>) },
-          { key: "state", title: "", render: (u) => (u.deleted_at ? <Badge>видалений</Badge> : null) },
+          { key: "state", title: "", render: (u) => (u.deleted_at ? <Badge>видалений</Badge> : u.stats_excluded ? <Badge>поза статистикою</Badge> : null) },
         ]}
         rows={data.users}
         empty="нікого не знайшли"

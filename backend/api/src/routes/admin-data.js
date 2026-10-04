@@ -1,6 +1,12 @@
 // Адмінка: статистика, квізи, користувачі, покупки, відео
 // (docs/admin_panel.md, групи «управління», «користувачі», «відео»).
 //
+// Акаунти поза статистикою (users.stats_excluded — свої й тестові, власник
+// 04.10.2026) у підрахунки не потрапляють: in_stats(user_id) для всього,
+// що робить акаунт, receipt_in_stats(id) для чеків, бонус із яких забрав
+// такий акаунт. У списках (гравці, покупки, стрічка квізів) вони лишаються
+// з позначкою — щоб їх було видно й можна було зняти прапорець.
+//
 // Проміжок дат приходить із екрана, типово — 30 діб. Ряди повертаємо
 // добовими точками: графік за рік у такому вигляді — 365 чисел, і рахувати
 // його на льоту дешевше, ніж тримати ще один кеш, який одного дня розійдеться
@@ -23,7 +29,7 @@ const redis = redisClient();
 // Версія в ключі — щоб зміна складу відповіді не чекала 04:00: старий
 // кеш просто перестає читатись (23.09.2026 так і сталось із розрізом
 // ринку по виду товару).
-const CACHE_KEY = "stats:v2:default";
+const CACHE_KEY = "stats:v3:default";
 const nextFourAm = () => {
   const now = new Date();
   const four = new Date(now);
@@ -200,7 +206,7 @@ export default async function routes(app) {
       `select date_trunc('day', r.fiscal_date) as day, r.point_id, p.name as point_name,
               sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
          from receipts r left join points p on p.id = r.point_id
-        where r.fiscal_date between $1 and $2
+        where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
         group by 1, 2, 3 order by 1`,
       [from, to]
     );
@@ -211,7 +217,7 @@ export default async function routes(app) {
               count(*) filter (where b.status = 'redeemed')::int as redeemed,
               coalesce(sum(b.coins_yellow) filter (where b.status = 'redeemed'), 0)::int as coins
          from bonus_grants b join receipts r on r.id = b.receipt_id
-        where r.fiscal_date between $1 and $2
+        where r.fiscal_date between $1 and $2 and in_stats(b.redeemed_by)
         group by 1 order by 1`,
       [from, to]
     );
@@ -226,7 +232,7 @@ export default async function routes(app) {
               -sum(delta_silver) filter (where delta_silver < 0)::int as silver_out,
               sum(delta_beans) filter (where delta_beans > 0)::int as beans_in,
               -sum(delta_beans) filter (where delta_beans < 0)::int as beans_out
-         from ledger_entries where created_at between $1 and $2
+         from ledger_entries where created_at between $1 and $2 and in_stats(user_id)
         group by 1 order by 1`,
       [from, to]
     );
@@ -238,7 +244,7 @@ export default async function routes(app) {
       `select date_trunc('day', t.created_at) as day, l.kind, t.currency,
               count(*)::int as trades, sum(t.gross)::int as gross, sum(t.commission)::int as commission
          from market_trades t join market_listings l on l.id = t.listing_id
-        where t.created_at between $1 and $2
+        where t.created_at between $1 and $2 and in_stats(t.buyer_id) and in_stats(t.seller_id)
         group by 1, 2, 3 order by 1`,
       [from, to]
     );
@@ -257,14 +263,14 @@ export default async function routes(app) {
     const byHour = await many(
       `select extract(hour from r.fiscal_date at time zone 'Europe/Kyiv')::int as hour,
               sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2
+         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
         group by 1 order by 1`,
       [from, to]
     );
     const byWeekday = await many(
       `select extract(isodow from r.fiscal_date at time zone 'Europe/Kyiv')::int as weekday,
               sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2
+         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
         group by 1 order by 1`,
       [from, to]
     );
@@ -275,17 +281,18 @@ export default async function routes(app) {
       `select count(*) filter (where b.status = 'redeemed')::int as redeemed,
               count(*) filter (where b.status <> 'redeemed')::int as waiting
          from bonus_grants b join receipts r on r.id = b.receipt_id
-        where r.fiscal_date between $1 and $2`,
+        where r.fiscal_date between $1 and $2 and in_stats(b.redeemed_by)`,
       [from, to]
     );
 
     const totals = await one(
-      `select (select coalesce(sum(total_sum), 0)::float from receipts where fiscal_date between $1 and $2) as revenue,
-              (select count(*)::int from receipts where fiscal_date between $1 and $2) as receipts,
-              (select count(*)::int from users where created_at between $1 and $2 and deleted_at is null) as new_users,
-              (select count(*)::int from users where last_seen_at between $1 and $2) as active_users,
-              (select count(*)::int from bonus_grants where redeemed_at between $1 and $2) as redeemed,
-              (select coalesce(sum(gross), 0)::int from market_trades where created_at between $1 and $2) as market_gross`,
+      `select (select coalesce(sum(total_sum), 0)::float from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)) as revenue,
+              (select count(*)::int from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)) as receipts,
+              (select count(*)::int from users where created_at between $1 and $2 and deleted_at is null and not stats_excluded) as new_users,
+              (select count(*)::int from users where last_seen_at between $1 and $2 and not stats_excluded) as active_users,
+              (select count(*)::int from bonus_grants where redeemed_at between $1 and $2 and in_stats(redeemed_by)) as redeemed,
+              (select coalesce(sum(gross), 0)::int from market_trades
+                where created_at between $1 and $2 and in_stats(buyer_id) and in_stats(seller_id)) as market_gross`,
       [from, to]
     );
 
@@ -312,7 +319,7 @@ export default async function routes(app) {
     const profile = await many(
       // Разом із незавершеними анкетами: їхні відповіді теж рахуються, кожне
       // питання — лише серед тих, хто на нього відповів (tally), 01.10.2026.
-      "select answers, created_at, completed_at from quiz_profile_responses where created_at between $1 and $2",
+      "select answers, created_at, completed_at from quiz_profile_responses where created_at between $1 and $2 and in_stats(user_id)",
       [from, to]
     );
     const rows = await many(
@@ -320,7 +327,7 @@ export default async function routes(app) {
          from quiz_drink_responses q
          join receipt_items i on i.id = q.receipt_item_id
          left join drinks d on d.slot = i.slot
-        where q.created_at between $1 and $2
+        where q.created_at between $1 and $2 and in_stats(q.user_id)
         order by q.created_at`,
       [from, to]
     );
@@ -355,14 +362,14 @@ export default async function routes(app) {
     const counts = await many(
       `select bg.redeemed_by as user_id, count(*)::int as drinks
          from receipt_items ri join bonus_grants bg on bg.receipt_id = ri.receipt_id
-        where bg.redeemed_by is not null and ri.is_bonus_drink = false
+        where bg.redeemed_by is not null and ri.is_bonus_drink = false and in_stats(bg.redeemed_by)
         group by 1`
     );
     const earned = counts.reduce((a, u) => a + earnedCredits(u.drinks), 0);
-    const spent = (await one("select count(*)::int as n from quiz_drink_responses"))?.n ?? 0;
+    const spent = (await one("select count(*)::int as n from quiz_drink_responses where in_stats(user_id)"))?.n ?? 0;
 
-    const players = (await one("select count(*)::int as n from users"))?.n ?? 0;
-    const filled = (await one("select count(*)::int as n from quiz_profile_responses where completed_at is not null"))?.n ?? 0;
+    const players = (await one("select count(*)::int as n from users where not stats_excluded"))?.n ?? 0;
+    const filled = (await one("select count(*)::int as n from quiz_profile_responses where completed_at is not null and in_stats(user_id)"))?.n ?? 0;
 
     const texts = picked.filter((r) => r.free_text?.trim());
     return {
@@ -400,11 +407,11 @@ export default async function routes(app) {
       // напою додали sprite (шкали, про які не питали), без null тут запит
       // падав цілком, і стрічка показувала «internal» (28.09.2026).
       `(select 'profile' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, null as drink, null as sprite, q.completed_at is null as partial
+               u.id as user_id, u.nickname, u.stats_excluded, null as drink, null as sprite, q.completed_at is null as partial
           from quiz_profile_responses q join users u on u.id = q.user_id)
        union all
        (select 'drink' as kind, q.id, q.created_at, q.answers, q.free_text, q.coins_awarded,
-               u.id as user_id, u.nickname, coalesce(d.name, i.name) as drink, d.sprite, false as partial
+               u.id as user_id, u.nickname, u.stats_excluded, coalesce(d.name, i.name) as drink, d.sprite, false as partial
           from quiz_drink_responses q
           join users u on u.id = q.user_id
           join receipt_items i on i.id = q.receipt_item_id
@@ -424,7 +431,7 @@ export default async function routes(app) {
     const q = String(req.query.q ?? "").trim();
     const users = await many(
       `select u.id, u.nickname, u.email, u.coins_yellow, u.coins_silver, u.beans,
-              u.last_seen_at, u.created_at, u.deleted_at,
+              u.last_seen_at, u.created_at, u.deleted_at, u.stats_excluded,
               (select count(*)::int from plants p where p.owner_id = u.id) as plants,
               (select count(*)::int from user_items i where i.user_id = u.id) as items,
               (select max(growth_stage) from plants p where p.owner_id = u.id) as top_stage
@@ -438,7 +445,7 @@ export default async function routes(app) {
       `select count(*) filter (where deleted_at is null)::int as total,
               count(*) filter (where last_seen_at > now() - interval '7 days')::int as week,
               count(*) filter (where created_at > now() - interval '7 days')::int as fresh
-         from users`
+         from users where not stats_excluded`
     );
     return { users, counts };
   });
@@ -448,7 +455,7 @@ export default async function routes(app) {
     const user = await one(
       `select id, nickname, email, coins_yellow, coins_silver, beans, water_liters, compost_kg,
               fertilizer_kg, insecticide_bottles, consent_at, terms_version, metadata,
-              last_seen_at, created_at, deleted_at, nickname_changed_at
+              last_seen_at, created_at, deleted_at, nickname_changed_at, stats_excluded
          from users where id = $1`,
       [req.params.id]
     );
@@ -500,6 +507,25 @@ export default async function routes(app) {
     return { user, identities, plants, ledger, items, chat, crates, receipts, orders };
   });
 
+  // Прапорець «поза статистикою» (власник, 04.10.2026): свої й тестові
+  // акаунти. Дані акаунта не чіпає — лише підрахунки, і в обидва боки.
+  // Типовий дашборд лежить у кеші до 04:00, а денні відра аналітики
+  // перераховуються лише за сьогодні й учора, тож скидаємо обидва: кеш
+  // порахується на наступному відкритті, відра — за ≤10 хв (scheduler
+  // перераховує дні, для яких відер немає).
+  app.post("/admin/users/:id/stats", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    if (typeof req.body?.excluded !== "boolean") fail(400, "bad_flag");
+    const row = await one(
+      "update users set stats_excluded = $2 where id = $1 returning id, stats_excluded",
+      [req.params.id, req.body.excluded]
+    );
+    if (!row) fail(404, "no_such_user");
+    await redis.del(CACHE_KEY).catch(() => {});
+    await many("delete from analytics_daily");
+    return { ok: true, stats_excluded: row.stats_excluded };
+  });
+
   // ── Покупки з Checkbox ──────────────────────────────────────────────
   app.get("/admin/receipts", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
@@ -511,7 +537,7 @@ export default async function routes(app) {
               (select json_agg(json_build_object('name', i.name, 'qty', i.qty, 'sum', i.sum_uah, 'bonus', i.is_bonus_drink) order by i.id)
                  from receipt_items i where i.receipt_id = r.id) as items,
               b.status as bonus_status, b.coins_yellow as bonus_coins, b.show_until, b.redeemed_at,
-              u.id as redeemed_by, u.nickname as redeemed_nickname
+              u.id as redeemed_by, u.nickname as redeemed_nickname, u.stats_excluded as redeemed_excluded
          from receipts r
          left join points p on p.id = r.point_id
          left join bonus_grants b on b.receipt_id = r.id
@@ -523,7 +549,7 @@ export default async function routes(app) {
     const totals = await one(
       `select count(*)::int as receipts, coalesce(sum(total_sum), 0)::float as sum_uah,
               count(*) filter (where exists (select 1 from bonus_grants b where b.receipt_id = r.id and b.status = 'redeemed'))::int as redeemed
-         from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)`,
+         from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3) and receipt_in_stats(r.id)`,
       [from, to, point]
     );
     return { from, to, receipts: rows, totals };

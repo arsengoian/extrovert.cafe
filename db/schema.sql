@@ -73,6 +73,15 @@ end $$;
 
 
 --
+-- Name: in_stats(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.in_stats(uid uuid) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$ select uid is null or not exists (select 1 from users where id = uid and stats_excluded) $$;
+
+
+--
 -- Name: plants_rehome_on_delete(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -98,6 +107,15 @@ begin
   end if;
   return new;
 end $$;
+
+
+--
+-- Name: receipt_in_stats(bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.receipt_in_stats(rid bigint) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$ select not exists (select 1 from bonus_grants b where b.receipt_id = rid and not in_stats(b.redeemed_by)) $$;
 
 
 --
@@ -1734,6 +1752,7 @@ CREATE TABLE public.users (
     deleted_at timestamp with time zone,
     deleted_nickname public.citext,
     nickname_changed_at timestamp with time zone,
+    stats_excluded boolean DEFAULT false NOT NULL,
     CONSTRAINT users_beans_check CHECK ((beans >= 0)),
     CONSTRAINT users_coins_silver_check CHECK ((coins_silver >= 0)),
     CONSTRAINT users_coins_yellow_check CHECK ((coins_yellow >= 0)),
@@ -3859,4 +3878,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261003130000'),
     ('20261003140000'),
     ('20261003150000'),
-    ('20261003160000');
+    ('20261003160000'),
+    ('20261004090000');

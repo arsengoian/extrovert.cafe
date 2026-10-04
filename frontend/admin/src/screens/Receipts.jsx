@@ -28,7 +28,7 @@ export function Receipts() {
       </div>
 
       <div className="grid k3" style={{ marginBottom: 12 }}>
-        <Kpi label="Чеків" value={fmt.int(data.totals.receipts)} note="за період" />
+        <Kpi label="Чеків" value={fmt.int(data.totals.receipts)} note="за період, без забраних акаунтами поза статистикою" />
         <Kpi label="Виручка" value={fmt.uah(data.totals.sum_uah)} note="сума чеків" />
         <Kpi
           label="Бонусів забрали"
@@ -58,7 +58,7 @@ export function Receipts() {
           },
           {
             key: "redeemed_nickname", title: "хто забрав", render: (r) => (r.redeemed_by
-              ? <button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${r.redeemed_by}`)}>{r.redeemed_nickname}</button>
+              ? <span><button className="btn" style={{ height: 24, padding: "0 8px" }} onClick={() => go(`users/${r.redeemed_by}`)}>{r.redeemed_nickname}</button>{r.redeemed_excluded && <small>поза статистикою</small>}</span>
               : <span className="muted">—</span>),
           },
           {

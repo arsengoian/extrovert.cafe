@@ -37,13 +37,13 @@ async function issueAdmin(reply, admin) {
 // запит упаде (стара база, перейменована колонка), решта однаково
 // покажеться — заглушка не має падати цілком через одну цифру.
 const COUNTS = [
-  ["players", "гравців", "select count(*)::int as n from users where deleted_at is null"],
-  ["receipts_today", "чеків сьогодні", "select count(*)::int as n from receipts where created_at >= current_date"],
+  ["players", "гравців", "select count(*)::int as n from users where deleted_at is null and not stats_excluded"],
+  ["receipts_today", "чеків сьогодні", "select count(*)::int as n from receipts where created_at >= current_date and receipt_in_stats(id)"],
   ["problems_open", "скарг відкритих", "select count(*)::int as n from problem_reports where status <> 'closed'"],
-  ["listings_active", "лотів на маркеті", "select count(*)::int as n from market_listings where status = 'active'"],
+  ["listings_active", "лотів на маркеті", "select count(*)::int as n from market_listings where status = 'active' and in_stats(seller_id)"],
   ["support_waiting", "звернень без відповіді", "select count(*)::int as n from support_threads where status = 'open' and last_user_at > coalesce(last_admin_at, 'epoch')"],
   ["orders_open", "замовлень у роботі", "select count(*)::int as n from redemptions where status in ('new', 'printing', 'packing')"],
-  ["quiz_week", "відповідей за тиждень", "select (select count(*) from quiz_profile_responses where created_at > now() - interval '7 days') + (select count(*) from quiz_drink_responses where created_at > now() - interval '7 days') as n"],
+  ["quiz_week", "відповідей за тиждень", "select (select count(*) from quiz_profile_responses where created_at > now() - interval '7 days' and in_stats(user_id)) + (select count(*) from quiz_drink_responses where created_at > now() - interval '7 days' and in_stats(user_id)) as n"],
 ];
 
 export default async function routes(app) {

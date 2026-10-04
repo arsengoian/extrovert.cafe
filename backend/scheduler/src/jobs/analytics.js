@@ -72,13 +72,19 @@ export async function flushAnalytics({ pool, redis }) {
 // ── зрізи ───────────────────────────────────────────────────────────────
 // Події проміжку [$1, $2) без адмінки й точок; who — людина: акаунт, а
 // гість — за адресою (у кав'ярні гості за одним Wi-Fi зливаються в одного,
-// і це свідома межа: інакше довелося б мітити пристрій).
+// і це свідома межа: інакше довелося б мітити пристрій). Акаунти поза
+// статистикою (users.stats_excluded, 04.10.2026) не рахуються ніде: події
+// лишаються в таблиці, тож зняв прапорець — і минуле перерахується. Тут
+// підзапитом, а не in_stats(): функцію з підзапитом Postgres не вбудовує й
+// кличе на кожну подію, а EV проходиться десятки разів за прогін; список
+// таких акаунтів він рахує один раз і тримає хешем.
 const EV = `
   ev as (
     select e.at, e.user_id, e.ip, e.type, e.payload,
            coalesce(e.user_id::text, 'ip:' || host(e.ip)) as who
       from analytics_events e
      where e.at >= $1 and e.at < $2
+       and (e.user_id is null or e.user_id not in (select id from users where stats_excluded))
        and (e.type = 'nav' or (e.payload->>'route') !~ '${NOT_CLIENT}')
   )`;
 
@@ -129,7 +135,7 @@ async function sliceMetrics(pool, from, to) {
   put("views", "", aud.views);
   put("requests", "", aud.requests);
   put("user_days", "", aud.user_days);
-  const [sign] = await q("select count(*) as n from users where created_at >= $1 and created_at < $2");
+  const [sign] = await q("select count(*) as n from users where created_at >= $1 and created_at < $2 and not stats_excluded");
   put("signups", "", sign.n);
   const [ret] = await q(`with ${EV} select count(distinct ev.user_id) as n from ev join users u on u.id = ev.user_id where u.created_at < $1`);
   put("returning", "", ret.n);
@@ -259,7 +265,7 @@ async function retention(pool) {
            count(*) filter (where u.created_at < now() - interval '8 days') as base7,
            count(*) filter (where u.created_at < now() - interval '8 days' and exists (
              select 1 from analytics_events e where e.user_id = u.id and e.at >= u.created_at + interval '7 days' and e.at < u.created_at + interval '8 days')) as d7
-      from users u where u.created_at >= now() - interval '30 days' and u.deleted_at is null`);
+      from users u where u.created_at >= now() - interval '30 days' and u.deleted_at is null and not u.stats_excluded`);
   return [
     ["retention_d1_base", "", Number(r.base1)], ["retention_d1", "", Number(r.d1)],
     ["retention_d7_base", "", Number(r.base7)], ["retention_d7", "", Number(r.d7)],

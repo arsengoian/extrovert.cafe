@@ -1,9 +1,12 @@
 // Картка гравця: баланси, журнал, інвентар, кавенята, чат, крейти, покупки
 // (docs/admin_panel.md, «Користувачі»).
 //
-// Читання й нічого більше: кнопки «нарахувати» чи «забанити» тут немає
-// свідомо — дія без екрана, який пояснює наслідки, небезпечніша за її
-// відсутність.
+// Майже лише читання: кнопки «нарахувати» чи «забанити» тут немає свідомо —
+// дія без екрана, який пояснює наслідки, небезпечніша за її відсутність.
+// Єдина дія — прапорець «поза статистикою» (власник, 04.10.2026): він
+// нічого не змінює в акаунті, лише прибирає його з підрахунків, і
+// повертається тим самим перемикачем.
+import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Badge, Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
@@ -14,6 +17,39 @@ const REASON = {
   market: "ринок", transfer: "переказ", repost: "пост", chat: "чат", quiz: "опитування",
   delivery: "доставка", wardrobe_set: "комплект одягу",
 };
+// Свої й тестові акаунти: дані лишаються, а в дашбордах, аналітиці, квізах,
+// лічильниках і щоденному звіті їх немає (users.stats_excluded).
+function StatsFlag({ user }) {
+  const [excluded, setExcluded] = useState(user.stats_excluded);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const toggle = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await api.userStats(user.id, !excluded);
+      setExcluded(r.stats_excluded);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card title="Статистика" note={excluded ? "акаунт поза статистикою" : "акаунт рахується"} style={{ marginBottom: 12 }}>
+      <p className="muted" style={{ margin: "0 0 10px" }}>
+        {excluded
+          ? "Дії цього акаунта не потрапляють у дашборди, аналітику, квізи, лічильники гравців і щоденний звіт; чеки, бонус із яких він забрав, — теж. Дані самого акаунта на місці."
+          : "Свій чи тестовий акаунт можна прибрати з усієї статистики – разом із минулим. Дані акаунта не зміняться, і повернути його в підрахунки можна будь-коли."}
+      </p>
+      <button className="btn" disabled={busy} onClick={toggle}>
+        {busy ? "Зберігаємо…" : excluded ? "Повернути в статистику" : "Прибрати зі статистики"}
+      </button>
+      {error && <span className="muted" style={{ marginLeft: 10 }}>не вдалось: {error}</span>}
+    </Card>
+  );
+}
+
 const delta = (n, sign = "") => (n ? <b style={{ color: n > 0 ? "var(--ok)" : "var(--bad)" }}>{n > 0 ? "+" : ""}{fmt.int(n)}{sign}</b> : null);
 
 export function User({ id }) {
@@ -26,7 +62,7 @@ export function User({ id }) {
     <>
       <div className="head">
         <div>
-          <h1>{user.nickname}{user.deleted_at && <span className="muted"> (видалений)</span>}</h1>
+          <h1>{user.nickname}{user.deleted_at && <span className="muted"> (видалений)</span>}{user.stats_excluded && <> <Badge>поза статистикою</Badge></>}</h1>
           <p>
             {user.email ?? "без пошти"}; вхід: {identities.map((i) => i.provider).join(", ") || "дев"};
             {" "}з нами з {fmt.dayFull(user.created_at)}; остання поява {user.last_seen_at ? fmt.ago(user.last_seen_at) : "—"}
@@ -34,6 +70,8 @@ export function User({ id }) {
         </div>
         <div className="right"><button className="btn" onClick={() => go("users")}>← до списку</button></div>
       </div>
+
+      <StatsFlag user={user} />
 
       <div className="grid k4" style={{ marginBottom: 12 }}>
         <Kpi label="Жовті монети" value={fmt.int(user.coins_yellow)} note="за покупки й активність" />

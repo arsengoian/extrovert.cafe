@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 0556de3</p>
+  <p class="eyebrow">extrovert.cafe · джерело ee21df9</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1532,6 +1532,7 @@ erDiagram
         timestamptz consent_at &quot;терми + обробка даних&quot;
         text terms_version
         jsonb metadata &quot;приховані службові змінні, у UI не показуються&quot;
+        bool stats_excluded &quot;свій чи тестовий акаунт: поза всією статистикою&quot;
         timestamptz last_seen_at
         timestamptz created_at
     }
@@ -1682,8 +1683,8 @@ erDiagram
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-receipts">receipts</a><span class="rel-label">де продано</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-menu_deployment_targets">menu_deployment_targets</a><span class="rel-label">яке меню стоїть</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-point_discounts">point_discounts</a><span class="rel-label">знижки в кав'ярні, черга</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-device_telemetry">device_telemetry</a><span class="rel-label">що шле залізо</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-video_segments">video_segments</a><span class="rel-label">запис</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-problem_reports">problem_reports</a><span class="rel-label">скарги з форми</span></li></ul>
 </article>
 <article class="entity" id="t-users">
-  <header><h4>users</h4><span class="entity-count">18 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">nickname</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">унікальний, автоген при реєстрації</td></tr><tr><td class="c-name">nickname_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">зміна з профілю — раз на 30 днів</td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">метч між провайдерами</td></tr><tr><td class="c-name">deleted_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">акаунт видалено: пошта стерта, вхід закрито</td></tr><tr><td class="c-name">deleted_nickname</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">яким був нікнейм до видалення</td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, передаються між гравцями</td></tr><tr><td class="c-name">coins_silver</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, НЕ передаються</td></tr><tr><td class="c-name">beans</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">water_liters</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">відро: check &gt;= 0</td></tr><tr><td class="c-name">compost_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">fertilizer_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">insecticide_bottles</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">consent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">терми + обробка даних</td></tr><tr><td class="c-name">terms_version</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">metadata</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">приховані службові змінні, у UI не показуються</td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <header><h4>users</h4><span class="entity-count">19 кол.</span></header>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">uuid</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">nickname</td><td class="c-type">citext</td><td class="c-keys"><span class="key key-uk">UK</span></td><td class="c-note">унікальний, автоген при реєстрації</td></tr><tr><td class="c-name">nickname_changed_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">зміна з профілю — раз на 30 днів</td></tr><tr><td class="c-name">email</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">метч між провайдерами</td></tr><tr><td class="c-name">deleted_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">акаунт видалено: пошта стерта, вхід закрито</td></tr><tr><td class="c-name">deleted_nickname</td><td class="c-type">citext</td><td class="c-keys"></td><td class="c-note">яким був нікнейм до видалення</td></tr><tr><td class="c-name">coins_yellow</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, передаються між гравцями</td></tr><tr><td class="c-name">coins_silver</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0, НЕ передаються</td></tr><tr><td class="c-name">beans</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">water_liters</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">відро: check &gt;= 0</td></tr><tr><td class="c-name">compost_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">fertilizer_kg</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">insecticide_bottles</td><td class="c-type">int</td><td class="c-keys"></td><td class="c-note">check &gt;= 0</td></tr><tr><td class="c-name">consent_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note">терми + обробка даних</td></tr><tr><td class="c-name">terms_version</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">metadata</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">приховані службові змінні, у UI не показуються</td></tr><tr><td class="c-name">stats_excluded</td><td class="c-type">bool</td><td class="c-keys"></td><td class="c-note">свій чи тестовий акаунт: поза всією статистикою</td></tr><tr><td class="c-name">last_seen_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">created_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">→ 0..N</span><a href="#t-user_identities">user_identities</a><span class="rel-label">пошта / google</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-bonus_grants">bonus_grants</a><span class="rel-label">хто заредімив</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-ledger_entries">ledger_entries</a><span class="rel-label">кожна операція</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-user_items">user_items</a><span class="rel-label">склад</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-crate_openings">crate_openings</a><span class="rel-label">відкриття крейтів</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-user_crates">user_crates</a><span class="rel-label">скриньки на складі</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-payments">payments</a><span class="rel-label">оплати гривнями через mono</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-market_listings">market_listings</a><span class="rel-label">продає</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-coin_transfers">coin_transfers</a><span class="rel-label">переказ жовтих</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-redemptions">redemptions</a><span class="rel-label">доставки Новою Поштою</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-quiz_drink_responses">quiz_drink_responses</a><span class="rel-label">квіз про напій</span></li><li><span class="rel-card">→ 0..1</span><a href="#t-quiz_profile_responses">quiz_profile_responses</a><span class="rel-label">анкета, одноразово</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-repost_verifications">repost_verifications</a><span class="rel-label">репости</span></li><li><span class="rel-card">→ 0..N</span><a href="#t-plants">plants</a><span class="rel-label">необмежено кавенят</span></li></ul>
 </article>
 <article class="entity" id="t-nickname_words">
@@ -1779,6 +1780,18 @@ QR → скан забирає бонус на пристрій (<code>claimed_a
 акаунти мають право міняти скрипти розробника (<a class="doclink" href="#roadmap"><code>roadmap.md</code></a>, крок 0-біс). У jsonb, а не колонкою — за тим самим правилом, що й
 косметика куща (§0): по ньому не будують звʼязків і не рахують баланси, а
 нові такі змінні не повинні означати міграцію.</p>
+<p><strong><code>users.stats_excluded</code> — акаунти поза статистикою</strong> (власник,
+04.10.2026). Свої й тестові акаунти живуть на проді поруч зі справжніми
+гравцями, але не впливають на жоден дашборд: дашборд статистики, аналітику
+застосунку, квізи, лічильники гравців в адмінці й щоденний звіт overseer.
+Колонкою, а не ключем у <code>metadata</code>, бо саме по ній рахують. Умова одна на
+всі запити — дві SQL-функції з міграції <code>20261004090000</code>:
+<code>in_stats(user_id)</code> (null — гість чи нічий бонус — рахується) і
+<code>receipt_in_stats(receipt_id)</code>: чек, бонус із якого забрав такий акаунт, —
+його ж тестова покупка, і з виручки й бонусів він теж зникає. Дані акаунта
+прапорець не чіпає, події аналітики теж лишаються в таблиці: зняв
+прапорець — і минуле перерахувалось. Ставить його адмінка (картка гравця),
+вона ж скидає кеш дашборду й денні відра аналітики.</p>
 <p><strong><code>NICKNAME_WORDS</code> — словник нікнеймів</strong> виду «прикметник_кавове_слово».
 Окремо від <code>users</code>, бо це контент, а не дані гравців: заливається сідами
 (<code>db/seeds/nickname_words.json</code>), і нове слово — рядок у JSON, а не реліз
@@ -11637,6 +11650,15 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <p>Рахунок закешований: типовий проміжок лежить у Redis до 04:00, свій проміжок
 із фільтра рахується наживо. У ключі кеша є версія — інакше зміна складу
 відповіді чекала б ранку.</p>
+<p><strong>Свої й тестові акаунти не рахуються ніде</strong> (власник, 04.10.2026): ні тут,
+ні в аналітиці, квізах, лічильниках гравців на «Користувачах» і в огляді, ні
+в щоденному звіті overseer. Прапорець «поза статистикою» ставиться на
+картці гравця й знімається там само; дані акаунта не змінюються, а чеки,
+бонус із яких забрав такий акаунт, теж випадають із виручки й бонусів.
+Списки (гравці, покупки, стрічка квізів) показують ці акаунти з позначкою
+«поза статистикою». Операційні черги — відкриті замовлення, скарги,
+звернення — рахують усіх: це робота, а не статистика. Механіка —
+<a class="doclink" href="#db"><code>db-schema.md</code></a>, <code>users.stats_excluded</code>.</p>
 <h3 id="admin-panel-аналітика-застосунку-02-10-2026"><a class="anchor" href="#admin-panel-аналітика-застосунку-02-10-2026" aria-hidden="true">#</a>Аналітика застосунку (02.10.2026)</h3>
 <p>Власний збір подій: кожна навігація в застосунку гравця й кожен його запит до api. Перемикач доба / тиждень / місяць; цифри оновлює scheduler раз на 10 хвилин.</p>
 <ul>
@@ -11705,6 +11727,7 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 </ul>
 <h2 id="admin-panel-група-користувачі"><a class="anchor" href="#admin-panel-група-користувачі" aria-hidden="true">#</a>Група &quot;користувачі&quot;</h2>
 <h3 id="admin-panel-користувачі"><a class="anchor" href="#admin-panel-користувачі" aria-hidden="true">#</a>Користувачі</h3>
+<p>Прапорець «поза статистикою» на картці гравця — для своїх і тестових акаунтів (див. «Дашборд статистики»).</p>
 <p>Список користувачів з </p>
 <ul>
 <li>балансами срібних і жовтих монет та бобів, </li>
@@ -12828,7 +12851,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 0556de3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ee21df9 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
