@@ -1,0 +1,5 @@
+# /etc/udev/rules.d/90-extrovert-bridge.rules
+# USB-перехідник до платіжного терміналу (eth1) — у міст br0, щойно він
+# з'явився: і коли вмикається пізніше за extrovert-bridge.service, і після
+# перепідключення. Немає мосту (не піднявся) — правило нічого не робить.
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="eth1", RUN+="/bin/sh -c '/bin/ip link show br0 >/dev/null 2>&1 && /bin/ip link set eth1 master br0 && /bin/ip link set eth1 up'"

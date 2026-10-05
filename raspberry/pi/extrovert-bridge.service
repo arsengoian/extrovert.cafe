@@ -1,0 +1,20 @@
+# Міст eth0 + eth1 (USB-перехідник до платіжного терміналу) — до старту
+# dhcpcd. Логіка й навіщо — extrovert-bridge.sh. Сам юніт не вмикається:
+# його тягне drop-in dhcpcd.service.d/extrovert-bridge.conf (Wants=).
+#
+# Встановлення — raspberry/pi/patch-image.sh (у корінь образу чи картки).
+
+[Unit]
+Description=extrovert.cafe — міст eth0 + eth1 до платіжного терміналу
+DefaultDependencies=no
+After=local-fs.target
+Before=dhcpcd.service network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/extrovert-bridge.sh
+# Хоч би що, dhcpcd має стартувати: скрипт сам кладе робочий конфіг і
+# виходить з 0, а таймаут — на випадок, якщо зависне чекання eth0.
+TimeoutStartSec=60
