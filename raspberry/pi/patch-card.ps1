@@ -25,7 +25,15 @@ $ErrorActionPreference = 'Stop'
 $Here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Log = Join-Path $Work 'patch-card.log'
 New-Item -ItemType Directory -Force -Path $Work | Out-Null
-function Say($m) { $line = "{0:HH:mm:ss} {1}" -f (Get-Date), $m; Write-Host $line; Add-Content -Path $Log -Value $line -Encoding UTF8 }
+# Лог — лише копія того, що видно у вікні. Файл може на мить заблокувати
+# той, хто його читає, і тоді Add-Content падає; з ErrorActionPreference=Stop
+# це обірвало б скрипт посеред запису на картку (05.10.2026 так загубився
+# один рядок під час e2fsck). Тому збій запису в лог лише пропускається.
+function Say($m) {
+    $line = "{0:HH:mm:ss} {1}" -f (Get-Date), $m
+    Write-Host $line
+    try { Add-Content -Path $Log -Value $line -Encoding UTF8 -ErrorAction Stop } catch { }
+}
 
 Add-Type -TypeDefinition @"
 using System; using System.Runtime.InteropServices; using Microsoft.Win32.SafeHandles;
