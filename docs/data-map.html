@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 1350d94</p>
+  <p class="eyebrow">extrovert.cafe · джерело f415906</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5065,8 +5065,14 @@ UDP — він час від часу губить (connect на 7–15 с, рі
 <code>eth0</code>, і все працює як раніше. Перевірено в контейнері на dummy-інтерфейсах:
 з перехідником, без нього й без <code>eth0</code>.</p>
 <p><strong>Як ставити.</strong> Корінь під overlay, тож лише картою в кардрідері ПК, із
-<strong>свіжого знімка</strong> поточної картки або з самої картки
-(<code>patch-image.sh --root</code>). <strong>Не старий <code>raspberry/pi/pi.img</code></strong>: він від
+<strong>свіжого знімка</strong> поточної картки або з самої картки. На Windows —
+<code>raspberry/pi/patch-card.ps1 -Disk &lt;N&gt;</code> (від адміністратора, потрібен Docker
+Desktop): <code>wsl --mount</code> USB-кардрідерів не бере, тож скрипт читає сирим
+лише розділ кореня в файл, патчить його в Docker тим самим
+<code>patch-image.sh --root</code> з <code>e2fsck</code> до й після, а на картку пише тільки
+змінені мегабайти й перечитує їх. Копія оригіналу лишається в
+<code>%TEMP%extrovert-card</code>, і <code>-Rollback</code> повертає ці мегабайти назад. На
+kyiv-01 поставлено так 05.10.2026: 15 МБ, розділ <code>data</code> не чіпався. <strong>Не старий <code>raspberry/pi/pi.img</code></strong>: він від
 25.09.2026, у ньому інший ключ точки (на проді <code>key_hash</code> уже інший), немає
 власних DNS і старий <code>data</code> — після запису телеметрія й бонуси зламались би.</p>
 <p>⚠️ <strong>Тепер термінал залежить від малини.</strong> Ребут малини (знеструмлення,
@@ -13029,7 +13035,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 1350d94 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел f415906 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
