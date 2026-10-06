@@ -14,7 +14,7 @@
 # Tapo. Немає файла — компонент чекає й нічого не пише.
 #   CAM_MAC=c0:3a:55:fc:7b:57    адресу камера бере по DHCP, тож шукаємо за MAC
 #   CAM_USER=...                 акаунт камери (Tapo → Advanced Settings →
-#   CAM_PASS=...                 Camera Account); без символів @ : / # ? % і пробілів
+#   CAM_PASS=...                 Camera Account); будь-які символи, лапки не потрібні
 #   CAM_IP=                      необов'язково — фіксована адреса замість пошуку
 #   CAM_STREAM=stream1           stream1 — 1080p, stream2 — 360p
 #   CAM_URL=                     необов'язково — повна адреса потоку замість
@@ -48,6 +48,30 @@ say() { [ "$1" = "$LAST" ] && return; LAST=$1; log "$1"; }
 # Пароль у логи не пускаємо: ffmpeg друкує адресу потоку разом з
 # обліковими даними (rtsp://логін:пароль@…), тож маскуємо їх.
 mask() { sed 's#://[^@/ ]*@#://***@#g'; }
+
+# camera.env читаємо буквально, а не через `.`: пароль камери з символом $
+# shell розгорнув би (06.10.2026 у логіні kyiv-01 стояло «$@», і логін
+# тихо псувався). Лише відомі ключі; лапки довкола значення знімаються.
+read_camera_env() {
+    while IFS= read -r _line || [ -n "$_line" ]; do
+        case "$_line" in '' | \#*) continue ;; esac
+        _k=${_line%%=*}; _v=${_line#*=}
+        case "$_v" in \'*\') _v=${_v#\'}; _v=${_v%\'} ;; \"*\") _v=${_v#\"}; _v=${_v%\"} ;; esac
+        case "$_k" in CAM_MAC | CAM_USER | CAM_PASS | CAM_IP | CAM_STREAM | CAM_URL) eval "$_k=\$_v" ;; esac
+    done < "$1"
+}
+
+# Логін і пароль в адресі потоку — з %-кодуванням: «@» інакше межує з
+# хостом, «:» — з паролем. ffmpeg 3.2 на Stretch такі адреси розкодовує
+# (перевірено на C100 kyiv-01, 06.10.2026).
+urlenc() {
+    _s=$1; _o=""
+    while [ -n "$_s" ]; do
+        _c=${_s%"${_s#?}"}; _s=${_s#?}
+        case "$_c" in [a-zA-Z0-9._~-]) _o="$_o$_c" ;; *) _o="$_o$(printf '%%%02X' "'$_c")" ;; esac
+    done
+    printf '%s' "$_o"
+}
 
 arp_lookup() { ip neigh show | awk -v m="$1" 'tolower($5) == m && $1 ~ /\./ { print $1; exit }'; }
 
@@ -96,12 +120,9 @@ log "старт, буфер $DIR"
 while [ "$STOPPING" = 0 ]; do
     if [ ! -f "$CAM_ENV" ]; then say "немає $CAM_ENV — камера не налаштована, чекаю"; idle 300; continue; fi
     CAM_MAC=""; CAM_USER=""; CAM_PASS=""; CAM_IP=""; CAM_STREAM=""; CAM_URL=""
-    . "$CAM_ENV"
-    if [ -z "$CAM_URL" ]; then
-        case "$CAM_USER$CAM_PASS" in
-            *[@:/#?%\ ]*) say "у логіні чи паролі камери є символи @ : / # ? % або пробіл — ffmpeg їх не прожує, зміни акаунт у Tapo"; idle 300; continue ;;
-        esac
-        if [ -z "$CAM_USER" ] || [ -z "$CAM_PASS" ]; then say "у camera.env немає CAM_USER чи CAM_PASS"; idle 300; continue; fi
+    read_camera_env "$CAM_ENV"
+    if [ -z "$CAM_URL" ] && { [ -z "$CAM_USER" ] || [ -z "$CAM_PASS" ]; }; then
+        say "у camera.env немає CAM_USER чи CAM_PASS"; idle 300; continue
     fi
     # Без флешки не пишемо взагалі: корінь під overlay живе в RAM, і запис
     # у незмонтовану теку /mnt/buf за годину поклав би всю малину.
@@ -113,7 +134,7 @@ while [ "$STOPPING" = 0 ]; do
         _ip=${CAM_IP:-}
         [ -n "$_ip" ] || { [ -n "$CAM_MAC" ] && _ip=$(find_camera); }
         if [ -z "$_ip" ]; then say "камеру ${CAM_MAC:-?} у мережі не знайдено"; idle 60; continue; fi
-        _url="rtsp://$CAM_USER:$CAM_PASS@$_ip:554/${CAM_STREAM:-stream1}"
+        _url="rtsp://$(urlenc "$CAM_USER"):$(urlenc "$CAM_PASS")@$_ip:554/${CAM_STREAM:-stream1}"
     fi
     # -rtsp_transport є лише в протоколу rtsp: для іншого джерела ffmpeg не
     # попереджає, а падає з «Option rtsp_transport not found» (rec-test.sh).

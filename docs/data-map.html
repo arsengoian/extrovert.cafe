@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 0e7a17a</p>
+  <p class="eyebrow">extrovert.cafe · джерело b245eb3</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4428,9 +4428,12 @@ ARP-таблиці, а якщо там порожньо — пінгує під�
 <li><strong>Без флешки не пише.</strong> Корінь під overlay живе в RAM, і запис у
 незмонтовану <code>/mnt/buf</code> за годину поклав би малину.</li>
 <li><strong>Пароль у логи не потрапляє</strong>: ffmpeg друкує адресу потоку разом з
-обліковими даними, recorder маскує їх (<code>rtsp://***@…</code>). Символи
-<code>@ : / # ? %</code> у паролі не підтримуються — ffmpeg на Stretch не розкодовує
-їх в адресі, і recorder про це каже в лозі.</li>
+обліковими даними, recorder маскує їх (<code>rtsp://***@…</code>).</li>
+<li><strong>Будь-які символи в логіні й паролі.</strong> <code>camera.env</code> читається буквально,
+а не через <code>.</code> (shell розгорнув би <code>$</code> — у логіні kyiv-01 стояло «$@»), а в
+адресу потоку логін і пароль ідуть із %-кодуванням. ffmpeg 3.2 на Stretch
+такі адреси розкодовує — перевірено на C100 kyiv-01 06.10.2026: H.264
+1920×1080 і звук <code>pcm_alaw</code>, який recorder відкидає.</li>
 <li><strong>Збої камери</strong>: сторожок перезапускає ffmpeg, якщо нового сегмента немає
 три інтервали; повтори — з паузою від 5 до 60 с і без однакових рядків у
 лозі, тож вимкнена на ніч камера лог не засипає.</li>
@@ -13126,7 +13129,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 0e7a17a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b245eb3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
