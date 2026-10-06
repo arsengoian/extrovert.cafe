@@ -1,10 +1,10 @@
 // Відео: записи, події з камер і аналітика (docs/admin_panel.md, група
 // «відео»).
 //
-// Камер на точці ще немає, а `worker`, який ріже сегменти й шукає події, не
-// написаний (docs/video.md — це план). Тому екрани чесно показують порожньо
-// замість вигаданих цифр: таблиці вже є, і щойно зʼявиться перший сегмент,
-// ці самі запити почнуть його показувати.
+// Записи пише recorder на малині й вантажить uploader у R2 (з 06.10.2026).
+// `worker`, який шукає події, ще не написаний (docs/video.md), тож «Події» й
+// «Аналітика» чесно порожні замість вигаданих цифр.
+import { useState } from "react";
 import { api } from "../api.js";
 import { Bars } from "../charts.jsx";
 import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
@@ -17,6 +17,19 @@ const TITLES = {
   events: ["Події з камер", "підхід до автомата, черга, простій"],
   analytics: ["Аналітика відео", "події за днями й звʼязок із чеками"],
 };
+
+// MPEG-TS браузер сам не програє, тож це завантаження: файл відкривається
+// у VLC чи іншому плеєрі. Посилання підписане й живе 10 хвилин.
+function Download({ id }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try { window.location.assign((await api.videoDownload(id)).url); } finally { setBusy(false); }
+  };
+  return <button className="btn" style={{ height: 24, padding: "0 8px" }} disabled={busy} onClick={go}>{busy ? "…" : "завантажити"}</button>;
+}
+
+const STATUS = { pending: "у R2", processing: "обробляється", done: "оброблено", failed: "помилка", expired: "видалено" };
 
 export function Video({ tab = "segments" }) {
   const { data, error } = useData(() => api.video());
@@ -46,8 +59,8 @@ export function Video({ tab = "segments" }) {
       {empty && (
         <Card style={{ marginBottom: 12 }}>
           <div className="empty">
-            Камер на точці ще немає: сегменти пише <b>recorder</b> на малині, а ріже їх <b>worker</b> на
-            окремому дроплеті — обидва ще не запущені (docs/video.md). Щойно зʼявиться перший запис, він буде тут.
+            Записів ще немає: сегменти пише <b>recorder</b> на малині й вантажить у R2 <b>uploader</b> — щойно
+            перший доїде, він буде тут. Події й аналітику рахуватиме <b>worker</b> на окремому дроплеті (docs/video.md).
           </div>
         </Card>
       )}
@@ -58,10 +71,10 @@ export function Video({ tab = "segments" }) {
             { key: "started_at", title: "початок", render: (s) => fmt.time(s.started_at) },
             { key: "point_id", title: "точка" },
             { key: "camera_id", title: "камера" },
-            { key: "duration_ms", title: "тривалість", num: true, render: (s) => `${Math.round((s.duration_ms ?? 0) / 1000)} с` },
             { key: "bytes", title: "розмір", num: true, render: (s) => mb(s.bytes) },
-            { key: "status", title: "стан", render: (s) => s.status },
+            { key: "status", title: "стан", render: (s) => STATUS[s.status] ?? s.status },
             { key: "error", title: "помилка", render: (s) => s.error ?? "" },
+            { key: "file", title: "", render: (s) => (s.status === "expired" ? null : <Download id={s.id} />) },
           ]}
           rows={data.segments}
           empty="записів ще немає"

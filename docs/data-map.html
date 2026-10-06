@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b245eb3</p>
+  <p class="eyebrow">extrovert.cafe · джерело a74a28f</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4463,6 +4463,41 @@ recorder переживає, а в чужих руках ключ обмежен
 годиною. Права «лише запис» R2 не має, тож від видалення й перезапису
 захищає не ключ, а bucket lock (нижче). Відкликати все одразу —
 відкликати батьківський токен у Cloudflare.</p>
+<p><strong>Як зроблено насправді (06.10.2026) — підписане посилання на кожен
+сегмент, а не тимчасовий ключ.</strong> Причина на самій малині: <code>curl</code> 7.52 на
+Stretch не вміє підписувати S3-запити (<code>--aws-sigv4</code> з&#39;явився в 7.75), а
+рахувати SigV4 у shell на Pi 1 для кожного файла — крихко. Плата, про яку
+йдеться вище, — залежність від <code>api</code> — виявилась дешевою: флешка однаково
+тримає дні запису, тож ліг <code>api</code> — вивантаження просто чекає, а ключа від
+бакета на пристрої немає зовсім. Компонент — <code>raspberry/pi/stack/uploader.sh</code>,
+поруч із recorder:</p>
+<ol>
+<li>Готові сегменти — ті, що не мінялись понад дві хвилини (у свіжий ще
+пише ffmpeg), найстаріші першими, до 20 за прохід.</li>
+<li><code>POST /points/:id/video/upload</code> (ключ точки) → ключ
+<code>&lt;точка&gt;/&lt;камера&gt;/&lt;UTC-дата&gt;/&lt;ім'я&gt;</code> і підписаний <code>PUT</code> на годину.
+Ключ детермінований: повтор після обриву перезаливає той самий об&#39;єкт.</li>
+<li><code>curl -T</code> прямо в R2, байт-у-байт, зі стелею <code>--limit-rate 400k</code>: це
+~2,4 потоку камери, тож черга після обриву наздоганяється, але 4G-канал
+точки не забивається — по ньому ж ходить платіжний термінал.</li>
+<li><code>POST /points/:id/video/segment</code> — api сам робить <code>HEAD</code> в R2 і
+реєструє сегмент у <code>video_segments</code> лише тоді, коли об&#39;єкт є й має той
+самий розмір. Тільки після цього локальна копія стирається.</li>
+<li>Збій — пауза від 30 с до 10 хв, без однакових рядків у лозі.</li>
+</ol>
+<p>Імена сегментів з 06.10.2026 — в UTC із <code>Z</code> (<code>20261006T171019Z.ts</code>):
+місцевий час на переході на літній дає дві однакові години. Час початку
+uploader шле числом, тож старі імена в місцевому часі теж розбираються
+правильно. В адмінці («Відео» → «Записи») — список і кнопка «завантажити»
+(підписаний <code>GET</code> на 10 хвилин); MPEG-TS браузер сам не програє, файл
+відкривається у VLC. Бакет <code>extrovert-video</code> уже має lifecycle
+<code>expire-7d</code> (перевірено <code>wrangler r2 bucket lifecycle list</code> 06.10.2026).</p>
+<p><strong>Скільки насправді</strong> (C100 kyiv-01, 06.10.2026): <code>stream1</code> віддає
+1920×1080 незалежно від якості в застосунку Tapo, ~1,34 Мбіт/с — сегмент
+~10 МБ на хвилину, ~14 ГБ на добу, удвічі більше за розрахунок вище. На
+Pi 1 запис бере ~18 % CPU (не 4 %, як з емулятора: весь потік іде USB-шиною,
+спільною для мережі й флешки), кіоск просідає з ~48 до ~43 fps, температура
+росте до ~77 °C.</p>
 <p>Буфер: 8,2 ГБ на добу, тож USB-носій на 64 ГБ = <strong>тиждень автономності</strong>. Карта в
 камері на 16 ГБ (48 годин) лишається як третій рівень — на випадок, коли здох
 сам edge-вузол. Дістати з неї запис можна тільки руками через додаток Tapo:
@@ -5246,7 +5281,12 @@ graph TB
 <tr>
 <td><code>recorder</code></td>
 <td>запис камери на флешку <code>/mnt/buf/video</code> хвилинними сегментами, <code>ffmpeg -c copy</code> (<a class="doclink" href="#video"><code>video.md</code></a>, «Запис»)</td>
-<td><strong>увімкнений з 06.10.2026</strong>, без <code>config/camera.env</code> чекає; вивантаження в R2 — ще ні, тож флешка пише по колу</td>
+<td><strong>працює з 06.10.2026</strong> (C100, 1080p, ~10 МБ/хв); без <code>config/camera.env</code> чекає</td>
+</tr>
+<tr>
+<td><code>uploader</code></td>
+<td>сегменти з флешки в R2 за підписаними посиланнями з api, реєстрація в <code>video_segments</code>, локальна копія стирається (<a class="doclink" href="#video"><code>video.md</code></a>, «Вивантаження»)</td>
+<td><strong>увімкнений з 06.10.2026</strong>; без <code>config/point.key</code> чекає</td>
 </tr>
 <tr>
 <td><code>telemetry</code></td>
@@ -12016,6 +12056,7 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <h2 id="admin-panel-група-відео"><a class="anchor" href="#admin-panel-група-відео" aria-hidden="true">#</a>Група &quot;відео&quot;</h2>
 <h3 id="admin-panel-відео"><a class="anchor" href="#admin-panel-відео" aria-hidden="true">#</a>Відео</h3>
 <p>перегляд збережених відеозаписів з камер з R2 (з вибором POS)</p>
+<p>«Записи» працюють з 06.10.2026: сегменти, які залив uploader малини (<code>video_segments</code>), — час, точка, камера, розмір, стан і кнопка «завантажити» (підписане посилання на 10 хвилин). MPEG-TS браузер сам не програє — файл відкривається у VLC. Сегменти живуть у R2 7 днів (lifecycle). «Події» й «Аналітика» з&#39;являться разом із worker на окремому дроплеті (<a class="doclink" href="#video"><code>video.md</code></a>).</p>
 <h3 id="admin-panel-події"><a class="anchor" href="#admin-panel-події" aria-hidden="true">#</a>Події</h3>
 <p>статистика подій з доказами</p>
 <h3 id="admin-panel-аналітика"><a class="anchor" href="#admin-panel-аналітика" aria-hidden="true">#</a>Аналітика</h3>
@@ -13129,7 +13170,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел b245eb3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел a74a28f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

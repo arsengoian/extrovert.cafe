@@ -124,6 +124,8 @@ export const api = {
   userStats: (id, excluded) => request(`/admin/users/${id}/stats`, { method: "POST", body: { excluded } }),
   receipts: (p) => request(`/admin/receipts${qs(p)}`),
   video: (p) => request(`/admin/video${qs(p)}`),
+  // Сегмент лежить у приватному бакеті: беремо підписане посилання на 10 хв.
+  videoDownload: (id) => request(`/admin/video/segments/${id}/download`),
   supportThreads: (status) => request(`/admin/support/threads` + qs({ status })),
   supportThread: (id) => request(`/admin/support/threads/${id}`),
   supportReply: (id, text) => request(`/admin/support/threads/${id}/reply`, { method: "POST", body: { text } }),

@@ -19,7 +19,7 @@ const MAX_BATCH = 200;
 
 // Токен точки: sub = point:<id>. Роль не перевіряємо — цей токен нічого
 // іншого не відкриває (ws.js так само дивиться лише на канал).
-function pointFromRequest(req) {
+export function pointFromRequest(req) {
   const header = req.headers.authorization || "";
   const claims = header.startsWith("Bearer ") ? verifyToken(header.slice(7)) : null;
   const sub = claims?.sub ?? "";

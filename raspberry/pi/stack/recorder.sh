@@ -6,8 +6,9 @@
 # Пише те саме, що заміряли 17.08.2026: RTSP → `ffmpeg -c copy` → MPEG-TS
 # хвилинними сегментами. Ні декодування, ні кодування, ні накладень: лише
 # перекладання вже стиснених пакетів (4 % CPU на Pi 1, кіоск тримає fps).
-# Вивантаження в хмару — окремий компонент (video.md, «Вивантаження»); поки
-# його немає, флешка — це архів по колу: місця мало — стираємо найстаріше.
+# Вивантаження в R2 — окремий компонент uploader.sh; він же стирає залите.
+# Флешка — буфер на випадок, коли інтернету чи api немає: місця мало —
+# стираємо найстаріше.
 #
 # Камера (Tapo C100) — у config/camera.env, поза релізом: релізи лежать у
 # публічному бакеті, а там логін і пароль «акаунта камери» з застосунку
@@ -96,14 +97,15 @@ find_camera() {
     arp_lookup "$_mac"
 }
 
-# Запис по колу: імена сегментів — час початку, тож за абеткою вони й за
-# віком. Стираємо найстаріші, доки вільного не стане KEEP_FREE_MB.
+# Запис по колу: стираємо найстаріші за часом зміни, доки вільного не стане
+# KEEP_FREE_MB. Саме за часом, а не за абеткою: до 06.10.2026 імена були в
+# місцевому часі, тепер в UTC із Z, і за абеткою вони б перемішались.
 FULL_LOGGED=0
 prune() {
     while :; do
         _free=$(df -Pm "$BUF" 2>/dev/null | awk 'NR == 2 { print $4 }')
         [ -n "$_free" ] && [ "$_free" -lt "$KEEP_FREE_MB" ] || return 0
-        _old=$(ls -1 "$DIR"/*.ts 2>/dev/null | head -n 1)
+        _old=$(ls -1tr "$DIR"/*.ts 2>/dev/null | head -n 1)
         [ -n "$_old" ] || return 0
         rm -f "$_old"
         if [ "$FULL_LOGGED" = 0 ]; then FULL_LOGGED=1; log "флешка заповнилась — далі пишемо по колу, стираючи найстаріше"; fi
@@ -148,12 +150,14 @@ while [ "$STOPPING" = 0 ]; do
     # відкидаємо). nice/ionice — запис не має права придушити кіоск
     # (video.md): кіоск — шлях до грошей, запис ні.
     # shellcheck disable=SC2086
-    nice -n 10 ionice -c 3 ffmpeg -nostdin -loglevel warning \
+    # Імена — час початку в UTC із Z: місцевий час на переході на літній
+    # дає дві однакові години, а uploader рахує з імені час сегмента.
+    TZ=UTC nice -n 10 ionice -c 3 ffmpeg -nostdin -loglevel warning \
         $_rt -use_wallclock_as_timestamps 1 \
         -i "$_url" \
         -an -c copy \
         -f segment -segment_time "$SEGMENT_S" -reset_timestamps 1 -segment_format mpegts \
-        -strftime 1 "$DIR/%Y%m%dT%H%M%S.ts" 2> "$FFLOG" &
+        -strftime 1 "$DIR/%Y%m%dT%H%M%SZ.ts" 2> "$FFLOG" &
     FF=$!
 
     # Нагляд щосекунди (ffmpeg, що впав одразу, не має чекати пів хвилини),
