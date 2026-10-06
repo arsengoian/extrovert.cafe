@@ -152,16 +152,17 @@ throttled() {
     echo null
 }
 
-# Відеопотік. Камери на точці ще немає: поки в config/env немає CAMERA_URL,
-# це чесне false — потоку нема, і саме так це має лежати в історії, а не
-# «невідомо» (прохання власника 23.09.2026).
+# Відеопотік: чи пише recorder (stack/recorder.sh). Правда тут — свіжий
+# сегмент на флешці, а не «камера відповіла»: камера може бути жива, а запис
+# стояти. Нема config/camera.env — камера не налаштована, і це чесне false,
+# а не «невідомо» (прохання власника 23.09.2026). Досі тут був curl на
+# CAMERA_URL, який RTSP не вміє і false давав завжди (06.10.2026).
 video_ok() {
-    [ -n "${CAMERA_URL:-}" ] || { echo false; return; }
-    if command -v curl >/dev/null 2>&1; then
-        curl -fsS --max-time 4 -o /dev/null "$CAMERA_URL" >/dev/null 2>&1 && echo true || echo false
-        return
-    fi
-    echo null
+    [ -f "$EXTROVERT_ROOT/config/camera.env" ] || { echo false; return; }
+    _new=$(ls -1t "${RECORDER_BUF-/mnt/buf}/video/"*.ts 2>/dev/null | head -n 1)
+    [ -n "$_new" ] || { echo false; return; }
+    _age=$(( $(date +%s) - $(stat -c %Y "$_new" 2>/dev/null || echo 0) ))
+    [ "$_age" -lt 180 ] && echo true || echo false
 }
 
 # Картка стала read-only. Ядро робить так само мовчки, коли ловить помилки

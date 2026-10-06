@@ -8,3 +8,6 @@
 # sha256 db126f9c61bc8a2c27ad50f2303cbdd31c9b1b017608b10d67c89b4f1c2d9d7e
 # (звірено з обома картками при записі).
 pi.img
+
+# Логін і пароль камери точки (camera.env.example) — лише на малину, не в git.
+camera.env

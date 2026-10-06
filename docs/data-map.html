@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело be71ae2</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0e7a17a</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4411,6 +4411,36 @@ remux: ffmpeg дістає вже стиснені H.264-пакети з RTSP і
 </div>
 <p>Запускати через systemd з <code>Restart=always</code> — камера періодично рве потік сама.
 Різати ffmpeg може лише по ключових кадрах, тож сегменти будуть 60 с ±GOP.</p>
+<p><strong>Як це зроблено (06.10.2026)</strong> — компонент стеку <code>raspberry/pi/stack/recorder.sh</code>,
+рядок у <code>components.conf</code>, дитина супервізора; приїжджає й оновлюється
+релізом. На малині тільки перекладання пакетів — нічого не накладаємо й не
+перекодовуємо (власник): та сама команда, що вище, плюс <code>-an</code> (звукову
+доріжку просто відкидаємо — камера в публічному місці, а звук не потрібен ні
+охороні, ні аналітиці) і <code>nice -n 10 ionice -c 3</code>.</p>
+<ul>
+<li><strong>Камера</strong> — <code>config/camera.env</code> на розділі <code>data</code> (шаблон
+<code>raspberry/pi/camera.env.example</code>): MAC і логін-пароль «акаунта камери»
+Tapo. Адресу камера бере по DHCP, тож recorder знаходить її за MAC в
+ARP-таблиці, а якщо там порожньо — пінгує підмережу партіями по 32.
+Статичну адресу в камері свідомо не ставимо: роутер про неї не знає і може
+видати її комусь іще, а камера зі старою статикою на новому роутері
+зникає зовсім. kyiv-01 — Tapo C100 v5, MAC <code>c0:3a:55:fc:7b:57</code>.</li>
+<li><strong>Без флешки не пише.</strong> Корінь під overlay живе в RAM, і запис у
+незмонтовану <code>/mnt/buf</code> за годину поклав би малину.</li>
+<li><strong>Пароль у логи не потрапляє</strong>: ffmpeg друкує адресу потоку разом з
+обліковими даними, recorder маскує їх (<code>rtsp://***@…</code>). Символи
+<code>@ : / # ? %</code> у паролі не підтримуються — ffmpeg на Stretch не розкодовує
+їх в адресі, і recorder про це каже в лозі.</li>
+<li><strong>Збої камери</strong>: сторожок перезапускає ffmpeg, якщо нового сегмента немає
+три інтервали; повтори — з паузою від 5 до 60 с і без однакових рядків у
+лозі, тож вимкнена на ніч камера лог не засипає.</li>
+<li><strong>Поки немає вивантаження</strong>, флешка — архів по колу: менше 2 ГБ вільного —
+стираємо найстаріші сегменти.</li>
+<li><code>video_ok</code> у телеметрії — чи є на флешці сегмент, молодший за 3 хв.</li>
+</ul>
+<p>Перевірено в контейнері на тестовому потоці: сегменти пишуться, звуку в них
+немає, запис бере 0,3 % CPU, повне прибирання й відновлення після зникнення
+джерела працюють. RTSP зі справжньої C100 — на точці.</p>
 <h3 id="video-вивантаження"><a class="anchor" href="#video-вивантаження" aria-hidden="true">#</a>Вивантаження</h3>
 <p>Раз на годину recorder із JWT точки бере в <code>api</code> <strong>тимчасовий ключ R2</strong>
 (Cloudflare temp-access-credentials: лише префікс <code>&lt;point&gt;/</code>, TTL 1 година,
@@ -5212,13 +5242,13 @@ graph TB
 </tr>
 <tr>
 <td><code>recorder</code></td>
-<td>буфер відео з камери, вивантаження в R2 тимчасовим ключем (<a class="doclink" href="#video"><code>video.md</code></a>)</td>
-<td>рядок у <code>components.conf</code> вимкнено</td>
+<td>запис камери на флешку <code>/mnt/buf/video</code> хвилинними сегментами, <code>ffmpeg -c copy</code> (<a class="doclink" href="#video"><code>video.md</code></a>, «Запис»)</td>
+<td><strong>увімкнений з 06.10.2026</strong>, без <code>config/camera.env</code> чекає; вивантаження в R2 — ще ні, тож флешка пише по колу</td>
 </tr>
 <tr>
 <td><code>telemetry</code></td>
 <td>здоровʼя точки для адмінки (<a class="doclink" href="#admin-panel"><code>admin_panel.md</code></a>)</td>
-<td>рядок у <code>components.conf</code> вимкнено</td>
+<td><strong>на пристрої</strong>; <code>video_ok</code> — чи є на флешці сегмент, молодший за 3 хв</td>
 </tr>
 </tbody></table>
 </div>
@@ -5278,6 +5308,11 @@ graph TB
 <td><code>FALLBACK_PNG</code> → <code>state/menu.png</code></td>
 <td>кіоск → <code>fbi</code></td>
 <td>статична картинка меню для запасного варіанта; кіоск перезаписує її сам при зміні меню (§6)</td>
+</tr>
+<tr>
+<td><code>config/camera.env</code></td>
+<td>людина → малина (по SSH з мережі точки, шаблон <code>raspberry/pi/camera.env.example</code>) → recorder</td>
+<td>MAC камери й логін-пароль «акаунта камери» Tapo; на розділі <code>data</code>, тож переживає оновлення й не потрапляє в публічні релізи. Нема файла — recorder чекає</td>
 </tr>
 <tr>
 <td><code>config/point.key</code></td>
@@ -13091,7 +13126,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел be71ae2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0e7a17a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
