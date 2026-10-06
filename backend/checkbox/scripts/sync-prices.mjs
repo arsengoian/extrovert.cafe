@@ -195,8 +195,9 @@ async function main() {
 
   const catalog = await fetchCatalog();
   // Група й податки — з уже наявного товару: своїх довідників у нас немає,
-  // а новий товар без групи стане в касі окремо від решти.
-  const sample = [...catalog.values()].find(Boolean) ?? null;
+  // а новий товар без групи стане в касі окремо від решти. Беремо товар,
+  // що сам у групі: перший-ліпший може виявитись і без неї.
+  const sample = [...catalog.values()].find((g) => g?.group_id) ?? [...catalog.values()].find(Boolean) ?? null;
   const changes = [], same = [], missing = [], noCode = [], suspicious = [], branchPriced = [];
   for (const letter of letters) for (const d of drinks) {
     if (!d.slot) { noCode.push(d.name); continue; }
@@ -252,17 +253,26 @@ async function main() {
   // Спершу заводимо відсутні: тоді нижче вже нема кому «не знайтись».
   for (const m of willCreate) {
     if (!sample) { console.log("  ✗ каталог порожній — нема звідки взяти групу для нового товару"); return 1; }
+    // У CreateGoodPayload група — `group`, податки — `tax_codes`. Читаємо ж
+    // їх як `group_id` і `taxes`, і до 06.10.2026 так само й писали — API
+    // мовчки відкидав невідомі поля, тож a901–a904 і a107 опинились поза
+    // папкою «Jl 22». Тому після створення товар перечитується.
     const post = await call("POST", "/api/v1/goods", {
       code: m.code,
       name: m.name,
       price: m.price,
       type: sample.type ?? "good",
       is_weight: false,
-      group_id: sample.group_id ?? null,
-      taxes: (sample.taxes ?? []).map((t) => t.code),
+      ...(sample.group_id ? { group: sample.group_id } : {}),
+      tax_codes: (sample.taxes ?? []).map((t) => t.code),
     });
     if (post.status >= 300) {
       console.log(`  ✗ ${m.name} (${m.code}): POST HTTP ${post.status} ${explain(post.body)} — зупиняюсь`);
+      return 1;
+    }
+    const made = post.body?.id ? await call("GET", `/api/v1/goods/${post.body.id}`) : null;
+    if (made && (made.body?.group_id ?? null) !== (sample.group_id ?? null)) {
+      console.log(`  ✗ ${m.name} (${m.code}): товар заведено, але не в групі зразка — перевірте в кабінеті, зупиняюсь`);
       return 1;
     }
     console.log(`  + ${m.name} (${m.code}): ${kopToUah(m.price)} ₴${m.active ? "" : " · у меню вимкнений"}`);
