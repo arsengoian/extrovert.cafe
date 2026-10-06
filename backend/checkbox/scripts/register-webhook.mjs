@@ -70,7 +70,10 @@ try {
     console.log(`зареєстровано: ${URL}; ключ підпису збережено в webhook_keys`);
   }
 
-  const hook = await http("GET", "/api/v1/webhook", { token });
+  // Каса без вебхука відповідає тілом `null`, а не порожнім об'єктом: так
+  // виглядала бойова каса kyiv-01 до 06.10.2026, і скрипт падав замість
+  // «(немає)».
+  const hook = (await http("GET", "/api/v1/webhook", { token })) ?? {};
   console.log(`вебхук: ${hook.url ?? "(немає)"}`);
   if (hook.last_error_date) console.log(`остання помилка: ${hook.last_error_date} — ${hook.last_error_message ?? ""}`);
   const stored = await pool.query("select url, registered_at from webhook_keys where provider = 'checkbox'");
