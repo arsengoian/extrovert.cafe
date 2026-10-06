@@ -9,6 +9,7 @@ import { pool } from "@extrovert/lib/db.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { endActive } from "@extrovert/lib/discounts.js";
 import { rollDrinkDrop } from "@extrovert/lib/economy.js";
+import { pickDrinkByName } from "./drinkName.js";
 
 // Суми Checkbox тримає в копійках — переводимо тут і більше ніде
 // (db-schema §0).
@@ -103,12 +104,30 @@ export async function ingest(receipt, { source, log }) {
     for (const line of goods) {
       const g = line.good ?? line;
       const code = g.code ?? g.system_code ?? "";
-      const slot = slotOf(code);
+      let slot = slotOf(code);
       const qty = Number(line.quantity ?? 1000) / 1000;      // Checkbox: тисячні
       const price = uah(g.price);
-      const { rows: drink } = await client.query(
-        "select coins, is_bonus, price_uah from drinks where slot = $1", [slot]
-      );
+      const drinkBySlot = (s) => client.query("select coins, is_bonus, price_uah from drinks where slot = $1", [s]);
+      let { rows: drink } = await drinkBySlot(slot);
+      // Код для кіоска: за ним він бере назву й картинку зі свого меню
+      // (lib/menu.js — «літера машини + номер»). Зазвичай це код із чека.
+      let kioskCode = code;
+      // Код не впізнано — пробуємо назву (drinkName.js, костиль до кодів у
+      // телеметрії Jetinno). system_code лишається таким, як прийшов: це
+      // правда чека, а slot — наш висновок, через який рахуються монети.
+      if (!drink.length && g.name) {
+        const { rows: all } = await client.query("select slot, name from drinks");
+        const hit = pickDrinkByName(g.name, all);
+        if (hit) {
+          slot = hit.slot;
+          ({ rows: drink } = await drinkBySlot(slot));
+          const { rows: [pt] } = await client.query("select machine_letter from points where id = $1", [pointId]);
+          kioskCode = (pt?.machine_letter ?? "") + slot;
+          log?.info("напій впізнано за назвою, а не за кодом", {
+            код: code, назва: g.name, напій: hit.name, позиція: slot, правок: hit.dist, точка: pointId,
+          });
+        }
+      }
       // Код, якого немає в каталозі, — це не дрібниця: монет за такий напій
       // не нарахується, і мовчки. Найімовірніша причина — позицію завели в
       // машині, але не в адмінці: першоджерело каталогу — вона.
@@ -123,7 +142,7 @@ export async function ingest(receipt, { source, log }) {
       const isBonus = Boolean(drink[0]?.is_bonus) || Number(g.price ?? 0) === 0;
       if (drink.length && !isBonus) {
         coins += Math.round(drink[0].coins * qty);
-        shown ??= { code, name: g.name ?? code };
+        shown ??= { code: kioskCode, name: g.name ?? code };
       }
 
       // Ціна з меню на мить чека — поруч із ціною з чека (власник,
