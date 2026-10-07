@@ -14,7 +14,7 @@
     "is_bonus": false
   },
   {
-    "slot": "901",
+    "slot": "0901",
     "name": "Бонус-еспресо",
     "vol": "30 мл",
     "price_uah": 90,
@@ -70,7 +70,7 @@
     "is_bonus": false
   },
   {
-    "slot": "902",
+    "slot": "0902",
     "name": "Бонус-американо",
     "vol": "150 мл",
     "price_uah": 100,
@@ -126,7 +126,7 @@
     "is_bonus": false
   },
   {
-    "slot": "903",
+    "slot": "0903",
     "name": "Бонус-капучино",
     "vol": "260 мл",
     "price_uah": 120,
@@ -168,7 +168,7 @@
     "is_bonus": false
   },
   {
-    "slot": "904",
+    "slot": "0904",
     "name": "Бонус-лате",
     "vol": "260 мл",
     "price_uah": 120,
