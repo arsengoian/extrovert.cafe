@@ -159,7 +159,7 @@ throttled() {
 # CAMERA_URL, який RTSP не вміє і false давав завжди (06.10.2026).
 video_ok() {
     [ -f "$EXTROVERT_ROOT/config/camera.env" ] || { echo false; return; }
-    _new=$(ls -1t "${RECORDER_BUF-/mnt/buf}/video/"*.ts 2>/dev/null | head -n 1)
+    _new=$(ls -1t "${RECORDER_BUF-/mnt/buf}/video/"*.mkv "${RECORDER_BUF-/mnt/buf}/video/"*.ts 2>/dev/null | head -n 1)
     [ -n "$_new" ] || { echo false; return; }
     _age=$(( $(date +%s) - $(stat -c %Y "$_new" 2>/dev/null || echo 0) ))
     [ "$_age" -lt 180 ] && echo true || echo false

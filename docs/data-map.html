@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело fb55a70</p>
+  <p class="eyebrow">extrovert.cafe · джерело b511a95</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 20 документів у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4394,10 +4394,10 @@ RestartSec=5
 <pre><code class="language-bash">ffmpeg -nostdin -loglevel warning \
   -rtsp_transport tcp -use_wallclock_as_timestamps 1 \
   -i &quot;rtsp://$CAM_USER:$CAM_PASS@$CAM_IP:554/stream1&quot; \
-  -c copy \
+  -map 0 -c copy \
   -f segment -segment_time 60 -reset_timestamps 1 \
-  -segment_format mpegts \
-  -strftime 1 &quot;$BUF/%Y%m%dT%H%M%S.ts&quot;
+  -segment_format matroska \
+  -strftime 1 &quot;$BUF/%Y%m%dT%H%M%SZ.mkv&quot;
 </code></pre>
 <p><strong>Тут не відбувається ні декодування, ні кодування.</strong> <code>-c copy</code> — це demux +
 remux: ffmpeg дістає вже стиснені H.264-пакети з RTSP і перекладає їх у
@@ -4420,8 +4420,12 @@ remux: ffmpeg дістає вже стиснені H.264-пакети з RTSP і
 <td>UDP на дешевій камері губить пакети й дає артефакти</td>
 </tr>
 <tr>
-<td><code>-segment_format mpegts</code></td>
-<td>TS придуманий для потоку: немає moov-атома й індексу в кінці файла, тому обрізаний живленням сегмент лишається читабельним. MP4 у цьому місці вимагає фокусів із <code>+frag_keyframe</code>, а платимо ми лише 5–8 % зайвих байтів на заголовки. У хмарі TS→MP4 робиться тим самим <code>-c copy</code>, тобто безкоштовно</td>
+<td><code>-map 0</code></td>
+<td>усі доріжки камери: відео й звук (див. «Звук» нижче)</td>
+</tr>
+<tr>
+<td><code>-segment_format matroska</code></td>
+<td>контейнер, який несе і H.264, і звук камери (<code>pcm_alaw</code>) без перекодування. Обрізаний живленням сегмент лишається читабельним до місця обриву: ffmpeg пише mkv кластерами, індекс у кінці лише прискорює перемотування (перевірено: перші 60 % файла — 60 % кадрів). MP4 у цьому місці вимагав би фокусів із <code>+frag_keyframe</code>. До 07.10.2026 тут був MPEG-TS — див. «Звук»</td>
 </tr>
 <tr>
 <td><code>-use_wallclock_as_timestamps</code></td>
@@ -4438,9 +4442,22 @@ remux: ffmpeg дістає вже стиснені H.264-пакети з RTSP і
 <p><strong>Як це зроблено (06.10.2026)</strong> — компонент стеку <code>raspberry/pi/stack/recorder.sh</code>,
 рядок у <code>components.conf</code>, дитина супервізора; приїжджає й оновлюється
 релізом. На малині тільки перекладання пакетів — нічого не накладаємо й не
-перекодовуємо (власник): та сама команда, що вище, плюс <code>-an</code> (звукову
-доріжку просто відкидаємо — камера в публічному місці, а звук не потрібен ні
-охороні, ні аналітиці) і <code>nice -n 10 ionice -c 3</code>.</p>
+перекодовуємо (власник): та сама команда, що вище, плюс
+<code>nice -n 10 ionice -c 3</code>.</p>
+<p><strong>Звук (07.10.2026).</strong> Спершу recorder звук відкидав (<code>-an</code>) і писав
+MPEG-TS. Власник вирішив звук зберігати — з нього згодом можна буде щось
+дістати, — і так само без перекодування. Звук C100 — <code>pcm_alaw</code> 8 кГц моно,
+а MPEG-TS його без перекодування не несе: ffmpeg кладе доріжку туди як
+«<code>bin_data</code>», і жоден плеєр її не грає. Тому контейнер змінено на Matroska:
+вона бере і H.264, і A-law як є. Звук — 64 кбіт/с, ~0,5 МБ на хвилину
+(~5 % до відео). Сегменти, записані раніше, лишаються <code>.ts</code> без звуку;
+uploader і api приймають обидва.</p>
+<p>На ffmpeg 5.1 це перевірено в контейнері, а на 3.2 зі Stretch — лише після
+першого запуску на малині. Тому страховка: якщо ffmpeg одразу падає з
+помилкою заголовка чи кодека («Could not write header», «codec tag», «not
+supported»), recorder пише рядок у лог і далі пише лише відео (<code>-map 0:v</code>)
+до перезапуску компонента — запис без звуку кращий, ніж жодного. Обидва
+сценарії прогнано в контейнері через recorder.sh (07.10.2026).</p>
 <ul>
 <li><strong>Камера</strong> — <code>config/camera.env</code> на розділі <code>data</code> (шаблон
 <code>raspberry/pi/camera.env.example</code>): MAC і логін-пароль «акаунта камери»
@@ -4457,7 +4474,7 @@ ARP-таблиці, а якщо там порожньо — пінгує під�
 а не через <code>.</code> (shell розгорнув би <code>$</code> — у логіні kyiv-01 стояло «$@»), а в
 адресу потоку логін і пароль ідуть із %-кодуванням. ffmpeg 3.2 на Stretch
 такі адреси розкодовує — перевірено на C100 kyiv-01 06.10.2026: H.264
-1920×1080 і звук <code>pcm_alaw</code>, який recorder відкидає.</li>
+1920×1080 і звук <code>pcm_alaw</code>.</li>
 <li><strong>Збої камери</strong>: сторожок перезапускає ffmpeg, якщо нового сегмента немає
 три інтервали; повтори — з паузою від 5 до 60 с і без однакових рядків у
 лозі, тож вимкнена на ніч камера лог не засипає.</li>
@@ -4465,9 +4482,10 @@ ARP-таблиці, а якщо там порожньо — пінгує під�
 стираємо найстаріші сегменти.</li>
 <li><code>video_ok</code> у телеметрії — чи є на флешці сегмент, молодший за 3 хв.</li>
 </ul>
-<p>Перевірено в контейнері на тестовому потоці: сегменти пишуться, звуку в них
-немає, запис бере 0,3 % CPU, повне прибирання й відновлення після зникнення
-джерела працюють. RTSP зі справжньої C100 — на точці.</p>
+<p>Перевірено в контейнері на тестовому потоці: сегменти пишуться (з
+07.10.2026 — mkv з <code>h264</code> і <code>pcm_alaw</code>), запис бере 0,3 % CPU, повне
+прибирання й відновлення після зникнення джерела працюють. RTSP зі
+справжньої C100 — на точці.</p>
 <h3 id="video-вивантаження"><a class="anchor" href="#video-вивантаження" aria-hidden="true">#</a>Вивантаження</h3>
 <p>Раз на годину recorder із JWT точки бере в <code>api</code> <strong>тимчасовий ключ R2</strong>
 (Cloudflare temp-access-credentials: лише префікс <code>&lt;point&gt;/</code>, TTL 1 година,
@@ -4509,12 +4527,14 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 самий розмір. Тільки після цього локальна копія стирається.</li>
 <li>Збій — пауза від 30 с до 10 хв, без однакових рядків у лозі.</li>
 </ol>
-<p>Імена сегментів з 06.10.2026 — в UTC із <code>Z</code> (<code>20261006T171019Z.ts</code>):
-місцевий час на переході на літній дає дві однакові години. Час початку
-uploader шле числом, тож старі імена в місцевому часі теж розбираються
-правильно. В адмінці («Відео» → «Записи») — список і кнопка «завантажити»
-(підписаний <code>GET</code> на 10 хвилин); MPEG-TS браузер сам не програє, файл
-відкривається у VLC. Бакет <code>extrovert-video</code> уже має lifecycle
+<p>Імена сегментів з 06.10.2026 — в UTC із <code>Z</code> (<code>20261007T171019Z.mkv</code>; до
+07.10.2026 — <code>.ts</code>): місцевий час на переході на літній дає дві однакові
+години. Час початку uploader шле числом, тож старі імена в місцевому часі
+теж розбираються правильно. <code>content-type</code> підписаного <code>PUT</code> — за
+розширенням (<code>video/x-matroska</code> чи <code>video/mp2t</code>). В адмінці («Відео» →
+«Записи») — список і кнопка «завантажити» (підписаний <code>GET</code> на 10 хвилин);
+ні mkv зі звуком A-law, ні TS браузер сам не програє, файл відкривається у
+VLC. Бакет <code>extrovert-video</code> уже має lifecycle
 <code>expire-7d</code> (перевірено <code>wrangler r2 bucket lifecycle list</code> 06.10.2026).</p>
 <p><strong>Скільки насправді</strong> (C100 kyiv-01, 06.10.2026): <code>stream1</code> віддає
 1920×1080 незалежно від якості в застосунку Tapo, ~1,34 Мбіт/с — сегмент
@@ -4556,7 +4576,7 @@ ONVIF у C100 має лише Profile S, автоматичного дозали
 і бакет ростиме. Bucket locks в R2 є з березня 2025 — це те, що дає
 видавати пристроям ключ із правом запису й не боятися за архів.</p>
 <p>Ключі — за схемою з <a class="doclink" href="#urls"><code>urls.md</code></a>, ідентифікатор точки першим сегментом:</p>
-<pre><code>extrovert-video/&lt;point&gt;/&lt;camera&gt;/2026/08/17/14/20260817T142300.ts
+<pre><code>extrovert-video/&lt;point&gt;/&lt;camera&gt;/2026-10-07/20261007T142300Z.mkv
 extrovert-evidence/&lt;point&gt;/&lt;event_id&gt;/{clip.mp4,frame_00.jpg}
 </code></pre>
 <p>Година в ключі — щоб префіксний листинг за період був дешевим. Ключі доказів
@@ -4725,10 +4745,10 @@ returning *;
 режимі одна камера вантажить ядро на одиниці відсотків, а весь інший запас іде
 на наздоганяння черги після обривів звʼязку.</p>
 <pre><code class="language-bash"># перший прохід — тільки ключові кадри, дешево
-ffmpeg -skip_frame nokey -i seg.ts -vsync 0 -f rawvideo -pix_fmt rgb24 -
+ffmpeg -skip_frame nokey -i seg.mkv -vsync 0 -f rawvideo -pix_fmt rgb24 -
 
 # другий — повний декод із семплінгом, лише для «цікавих» сегментів
-ffmpeg -i seg.ts -vf fps=2 -f rawvideo -pix_fmt rgb24 -
+ffmpeg -i seg.mkv -vf fps=2 -f rawvideo -pix_fmt rgb24 -
 </code></pre>
 <p>Чорнова реалізація цього циклу — <code>backend/worker/</code> (23.09.2026): черга через
 <code>SKIP LOCKED</code>, обидва проходи ffmpeg, yolo11n в ONNX, події <code>approach</code> /
@@ -5340,8 +5360,8 @@ graph TB
 </tr>
 <tr>
 <td><code>recorder</code></td>
-<td>запис камери на флешку <code>/mnt/buf/video</code> хвилинними сегментами, <code>ffmpeg -c copy</code> (<a class="doclink" href="#video"><code>video.md</code></a>, «Запис»)</td>
-<td><strong>працює з 06.10.2026</strong> (C100, 1080p, ~10 МБ/хв); без <code>config/camera.env</code> чекає</td>
+<td>запис камери на флешку <code>/mnt/buf/video</code> хвилинними сегментами mkv — відео й звук, <code>ffmpeg -c copy</code> (<a class="doclink" href="#video"><code>video.md</code></a>, «Запис»)</td>
+<td><strong>працює з 06.10.2026</strong> (C100, 1080p, ~10 МБ/хв; звук — з 07.10.2026); без <code>config/camera.env</code> чекає</td>
 </tr>
 <tr>
 <td><code>uploader</code></td>
@@ -12121,7 +12141,7 @@ budCurves:{ body: path[16], bySprite: { &quot;&lt;branch_skin&gt;.png&quot;: [ c
 <h2 id="admin-panel-група-відео"><a class="anchor" href="#admin-panel-група-відео" aria-hidden="true">#</a>Група &quot;відео&quot;</h2>
 <h3 id="admin-panel-відео"><a class="anchor" href="#admin-panel-відео" aria-hidden="true">#</a>Відео</h3>
 <p>перегляд збережених відеозаписів з камер з R2 (з вибором POS)</p>
-<p>«Записи» працюють з 06.10.2026: сегменти, які залив uploader малини (<code>video_segments</code>), — час, точка, камера, розмір, стан і кнопка «завантажити» (підписане посилання на 10 хвилин). MPEG-TS браузер сам не програє — файл відкривається у VLC. Сегменти живуть у R2 7 днів (lifecycle). «Події» й «Аналітика» з&#39;являться разом із worker на окремому дроплеті (<a class="doclink" href="#video"><code>video.md</code></a>).</p>
+<p>«Записи» працюють з 06.10.2026: сегменти, які залив uploader малини (<code>video_segments</code>), — час, точка, камера, розмір, стан і кнопка «завантажити» (підписане посилання на 10 хвилин). Сегменти — mkv з відео й звуком A-law (до 07.10.2026 — TS без звуку), браузер їх сам не програє — файл відкривається у VLC. Сегменти живуть у R2 7 днів (lifecycle). «Події» й «Аналітика» з&#39;являться разом із worker на окремому дроплеті (<a class="doclink" href="#video"><code>video.md</code></a>).</p>
 <h3 id="admin-panel-події"><a class="anchor" href="#admin-panel-події" aria-hidden="true">#</a>Події</h3>
 <p>статистика подій з доказами</p>
 <h3 id="admin-panel-аналітика"><a class="anchor" href="#admin-panel-аналітика" aria-hidden="true">#</a>Аналітика</h3>
@@ -13235,7 +13255,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел fb55a70 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b511a95 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

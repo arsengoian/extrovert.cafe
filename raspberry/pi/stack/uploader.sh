@@ -35,7 +35,7 @@ say() { [ "$1" = "$LAST" ] && return; LAST=$1; log "$1"; }
 # Час початку з імені: «…Z.ts» — UTC (recorder з 06.10.2026), без Z —
 # місцевий час малини (сегменти, записані раніше).
 start_epoch() {
-    _n=${1%.ts}; _z=""
+    _n=${1%.*}; _z=""
     case "$_n" in *Z) _z=1; _n=${_n%Z} ;; esac
     _d=$(printf '%s' "$_n" | sed 's/^\(....\)\(..\)\(..\)T\(..\)\(..\)\(..\)$/\1-\2-\3 \4:\5:\6/')
     if [ -n "$_z" ]; then date -u -d "$_d" +%s 2>/dev/null; else date -d "$_d" +%s 2>/dev/null; fi
@@ -53,12 +53,15 @@ upload_one() { # upload_one <файл>
     _bytes=$(stat -c %s "$_f") || return 1
     _at=$(start_epoch "$_name")
     [ -n "$_at" ] || { log "$_name: не розібрав час з імені — пропускаю"; return 1; }
+    # Тип — за розширенням: з 07.10.2026 recorder пише mkv (відео й звук),
+    # раніше — TS. Api підписує посилання саме під цей content-type.
+    case "$_name" in *.mkv) _type=video/x-matroska ;; *) _type=video/mp2t ;; esac
     _body="{\"name\":\"$_name\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}"
     _resp=$(api_post /video/upload "$_body") || return 1
     _url=$(json_field "$_resp" url); _key=$(json_field "$_resp" key)
     [ -n "$_url" ] && [ -n "$_key" ] || { log "$_name: api не дав посилання"; return 1; }
     nice -n 10 ionice -c 3 curl -fsS --max-time 900 --limit-rate "$RATE" \
-        -H "content-type: video/mp2t" -T "$_f" "$_url" -o /dev/null || return 1
+        -H "content-type: $_type" -T "$_f" "$_url" -o /dev/null || return 1
     api_post /video/segment "{\"key\":\"$_key\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}" >/dev/null || return 1
     rm -f "$_f"
 }
@@ -70,7 +73,7 @@ while [ "$STOPPING" = 0 ]; do
     TOKEN=$(cat "$TOKEN_FILE")
     # Готові сегменти — ті, які ffmpeg уже не дописує: не мінялись понад
     # дві хвилини. Найстаріші — першими, щоб архів у R2 ріс без дірок.
-    _list=$(find "$DIR" -maxdepth 1 -name '*.ts' -mmin +1 2>/dev/null | sort | head -n "$BATCH")
+    _list=$(find "$DIR" -maxdepth 1 \( -name '*.mkv' -o -name '*.ts' \) -mmin +1 2>/dev/null | sort | head -n "$BATCH")
     if [ -z "$_list" ]; then idle 30; continue; fi
     _done=0
     for _f in $_list; do

@@ -14,10 +14,13 @@ import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 import { pointFromRequest } from "./points.js";
 
-// Ім'я сегмента — час початку з recorder.sh: «20261006T200019Z.ts» (UTC) або
-// без Z у старих — місцевий час малини. Час початку однаково шле малина
-// числом (started_at, секунди), бо лише вона знає свій часовий пояс.
-const NAME = /^\d{8}T\d{6}Z?\.ts$/;
+// Ім'я сегмента — час початку з recorder.sh: «20261007T120000Z.mkv» (UTC,
+// відео й звук; з 07.10.2026) або «….ts» у старих, без Z — місцевий час
+// малини. Час початку однаково шле малина числом (started_at, секунди), бо
+// лише вона знає свій часовий пояс.
+const NAME = /^\d{8}T\d{6}Z?\.(ts|mkv)$/;
+const TYPE = { ts: "video/mp2t", mkv: "video/x-matroska" };
+const typeOf = (name) => TYPE[name.split(".").pop()];
 const CAMERA = /^[a-z0-9_-]{1,32}$/;
 const MAX_BYTES = 200 * 1024 * 1024;
 
@@ -49,7 +52,7 @@ export default async function routes(app) {
     if (!CAMERA.test(camera)) fail(400, "bad_camera");
     if (!Number.isInteger(bytes) || bytes <= 0 || bytes > MAX_BYTES) fail(400, "bad_bytes");
     const key = keyFor(point, camera, name, startedAt(req.body?.started_at));
-    const { url } = presign({ method: "PUT", purpose: "video", key, contentType: "video/mp2t", expiresIn: 3600 });
+    const { url } = presign({ method: "PUT", purpose: "video", key, contentType: typeOf(name), expiresIn: 3600 });
     return { key, url };
   });
 
@@ -79,8 +82,8 @@ export default async function routes(app) {
     return { ok: true };
   });
 
-  // Адмінка: посилання на завантаження сегмента. MPEG-TS браузер сам не
-  // програє — файл відкривається у VLC чи будь-якому плеєрі.
+  // Адмінка: посилання на завантаження сегмента. Ні mkv зі звуком A-law, ні
+  // MPEG-TS браузер сам не програє — файл відкривається у VLC.
   app.get("/admin/video/segments/:id/download", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const seg = await one("select r2_key, point_id, started_at from video_segments where id = $1", [req.params.id]);

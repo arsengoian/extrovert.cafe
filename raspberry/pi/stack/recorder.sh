@@ -3,9 +3,12 @@
 # (docs/video.md, «Запис»). Компонент стеку (components.conf): приїжджає
 # релізом, піднімається супервізором.
 #
-# Пише те саме, що заміряли 17.08.2026: RTSP → `ffmpeg -c copy` → MPEG-TS
-# хвилинними сегментами. Ні декодування, ні кодування, ні накладень: лише
-# перекладання вже стиснених пакетів (4 % CPU на Pi 1, кіоск тримає fps).
+# RTSP → `ffmpeg -c copy` → хвилинні сегменти Matroska (.mkv) з відео й
+# звуком. Ні декодування, ні кодування, ні накладень: лише перекладання вже
+# стиснених пакетів. Звук камери — pcm_alaw, і MPEG-TS його без перекодування
+# не тримає (доріжка стає «bin_data»), а mkv тримає як є (власник,
+# 07.10.2026: звук зберігаємо). Обрізаний знеструмленням mkv читається до
+# місця обриву, як і TS (перевірено: 60 % файла — 60 % кадрів).
 # Вивантаження в R2 — окремий компонент uploader.sh; він же стирає залите.
 # Флешка — буфер на випадок, коли інтернету чи api немає: місця мало —
 # стираємо найстаріше.
@@ -32,6 +35,12 @@ SEGMENT_S="${RECORDER_SEGMENT_S:-60}"
 # 2 ГБ — запас на кілька годин, якщо прибирання раптом зупиниться.
 KEEP_FREE_MB="${RECORDER_KEEP_FREE_MB:-2048}"
 FFLOG=/tmp/recorder-ffmpeg.log
+# 1 — пишемо всі доріжки камери (відео й звук), 0 — лише відео. У 0
+# recorder переходить сам, якщо ffmpeg відмовився писати звук у mkv
+# (перевірено на ffmpeg 5.1, а на малині 3.2 — лише після першого запуску),
+# і лишається в ньому до перезапуску компонента: запис без звуку кращий,
+# ніж жодного.
+AUDIO=1
 
 STOPPING=0
 FF=""
@@ -105,7 +114,7 @@ prune() {
     while :; do
         _free=$(df -Pm "$BUF" 2>/dev/null | awk 'NR == 2 { print $4 }')
         [ -n "$_free" ] && [ "$_free" -lt "$KEEP_FREE_MB" ] || return 0
-        _old=$(ls -1tr "$DIR"/*.ts 2>/dev/null | head -n 1)
+        _old=$(ls -1tr "$DIR"/*.ts "$DIR"/*.mkv 2>/dev/null | head -n 1)
         [ -n "$_old" ] || return 0
         rm -f "$_old"
         if [ "$FULL_LOGGED" = 0 ]; then FULL_LOGGED=1; log "флешка заповнилась — далі пишемо по колу, стираючи найстаріше"; fi
@@ -113,7 +122,7 @@ prune() {
 }
 
 newest_age() {
-    _f=$(ls -1t "$DIR"/*.ts 2>/dev/null | head -n 1)
+    _f=$(ls -1t "$DIR"/*.ts "$DIR"/*.mkv 2>/dev/null | head -n 1)
     [ -n "$_f" ] || { echo 999999; return; }
     echo $(( $(date +%s) - $(stat -c %Y "$_f") ))
 }
@@ -145,19 +154,19 @@ while [ "$STOPPING" = 0 ]; do
 
     prune
     say "пишу з $(printf '%s' "$_url" | mask)"
-    # -an — без звуку: камера в публічному місці, а звук не потрібен ні
-    # охороні, ні аналітиці (і це ще менше роботи — доріжку просто
-    # відкидаємо). nice/ionice — запис не має права придушити кіоск
-    # (video.md): кіоск — шлях до грошей, запис ні.
+    # -map 0 -c copy — усі доріжки камери як є: відео й звук (-map 0:v —
+    # лише відео, див. AUDIO). nice/ionice — запис не має права придушити
+    # кіоск (video.md): кіоск — шлях до грошей, запис ні.
+    _map="-map 0"; [ "$AUDIO" = 1 ] || _map="-map 0:v"
     # shellcheck disable=SC2086
     # Імена — час початку в UTC із Z: місцевий час на переході на літній
     # дає дві однакові години, а uploader рахує з імені час сегмента.
     TZ=UTC nice -n 10 ionice -c 3 ffmpeg -nostdin -loglevel warning \
         $_rt -use_wallclock_as_timestamps 1 \
         -i "$_url" \
-        -an -c copy \
-        -f segment -segment_time "$SEGMENT_S" -reset_timestamps 1 -segment_format mpegts \
-        -strftime 1 "$DIR/%Y%m%dT%H%M%SZ.ts" 2> "$FFLOG" &
+        $_map -c copy \
+        -f segment -segment_time "$SEGMENT_S" -reset_timestamps 1 -segment_format matroska \
+        -strftime 1 "$DIR/%Y%m%dT%H%M%SZ.mkv" 2> "$FFLOG" &
     FF=$!
 
     # Нагляд щосекунди (ffmpeg, що впав одразу, не має чекати пів хвилини),
@@ -196,7 +205,16 @@ while [ "$STOPPING" = 0 ]; do
     if [ "${FAILS:-0}" -le 1 ]; then
         log "ffmpeg вийшов (код $_rc); останні рядки:"
         tail -n 5 "$FFLOG" 2>/dev/null | mask | while IFS= read -r _l; do log "  ffmpeg: $_l"; done
-    elif [ "$FAILS" -eq 2 ]; then
+    fi
+    # Потік камера віддала, а mkv не прийняв доріжку — це про звук, а не про
+    # мережу: далі пишемо лише відео й пробуємо одразу, без паузи.
+    if [ "$AUDIO" = 1 ] && [ "${FAILS:-0}" -gt 0 ] &&
+        grep -qiE 'could not write header|codec tag|not supported|matches no streams' "$FFLOG" 2>/dev/null; then
+        AUDIO=0; FAILS=0; LAST=""
+        log "звук у mkv не пишеться — далі пишу лише відео (до перезапуску компонента)"
+        idle 2; continue
+    fi
+    if [ "${FAILS:-0}" -eq 2 ]; then
         log "камера не віддає потік — пробую далі, рідше, без повторів у лозі"
     fi
     _wait=5
