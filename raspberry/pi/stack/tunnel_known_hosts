@@ -1,0 +1,4 @@
+# Ключ дроплета для тунелю малини (stack/tunnel.sh): малина підключається
+# лише до нього, StrictHostKeyChecking=yes. Перестворили дроплет — оновити
+# цей рядок (ssh root@дроплет cat /etc/ssh/ssh_host_ed25519_key.pub).
+[46.101.213.31]:2222 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEt31Yvuon63YwPRMU0eSjD6PeqAhkHgBMGgmiqMJvYr

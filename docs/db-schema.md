@@ -153,6 +153,9 @@ erDiagram
         text next_key_hash "ротація: видано, малина ще не підхопила"
         timestamptz key_rotated_at
         timestamptz key_revoked_at
+        int tunnel_port UK "порт тунелю малини на 127.0.0.1 дроплета, з 22001"
+        text tunnel_pubkey "публічний ключ тунелю, малина реєструє сама"
+        timestamptz tunnel_key_at
         timestamptz last_seen_at "остання телеметрія"
         timestamptz created_at
     }

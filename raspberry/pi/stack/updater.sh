@@ -247,6 +247,29 @@ if [ -f "$UPDATING_FLAG" ]; then
     rm -f "$UPDATING_FLAG"
 fi
 
+# Новий компонент у релізі (рядок у components.conf) супервізор бере лише
+# зі свого старту (raspberry-pi.md §2), а супервізор сам себе перезапустити
+# не може. Апдейтер же після підміни релізу одразу exec-ає свій новий код
+# (нижче) — тож саме він першим бачить, що склад увімкнених компонентів у
+# релізі не той, з яким стартував супервізор, і просить systemd перезапустити
+# стек. Раз на реліз: якщо щось не стартує, крутити рестарти по колу не
+# можна. Без цього тунель (07.10.2026) запрацював би лише після ребуту —
+# тобто тоді, коли малина вже знову без зв'язку.
+components_changed() {
+    _want=$(cut -d' ' -f1 "$EXTROVERT_STATE/.want" 2>/dev/null | sort | tr '\n' ' ')
+    _now=$(grep -v '^[[:space:]]*#' "$EXTROVERT_CURRENT/stack/components.conf" 2>/dev/null \
+        | awk 'NF >= 4 && $4 == "1" { print $1 }' | sort | tr '\n' ' ')
+    [ -n "$_want" ] && [ -n "$_now" ] && [ "$_want" != "$_now" ]
+}
+_rel_now=$(current_release)
+if components_changed && [ ! -f "$EXTROVERT_STATE/stack-restarted.$_rel_now" ]; then
+    state_write "stack-restarted.$_rel_now" "$(date +%s)"
+    log "у релізі $_rel_now інший склад компонентів — перезапускаю стек, щоб супервізор їх підхопив"
+    # --no-block: апдейтер сам живе в цьому юніті, тож чекати кінця рестарту
+    # він не може — systemd доведе його без нас.
+    sudo -n systemctl --no-block restart extrovert || log "не вдалось попросити рестарт стеку"
+fi
+
 LAST_FETCH=""     # попередній результат опитування маніфесту: пишемо лише зміни
 while :; do
     # Джитер, щоб десяток точок не бив у R2 одночасно після спільного

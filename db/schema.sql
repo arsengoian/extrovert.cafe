@@ -1150,9 +1150,13 @@ CREATE TABLE public.points (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     short_address text,
     machine_letter text DEFAULT 'a'::text NOT NULL,
+    tunnel_port integer,
+    tunnel_pubkey text,
+    tunnel_key_at timestamp with time zone,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
     CONSTRAINT points_machine_letter_check CHECK ((machine_letter ~ '^[a-z]$'::text)),
-    CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text])))
+    CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text]))),
+    CONSTRAINT points_tunnel_port_check CHECK (((tunnel_port >= 22001) AND (tunnel_port <= 22999)))
 );
 
 
@@ -2523,6 +2527,14 @@ ALTER TABLE ONLY public.points
 
 
 --
+-- Name: points points_tunnel_port_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.points
+    ADD CONSTRAINT points_tunnel_port_key UNIQUE (tunnel_port);
+
+
+--
 -- Name: problem_reports problem_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3879,4 +3891,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261003140000'),
     ('20261003150000'),
     ('20261003160000'),
-    ('20261004090000');
+    ('20261004090000'),
+    ('20261007100000'),
+    ('20261007120000');

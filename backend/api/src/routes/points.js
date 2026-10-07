@@ -26,7 +26,36 @@ export function pointFromRequest(req) {
   return String(sub).startsWith("point:") ? String(sub).slice(6) : null;
 }
 
+// Зворотний тунель малини (raspberry-pi.md, «Тунель»): куди підключатись.
+// Адреса дроплета — з оточення, бо дроплет можуть перестворити; порт ssh
+// той самий, що й для людей (2222: вихідний 22 закритий у частині мереж).
+const TUNNEL = {
+  host: process.env.TUNNEL_HOST || "46.101.213.31",
+  port: Number(process.env.TUNNEL_SSH_PORT || 2222),
+  user: "pitunnel",
+};
+const PUBKEY = /^ssh-ed25519 [A-Za-z0-9+/]{68}(?: [!-~ ]{0,80})?$/;
+
 export default async function routes(app) {
+  // Малина реєструє свій публічний ключ тунелю й дізнається, куди
+  // підключатись. Ключ генерує вона сама, тож на точку нічого не треба
+  // везти. Порт видається один раз і далі лишається за точкою.
+  app.post("/points/:id/tunnel", async (req, reply) => {
+    const authorized = pointFromRequest(req);
+    if (!authorized || authorized !== req.params.id) return reply.code(401).send({ error: "unauthorized" });
+    const pubkey = String(req.body?.pubkey ?? "").trim();
+    if (!PUBKEY.test(pubkey)) fail(400, "bad_pubkey");
+    const { rows: [row] } = await query(
+      `update points p set tunnel_pubkey = $2, tunnel_key_at = case when tunnel_pubkey is distinct from $2 then now() else tunnel_key_at end,
+              tunnel_port = coalesce(p.tunnel_port,
+                (select coalesce(max(tunnel_port), 22000) + 1 from points))
+        where id = $1 returning tunnel_port`,
+      [authorized, pubkey]
+    );
+    if (!row) fail(404, "no_such_point");
+    return { ...TUNNEL, listen: row.tunnel_port };
+  });
+
   // Меню точки. Кеш короткий: кіоск ходить сюди періодично й порівнює ETag.
   app.get("/points/:id/menu", async (req, reply) => {
     const point = await pool.query(
