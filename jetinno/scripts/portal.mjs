@@ -10,6 +10,21 @@ export const BASE = "https://saas.jetinno.com";
 export const VMC = process.env.JETINNO_VMC || "206946"; // kyiv-01
 export const MENU_URL = process.env.MENU_URL || "https://pos.extrovert.cafe/points/kyiv-01/menu.json";
 
+// Chromium — щоб запити не вирізнялись від браузера оператора (той самий
+// рядок, що ставитиме серверний клієнт). На сервері темп тримає спільна
+// черга в Redis (докладно — docs/jetinno.md, «Скоуп інтеграції»); тут, у
+// standalone-скриптах без Redis, — простий локальний тротл: не частіше за
+// JETINNO_MAX_RPS запитів на секунду (типово 2), щоб і скрипти не
+// перевищували ліміт порталу.
+const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
+const MIN_INTERVAL_MS = 1000 / (Number(process.env.JETINNO_MAX_RPS) || 2);
+let nextAt = 0;
+async function throttle() {
+  const wait = nextAt - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  nextAt = Math.max(nextAt, Date.now()) + MIN_INTERVAL_MS;
+}
+
 const COOKIE_FILE = new URL("../cookie.txt", import.meta.url);
 
 function cookie() {
@@ -34,9 +49,10 @@ function checkSession(res, text) {
   }
 }
 
-const headers = () => ({ cookie: cookie(), "user-agent": "Mozilla/5.0 extrovert-jetinno-scripts" });
+const headers = () => ({ cookie: cookie(), "user-agent": UA });
 
 export async function get(path) {
+  await throttle();
   const res = await fetch(BASE + path, { headers: headers() });
   const text = await res.text();
   checkSession(res, text);
@@ -46,6 +62,7 @@ export async function get(path) {
 
 // AJAX-ендпоінти порталу: POST form-urlencoded, у відповідь JSON.
 export async function post(path, data = {}) {
+  await throttle();
   const res = await fetch(BASE + path, {
     method: "POST",
     headers: { ...headers(), "content-type": "application/x-www-form-urlencoded; charset=UTF-8", "x-requested-with": "XMLHttpRequest" },
