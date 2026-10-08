@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело cc92725</p>
+  <p class="eyebrow">extrovert.cafe · джерело be2e3cc</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4758,7 +4758,7 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </tr>
 <tr>
 <td><code>bun jetinno/scripts/set-names.mjs [--yes]</code></td>
-<td>заводить наші назви в «Мою продукцію» порталу (щоб звіти не були каталожними); лише портал, не машина; наявні коди пропускає</td>
+<td>заводить і виправляє наші назви (uk + en) у «Моїй продукції» порталу; англійські — у самому скрипті (<code>EN</code>), бо в системі їх немає; лише портал, не машина; наш запис пропускає, каталожний (напр. після «Import») переписує за id рядка</td>
 </tr>
 </tbody></table>
 </div>
@@ -4932,6 +4932,13 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <li><strong>звірка замовлень за вікно</strong> (крок 4): скільки карткових замовлень у
 машині, скільки чеків у нас (<code>receipts</code>), чи сходяться; розбіжність —
 окреме поле.</li>
+<li><strong>платіжний термінал (непрямо)</strong>: прямого «термінал онлайн» портал не дає,
+але термінал під&#39;єднаний до машини по MDB, тож його падіння машина звітує
+несправністю — <code>EC_104</code>/<code>Cashless error</code> (несправність безконтактної
+оплати), <code>EC_101</code>/<code>MDB error</code>, <code>EC_4</code>/«немає платіжного пристрою» (коди —
+довідник <code>error_lang</code>). Отже: є така несправність → термінал у біді; є
+свіжі карткові продажі (<code>mdb_cashless</code>, EVA-DTS сегмент <code>DA</code>) → термінал
+живий. Обидва сигнали вже збираємо тут.</li>
 </ul>
 <p><strong>Окрема категорія в адмінці.</strong> Сторінка точки (<code>GET /admin/points/:id</code>,
 <code>frontend/admin/src/screens</code> — поряд із <code>Health</code>) уже зводить проби у відра
@@ -14112,7 +14119,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел cc92725 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел be2e3cc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
