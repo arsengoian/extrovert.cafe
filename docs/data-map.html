@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b7e2efc</p>
+  <p class="eyebrow">extrovert.cafe · джерело 49eaeee</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4421,10 +4421,11 @@ Laravel); картинка прив&#39;язана до сесії. П&#39;ят�
 скрізь дорівнює ціні, тож знижка машини ніде не діє. Найімовірніше,
 <code>discount</code> — прапорець «на цей напій діє знижка машини»: команда <code>discount</code>
 одна на всі напої, і відпускну ціну вона, мабуть, рахує лише там, де
-прапорець 1. Нулі — саме в напоїв, які власник налаштовував сам (Еспресо,
-Какао, Окріп), тобто це, схоже, значення за замовчуванням для створених на
-машині вручну. Не перевірено: відповість лише сама команда <code>discount</code>
-(«Що перевірити першим»).</p>
+прапорець 1. Нулі — в Еспресо, Какао й Окропу, і закономірності за ними не
+видно (власник, 08.10.2026: Какао налаштовувала зернова, Еспресо власник
+лише редагував). Не перевірено: відповість лише сама команда <code>discount</code>
+(«Що перевірити першим»), і якщо прапорець справді вмикає знижку, перед
+нею його треба вирівняти.</p>
 <h3 id="jetinno-резервна-копія-з-машини"><a class="anchor" href="#jetinno-резервна-копія-з-машини" aria-hidden="true">#</a>Резервна копія з машини</h3>
 <p><code>upload</code> з <code>uptype</code> <code>recipe</code>, <code>config</code> і <code>eva</code> кладе в <code>/packet</code> три zip;
 копії від 08.10.2026 — у <code>jetinno/backups/2026-10-08/</code> (поза git). Що в них:</p>
@@ -13921,7 +13922,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел b7e2efc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 49eaeee — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
