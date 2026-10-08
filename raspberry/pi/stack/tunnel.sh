@@ -13,7 +13,7 @@
 # Ключ тунелю малина генерує сама (config/tunnel_ed25519, на розділі data) і
 # реєструє публічну частину в api під ключем точки; cron на дроплеті кладе
 # її в authorized_keys користувача pitunnel з обмеженням лише на свій порт
-# (infra/pitunnel). Нового ключа на точку возити не треба.
+# (raspberry/pitunnel). Нового ключа на точку возити не треба.
 set -u
 LOG_TAG=tunnel
 . "$(dirname "$0")/common.sh"

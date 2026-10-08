@@ -2,7 +2,7 @@
 # setup.sh — приймач зворотних тунелів малин на дроплеті (raspberry-pi.md,
 # «Тунель»). Запускати від root на дроплеті; повторний запуск нічого не ламає:
 #
-#   scp -P 2222 -i keys/extrovert_ed25519 -r infra/pitunnel root@46.101.213.31:/tmp/
+#   scp -P 2222 -i keys/extrovert_ed25519 -r raspberry/pitunnel root@46.101.213.31:/tmp/
 #   ssh -p 2222 -i keys/extrovert_ed25519 root@46.101.213.31 sh /tmp/pitunnel/setup.sh
 #
 # Що робить:
