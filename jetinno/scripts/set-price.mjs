@@ -1,10 +1,14 @@
 // Змінити ціну одного напою на машині (console_priceset, docs/jetinno.md).
 //   bun jetinno/scripts/set-price.mjs 15 65          # лише показати, що піде
-//   bun jetinno/scripts/set-price.mjs 15 65 --yes    # надіслати
+//   bun jetinno/scripts/set-price.mjs 15 65 --yes    # надіслати й перевірити
 // Код — product_id машини, тобто drinks.slot без нуля попереду (Мокачино —
 // 15). Ціна — гривні, як у діалозі порталу («9.99»). Без --yes нічого не
 // шле: ціна на машині — це ціна в чеку покупця.
-import { sendAndWatch, machineProducts, menuDrinks, VMC, die } from "./portal.mjs";
+//
+// Зміну ціни машина в журналі не підтверджує (рядок назавжди лишається
+// «відправлено»), тож перевірка — свіжий звіт напоїв: після priceset скрипт
+// просить машину вивантажити напої й звіряє ціну.
+import { sendAndWatch, machineProducts, menuDrinks, VMC, die, sleep } from "./portal.mjs";
 
 const [idArg, priceArg] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const send = process.argv.includes("--yes");
@@ -25,5 +29,13 @@ if (!send) {
   process.exit(0);
 }
 
-const done = await sendAndWatch("priceset", { product_id: String(productId), product_price: String(price) });
-if (done) console.log("перевірити, що прийняла: bun jetinno/scripts/upload.mjs product, потім products.mjs");
+const sent = await sendAndWatch("priceset", { product_id: String(productId), product_price: String(price) }, { untilLogged: true });
+if (!sent) process.exit(1);
+
+console.log("перевіряю: машина вивантажує напої");
+await sleep(5000);
+const uploaded = await sendAndWatch("upload", { uptype: "product" });
+if (!uploaded) die("звіту напоїв немає — перевір пізніше: bun jetinno/scripts/products.mjs");
+const after = (await machineProducts()).find((p) => p.productId === productId);
+if (after && after.price === price) console.log(`✓ на машині ${price} (звіт ${after.uploaded})`);
+else die(`машина звітує ${after ? after.price : "без цього напою"}, а не ${price}`);

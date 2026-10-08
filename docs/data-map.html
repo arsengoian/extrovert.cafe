@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 0c82883</p>
+  <p class="eyebrow">extrovert.cafe · джерело 4bb1eb7</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4667,8 +4667,8 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </tr>
 <tr>
 <td><code>priceset</code></td>
-<td><code>product_id</code> (1…59999), <code>product_price</code> (≥ 0)</td>
-<td>ціна одного напою за кодом каталогу. Діалог у порталі пропонує лише напої з «Моєї продукції» (<code>carrier_product_map</code>), а порожня — «No available product found»; чи вимагає її сам сервер, не перевірено</td>
+<td><code>product_id</code> (1…59999), <code>product_price</code> (≥ 0, гривні)</td>
+<td>ціна одного напою за кодом каталогу; <strong>перевірено 08.10.2026</strong>. Машина застосовує її за секунди, але в журналі не підтверджує — перевірка звітом напоїв. Діалог у порталі пропонує лише напої з «Моєї продукції», а сам запит її не вимагає</td>
 </tr>
 <tr>
 <td><code>discount</code></td>
@@ -4726,7 +4726,7 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <p><code>jetinno/scripts/</code> (08.10.2026) — інструменти для людини, не сервіс:
 запускає їх власник зі своєю сесією, кука — у <code>jetinno/cookie.txt</code> поза git
 (як її дістати — написано в самому файлі). Злетіла сесія — скрипт так і
-каже.</p>
+каже. Запускаються й <code>bun</code>, і <code>node</code> (22+).</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -4752,7 +4752,7 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </tr>
 <tr>
 <td><code>bun jetinno/scripts/set-price.mjs &lt;код&gt; &lt;ціна&gt; [--yes]</code></td>
-<td>ціна одного напою; без <code>--yes</code> лише показує, що піде</td>
+<td>ціна одного напою; без <code>--yes</code> лише показує, що піде, з <code>--yes</code> — надсилає, просить машину вивантажити напої й звіряє ціну</td>
 </tr>
 </tbody></table>
 </div>
@@ -4777,7 +4777,7 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <tr>
 <td>меню й ціни з машини</td>
 <td><code>upload</code> з <code>uptype=product</code> → <code>/device_product</code></td>
-<td>не пробували</td>
+<td><strong>працює</strong>; назви — каталожні, справжні — у файлі продуктів</td>
 </tr>
 <tr>
 <td>продажі для крос-чеку з Checkbox</td>
@@ -4797,7 +4797,7 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <tr>
 <td>ціна напою</td>
 <td><code>priceset</code>, <code>product_id</code> = <code>drinks.slot</code> без нуля</td>
-<td>не пробували</td>
+<td><strong>працює</strong> (08.10.2026, Мокачино 60 → 65)</td>
 </tr>
 <tr>
 <td>знижка</td>
@@ -4815,27 +4815,39 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 просить машину надіслати свої дані; записати щось на машину він не може.
 <code>upgrade</code> заливає пакети, зокрема рецепти («Формулювання»), і перезаписав би
 налаштовані на машині рецепти й помел — його не чіпаємо взагалі.</p>
-<p>Порядок (власник, 08.10.2026), коли машина буде онлайн:</p>
+<p>Порядок (власник, 08.10.2026) і що вийшло:</p>
 <ol>
-<li><code>sync</code> — чи з&#39;явиться після нього «Список напоїв» (<code>/device_product</code>)
-без окремого вивантаження.</li>
-<li><code>upload</code> з <code>uptype=recipe</code> і <code>config</code>, заодно <code>eva</code> — машина кладе файли
-в <code>/packet</code>, ми їх завантажуємо. Це резервна копія рецептів і
-налаштувань до будь-яких змін; що саме в них (чи є там помел), видно буде
-з файлів. EVA-DTS — галузевий формат звіту автомата: <code>PA1</code> — кнопка, код і
-поточна ціна, <code>PA2</code> — лічильники продажів, <code>CA…</code> / <code>DA…</code> — готівка й
-картка, <code>EA…</code> — події. Ще одне джерело цін і продажів, незалежне від
-порталу.</li>
-<li><code>upload</code> з <code>uptype=product</code> — якщо після <code>sync</code> список порожній: чи
-віддасть машина напої з цінами, у чому ціни (у машини <code>amount_scale=2</code>)
-і як швидко.</li>
-<li><code>priceset</code> на одному напої — туди й назад, з дозволу власника: чи
-доходить, як швидко, чи бачить нову ціну термінал і чек.</li>
+<li>✅ <code>sync</code> — виконано за 13 с, але «Список напоїв» не з&#39;явився:
+синхронізація оновлює лише стан.</li>
+<li>✅ <code>upload</code> з <code>uptype=recipe</code>, <code>config</code> і <code>eva</code> — виконано за 8–13 с,
+файли в «Пакетах», копії — у <code>jetinno/backups/</code> («Резервна копія з
+машини» вище). EVA-DTS — галузевий формат звіту автомата: <code>PA1</code> —
+кнопка, код і поточна ціна, <code>PA2</code> — лічильники продажів, <code>CA…</code> /
+<code>DA…</code> — готівка й картка, <code>EA…</code> — події. Ще одне джерело цін і
+продажів, незалежне від порталу.</li>
+<li>✅ <code>upload</code> з <code>uptype=product</code> — виконано за 6–15 с; ціни в гривнях
+(«Напої на машині» вище).</li>
+<li>✅ <code>priceset</code> — Мокачино 60 → 65 скриптом <code>set-price.mjs</code> (власник,
+08.10.2026): машина прийняла ціну, і звіт напоїв через 24 с уже показав<ol start="65">
+<li>Три висновки:</li>
+</ol>
+<ul>
+<li><strong>у журналі команд <code>priceset</code> назавжди лишається «відправлено»</strong> —
+машина його не підтверджує, тож перевірка — лише свіжий звіт напоїв
+(<code>set-price.mjs</code> робить її сам);</li>
+<li><strong>«Моя продукція» серверу не потрібна</strong>: код пішов напряму, повз
+випадний список діалогу;</li>
+<li>чи бачить нову ціну термінал і чек — покаже перший продаж Мокачино
+(у чеку має бути 65).</li>
+</ul>
+</li>
 <li><code>discount</code>: що означає число і чи знімається знижка нулем.</li>
 <li>Що з командою, коли машина офлайн: чекає чи губиться. Сторінка порталу
 офлайн-машину для команд вибрати не дає.</li>
 <li>Сесія: скільки живе без запитів, чи продовжується від них, чи вибиває її
-вхід того самого акаунта з браузера.</li>
+вхід того самого акаунта з браузера. Кука сесії — одна, <code>laravel_session</code>;
+08.10.2026 сесія з браузерної панелі прожила щонайменше 2 год 20 хв з
+паузами без запитів.</li>
 </ol>
 
 </section>
@@ -13960,7 +13972,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел 0c82883 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 4bb1eb7 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

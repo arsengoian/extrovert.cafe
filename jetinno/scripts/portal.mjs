@@ -119,8 +119,10 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Надіслати команду й стежити за журналом, доки машина не відповість.
 // «success» від порталу означає лише «відправлено» (docs/jetinno.md), тож
-// правда — новий рядок журналу і його стан.
-export async function sendAndWatch(route, fields, { timeoutS = 90 } = {}) {
+// правда — новий рядок журналу і його стан. untilLogged — повернутись,
+// щойно команда з'явилась у журналі: priceset машина не підтверджує ніколи
+// (08.10.2026 ціна застосувалась, а рядок лишився «відправлено»).
+export async function sendAndWatch(route, fields, { timeoutS = 90, untilLogged = false } = {}) {
   const before = new Set((await commandLog(20)).map((c) => c.id));
   const t0 = Date.now();
   const res = await command(route, fields);
@@ -133,7 +135,7 @@ export async function sendAndWatch(route, fields, { timeoutS = 90 } = {}) {
     if (!mine) continue;
     const line = `${mine.status}${mine.reason && mine.reason !== "--" ? ` (${mine.reason})` : ""}`;
     if (line !== last) { console.log(`  ${Math.round((Date.now() - t0) / 1000)} с: ${line}`); last = line; }
-    if (!isPending(mine.status)) return mine;
+    if (untilLogged || !isPending(mine.status)) return mine;
   }
   console.log(`  за ${timeoutS} с машина не відповіла — подивись пізніше: bun jetinno/scripts/log.mjs`);
   return null;
