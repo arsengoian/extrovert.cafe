@@ -24,6 +24,8 @@ raspberry/kiosk/.deploy/
 # Архіви з кавомашини Jetinno: рецепти, профілі, EVA-DTS. У профілях —
 # налаштування оплати (pay_config.json), тож у git вони не їдуть.
 jetinno/backups/
+# Кука сесії порталу для jetinno/scripts — з нею можна керувати машиною.
+jetinno/cookie.txt
 
 # Секрети для act: приватний ключ від сервера й токен реєстру.
 # Робиться з локального .env командою `make act-secrets`.

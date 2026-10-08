@@ -302,7 +302,7 @@ form-urlencoded об'єкт `remote` зі сторінки: `routes`, `vmc_no`, 
 | `supply` | `supply_volumes[<id>]=<n>` | записати залишки інгредієнтів (кнопка «Заповніть продукцію») |
 | `upload` | `uptype`: `product`, `eva` (EVA-DTS), `order` (+ `date`), `recipe`, `config`; `folder` | попросити машину вивантажити дані: напої з цінами → `/device_product`, файли → `/packet` |
 | `upgrade` | `uptype`: `app`, `recipe`, `advert`, `io`, `ice`, `router`; `package` — URL із `POST package_get` (`type`) | оновити ПЗ, рецепти, рекламу |
-| `reboot` | `uptype`: на сторінці списку пристроїв — `all`, `app`, `io`, `ice`; у картці машини — вибір 1–6 (машина, застосунок, IO, льодогенератор, CUP, STUM) | скинути помилку чи перезапустити |
+| `reboot` | `uptype`: на сторінці списку пристроїв — `all`, `app`, `io`, `ice`; у картці машини — `data-code` обраного з шести варіантів (машина, застосунок, IO, льодогенератор, CUP, STUM) | скинути помилку чи перезапустити |
 | `password` | `passwords[…]` | паролі сервісного меню машини |
 | `productlock`, `productunlock` | `product_ids` | заблокувати чи розблокувати напій — є в коді, кнопки в нашому акаунті немає |
 | `opendoor` | — | відкрити двері — є в коді, кнопки в нашому акаунті немає |
@@ -312,6 +312,26 @@ form-urlencoded об'єкт `remote` зі сторінки: `routes`, `vmc_no`, 
 сценарій, свої поля), `carrier_product_map_save` / `_import` / `_delete`,
 `timezone_edit`, `package_save` / `package_delete`, `advert_pack_zip`,
 `users_save` / `users_delete`, `*_delete` журналів.
+
+## Скрипти
+
+`jetinno/scripts/` (08.10.2026) — інструменти для людини, не сервіс:
+запускає їх власник зі своєю сесією, кука — у `jetinno/cookie.txt` поза git
+(як її дістати — написано в самому файлі). Злетіла сесія — скрипт так і
+каже.
+
+| Команда | Що робить |
+|---|---|
+| `bun jetinno/scripts/status.mjs` | стан машини; заодно перевірка, що кука жива |
+| `bun jetinno/scripts/products.mjs` | напої з останнього звіту машини поруч із меню точки (`pos.extrovert.cafe/points/kyiv-01/menu.json`), розбіжність ціни — «⚠» |
+| `bun jetinno/scripts/log.mjs [N]` | журнал команд машині зі станами |
+| `bun jetinno/scripts/upload.mjs product\|recipe\|config\|eva` | машина вивантажує дані в портал і скрипт чекає її відповіді |
+| `bun jetinno/scripts/set-price.mjs <код> <ціна> [--yes]` | ціна одного напою; без `--yes` лише показує, що піде |
+
+Команди шлють рівно той запит, що й кнопки порталу (об'єкт `remote` з
+`device_info.js`), і чекають нового рядка в журналі команд: «success» від
+порталу означає лише «відправлено». Таблиці розбираються за позиціями
+колонок — звірено з розміткою 08.10.2026 (журнал — 21 колонка, напої — 13).
 
 ## Що це дає нам
 
