@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b6b451b</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0c84c51</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4570,13 +4570,29 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 кандидат на ту саму ціль деплою <code>jetinno</code>, якої досі не було: знижка дня
 дійшла б не лише до кіоска, а й до чека.</p>
 <h2 id="jetinno-що-перевірити-першим"><a class="anchor" href="#jetinno-що-перевірити-першим" aria-hidden="true">#</a>Що перевірити першим</h2>
+<p><strong>Upload — це машина → портал, Upgrade — портал → машина.</strong> <code>upload</code> лише
+просить машину надіслати свої дані; записати щось на машину він не може.
+<code>upgrade</code> заливає пакети, зокрема рецепти («Формулювання»), і перезаписав би
+налаштовані на машині рецепти й помел — його не чіпаємо взагалі.</p>
+<p>Порядок (власник, 08.10.2026), коли машина буде онлайн:</p>
 <ol>
-<li><code>upload</code> з <code>uptype=product</code>: чи віддасть машина список напоїв із цінами,
-у чому ціни (у машини <code>amount_scale=2</code>) і як швидко.</li>
+<li><code>sync</code> — чи з&#39;явиться після нього «Список напоїв» (<code>/device_product</code>)
+без окремого вивантаження.</li>
+<li><code>upload</code> з <code>uptype=recipe</code> і <code>config</code>, заодно <code>eva</code> — машина кладе файли
+в <code>/packet</code>, ми їх завантажуємо. Це резервна копія рецептів і
+налаштувань до будь-яких змін; що саме в них (чи є там помел), видно буде
+з файлів. EVA-DTS — галузевий формат звіту автомата: <code>PA1</code> — кнопка, код і
+поточна ціна, <code>PA2</code> — лічильники продажів, <code>CA…</code> / <code>DA…</code> — готівка й
+картка, <code>EA…</code> — події. Ще одне джерело цін і продажів, незалежне від
+порталу.</li>
+<li><code>upload</code> з <code>uptype=product</code> — якщо після <code>sync</code> список порожній: чи
+віддасть машина напої з цінами, у чому ціни (у машини <code>amount_scale=2</code>)
+і як швидко.</li>
 <li><code>priceset</code> на одному напої — туди й назад, з дозволу власника: чи
 доходить, як швидко, чи бачить нову ціну термінал і чек.</li>
 <li><code>discount</code>: що означає число і чи знімається знижка нулем.</li>
-<li>Що з командою, коли машина офлайн: чекає чи губиться.</li>
+<li>Що з командою, коли машина офлайн: чекає чи губиться. Сторінка порталу
+офлайн-машину для команд вибрати не дає.</li>
 <li>Сесія: скільки живе без запитів, чи продовжується від них, чи вибиває її
 вхід того самого акаунта з браузера.</li>
 </ol>
@@ -8879,6 +8895,24 @@ Jetinno. Меню й Checkbox оновлюються майже миттєво, 
 прямо каже.</p>
 </li>
 </ul>
+<p><strong>Далі — знижка на один напій</strong> (рішення власника 08.10.2026, ще не
+зроблено). Автомат Jetinno міняє ціну окремою командою на кожен напій
+(<code>priceset</code>), а власна знижка в нього одна на всю машину (<a class="doclink" href="#jetinno"><code>jetinno.md</code></a>).
+«30 ₴ з кожного напою» на автоматі — це команда на кожен напій туди й
+назад, тож знижка стане знижкою на один напій, який гравець обирає сам:</p>
+<ul>
+<li><strong>Вибір</strong> — окремим екраном після купівлі: сітка поточних напоїв точки,
+як у опитуванні профілю (<code>DrinkGrid</code>, <code>frontend/client/src/ui/Fields.jsx</code>).</li>
+<li><strong>Кінець</strong> — за часом (120 с) або першим чеком <strong>із цим напоєм</strong>; чек на
+інший напій знижку не закінчує.</li>
+<li><strong>Черга</strong> лишається: на точці одна активна знижка.</li>
+<li><strong>Кіоск</strong> — знижена ціна й «%» лише на картці обраного напою; плашка
+«Знижка! Діє ще N секунд» — як є.</li>
+<li><strong>Checkbox і автомат</strong> отримують ціну лише цього напою; на автомат —
+<code>priceset</code> за <code>product_id</code> = <code>drinks.slot</code> без нуля попереду.</li>
+</ul>
+<p>Не програмуємо, доки на машині не перевірено, що <code>priceset</code> доходить швидко
+й передбачувано (<a class="doclink" href="#jetinno"><code>jetinno.md</code></a>, «Що перевірити першим»).</p>
 <p>❌ <strong>Динамічний курс зерен (throttling) — відхилено.</strong> Замість цього: адмінка
 просто ПОКАЗУЄ % витраченого місячного бюджету (для людини, що приймає рішення
 вручну), без автоматичної зміни цін. &quot;No limit for spending&quot; — гість завжди
@@ -13685,7 +13719,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел b6b451b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0c84c51 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
