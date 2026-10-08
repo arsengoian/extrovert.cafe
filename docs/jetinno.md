@@ -205,6 +205,11 @@ form-urlencoded об'єкт `remote` зі сторінки: `routes`, `vmc_no`, 
   `/record_control` (стан, причина відмови) і в самому ефекті.
 - Сторінка пускає в одну пачку до п'яти машин (для `upload` — до десяти) і
   шле окремий запит на кожну.
+- У консолі картки машини десять кнопок (звірено зі скріншотом власника
+  08.10.2026): Synchronous State, Remote Upgrade, Remote Reset, Update
+  Price, Update Discount, Material Filling, Product Making, Upload Data,
+  Upload Product, Update Password. `productlock`, `productunlock` і
+  `opendoor` є лише в коді.
 
 | `route` | Параметри | Що робить |
 |---|---|---|
@@ -215,7 +220,7 @@ form-urlencoded об'єкт `remote` зі сторінки: `routes`, `vmc_no`, 
 | `supply` | `supply_volumes[<id>]=<n>` | записати залишки інгредієнтів (кнопка «Заповніть продукцію») |
 | `upload` | `uptype`: `product`, `eva` (EVA-DTS), `order` (+ `date`), `recipe`, `config`; `folder` | попросити машину вивантажити дані: напої з цінами → `/device_product`, файли → `/packet` |
 | `upgrade` | `uptype`: `app`, `recipe`, `advert`, `io`, `ice`, `router`; `package` — URL із `POST package_get` (`type`) | оновити ПЗ, рецепти, рекламу |
-| `reboot` | `uptype`: `all`, `app`, `io`, `ice` | скинути помилку чи перезапустити |
+| `reboot` | `uptype`: на сторінці списку пристроїв — `all`, `app`, `io`, `ice`; у картці машини — вибір 1–6 (машина, застосунок, IO, льодогенератор, CUP, STUM) | скинути помилку чи перезапустити |
 | `password` | `passwords[…]` | паролі сервісного меню машини |
 | `productlock`, `productunlock` | `product_ids` | заблокувати чи розблокувати напій — є в коді, кнопки в нашому акаунті немає |
 | `opendoor` | — | відкрити двері — є в коді, кнопки в нашому акаунті немає |

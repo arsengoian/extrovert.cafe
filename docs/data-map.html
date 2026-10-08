@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело a15083b</p>
+  <p class="eyebrow">extrovert.cafe · джерело b6b451b</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4443,6 +4443,11 @@ form-urlencoded об&#39;єкт <code>remote</code> зі сторінки: <code
 <code>/record_control</code> (стан, причина відмови) і в самому ефекті.</li>
 <li>Сторінка пускає в одну пачку до п&#39;яти машин (для <code>upload</code> — до десяти) і
 шле окремий запит на кожну.</li>
+<li>У консолі картки машини десять кнопок (звірено зі скріншотом власника
+08.10.2026): Synchronous State, Remote Upgrade, Remote Reset, Update
+Price, Update Discount, Material Filling, Product Making, Upload Data,
+Upload Product, Update Password. <code>productlock</code>, <code>productunlock</code> і
+<code>opendoor</code> є лише в коді.</li>
 </ul>
 <div class="tablewrap"><table>
 <thead>
@@ -4489,7 +4494,7 @@ form-urlencoded об&#39;єкт <code>remote</code> зі сторінки: <code
 </tr>
 <tr>
 <td><code>reboot</code></td>
-<td><code>uptype</code>: <code>all</code>, <code>app</code>, <code>io</code>, <code>ice</code></td>
+<td><code>uptype</code>: на сторінці списку пристроїв — <code>all</code>, <code>app</code>, <code>io</code>, <code>ice</code>; у картці машини — вибір 1–6 (машина, застосунок, IO, льодогенератор, CUP, STUM)</td>
 <td>скинути помилку чи перезапустити</td>
 </tr>
 <tr>
@@ -13680,7 +13685,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел a15083b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b6b451b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
