@@ -32,7 +32,12 @@ const EN = {
   "Мокачино": "Mochaccino",
   "Гарячий шоколад": "Hot Chocolate",
   "Какао": "Cocoa",
+  "Окріп": "Hot Water",
 };
+
+// Напої не з меню, які теж варто підписати в порталі: кип'яток (107) —
+// тестова кнопка власника за 1 ₴, інакше в логах звіту її не впізнати.
+const EXTRA = [{ productId: 107, name: "Окріп" }];
 
 const LANGS = ["cn", "tw", "en", "ru", "kr", "fr", "ja", "nl", "tr", "pl", "se", "uk", "es", "de", "th", "bg"];
 
@@ -69,8 +74,12 @@ const menu = await menuDrinks();
 if (!menu.length) die("меню точки порожнє — немає звідки брати назви");
 const have = await existing();
 
+// Меню плюс позапунктові напої (EXTRA), без дублів за кодом.
+const drinks = [...menu];
+for (const e of EXTRA) if (!drinks.some((d) => d.productId === e.productId)) drinks.push(e);
+
 const plan = [];
-for (const d of menu) {
+for (const d of drinks) {
   if (!Number.isInteger(d.productId)) continue;
   const en = EN[d.name] ?? d.name;
   if (!EN[d.name]) console.log(`! ${d.name}: немає англійської в EN — ставлю українську; додай у скрипт`);
