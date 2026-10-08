@@ -21,6 +21,10 @@ raspberry/kiosk/.render-tmp/
 # kiosk: приватний ключ деплою, не для гіту
 raspberry/kiosk/.deploy/
 
+# Архіви з кавомашини Jetinno: рецепти, профілі, EVA-DTS. У профілях —
+# налаштування оплати (pay_config.json), тож у git вони не їдуть.
+jetinno/backups/
+
 # Секрети для act: приватний ключ від сервера й токен реєстру.
 # Робиться з локального .env командою `make act-secrets`.
 .secrets
