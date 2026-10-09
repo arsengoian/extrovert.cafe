@@ -4,7 +4,11 @@
 // Кука — з jetinno/cookie.txt (поза git): портал пускає за сесійною
 // httpOnly-кукою, а вхід — із капчею, тож сесію бере людина зі свого
 // браузера (як — написано в самому файлі).
+//
+// Розбір таблиць — зі спільного модуля (@extrovert/lib/jetinno/parse.js), щоб
+// колонки не розійшлися з серверним клієнтом (власник, 08.10.2026).
 import { readFileSync } from "node:fs";
+import { USER_AGENT, tableRows, parseCommandLog, parseProducts, isPending } from "@extrovert/lib/jetinno/parse.js";
 
 export const BASE = "https://saas.jetinno.com";
 export const VMC = process.env.JETINNO_VMC || "206946"; // kyiv-01
@@ -16,7 +20,6 @@ export const MENU_URL = process.env.MENU_URL || "https://pos.extrovert.cafe/poin
 // standalone-скриптах без Redis, — простий локальний тротл: не частіше за
 // JETINNO_MAX_RPS запитів на секунду (типово 2), щоб і скрипти не
 // перевищували ліміт порталу.
-const UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
 const MIN_INTERVAL_MS = 1000 / (Number(process.env.JETINNO_MAX_RPS) || 2);
 let nextAt = 0;
 async function throttle() {
@@ -49,7 +52,7 @@ function checkSession(res, text) {
   }
 }
 
-const headers = () => ({ cookie: cookie(), "user-agent": UA });
+const headers = () => ({ cookie: cookie(), "user-agent": USER_AGENT });
 
 export async function get(path) {
   await throttle();
@@ -74,20 +77,7 @@ export async function post(path, data = {}) {
   try { return JSON.parse(text); } catch { die(`POST ${path}: не JSON — ${text.slice(0, 200)}`); }
 }
 
-const ENTITIES = { "&nbsp;": " ", "&amp;": "&", "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'" };
-const cellText = (html) => html.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/gi, (e) => ENTITIES[e] ?? e).replace(/\s+/g, " ").trim();
-
-// Рядки всіх <tbody> сторінки — масиви текстів клітинок. Рядок «немає
-// даних» має одну клітинку, тож відсіюється перевіркою довжини у виклику.
-export function tableRows(html) {
-  const rows = [];
-  for (const body of html.match(/<tbody[\s\S]*?<\/tbody>/gi) ?? []) {
-    for (const tr of body.match(/<tr[\s\S]*?<\/tr>/gi) ?? []) {
-      rows.push((tr.match(/<td[\s\S]*?<\/td>/gi) ?? []).map(cellText));
-    }
-  }
-  return rows;
-}
+export { tableRows };
 
 // Команда машині: POST console_<route> з тим самим об'єктом, який шле
 // сторінка (remote у device_info.js); порожні поля — порожні, як у jQuery.
@@ -98,23 +88,14 @@ export function command(route, fields = {}) {
   });
 }
 
-// Журнал команд машини, новіші першими. Колонку з логіном акаунта не
-// беремо: у виводі вона нікому не потрібна.
+// Журнал команд машини, новіші першими.
 export async function commandLog(limit = 10) {
-  const html = await get(`/record_control?vmc_no=${VMC}&perPage=${limit}&page=1`);
-  return tableRows(html).filter((r) => r.length >= 21).map((r) => ({
-    type: r[5], status: r[6], reason: r[7], dataType: r[10], productId: r[13], price: r[14],
-    discount: r[15], created: r[18], updated: r[19], id: r[20],
-  }));
+  return parseCommandLog(await get(`/record_control?vmc_no=${VMC}&perPage=${limit}&page=1`));
 }
 
 // Напої, як їх востаннє звітувала машина (після upload з uptype=product).
 export async function machineProducts() {
-  const html = await get(`/device_product?vmc_no=${VMC}&perPage=100&page=1`);
-  return tableRows(html).filter((r) => r.length >= 13).map((r) => ({
-    productId: Number(r[3]), name: r[4], price: Number(r[5]), salePrice: Number(r[6]), discount: r[7],
-    status: r[8], sort: Number(r[9]), uploaded: r[12],
-  }));
+  return parseProducts(await get(`/device_product?vmc_no=${VMC}&perPage=100&page=1`));
 }
 
 // Наше меню точки з публічного бакета: код позиції «a033» → product_id 33.
@@ -129,8 +110,7 @@ export async function menuDrinks() {
   }));
 }
 
-// Стан команди ще «відправлено», а не виконано (мова — як у сесії куки).
-export const isPending = (status) => /надіслано|sent|发送/i.test(status ?? "");
+export { isPending };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
