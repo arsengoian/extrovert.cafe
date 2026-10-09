@@ -129,20 +129,87 @@ export async function hasSession(redis) {
   return Boolean(await redis.get(SESSION_KEY));
 }
 
-// Вхід у портал. Капчу портал вимагає на /dologin, тож повністю автоматично
-// сервер увійти не може: `solveCaptcha(imageBuffer)` → рядок коду — це місце,
-// куди підставляється розв'язувач. За замовчуванням його немає, і вхід
-// повідомляє, що потрібна людина.
-//
-// TODO(Telegram): коли дозволимо — тут бот шле власнику картинку капчі
-// (GET /captcha/flat) і чекає відповіді; поки свідомо не реалізовано, щоб не
-// піднімати вебхук лише заради цього (власник, 09.10.2026). Логін і пароль —
-// JETINNO_LOGIN / JETINNO_PASSWORD з .env.prod.
-export async function login(/* { redis, env, solveCaptcha } */) {
-  throw new Error(
-    "автоматичний вхід у Jetinno ще не реалізовано (капча): постав куку сесії вручну в Redis " +
-    `(${SESSION_KEY}) або дочекайся реалізації входу`
-  );
+// Набір Set-Cookie з відповіді → один заголовок Cookie («name=value; ...»).
+function cookieFromSetCookie(arr) {
+  return (arr ?? []).map((c) => c.split(";")[0]).filter((kv) => kv.includes("=")).join("; ");
+}
+// Нові Set-Cookie перекривають старі за іменем (Laravel на вході регенерує id).
+function mergeCookie(oldCookie, setCookie) {
+  const map = new Map();
+  const put = (kv) => { const i = kv.indexOf("="); if (i > 0) map.set(kv.slice(0, i), kv.slice(i + 1)); };
+  for (const part of (oldCookie || "").split("; ")) if (part) put(part);
+  for (const c of setCookie ?? []) put(c.split(";")[0]);
+  return [...map].map(([k, v]) => `${k}=${v}`).join("; ");
+}
+// Портал розрізняє помилку капчі й помилку пароля (login-сторінка:
+// trans_verification_error). На капчі — пробуємо ще з новою; на паролі —
+// стоп одразу, щоб не наближати блокування акаунта за невірним паролем.
+const isCaptchaError = (info) => /капч|captcha|verif|验证/i.test(info ?? "");
+
+async function startSession(base) {
+  const res = await fetch(`${base}/login`, { headers: { "user-agent": USER_AGENT } });
+  await res.text();
+  const cookie = cookieFromSetCookie(res.headers.getSetCookie?.());
+  if (!cookie) throw new Error("портал не видав сесійної куки на /login");
+  return cookie;
+}
+// Картинка капчі, прив'язана до сесії cookie, у base64 — у такому вигляді її
+// очікує solveCaptcha.
+async function fetchCaptcha(base, cookie) {
+  const res = await fetch(`${base}/captcha/flat?${Date.now()}${Math.random()}`, {
+    headers: { cookie, "user-agent": USER_AGENT },
+  });
+  if (!res.ok) throw new Error(`капча: HTTP ${res.status}`);
+  return Buffer.from(await res.arrayBuffer()).toString("base64");
 }
 
-export { isPending, tableById };
+// Вхід у портал і збереження сесії в Redis. Усе, крім розпізнавання капчі,
+// робить ця функція: бере свіжу сесію з /login, тягне картинку капчі,
+// віддає її в solveCaptcha, шле /dologin з логіном-паролем з .env.prod і
+// кладе авторизовану куку в Redis (SESSION_KEY).
+//
+// solveCaptcha(base64Image) → рядок коду — реалізує власник (напр. OCR); тут
+// її свідомо немає (капча — захист порталу від ботів). Без неї вхід не
+// відбувається: або передай solveCaptcha, або постав куку в Redis вручну.
+// Логін і пароль у логи й повідомлення не потрапляють.
+export async function login({ redis, env = process.env, solveCaptcha, maxCaptchaTries = 5 } = {}) {
+  const client = redis ?? redisClient();
+  const base = (env.JETINNO_BASE || "https://saas.jetinno.com").replace(/\/+$/, "");
+  const username = env.JETINNO_LOGIN;
+  const password = env.JETINNO_PASSWORD;
+  if (!username || !password) throw new Error("немає JETINNO_LOGIN / JETINNO_PASSWORD (.env.prod)");
+  if (typeof solveCaptcha !== "function") {
+    throw new Error("login: потрібна функція solveCaptcha(base64) — її реалізує власник (розпізнавання капчі)");
+  }
+
+  let cookie = await startSession(base);
+  for (let attempt = 1; attempt <= maxCaptchaTries; attempt++) {
+    const image = await fetchCaptcha(base, cookie);
+    const code = String(await solveCaptcha(image)).trim();
+    const res = await fetch(`${base}/dologin`, {
+      method: "POST",
+      headers: {
+        cookie, "user-agent": USER_AGENT,
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest",
+      },
+      body: new URLSearchParams({ username, password, code }),
+    });
+    const setCookie = res.headers.getSetCookie?.() ?? [];
+    const body = await res.json().catch(() => ({}));
+
+    if (body.status === "success") {
+      cookie = mergeCookie(cookie, setCookie);
+      await client.set(SESSION_KEY, cookie);
+      return { ok: true };
+    }
+    const denied = body.data?.username_denied;
+    if (denied) throw new Error(`акаунт Jetinno заблоковано, спробуй через ~${denied.countdown ?? "?"} с`);
+    // Не капча (пароль/логін чи інше) — не повторюємо: інакше серія невірних
+    // паролів заблокує акаунт.
+    if (!isCaptchaError(body.info)) throw new Error(`вхід Jetinno не вдався: ${body.info ?? "невідома помилка"}`);
+  }
+  throw new Error(`капчу не розпізнано за ${maxCaptchaTries} спроб — перевір solveCaptcha`);
+}
+
+export { isPending, tableById, fetchCaptcha };

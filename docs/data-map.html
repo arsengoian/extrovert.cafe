@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b2dcf5e</p>
+  <p class="eyebrow">extrovert.cafe · джерело a00caa1</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4216,21 +4216,31 @@ GET-параметри: <code>page</code>, <code>perPage</code> (до 1000), <co
 капчі-картинки <code>GET /captcha/flat?&lt;випадкове&gt;</code> (пакет mews/captcha для
 Laravel); картинка прив&#39;язана до сесії. П&#39;ять хибних паролів поспіль
 блокують акаунт на час, відлік у секундах — <code>data.username_denied.countdown</code>.</p>
-<p>Задум клієнта (08.10.2026, поки не реалізований):</p>
+<p>Клієнт (<code>backend/lib/src/jetinno/portal.js</code>, вхід — 09.10.2026):</p>
 <ul>
-<li><strong>Сесія окремо від входу.</strong> Сервер тримає одну сесію, cookie лежить у базі
-(перезапуск сервісу не вимагає нового входу), і регулярні запити не дають
-їй вмерти. Скільки вона живе насправді — перше, що заміряємо.</li>
-<li><strong>Капча — одна функція: картинка → рядок.</strong> Клієнт кличе її лише тоді,
-коли сесія справді злетіла. За замовчуванням відповідає людина: бот
-надсилає картинку капчі власнику в Telegram, той відповідає 4–5
-символами, логін і пароль сервер бере з <code>.env</code>. Власник може підставити
-свою реалізацію, решта клієнта від цього не залежить (власник,
-08.10.2026: модуль пише сам; Claude розпізнавання капчі не пише й не
-тестує).</li>
-<li><strong>Обережно з невдачами.</strong> Чи рахується хибна капча в п&#39;ять спроб до
-блокування, невідомо, тож після кількох невдалих входів поспіль клієнт
-зупиняється й кличе людину, а не довбає портал.</li>
+<li><p><strong>Сесія окремо від входу.</strong> Кука сесії лежить у Redis (<code>jetinno:session</code>),
+клієнт ходить із нею, а регулярні запити телеметрії тримають її живою.
+Скільки вона живе насправді — ще заміряємо.</p>
+</li>
+<li><p><strong><code>login({ redis, solveCaptcha })</code> робить усе, крім розпізнавання капчі</strong>
+(перевірено 09.10.2026 до кроку <code>/dologin</code>): бере свіжу сесію з <code>/login</code>,
+тягне картинку капчі (<code>/captcha/flat</code>), <strong>передає її в <code>solveCaptcha</code> як
+base64</strong>, шле <code>/dologin</code> з <code>JETINNO_LOGIN</code>/<code>JETINNO_PASSWORD</code> з <code>.env.prod</code>,
+зберігає авторизовану куку в Redis. Логін і пароль у логи не потрапляють.</p>
+</li>
+<li><p><strong><code>solveCaptcha(base64Image) → код</code> реалізує власник</strong> (напр. OCR); у
+клієнті її свідомо немає — капча це захист порталу від ботів, і Claude її
+розпізнавання не пише, не тестує й не під&#39;єднує (власник, 08–09.10.2026).
+Виклик:</p>
+<pre><code class="language-js">import { login } from &quot;@extrovert/lib/jetinno/portal.js&quot;;
+await login({ redis, solveCaptcha });   // solveCaptcha — модуль власника
+</code></pre>
+</li>
+<li><p><strong>Обережно з невдачами.</strong> Портал розрізняє помилку капчі й помилку пароля:
+на капчі клієнт пробує ще з новою (до <code>maxCaptchaTries</code>, типово 5), а на
+паролі зупиняється одразу — інакше серія невірних паролів заблокує акаунт
+(блокування повертається в <code>data.username_denied.countdown</code>).</p>
+</li>
 </ul>
 <h2 id="jetinno-машина-kyiv-01"><a class="anchor" href="#jetinno-машина-kyiv-01" aria-hidden="true">#</a>Машина kyiv-01</h2>
 <div class="tablewrap"><table>
@@ -4799,8 +4809,8 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </thead>
 <tbody><tr>
 <td>вхід кодом</td>
-<td><code>dologin</code>; сесія на сервері; капча — функція «картинка → рядок», за замовчуванням людина в Telegram</td>
-<td>задум</td>
+<td><code>login()</code>: сесія в Redis, <code>/dologin</code>, логін-пароль з <code>.env</code>; капча — <code>solveCaptcha(base64)</code> власника</td>
+<td><strong>плумбінг готовий</strong>, чекає <code>solveCaptcha</code></td>
 </tr>
 <tr>
 <td>меню й ціни з машини</td>
@@ -4878,9 +4888,10 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 паузами без запитів.</li>
 </ol>
 <h2 id="jetinno-скоуп-інтеграції-реалізовано-09-10-2026"><a class="anchor" href="#jetinno-скоуп-інтеграції-реалізовано-09-10-2026" aria-hidden="true">#</a>Скоуп інтеграції (реалізовано 09.10.2026)</h2>
-<p>Кроки 0–5 нижче зроблено в коді сервера (вхід у портал — крок 1 — лишається
-напівручним: куку сесії ставлять у Redis, автоматичний вхід із капчею не
-реалізований). Що робимо, спираючись на перевірене вище. Скрипти
+<p>Кроки 0–5 нижче зроблено в коді сервера. Вхід (<code>login()</code>) теж реалізовано
+(сесія, <code>/dologin</code>, логін-пароль, кука в Redis); бракує лише <code>solveCaptcha</code> —
+розпізнавання капчі, яке пише власник (див. «Вхід»). Доти куку можна ставити
+в Redis вручну. Що робимо, спираючись на перевірене вище. Скрипти
 (<code>jetinno/scripts/</code>) лишаються як ручний інструмент власника; <strong>рецепти —
 лише в скриптах і резервних копіях</strong>, сервіс їх не чіпає (ризик перезапису
 налаштованого на машині). Усе нижче — окремими кроками; кожен корисний сам
@@ -14214,7 +14225,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел b2dcf5e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел a00caa1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
