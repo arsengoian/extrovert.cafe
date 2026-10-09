@@ -226,6 +226,13 @@ services:
       "
     restart: "no"
 
+  ddddocr:
+    <<: *defaults
+    build: { context: ., dockerfile: docker/ddddocr.Dockerfile }
+    environment:
+      - DEBUG=1
+    restart: always
+
 volumes:
   minio:
   pgdata:

@@ -160,6 +160,13 @@ services:
       postgres: { condition: service_healthy }
       docker-proxy: { condition: service_started }
 
+  ddddocr:
+    <<: *defaults
+    build: { context: ., dockerfile: docker/ddddocr.Dockerfile }
+    environment:
+      - DEBUG=1
+    restart: always
+
   # Стан контейнерів для телеметрії сервера в адмінці (overseer/server.js,
   # 03.10.2026). Сокет докера — це root над усім хостом, тому overseer його
   # не отримує: проксі пропускає тільки GET на /containers, а запис (POST),

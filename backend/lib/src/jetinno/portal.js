@@ -191,9 +191,10 @@ async function fetchCaptcha(base, cookie) {
 async function solveCaptcha(captchaString){
     const response = await fetch(`http://ddddocr:8000/ocr`, {
         method: 'POST',
-        body: `image=${encodeURIComponent(captchaString)}`
+        body: new URLSearchParams({image: captchaString}),
     })
-    return (await response?.text())?.data ?? null;
+    const json = await response?.json()
+    return json?.data;
 }
 
 
