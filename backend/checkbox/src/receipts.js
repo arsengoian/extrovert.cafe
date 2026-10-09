@@ -85,11 +85,6 @@ export async function ingest(receipt, { source, log }) {
     }
     const receiptId = rows[0].id;
 
-    // Перший чек із точки закінчує знижку в кав'ярні (власник, 28.09.2026) —
-    // якщо пробитий уже під час неї: запізнілий чек, що доїхав опитуванням,
-    // знижку не чіпає (lib/discounts.js).
-    await endActive(client, pointId, "receipt", { after: receipt.fiscal_date ?? new Date().toISOString() });
-
     const goods = receipt.goods ?? [];
     const fiscalDate = receipt.fiscal_date ?? new Date().toISOString();
     const discountUah = await discountAround(client, pointId, fiscalDate);
@@ -101,6 +96,9 @@ export async function ingest(receipt, { source, log }) {
     // Коди предметів, що випали з цього чека. Лежатимуть у bonus_grants.items
     // до моменту, коли людина забере бонус.
     const drops = [];
+    // Коди напоїв цього чека — щоб закінчити знижку лише тим напоєм, на який
+    // вона діє (нижче, після циклу).
+    const slots = [];
     for (const line of goods) {
       const g = line.good ?? line;
       const code = g.code ?? g.system_code ?? "";
@@ -158,6 +156,7 @@ export async function ingest(receipt, { source, log }) {
         menuPrice = discountUah > 0 && Math.abs(price - lowered) < 0.005 ? lowered : full;
       }
 
+      if (slot) slots.push(slot);
       await client.query(
         `insert into receipt_items (receipt_id, system_code, slot, name, qty, price_uah, sum_uah, is_bonus_drink, menu_price_uah)
          values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -183,6 +182,12 @@ export async function ingest(receipt, { source, log }) {
         }
       }
     }
+
+    // Перший чек із точки закінчує знижку в кав'ярні (власник, 28.09.2026),
+    // якщо пробитий уже під час неї (after): запізнілий чек, що доїхав
+    // опитуванням, знижку не чіпає. Знижку на один напій закінчує лише чек
+    // саме з ним (власник, 08.10.2026) — тому передаємо коди напоїв чека.
+    await endActive(client, pointId, "receipt", { after: fiscalDate, slots });
 
     // Бонус прив'язаний до чека, а не до часу: дві хвилини — це лише
     // скільки QR висить на екрані кіоска (show_until, звідти ж

@@ -139,12 +139,20 @@ export default async function routes(app) {
       ? req.body.points
       : (await pool.query("select id from points where status <> 'retired' order by id")).rows.map((r) => r.id);
     if (!points.length) return reply.code(400).send({ error: "no_points" });
+    // Знижка на один напій (власник, 08.10.2026): адмінка передає slot; якщо
+    // не передала — беремо перший активний, щоб кнопка «тестова знижка»
+    // працювала одним кліком.
+    const askedDrink = req.body?.drink ? String(req.body.drink) : null;
+    const drink = await one(
+      `select slot, name from drinks where active and not is_bonus and ($1::text is null or slot = $1)
+        order by (slot = $1) desc, sort_order, name limit 1`, [askedDrink]);
+    if (!drink) return reply.code(400).send({ error: "no_drink" });
     const out = await tx(async (client) => {
       let last = null;
-      for (const point of points) last = await queueDiscount(client, point, { uah: cfg.uah, seconds });
+      for (const point of points) last = await queueDiscount(client, point, { uah: cfg.uah, seconds, drinkSlot: drink.slot });
       return last;
     });
-    return { until: out.ends_at, status: out.status, ahead: out.ahead, seconds, uah: cfg.uah, points };
+    return { until: out.ends_at, status: out.status, ahead: out.ahead, seconds, uah: cfg.uah, points, drink: drink.slot, drink_name: drink.name };
   });
 
   // Вхід адміна: пошта й пароль із admin_users. Форми «зареєструватися»

@@ -144,13 +144,25 @@ export default async function routes(app) {
       if (!points.length) fail(404, "no_such_point");
       if (points.length > 1) fail(400, "point_required", { points: points.map((p) => ({ id: p.id, name: p.name })) });
       const point = points[0];
+      // Знижка діє на один напій, який обирає гравець (власник, 08.10.2026):
+      // машина міняє ціну окремо на кожен напій. Напій має бути активним і не
+      // бонусним (бонусний і так коштує монети, не гривні).
+      const drinkSlot = req.body?.drink ? String(req.body.drink) : null;
+      const drink = drinkSlot
+        ? await one("select slot, name from drinks where slot = $1 and active and not is_bonus", [drinkSlot])
+        : null;
+      if (!drink) fail(400, "drink_required", {
+        drinks: (await many("select slot, name from drinks where active and not is_bonus order by sort_order, name"))
+          .map((d) => ({ slot: d.slot, name: d.name })),
+      });
       return tx(async (client) => {
-        const spent = await spend(client, user.id, "beans", cfg.beans, "pos_discount", { uah: cfg.uah, point: point.id });
+        const spent = await spend(client, user.id, "beans", cfg.beans, "pos_discount", { uah: cfg.uah, point: point.id, drink: drink.slot });
         const q = await queueDiscount(client, point.id, {
-          uah: cfg.uah, seconds: cfg.window_s ?? 120, userId: user.id, ledgerEntryId: spent.ledgerId,
+          uah: cfg.uah, seconds: cfg.window_s ?? 120, userId: user.id, ledgerEntryId: spent.ledgerId, drinkSlot: drink.slot,
         });
         return {
           ok: true, kind: "pos_discount", amount_uah: cfg.uah, point: point.id, point_name: point.name,
+          drink: drink.slot, drink_name: drink.name,
           seconds: cfg.window_s ?? 120, status: q.status, ahead: q.ahead, until: q.ends_at,
         };
       });

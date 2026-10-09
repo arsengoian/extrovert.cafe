@@ -3,6 +3,7 @@
 // габарити товарів — із shop-products.json (вони потрібні для НП).
 import { economy, shopProducts } from "../economy.js";
 import { FEATURES } from "../features.js";
+import { many } from "../db.js";
 
 const product = (id) => shopProducts.products.find((p) => p.id === id) ?? null;
 
@@ -83,7 +84,8 @@ export default async function routes(app) {
         kind: "discount",
         title: beans.pos_discount.label,
         // Рівно, а не «≈»: знижка фіксована в гривнях (власник, 27.09.2026).
-        subtitle: `${beans.pos_discount.uah} ₴ з кожного напою на ${Math.round((beans.pos_discount.window_s ?? 120) / 60)} хв`,
+        // На один обраний напій (власник, 08.10.2026).
+        subtitle: `${beans.pos_discount.uah} ₴ на обраний напій, ${Math.round((beans.pos_discount.window_s ?? 120) / 60)} хв`,
         icon: "assets/ui/pos_discount.png",
         price: beans.pos_discount.beans,
         amount_uah: beans.pos_discount.uah,
@@ -164,4 +166,12 @@ export default async function routes(app) {
   // Вимкнений продаж монет (features.js) — порожній список, а не помилка:
   // «Не вистачає монет» просто не покаже способу «Купити набір».
   app.get("/shop/coin-packs", async () => ({ packs: FEATURES.coin_packs ? economy.coin_packs : [] }));
+
+  // Напої для вибору при купівлі знижки на один напій (власник, 08.10.2026):
+  // активні, не бонусні, у порядку меню. Меню одне на всі точки (drinks), тож
+  // точка тут не потрібна. sprite — щоб клієнт намалював сітку як в опитуванні.
+  app.get("/shop/drinks", async () => ({
+    drinks: (await many("select slot, name, sprite from drinks where active and not is_bonus order by sort_order, name"))
+      .map((d) => ({ slot: d.slot, name: d.name, sprite: d.sprite })),
+  }));
 }

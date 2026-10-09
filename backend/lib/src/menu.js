@@ -35,13 +35,14 @@ async function currentAd(client) {
 // bonus_ready, а вона приходить із чека.
 //
 // discount — знижка в кав'ярні з деплойменту (backend/lib/src/discounts.js):
-// { uah, until }. Поки вона діє, ціна кожного напою — рівно на uah нижча,
-// але не менше гривні, однаково для бонусних і звичайних (власник,
-// 28.09.2026: «обмеження 1 гривня, рівно 20», без округлень; розмір —
-// shop_beans.pos_discount.uah з economy.json, з 01.10.2026 це 30), а поруч лежить
-// повна (price_full): кіоск повертає її сам, щойно until мине, не чекаючи
-// наступного меню. until_ts — те саме в секундах епохи: кіоску на C так
-// простіше, ніж розбирати ISO.
+// { uah, until, drink }. Поки вона діє, ціна знижена рівно на uah, але не
+// менше гривні, без округлень (власник, 28.09.2026; розмір —
+// shop_beans.pos_discount.uah з economy.json, з 01.10.2026 це 30). drink —
+// slot напою знижки (власник, 08.10.2026): знижуємо лише його, бо машина
+// міняє ціну окремо на кожен напій. drink не задано (стара знижка) — знижуємо
+// всі. У зниженого напою поруч лежить повна ціна (price_full): кіоск повертає
+// її сам, щойно until мине, і по ній же малює значок «%» саме на цій картці.
+// until_ts — те саме в секундах епохи: кіоску на C так простіше за ISO.
 export async function buildMenu(client, letter = "a", { discount } = {}) {
   // active = false прибирає напій з екрана, але лишає в базі: сезонні
   // позиції повертаються, а чеки на них мають на що посилатись.
@@ -56,17 +57,22 @@ export async function buildMenu(client, letter = "a", { discount } = {}) {
 
   const until = discount?.until ? new Date(discount.until) : null;
   const uah = Number(discount?.uah) || 0;
+  const drinkSlot = discount?.drink ?? null;   // null — стара знижка на всі напої
   const live = Boolean(until && until > new Date() && uah > 0);
   const lowered = (full) => Math.max(1, full - uah);
+  const applies = (d) => live && (drinkSlot === null || d.slot === drinkSlot);
 
   return {
     updated: new Date().toISOString().slice(0, 10),
-    ...(live ? { discount: { uah, until: until.toISOString(), until_ts: Math.floor(until.getTime() / 1000) } } : {}),
+    ...(live ? { discount: {
+      uah, until: until.toISOString(), until_ts: Math.floor(until.getTime() / 1000),
+      ...(drinkSlot ? { drink: `${letter}${drinkSlot}` } : {}),
+    } } : {}),
     drinks: rows.map((d) => ({
       name: d.name,
       vol: d.vol ?? "",
-      price: live ? lowered(Number(d.price_uah)) : Number(d.price_uah),
-      ...(live ? { price_full: Number(d.price_uah) } : {}),
+      price: applies(d) ? lowered(Number(d.price_uah)) : Number(d.price_uah),
+      ...(applies(d) ? { price_full: Number(d.price_uah) } : {}),
       color: d.color ?? "#402212",
       foam: d.foam,
       cup: d.cup ?? "M",

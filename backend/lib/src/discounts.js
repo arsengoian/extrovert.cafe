@@ -28,10 +28,17 @@ async function deploy(client, pointId, payload) {
     [JSON.stringify(payload)]
   );
   // Знижена ціна має дійти й до каси, не лише на екран (ціль checkbox,
-  // 01.10.2026). Повернення зерен дивиться лише на r2 — екран, який
-  // підтверджує кіоск; що ціна не записалась у Checkbox, скаже overseer.
+  // 01.10.2026), а з 09.10.2026 — і на саму машину (ціль jetinno), бо чек
+  // пробиває автомат: без неї знижка на екрані є, а в чеку немає. jetinno
+  // додаємо лише точці зі зіставленою машиною. Повернення зерен дивиться лише
+  // на r2 — екран, який підтверджує кіоск.
   await client.query(
     "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2), ($1, 'checkbox', $2)",
+    [rows[0].id, pointId]
+  );
+  await client.query(
+    `insert into menu_deployment_targets (deployment_id, kind, point_id)
+     select $1, 'jetinno', $2 where exists (select 1 from points where id = $2 and jetinno_vmc is not null)`,
     [rows[0].id, pointId]
   );
   return rows[0].id;
@@ -51,7 +58,8 @@ export async function activateNext(client, pointId) {
   const endsAt = new Date(Date.now() + next.window_s * 1000);
   const deploymentId = await deploy(client, pointId, {
     reason: "pos_discount",
-    discount: { uah: next.uah, until: endsAt.toISOString() },
+    // drink_slot — напій знижки (null у старих: знижка на всі напої).
+    discount: { uah: next.uah, until: endsAt.toISOString(), drink: next.drink_slot ?? null },
     point_discount_id: Number(next.id),
   });
   await client.query(
@@ -63,11 +71,11 @@ export async function activateNext(client, pointId) {
 
 // Поставити знижку в чергу точки й, якщо точка вільна, одразу ввімкнути.
 // Повертає рядок і скільки знижок перед ним (0 — уже діє).
-export async function queueDiscount(client, pointId, { uah, seconds, userId = null, ledgerEntryId = null }) {
+export async function queueDiscount(client, pointId, { uah, seconds, userId = null, ledgerEntryId = null, drinkSlot = null }) {
   const { rows } = await client.query(
-    `insert into point_discounts (point_id, user_id, ledger_entry_id, uah, window_s)
-     values ($1, $2, $3, $4, $5) returning id`,
-    [pointId, userId, ledgerEntryId, uah, seconds]
+    `insert into point_discounts (point_id, user_id, ledger_entry_id, uah, window_s, drink_slot)
+     values ($1, $2, $3, $4, $5, $6) returning id`,
+    [pointId, userId, ledgerEntryId, uah, seconds, drinkSlot]
   );
   const id = rows[0].id;
   await activateNext(client, pointId);
@@ -82,8 +90,10 @@ export async function queueDiscount(client, pointId, { uah, seconds, userId = nu
 
 // Скінчити активну знижку точки (reason: time | receipt | failed). after —
 // для чека: знижку закінчує лише чек, пробитий уже під час неї, а не той,
-// що доїхав опитуванням із запізненням.
-export async function endActive(client, pointId, reason, { after = null } = {}) {
+// що доїхав опитуванням із запізненням. slots — коди напоїв у чеку: знижку на
+// один напій (drink_slot) закінчує лише чек саме з ним (власник, 08.10.2026);
+// стару знижку на всі напої (drink_slot = null) закінчує будь-який чек.
+export async function endActive(client, pointId, reason, { after = null, slots = null } = {}) {
   await lockPoint(client, pointId);
   const { rows } = await client.query(
     `select * from point_discounts where point_id = $1 and status = 'active'
@@ -92,6 +102,8 @@ export async function endActive(client, pointId, reason, { after = null } = {}) 
   );
   const active = rows[0];
   if (!active) return null;
+  // Чек не з тим напоєм знижку не чіпає.
+  if (reason === "receipt" && active.drink_slot && slots && !slots.includes(active.drink_slot)) return null;
   await client.query(
     "update point_discounts set status = 'done', ended_at = now(), ended_reason = $2 where id = $1",
     [active.id, reason]
