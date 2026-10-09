@@ -624,6 +624,44 @@ COMMENT ON TABLE public.login_links IS 'Одноразові посилання 
 
 
 --
+-- Name: machine_orders; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.machine_orders (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    order_no text NOT NULL,
+    product_id integer,
+    price_uah numeric(10,2),
+    pay_type text,
+    status text,
+    purchased_at timestamp with time zone,
+    uploaded_at timestamp with time zone,
+    raw jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: machine_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.machine_orders_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: machine_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.machine_orders_id_seq OWNED BY public.machine_orders.id;
+
+
+--
 -- Name: market_listings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1105,6 +1143,7 @@ CREATE TABLE public.point_discounts (
     started_at timestamp with time zone,
     ends_at timestamp with time zone,
     ended_at timestamp with time zone,
+    drink_slot text,
     CONSTRAINT point_discounts_ended_reason_check CHECK ((ended_reason = ANY (ARRAY['time'::text, 'receipt'::text, 'failed'::text]))),
     CONSTRAINT point_discounts_status_check CHECK ((status = ANY (ARRAY['queued'::text, 'active'::text, 'done'::text, 'refunded'::text]))),
     CONSTRAINT point_discounts_uah_check CHECK ((uah > 0)),
@@ -1153,6 +1192,7 @@ CREATE TABLE public.points (
     tunnel_port integer,
     tunnel_pubkey text,
     tunnel_key_at timestamp with time zone,
+    jetinno_vmc text,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
     CONSTRAINT points_machine_letter_check CHECK ((machine_letter ~ '^[a-z]$'::text)),
     CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text]))),
@@ -2003,6 +2043,13 @@ ALTER TABLE ONLY public.ledger_entries ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: machine_orders id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.machine_orders ALTER COLUMN id SET DEFAULT nextval('public.machine_orders_id_seq'::regclass);
+
+
+--
 -- Name: market_listings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2372,6 +2419,22 @@ ALTER TABLE ONLY public.ledger_entries
 
 ALTER TABLE ONLY public.login_links
     ADD CONSTRAINT login_links_pkey PRIMARY KEY (token_hash);
+
+
+--
+-- Name: machine_orders machine_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.machine_orders
+    ADD CONSTRAINT machine_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: machine_orders machine_orders_point_id_order_no_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.machine_orders
+    ADD CONSTRAINT machine_orders_point_id_order_no_key UNIQUE (point_id, order_no);
 
 
 --
@@ -2964,6 +3027,13 @@ CREATE UNIQUE INDEX login_links_wait_hash_idx ON public.login_links USING btree 
 
 
 --
+-- Name: machine_orders_point_id_purchased_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX machine_orders_point_id_purchased_at_idx ON public.machine_orders USING btree (point_id, purchased_at);
+
+
+--
 -- Name: market_listings_kind_seller_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3388,6 +3458,14 @@ ALTER TABLE ONLY public.ledger_entries
 
 
 --
+-- Name: machine_orders machine_orders_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.machine_orders
+    ADD CONSTRAINT machine_orders_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
 -- Name: market_listings market_listings_plant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3537,6 +3615,14 @@ ALTER TABLE ONLY public.plants
 
 ALTER TABLE ONLY public.point_discounts
     ADD CONSTRAINT point_discounts_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES public.menu_deployments(id);
+
+
+--
+-- Name: point_discounts point_discounts_drink_slot_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_discounts
+    ADD CONSTRAINT point_discounts_drink_slot_fkey FOREIGN KEY (drink_slot) REFERENCES public.drinks(slot);
 
 
 --
@@ -3893,4 +3979,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261003160000'),
     ('20261004090000'),
     ('20261007100000'),
-    ('20261007120000');
+    ('20261007120000'),
+    ('20261009100000'),
+    ('20261009100100'),
+    ('20261009100200');

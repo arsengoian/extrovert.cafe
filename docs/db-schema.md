@@ -134,6 +134,8 @@ erDiagram
     MENU_DEPLOYMENTS ||--o| POINT_DISCOUNTS : "знижене меню знижки"
     MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
     POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
+    POINTS ||--o{ MACHINE_ORDERS : "замовлення з кавомашини"
+    DRINKS ||--o{ POINT_DISCOUNTS : "знижка на один напій"
     USERS ||--o{ USER_IDENTITIES : "пошта / google"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
@@ -149,6 +151,7 @@ erDiagram
         text status "planned|live|paused"
         text checkbox_branch_id "запасний спосіб знайти точку чека (receipts.js, pointFor); основний — літера в коді товару"
         text machine_letter "літера машини: код позиції = літера + drinks.slot"
+        text jetinno_vmc "номер машини в порталі Jetinno; null — не зіставлена (206946)"
         text key_hash "sha256 ключа з config/point.key на малині"
         text next_key_hash "ротація: видано, малина ще не підхопила"
         timestamptz key_rotated_at
@@ -282,6 +285,7 @@ erDiagram
         int window_s "120"
         text status "queued|active|done|refunded; active — щонайбільше одна на точку"
         text ended_reason "time|receipt|failed"
+        text drink_slot FK "напій знижки (drinks.slot); null — стара знижка на всі напої"
         bigint deployment_id FK "знижене меню"
         timestamptz created_at
         timestamptz started_at
@@ -319,6 +323,19 @@ erDiagram
         timestamptz measured_at
         jsonb metrics
         timestamptz received_at
+    }
+    MACHINE_ORDERS {
+        bigserial id PK
+        text point_id FK
+        text order_no "номер замовлення Jetinno; unique на точку"
+        int product_id "код напою машини (= drinks.slot без нуля)"
+        numeric price_uah
+        text pay_type "mdb_cashless|mdb_cash|test"
+        text status
+        timestamptz purchased_at "час покупки (годинник машини)"
+        timestamptz uploaded_at "час завантаження в портал"
+        jsonb raw
+        timestamptz created_at
     }
 ```
 
