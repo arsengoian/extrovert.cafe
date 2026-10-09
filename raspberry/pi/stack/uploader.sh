@@ -60,7 +60,12 @@ upload_one() { # upload_one <файл>
     _resp=$(api_post /video/upload "$_body") || return 1
     _url=$(json_field "$_resp" url); _key=$(json_field "$_resp" key)
     [ -n "$_url" ] && [ -n "$_key" ] || { log "$_name: api не дав посилання"; return 1; }
-    nice -n 10 ionice -c 3 curl -fsS --max-time 900 --limit-rate "$RATE" \
+    # -4: заливаємо по IPv4. На 4G-мережі точки IPv6 до Cloudflare R2
+    # зламаний (09.10.2026: `curl -6` на R2 — «couldn't connect» або зависає
+    # на MTU, а PUT тоді висить до --max-time і рве SSL; `curl -4` тягне
+    # 10 МБ за ~11 с). Малі запити до api (api.extrovert.cafe — лише IPv6)
+    # по v6 ідуть, тож -4 ставимо саме на заливку в R2.
+    nice -n 10 ionice -c 3 curl -4 -fsS --max-time 900 --limit-rate "$RATE" \
         -H "content-type: $_type" -T "$_f" "$_url" -o /dev/null || return 1
     api_post /video/segment "{\"key\":\"$_key\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}" >/dev/null || return 1
     rm -f "$_f"
