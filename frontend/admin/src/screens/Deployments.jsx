@@ -11,16 +11,24 @@ const badge = (s) => { const [tone, text] = STATUS[s] ?? ["", s]; return <Badge 
 
 export function Deployments() {
   const { data, error, reload } = useData(() => api.deployments());
+  const { data: prices } = useData(() => api.prices());
   const [note, setNote] = useState(null);
+  const [drink, setDrink] = useState("");
+  // Напої для вибору знижки: активні, не бонусні, у порядку меню.
+  const drinks = (prices?.drinks ?? []).filter((d) => d.active && !d.is_bonus);
   // Тестова знижка: та сама черга знижок, що й купівля (lib/discounts.js),
-  // на всі точки — подивитись плашку з відліком на кіоску.
+  // на один обраний напій (власник, 08.10.2026) на всіх точках — подивитись
+  // плашку з відліком і знижену ціну саме цього напою на кіоску.
   const discount = async () => {
-    if (!confirm("Увімкнути тестову знижку на точках? Ціни на екрані кіоска на дві хвилини (або до першого чека) стануть нижчими, а автомат пробиватиме звичайні.")) return;
+    const slot = drink || drinks[0]?.slot;
+    const name = drinks.find((d) => d.slot === slot)?.name ?? "напій";
+    if (!slot) { setNote("немає активних напоїв"); return; }
+    if (!confirm(`Увімкнути тестову знижку на «${name}»? Ціна цього напою на екрані кіоска на дві хвилини (або до першого чека з ним) стане нижчою.`)) return;
     try {
-      const r = await api.discountTest({});
+      const r = await api.discountTest({ drink: slot });
       setNote(r.status === "active"
-        ? `Знижка ${r.uah} ₴ до ${new Date(r.until).toLocaleTimeString("uk-UA")} або першого чека`
-        : `Знижка в черзі: перед нею ${r.ahead}`);
+        ? `Знижка ${r.uah} ₴ на «${r.drink_name}» до ${new Date(r.until).toLocaleTimeString("uk-UA")} або першого чека`
+        : `Знижка на «${r.drink_name}» в черзі: перед нею ${r.ahead}`);
       reload();
     } catch (e) { setNote(`не вийшло: ${e.message}`); }
   };
@@ -36,6 +44,10 @@ export function Deployments() {
         </div>
         <div className="right">
           {note && <span className="muted">{note}</span>}
+          <select className="btn" value={drink} onChange={(e) => setDrink(e.target.value)} aria-label="напій знижки">
+            <option value="">напій знижки…</option>
+            {drinks.map((d) => <option key={d.slot} value={d.slot}>{d.name}</option>)}
+          </select>
           <button className="btn" onClick={discount}>Тестова знижка</button>
           <button className="btn" onClick={reload}>Оновити</button>
         </div>
