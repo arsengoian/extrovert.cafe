@@ -196,16 +196,18 @@ cairo_surface_t *render_prices(const menu_t *menu, const char *assets_dir) {
     cards[0] = 0;
     size_t used = 0;
 
-    /* Знижка на точці: значок відсотка на кожній картці, ціна в пігулці
-     * вже знижена й ціла (menu.c). */
-    const char *pct_display = menu->discount ? "inline" : "none";
-
     int n = menu->drink_count < CARD_MAX ? menu->drink_count : CARD_MAX;
     for (int i = 0; i < n; i++) {
         const drink_t *d = &menu->drinks[i];
         int col = i % GRID_COLS, row = i / GRID_COLS;
         double tx = GRID_X + col * (CARD_W + CARD_GAP_X);
         double ty = GRID_Y + row * (CARD_H + CARD_GAP_Y);
+
+        /* Знижка діє на один напій (власник, 08.10.2026): значок відсотка — лише
+         * на його картці, а не на всіх. Знижений напій той, у кого є повна
+         * ціна поруч зі зниженою (price_full > 0, menu.c). Ціна в пігулці вже
+         * знижена й ціла. */
+        const char *pct_display = d->price_full > 0 ? "inline" : "none";
 
         char txs[16], tys[16], price[24];
         snprintf(txs, sizeof(txs), "%.2f", tx);
@@ -223,7 +225,7 @@ cairo_surface_t *render_prices(const menu_t *menu, const char *assets_dir) {
             /* Під знижку в бейджі спереду ще значок відсотка, а монета й
              * число зсуваються на його ширину. Подарунка в бейджі більше
              * немає (власник, 28.09.2026) — лише монета й ціна в монетах. */
-            double pct_shift = menu->discount ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
+            double pct_shift = d->price_full > 0 ? CARD_BADGE_PCT_SIZE + CARD_BADGE_PCT_GAP : 0.0;
             double badge_w = CARD_BADGE_ICON_PAD_L + pct_shift +
                               CARD_BADGE_ICON_SIZE + CARD_BADGE_ICON_TEXT_GAP + ctw + CARD_BADGE_PAD_R;
             char badge_w_s[16], pct_shift_s[16];
