@@ -193,7 +193,7 @@ async function solveCaptcha(captchaString){
         method: 'POST',
         body: `image=${encodeURIComponent(captchaString)}`
     })
-    return response?.data ?? null;
+    return (await response?.text())?.data ?? null;
 }
 
 
@@ -233,7 +233,7 @@ export async function login({ redis, env = process.env, maxCaptchaTries = 5 } = 
     if (body.status === "success") {
       cookie = mergeCookie(cookie, setCookie);
       await client.set(SESSION_KEY, cookie);
-      return { ok: true };
+      return { ok: true, cookie };     // cookie — щоб викликач міг покласти її і у файл
     }
     const denied = body.data?.username_denied;
     if (denied) throw new Error(`акаунт Jetinno заблоковано, спробуй через ~${denied.countdown ?? "?"} с`);

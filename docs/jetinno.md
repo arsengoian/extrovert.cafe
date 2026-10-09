@@ -331,6 +331,7 @@ form-urlencoded об'єкт `remote` зі сторінки: `routes`, `vmc_no`, 
 
 | Команда | Що робить |
 |---|---|
+| `bun jetinno/scripts/login.mjs` | автоматичний вхід (через `login()` і `solveCaptcha` власника) і запис куки в `jetinno/cookie.txt`; запускати там, де резолвиться OCR і є креди в env |
 | `bun jetinno/scripts/status.mjs` | стан машини; заодно перевірка, що кука жива |
 | `bun jetinno/scripts/products.mjs` | напої з останнього звіту машини поруч із меню точки (`pos.extrovert.cafe/points/kyiv-01/menu.json`), розбіжність ціни — «⚠» |
 | `bun jetinno/scripts/log.mjs [N]` | журнал команд машині зі станами |
