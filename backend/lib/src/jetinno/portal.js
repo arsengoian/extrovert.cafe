@@ -45,10 +45,29 @@ export function portalClient({ redis, env = process.env } = {}) {
     }
   }
 
-  async function request(path, init = {}) {
+  // Кука мертва — один раз пробуємо перелогінитись і повторюємо запит. Але не
+  // частіше разу на JETINNO_RELOGIN_MIN хвилин (типово 30): лок у Redis (NX +
+  // TTL) спільний між процесами, тож навіть кілька робіт дадуть щонайбільше
+  // один вхід на півгодини. Невдалий вхід теж тримає лок — не довбаємо портал
+  // і не наближаємо блокування акаунта. Сам вхід кличе solveCaptcha власника.
+  const RELOGIN_EVERY_MS = Number(env.JETINNO_RELOGIN_MIN || 30) * 60_000;
+  async function tryRelogin() {
+    const got = await client.set("jetinno:login:lock", Date.now(), "PX", RELOGIN_EVERY_MS, "NX");
+    if (!got) return false;                         // входили нещодавно — чекаємо
+    try { await login({ redis: client, env }); failStreak = 0; return true; }
+    catch { return false; }
+  }
+
+  async function request(path, init = {}, relogged = false) {
     if (failStreak >= 5) throw new Error("портал Jetinno недоступний — зупинив запити до наступного проходу");
     await throttle();
-    const ck = await cookie();
+    let ck;
+    try {
+      ck = await cookie();
+    } catch (e) {
+      if (e instanceof JetinnoSessionError && !relogged && await tryRelogin()) return request(path, init, true);
+      throw e;
+    }
     let res, text;
     try {
       res = await fetch(base + path, {
@@ -61,7 +80,12 @@ export function portalClient({ redis, env = process.env } = {}) {
       failStreak++;
       throw e;
     }
-    checkSession(res, text);
+    try {
+      checkSession(res, text);
+    } catch (e) {
+      if (e instanceof JetinnoSessionError && !relogged && await tryRelogin()) return request(path, init, true);
+      throw e;
+    }
     if (res.status >= 500) { failStreak++; throw new Error(`Jetinno ${path} → ${res.status}`); }
     failStreak = 0;
     return { res, text };
@@ -163,6 +187,17 @@ async function fetchCaptcha(base, cookie) {
   return Buffer.from(await res.arrayBuffer()).toString("base64");
 }
 
+
+async function solveCaptcha(captchaString){
+    const response = await fetch(`http://ddddocr:8000/ocr`, {
+        method: 'POST',
+        body: `image=${encodeURIComponent(captchaString)}`
+    })
+    return response?.data ?? null;
+}
+
+
+
 // Вхід у портал і збереження сесії в Redis. Усе, крім розпізнавання капчі,
 // робить ця функція: бере свіжу сесію з /login, тягне картинку капчі,
 // віддає її в solveCaptcha, шле /dologin з логіном-паролем з .env.prod і
@@ -172,15 +207,12 @@ async function fetchCaptcha(base, cookie) {
 // її свідомо немає (капча — захист порталу від ботів). Без неї вхід не
 // відбувається: або передай solveCaptcha, або постав куку в Redis вручну.
 // Логін і пароль у логи й повідомлення не потрапляють.
-export async function login({ redis, env = process.env, solveCaptcha, maxCaptchaTries = 5 } = {}) {
+export async function login({ redis, env = process.env, maxCaptchaTries = 5 } = {}) {
   const client = redis ?? redisClient();
   const base = (env.JETINNO_BASE || "https://saas.jetinno.com").replace(/\/+$/, "");
   const username = env.JETINNO_LOGIN;
   const password = env.JETINNO_PASSWORD;
   if (!username || !password) throw new Error("немає JETINNO_LOGIN / JETINNO_PASSWORD (.env.prod)");
-  if (typeof solveCaptcha !== "function") {
-    throw new Error("login: потрібна функція solveCaptcha(base64) — її реалізує власник (розпізнавання капчі)");
-  }
 
   let cookie = await startSession(base);
   for (let attempt = 1; attempt <= maxCaptchaTries; attempt++) {

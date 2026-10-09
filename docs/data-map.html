@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело a00caa1</p>
+  <p class="eyebrow">extrovert.cafe · джерело b17a859</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4218,29 +4218,26 @@ Laravel); картинка прив&#39;язана до сесії. П&#39;ят�
 блокують акаунт на час, відлік у секундах — <code>data.username_denied.countdown</code>.</p>
 <p>Клієнт (<code>backend/lib/src/jetinno/portal.js</code>, вхід — 09.10.2026):</p>
 <ul>
-<li><p><strong>Сесія окремо від входу.</strong> Кука сесії лежить у Redis (<code>jetinno:session</code>),
+<li><strong>Сесія окремо від входу.</strong> Кука сесії лежить у Redis (<code>jetinno:session</code>),
 клієнт ходить із нею, а регулярні запити телеметрії тримають її живою.
-Скільки вона живе насправді — ще заміряємо.</p>
-</li>
-<li><p><strong><code>login({ redis, solveCaptcha })</code> робить усе, крім розпізнавання капчі</strong>
-(перевірено 09.10.2026 до кроку <code>/dologin</code>): бере свіжу сесію з <code>/login</code>,
+Скільки вона живе насправді — ще заміряємо.</li>
+<li><strong><code>login({ redis })</code> робить усе, крім розпізнавання капчі</strong> (плумбінг
+перевірено 09.10.2026 до кроку <code>/dologin</code>): бере свіжу сесію з <code>/login</code>,
 тягне картинку капчі (<code>/captcha/flat</code>), <strong>передає її в <code>solveCaptcha</code> як
 base64</strong>, шле <code>/dologin</code> з <code>JETINNO_LOGIN</code>/<code>JETINNO_PASSWORD</code> з <code>.env.prod</code>,
-зберігає авторизовану куку в Redis. Логін і пароль у логи не потрапляють.</p>
-</li>
-<li><p><strong><code>solveCaptcha(base64Image) → код</code> реалізує власник</strong> (напр. OCR); у
-клієнті її свідомо немає — капча це захист порталу від ботів, і Claude її
-розпізнавання не пише, не тестує й не під&#39;єднує (власник, 08–09.10.2026).
-Виклик:</p>
-<pre><code class="language-js">import { login } from &quot;@extrovert/lib/jetinno/portal.js&quot;;
-await login({ redis, solveCaptcha });   // solveCaptcha — модуль власника
-</code></pre>
-</li>
-<li><p><strong>Обережно з невдачами.</strong> Портал розрізняє помилку капчі й помилку пароля:
+зберігає авторизовану куку в Redis. Логін і пароль у логи не потрапляють.</li>
+<li><strong><code>solveCaptcha(base64Image) → код</code> — модуль-функція власника</strong> у
+<code>portal.js</code> (напр. OCR). Її розпізнавання Claude не пише й не тестує — капча
+це захист порталу від ботів; <code>login</code> лише її кличе (власник, 08–09.10.2026).</li>
+<li><strong>Автоматичний fallback.</strong> Коли кука мертва, <code>portalClient</code> сам один раз
+кличе <code>login()</code> і повторює запит — але <strong>не частіше разу на 30 хв</strong>
+(<code>JETINNO_RELOGIN_MIN</code>): спільний лок у Redis (<code>jetinno:login:lock</code>, NX+TTL)
+не дає кільком роботам і невдалим спробам довбати портал. Не вдалось чи
+зарано — робота отримує <code>JetinnoSessionError</code>.</li>
+<li><strong>Обережно з невдачами.</strong> Портал розрізняє помилку капчі й помилку пароля:
 на капчі клієнт пробує ще з новою (до <code>maxCaptchaTries</code>, типово 5), а на
 паролі зупиняється одразу — інакше серія невірних паролів заблокує акаунт
-(блокування повертається в <code>data.username_denied.countdown</code>).</p>
-</li>
+(блокування повертається в <code>data.username_denied.countdown</code>).</li>
 </ul>
 <h2 id="jetinno-машина-kyiv-01"><a class="anchor" href="#jetinno-машина-kyiv-01" aria-hidden="true">#</a>Машина kyiv-01</h2>
 <div class="tablewrap"><table>
@@ -14225,7 +14222,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел a00caa1 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b17a859 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
