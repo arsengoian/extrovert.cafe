@@ -77,6 +77,32 @@ export async function post(path, data = {}) {
   try { return JSON.parse(text); } catch { die(`POST ${path}: не JSON — ${text.slice(0, 200)}`); }
 }
 
+// Завантажити файл бінарно (напр. зіп пакета з /upload/app/<vmc>/...). Під
+// тією ж кукою, що й решта; повертає Buffer.
+export async function getBuffer(path) {
+  await throttle();
+  const res = await fetch(path.startsWith("http") ? path : BASE + path, { headers: headers() });
+  if (!res.ok) die(`GET(bin) ${path} → ${res.status}`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+// Multipart POST — для /package_save (завантаження zip у портал). Поле file —
+// { name, data: Buffer }; решта — рядки. content-type із boundary ставить
+// fetch сам, тож headers() навмисно його не містить. Відповідь: JSON або текст.
+export async function postForm(path, fields = {}) {
+  await throttle();
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) {
+    if (v && typeof v === "object" && v.data) fd.append(k, new Blob([v.data]), v.name || "file");
+    else fd.append(k, v == null ? "" : String(v));
+  }
+  const res = await fetch(BASE + path, { method: "POST", headers: headers(), body: fd });
+  const text = await res.text();
+  checkSession(res, text);
+  if (!res.ok) die(`POST(form) ${path} → ${res.status}: ${text.slice(0, 200)}`);
+  try { return JSON.parse(text); } catch { return text; }
+}
+
 export { tableRows };
 
 // Команда машині: POST console_<route> з тим самим об'єктом, який шле

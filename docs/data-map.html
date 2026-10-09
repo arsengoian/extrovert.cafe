@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело bf6ff54</p>
+  <p class="eyebrow">extrovert.cafe · джерело 84772ba</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4793,6 +4793,10 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <td><code>bun jetinno/scripts/set-names.mjs [--yes]</code></td>
 <td>заводить і виправляє наші назви (uk + en) у «Моїй продукції» порталу; англійські — у самому скрипті (<code>EN</code>), бо в системі їх немає; лише портал, не машина; наш запис пропускає, каталожний (напр. після «Import») переписує за id рядка</td>
 </tr>
+<tr>
+<td><code>bun jetinno/scripts/machine-names.mjs [--only &lt;код&gt;] [--push] [--restore &lt;zip&gt;] [--from &lt;zip&gt;]</code></td>
+<td>виправляє назви напоїв <strong>на машині</strong> до <code>drinks</code>: тягне свіжий recipe-пакет (бекап у <code>jetinno/backups/</code>), патчить <code>.product</code> (<code>nameLang.uk_</code>+<code>nameCN</code>, рецепти не чіпає), шле <code>upgrade</code>; без <code>--push</code> — суха прогонка, <code>--from</code> — офлайн-тест патча, <code>--restore</code> — відкат</td>
+</tr>
 </tbody></table>
 </div>
 <p>Команди шлють рівно той запит, що й кнопки порталу (об&#39;єкт <code>remote</code> з
@@ -4842,6 +4846,11 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <td>знижка</td>
 <td><code>discount</code> — одна на всю машину; знижка на один напій — тимчасовий <code>priceset</code></td>
 <td>не пробували</td>
+</tr>
+<tr>
+<td>назви на машині</td>
+<td><code>machine-names.mjs</code>: патч <code>.product</code> recipe-пакета + <code>upgrade</code></td>
+<td><strong>плумбінг готовий, локально перевірено</strong> (5 назв); живий <code>upgrade</code> чекає, поки машина онлайн</td>
 </tr>
 </tbody></table>
 </div>
@@ -5085,21 +5094,41 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 зернова), пакет будуємо з <strong>поточного стану машини</strong>:</p>
 <ol>
 <li><code>upload recipe</code> + <code>upload product</code> → машина віддає свій пакет у <code>/packet</code>;</li>
-<li>у його <code>.product</code> міняємо лише <code>nameLang.uk_</code> (для додавання — новий
+<li>у його <code>.product</code> міняємо <code>nameLang.uk_</code> і <code>nameCN</code> (машина показує nameCN головним написом; для додавання — новий
 продукт із готовим рецептом); перевірено на бекапі 09.10.2026: правка 5
-назв не зачіпає ні <code>.recipe</code>, ні інших полів <code>.product</code> (0 змін поза
-<code>nameLang.uk_</code>);</li>
+назв не зачіпає ні <code>.recipe</code>, ні інших полів <code>.product</code> (0 змін поза цільовими назвами);</li>
 <li>пакуємо назад, вантажимо як пакет у портал і шлемо <code>upgrade recipe</code>.</li>
 </ol>
-<p><strong>Відкрите (треба жива сесія порталу + машина онлайн):</strong></p>
+<p><strong>Upgrade Center — розмаплено (09.10.2026):</strong></p>
 <ul>
-<li>розмапити Upgrade Center: як портал приймає пакет (<code>package_save</code>, формат
-zip, чи є маніфест/підпис) і як <code>console_upgrade</code> бере його URL;</li>
-<li>чи машина взагалі приймає пакет, зібраний із того, що сама ж вивантажила
-(формат <code>upload</code> може відрізнятись від формату, який чекає <code>upgrade</code>);</li>
-<li>перший реальний <code>upgrade</code> — свідомо, на одному перейменуванні, з бекапом
-напоготові.</li>
+<li>завантажити пакет машини: пряме посилання зі «Списку пакетів»,
+<code>/upload/app/&lt;vmc&gt;/&lt;час&gt;_Recipe_Product_Zip_&lt;…&gt;.zip</code> (під кукою);</li>
+<li>залити свій пакет: multipart <code>POST /package_save</code> — <code>type=2</code>
+(«Формулювання»), <code>title</code>, <code>storage_space=0</code> (локальний), <code>file</code>=zip,
+<code>url</code> порожній;</li>
+<li>список операторських пакетів: <code>POST /package_get {type:2}</code> → масив, у
+кожному <code>url</code> і <code>storage_space</code>;</li>
+<li>надіслати машині: <code>console_upgrade {uptype:recipe, vmc_no, package=&lt;url&gt;, storage=&lt;storage_space&gt;}</code>.
+Усе це робить <code>machine-names.mjs</code> (нижче), зіп читає/пише <code>zip.mjs</code> через
+центральний каталог (машина пише розміри в data descriptor).</li>
 </ul>
+<p><strong>Портал-шлях перевірено живим (09.10.2026):</strong> AetherUpload
+(<code>preprocess</code> → <code>uploading</code> чанками → <code>savedPath</code>) → <code>package_save</code>
+(<code>file_path=savedPath</code>, не сирий файл!) → <code>package_get {type:2}</code> дає <code>url</code> →
+<code>console_upgrade {uptype:recipe, package:url, storage:0}</code>. Усе відповіло
+«success», команда лягла в журнал як «Надіслано успішно» (той самий стан, що
+й робочий <code>priceset</code>).</p>
+<p><strong>Лишилось відкрите — застосування на машині.</strong> Перший живий <code>upgrade</code> з
+перезібраним пакетом (одна назва, 15 Мокачіно→Мокачино) машина <strong>прийняла,
+але не застосувала</strong>: за ~7 хв назва в її <code>.product</code> не змінилась, усі 14
+напоїв і ціни цілі (нічого не зламалось). Тобто перепакований машиною ж пакет вона <strong>не застосовує</strong>: власник перевірив
+— вихід-вхід у застосунок назву не змінив (досі «Мокачіно»), усе інше ціле.
+Імовірно машина чекає точнішого формату (структура zip, порядок і метод
+стиснення записів, можливий маніфест чи підпис), якого <code>zip.mjs</code> не
+відтворює, або застосовує «Формулювання» іншим шляхом. Наступний крок —
+глянути лог завантаження/помилок машини щодо цього <code>upgrade</code> і зблизити
+формат пакета з оригінальним (напр. STORED-записи й ті самі імена). Точка
+відкату збережена (<code>jetinno/backups/</code>).</p>
 
 </section>
 <section class="doc" id="video">
@@ -5469,10 +5498,13 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 падає нижче 2 КБ/с на 30 с — обрив (не висіння до <code>--max-time</code>), бо відео
 — найнижчий пріоритет і не має тримати аплінк, по якому ходять платіжний
 термінал і зворотний тунель (власник, 09.10.2026). IPv4 — бо IPv6 до R2
-на 4G точки зламаний. <strong>Та є межа заліза:</strong> 1080p — це ~1,2 Мбіт/с, а 4G
-на віддачу стільки стабільно не тягне, тож буфер росте, а аплоудер майже
-завжди активний. Справжнє лікування — 720p (менший бітрейт, вміститься в
-канал); доти відео — best-effort, що не заважає терміналу.</li>
+на 4G точки зламаний. <strong>Була межа заліза:</strong> 1080p — це ~1,2 Мбіт/с, а 4G на
+віддачу стільки стабільно не тягне, тож буфер ріс, а аплоудер майже
+завжди активний. Лікування — <code>stream1</code> на 720p замість 1080p
+(09.10.2026, через ONVIF — <code>scripts/camera-onvif.mjs</code>, нижче
+«Роздільність»): менше пікселів → менший реальний бітрейт
+(~0,75 Мбіт/с, сегмент ~5,7 МБ/хв замість ~9), і аплоудер наздоганяє
+канал. Відео лишається best-effort і терміналу не заважає.</li>
 <li><code>POST /points/:id/video/segment</code> — api сам робить <code>HEAD</code> в R2 і
 реєструє сегмент у <code>video_segments</code> лише тоді, коли об&#39;єкт є й має той
 самий розмір. Тільки після цього локальна копія стирається.</li>
@@ -5487,12 +5519,23 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 ні mkv зі звуком A-law, ні TS браузер сам не програє, файл відкривається у
 VLC. Бакет <code>extrovert-video</code> уже має lifecycle
 <code>expire-7d</code> (перевірено <code>wrangler r2 bucket lifecycle list</code> 06.10.2026).</p>
-<p><strong>Скільки насправді</strong> (C100 kyiv-01, 06.10.2026): <code>stream1</code> віддає
+<p><strong>Скільки насправді</strong> (C100 kyiv-01): <code>stream1</code> за замовчуванням віддавав
 1920×1080 незалежно від якості в застосунку Tapo, ~1,34 Мбіт/с — сегмент
-~10 МБ на хвилину, ~14 ГБ на добу, удвічі більше за розрахунок вище. На
+~10 МБ на хвилину, ~14 ГБ на добу. З 09.10.2026 <code>stream1</code> переведено на
+1280×720 (ONVIF): ~0,75 Мбіт/с, сегмент ~5,7 МБ/хв, ~8 ГБ на добу. На
 Pi 1 запис бере ~18 % CPU (не 4 %, як з емулятора: весь потік іде USB-шиною,
 спільною для мережі й флешки), кіоск просідає з ~48 до ~43 fps, температура
 росте до ~77 °C.</p>
+<p>Роздільність <code>stream1</code> міняється <strong>через ONVIF, не в застосунку Tapo</strong> —
+той головний потік не чіпає (віддає 1080p за будь-якої «якості»). З хоста:
+<code>bash scripts/pi-forward.sh kyiv-01 47620 192.168.199.243:2020</code> прокидає
+ONVIF-порт камери (2020) через тунель малини, далі
+<code>bun scripts/camera-onvif.mjs localhost:47620</code> показує профілі й дозволені
+роздільності, а <code>… localhost:47620 1280x720</code> виставляє. SOAP-запити дрібні,
+аплінк не вантажать. Застереження: C100 через ONVIF приймає лише
+роздільність — стелю бітрейту (<code>BitrateLimit</code>) і «якість» ігнорує, тож
+реальний бітрейт опускає сам перехід на менше пікселів. <code>ForcePersistence</code>
+тримає налаштування через перезавантаження камери.</p>
 <p>Буфер: 8,2 ГБ на добу, тож USB-носій на 64 ГБ = <strong>тиждень автономності</strong>. Карта в
 камері на 16 ГБ (48 годин) лишається як третій рівень — на випадок, коли здох
 сам edge-вузол. Дістати з неї запис можна тільки руками через додаток Tapo:
@@ -14232,7 +14275,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел bf6ff54 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 84772ba — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
