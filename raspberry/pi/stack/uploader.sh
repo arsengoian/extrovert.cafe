@@ -65,7 +65,16 @@ upload_one() { # upload_one <файл>
     # на MTU, а PUT тоді висить до --max-time і рве SSL; `curl -4` тягне
     # 10 МБ за ~11 с). Малі запити до api (api.extrovert.cafe — лише IPv6)
     # по v6 ідуть, тож -4 ставимо саме на заливку в R2.
-    nice -n 10 ionice -c 3 curl -4 -fsS --max-time 900 --limit-rate "$RATE" \
+    #
+    # --speed-limit/--speed-time: якщо віддача падає нижче 2 КБ/с на 30 с —
+    # обрив, а не висіння до --max-time. Відео — найнижчий пріоритет: на
+    # кволому 4G воно не має тримати аплінк, по якому ходять платіжний
+    # термінал і зворотний тунель. Так стала заливка звільняє канал за
+    # півхвилини, а не тримає його хвилинами намарно (власник, 09.10.2026:
+    # заливка душила тунель, коли аплінк просів). --max-time 300: здорова
+    # заливка 9 МБ іде секунди, стеля лишає запас на повільний, але робочий
+    # канал; наступна спроба й так через backoff (30 с…10 хв).
+    nice -n 10 ionice -c 3 curl -4 -fsS --max-time 300 --speed-limit 2000 --speed-time 30 --limit-rate "$RATE" \
         -H "content-type: $_type" -T "$_f" "$_url" -o /dev/null || return 1
     api_post /video/segment "{\"key\":\"$_key\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}" >/dev/null || return 1
     rm -f "$_f"
