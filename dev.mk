@@ -32,13 +32,15 @@
 # ціль d-* і є явне «так, на проді» — make власні опції з дефісом однаково
 # не пропустив би (03.10.2026). Червоне попередження скрипт друкує все одно.
 
-.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel d-pi
+.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel d-pi d-router
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
 PRODDB := bash scripts/prod-db.sh
 POINT  ?= kyiv-01
 CMD    ?=
+LPORT  ?= 47199
+TARGET ?= 192.168.199.1:80
 DRINK  ?=
 PAY    ?= card
 NICK   ?=
@@ -65,6 +67,7 @@ d-help:
 	@echo   make d-db                      psql до прод-бази
 	@echo   make d-tunnel                  тунель до прод-бази на localhost:5455, доки не Ctrl+C
 	@echo   make d-pi                      ssh на малину точки через тунель (POINT=kyiv-01 CMD='uptime')
+	@echo   make d-router                  веб-адмінка роутера точки на http://localhost:47199 (TARGET, LPORT), Ctrl+C — закрити
 
 d-list:
 	$(BUN) scripts/dev-sale.mjs --list
@@ -121,6 +124,11 @@ d-tunnel:
 # з Windows теж можна — make кличе bash, а скрипт сам лагодить права на ключі.
 d-pi:
 	bash scripts/pi-ssh.sh $(POINT) $(CMD)
+
+# Прокинути локальний порт у мережу точки через малину: типово веб-адмінка
+# роутера на http://localhost:8080 (scripts/pi-forward.sh). Ctrl+C — закрити.
+d-router:
+	bash scripts/pi-forward.sh $(POINT) $(LPORT) $(TARGET)
 
 # Довільний запит: make d-sql Q="select count(*) from users"
 d-sql:
