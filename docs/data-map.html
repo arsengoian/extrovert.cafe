@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело f543906</p>
+  <p class="eyebrow">extrovert.cafe · джерело 9fe30c2</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4766,8 +4766,8 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </tr>
 </thead>
 <tbody><tr>
-<td><code>bun jetinno/scripts/login.mjs</code></td>
-<td>автоматичний вхід (через <code>login()</code> і <code>solveCaptcha</code> власника) і запис куки в <code>jetinno/cookie.txt</code>; запускати там, де резолвиться OCR і є креди в env</td>
+<td><code>make d-jetinno-login</code> (<code>jetinno/scripts/login.sh</code>)</td>
+<td>вхід у портал із контейнера стеку (там резолвиться OCR <code>ddddocr</code> і Redis) через <code>login()</code> і <code>solveCaptcha</code> власника, далі переносить куку з Redis у <code>jetinno/cookie.txt</code>; потребує свіжого образу (<code>docker compose up -d --build api</code>)</td>
 </tr>
 <tr>
 <td><code>bun jetinno/scripts/status.mjs</code></td>
@@ -14226,7 +14226,7 @@ mono з оплат), а які вносить людина. Автоматичн
 </section>
 </main>
 </div>
-<footer>Хеш джерел f543906 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 9fe30c2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

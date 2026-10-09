@@ -32,7 +32,7 @@
 # ціль d-* і є явне «так, на проді» — make власні опції з дефісом однаково
 # не пропустив би (03.10.2026). Червоне попередження скрипт друкує все одно.
 
-.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel d-pi d-router
+.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel d-pi d-router d-jetinno-login
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
@@ -68,6 +68,7 @@ d-help:
 	@echo   make d-tunnel                  тунель до прод-бази на localhost:5455, доки не Ctrl+C
 	@echo   make d-pi                      ssh на малину точки через тунель (POINT=kyiv-01 CMD='uptime')
 	@echo   make d-router                  веб-адмінка роутера точки на http://localhost:47199 (TARGET, LPORT), Ctrl+C — закрити
+	@echo   make d-jetinno-login           вхід у портал Jetinno з контейнера (капча — solveCaptcha) і запис куки в jetinno/cookie.txt
 
 d-list:
 	$(BUN) scripts/dev-sale.mjs --list
@@ -129,6 +130,11 @@ d-pi:
 # роутера на http://localhost:8080 (scripts/pi-forward.sh). Ctrl+C — закрити.
 d-router:
 	bash scripts/pi-forward.sh $(POINT) $(LPORT) $(TARGET)
+
+# Вхід у портал Jetinno з контейнера стеку (капчу розв'язує solveCaptcha у
+# portal.js) і синхронізація куки в jetinno/cookie.txt для решти скриптів.
+d-jetinno-login:
+	bash jetinno/scripts/login.sh
 
 # Довільний запит: make d-sql Q="select count(*) from users"
 d-sql:
