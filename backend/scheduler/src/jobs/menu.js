@@ -12,6 +12,7 @@ import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { catalogClient, uahToKop } from "@extrovert/lib/checkbox-catalog.js";
+import { portalClient, JetinnoSessionError, isPending } from "@extrovert/lib/jetinno/portal.js";
 
 // Ціль `checkbox`: ціни меню точки → каталог Checkbox (lib/checkbox-catalog.js).
 // Кожна ціна після запису перечитується, і ціль done, лише коли в каталозі
@@ -69,6 +70,83 @@ async function deployCheckbox(client, t, menu, log) {
   }
 }
 
+// Ціль `jetinno`: ціни меню точки → на саму кавомашину (docs/jetinno.md,
+// «Ціль деплою jetinno»). Код напою машини = drinks.slot без нуля попереду,
+// який лежить у system_code меню як «<літера><slot>». Шлемо priceset лише на
+// напої, де ціна розходиться, і підтверджуємо не журналом (машина priceset не
+// підтверджує), а новим звітом напоїв: просимо upload product і перечитуємо.
+//
+// Сесії немає / портал лежить — ціль failed із поясненням, деплой partial, бо
+// r2 й Checkbox уже поїхали (кіоск і каса не чекають на машину).
+async function deployJetinno(client, redis, t, menu, vmc, log) {
+  const finish = async (status, error) => {
+    await client.query(
+      `update menu_deployment_targets set status = $2, error = $3,
+              done_at = case when $2 = 'done' then now() else done_at end,
+              acked_at = case when $2 = 'done' then now() else acked_at end
+        where id = $1`,
+      [t.id, status, error ? String(error).slice(0, 500) : null]
+    );
+    return status !== "failed";
+  };
+  if (!vmc) return finish("skipped", "точці не зіставлено машину Jetinno (points.jetinno_vmc)");
+
+  const portal = portalClient({ redis });
+  // Бажані ціни: код напою → ціна з меню (вже знижена, якщо діє знижка).
+  const want = new Map();
+  for (const d of menu.drinks) {
+    if (d.is_bonus) continue;                 // бонусних позицій на машині немає
+    const code = Number(String(d.system_code).replace(/^[a-z]+/i, ""));
+    if (Number.isInteger(code)) want.set(code, Number(d.price));
+  }
+
+  try {
+    const before = await portal.products(vmc);
+    const onMachine = new Map(before.map((p) => [p.productId, p.price]));
+    const toSet = [...want].filter(([code, price]) => onMachine.has(code) && onMachine.get(code) !== price);
+    const missing = [...want.keys()].filter((code) => !onMachine.has(code));
+
+    if (!toSet.length) {
+      const note = missing.length ? `немає на машині: ${missing.join(", ")}` : null;
+      return finish(missing.length ? "failed" : "done", note);
+    }
+
+    for (const [code, price] of toSet) {
+      const res = await portal.command("priceset", vmc, { product_id: String(code), product_price: String(price) });
+      if (res.status !== "success") return finish("failed", `priceset ${code}: ${res.message ?? res.info ?? "портал не прийняв"}`);
+    }
+
+    // Просимо машину звітувати напої й чекаємо, поки команда виконається
+    // (upload машина підтверджує, на відміну від priceset), тоді перечитуємо.
+    const up = await portal.command("upload", vmc, { uptype: "product" });
+    if (up.status !== "success") return finish("failed", "не вдалось попросити звіт напоїв для перевірки");
+    await waitExecuted(portal, vmc, 90, log);
+
+    const after = new Map((await portal.products(vmc)).map((p) => [p.productId, p.price]));
+    const wrong = toSet.filter(([code, price]) => after.get(code) !== price)
+      .map(([code, price]) => `${code}: хотіли ${price}, на машині ${after.get(code) ?? "?"}`);
+    const note = [...wrong, missing.length ? `немає на машині: ${missing.join(", ")}` : ""].filter(Boolean).join("; ");
+    log?.info(`Jetinno для ${t.point_id}: задано ${toSet.length - wrong.length}/${toSet.length}${note ? `; ${note}` : ""}`);
+    return finish(wrong.length || missing.length ? "failed" : "done", note || null);
+  } catch (e) {
+    if (e instanceof JetinnoSessionError) return finish("failed", "немає сесії порталу Jetinno — потрібен вхід");
+    log?.error(`ціни на машину ${t.point_id} не поїхали`, e);
+    return finish("failed", e.message ?? String(e));
+  }
+}
+
+// Чекаємо, поки остання команда машини в журналі перестане бути «відправлено».
+async function waitExecuted(portal, vmc, timeoutS, log) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutS * 1000) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const last = (await portal.commandLog(vmc, 5))[0];
+    if (last && !isPending(last.status)) return last;
+  }
+  log?.info(`Jetinno ${vmc}: звіт напоїв не підтвердився за ${timeoutS} с — перевіряю як є`);
+  return null;
+}
+
 // Клієнта беремо один на прохід і віддаємо його у finally. Черга
 // деплойментів майже завжди порожня, тож ранній вихід «нема чого котити»
 // трапляється шість разів на хвилину — і 22.09.2026 саме він з'їв пул:
@@ -76,16 +154,16 @@ async function deployCheckbox(client, t, menu, log) {
 // клієнтів не лишилось, і весь scheduler завис на pool.connect() без
 // жодного рядка в лозі — бонуси лежали в outbox неопубліковані, а QR на
 // кіоску не з'являвся.
-export async function deployMenus({ pool, log }) {
+export async function deployMenus({ pool, redis, log }) {
   const client = await pool.connect();
   try {
-    return await deployNext(client, log);
+    return await deployNext(client, redis, log);
   } finally {
     client.release();
   }
 }
 
-async function deployNext(client, log) {
+async function deployNext(client, redis, log) {
   let deployment;
   try {
     await client.query("begin");
@@ -131,7 +209,7 @@ async function deployNext(client, log) {
   // Спершу бакет (екран кіоска), потім Checkbox: на запис кожної ціни в
   // каталог іде три запити, і екран не має на них чекати.
   const { rows: targets } = await client.query(
-    `select t.id, t.point_id, t.kind, p.machine_letter
+    `select t.id, t.point_id, t.kind, p.machine_letter, p.jetinno_vmc
        from menu_deployment_targets t
        join points p on p.id = t.point_id
       where t.deployment_id = $1 and t.status = 'queued'
@@ -146,7 +224,12 @@ async function deployNext(client, log) {
       if (ok) done++; else failed++;
       continue;
     }
-    if (t.kind !== "r2") continue;          // jetinno — коли буде доступ до порталу
+    if (t.kind === "jetinno") {
+      const ok = await deployJetinno(client, redis, t, (await menuFor(t.machine_letter)).menu, t.jetinno_vmc, log);
+      if (ok) done++; else failed++;
+      continue;
+    }
+    if (t.kind !== "r2") continue;          // решту видів (checkbox, jetinno) обробили вище
     try {
       const { menu, body } = await menuFor(t.machine_letter);
       // 30 секунд кешу — щоб зміна доїхала на екран навіть тоді, коли подія

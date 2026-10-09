@@ -88,10 +88,16 @@ export default async function routes(app) {
     // Акції тут немає навмисно: деплоймент — це про ціни, які треба
     // довезти до машини й Checkbox. Поточну акцію меню бере саме собою
     // (lib/menu.js), і міняється вона окремою дією в адмінці.
-    const points = Array.isArray(req.body?.points) && req.body.points.length
+    const wanted = Array.isArray(req.body?.points) && req.body.points.length
       ? req.body.points
-      : (await pool.query("select id from points order by id")).rows.map((r) => r.id);
-    if (!points.length) return reply.code(400).send({ error: "no_points" });
+      : null;
+    // Разом із точками беремо, чи зіставлена кожній машина Jetinno: ціль
+    // jetinno додається лише тоді (points.jetinno_vmc), інакше деплой на точку
+    // без машини завжди був би partial.
+    const { rows: pts } = wanted
+      ? await pool.query("select id, jetinno_vmc from points where id = any($1) order by id", [wanted])
+      : await pool.query("select id, jetinno_vmc from points order by id");
+    if (!pts.length) return reply.code(400).send({ error: "no_points" });
 
     const deployment = await one(
       `insert into menu_deployments (payload, status, created_by)
@@ -100,15 +106,22 @@ export default async function routes(app) {
       // викочування вже в drinks, а тут — привід.
       [JSON.stringify({ reason: "prices" }), admin.id]
     );
-    // На кожну точку дві цілі: меню на екран (r2) і ціни в каталог каси
-    // (checkbox, 01.10.2026) — щоб пробивалось те саме, що показує кіоск.
-    for (const point of points) {
+    // На кожну точку: меню на екран (r2) і ціни в каталог каси (checkbox,
+    // 01.10.2026) — щоб пробивалось те саме, що показує кіоск; плюс ціна на
+    // саму кавомашину (jetinno, 09.10.2026), бо автомат пробиває свою ціну.
+    for (const p of pts) {
       await pool.query(
         "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'r2', $2), ($1, 'checkbox', $2)",
-        [deployment.id, point]
+        [deployment.id, p.id]
       );
+      if (p.jetinno_vmc) {
+        await pool.query(
+          "insert into menu_deployment_targets (deployment_id, kind, point_id) values ($1, 'jetinno', $2)",
+          [deployment.id, p.id]
+        );
+      }
     }
-    return { ...deployment, points };
+    return { ...deployment, points: pts.map((p) => p.id) };
   });
 
   // Тестова знижка на точках: та сама черга, що й купівля гравцем
