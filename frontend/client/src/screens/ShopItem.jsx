@@ -9,6 +9,7 @@ import { BuyConfirm } from "../ui/BuyConfirm.jsx";
 import { NotEnoughBeans, NotEnoughCoins } from "../ui/NotEnough.jsx";
 import { beans as beansText, coins as coinsText } from "../ui/plural.js";
 import { Img, webp } from "../ui/img.jsx";
+import { DrinkGrid } from "../ui/Fields.jsx";
 import { rememberPlant } from "../plant/selected.js";
 
 const Bean = ({ w = 17, h = 19 }) => <img src="/assets/ui/bean.webp" alt="зерна" style={{ width: w, height: h }} />;
@@ -53,11 +54,11 @@ const TIERS = [["common", "Common"], ["uncommon", "Uncommon"], ["rare", "Rare"],
 // завжди (власник, 27.09.2026). Поки автомат не вміє швидко міняти ціни,
 // купити її не можна — і текст каже це прямо.
 ABOUT.pos_discount = (item) => [
-  `Рівно ${item.amount_uah} ₴ знижки на кожен напій у кав'ярні (але не дешевше гривні). Купуй, коли стоїш біля автомата: за кілька секунд ціни на ньому стануть нижчими на ${Math.round((item.window_s ?? 120) / 60)} хв або до першого чека, а на екрані піде відлік.`,
+  `Рівно ${item.amount_uah} ₴ знижки на один обраний напій у кав'ярні (але не дешевше гривні). Купуй, коли стоїш біля автомата: за кілька секунд ціна на нього стане нижчою на ${Math.round((item.window_s ?? 120) / 60)} хв або до першого чека з цим напоєм, а на екрані піде відлік.`,
   // Ціни доїжджають за кілька секунд, і напій, пробитий раніше, піде за
   // повною ціною (власник, 28.09.2026).
-  "Перш ніж купувати напій, дочекайся, поки знижка з'явиться на екрані кавомашини й на головному екрані кав'ярні, – тоді знижені ціни вже діють.",
-  "Знижка діє для першого, хто купить у цей час, – тож не тягни. Якщо знижені ціни не доїдуть до автомата, зерна повернуться самі.",
+  "Перш ніж купувати напій, дочекайся, поки знижка з'явиться на екрані кавомашини й на головному екрані кав'ярні, – тоді знижена ціна вже діє.",
+  "Знижка діє для першого, хто купить цей напій у цей час, – тож не тягни. Якщо знижена ціна не доїде до автомата, зерна повернуться самі.",
   ...(item.available ? [] : ["Поки що купити не можна: автомат ще не вміє швидко міняти ціни. Щойно навчиться – знижка відкриється тут, а доти зерна не списуються."]),
 ];
 
@@ -128,8 +129,8 @@ const DONE = {
   // Діє — одразу; інша знижка на точці ще йде — стає в чергу за нею
   // (власник, 28.09.2026).
   pos_discount: (r) => (r.status === "active"
-    ? `Знижку ввімкнено: ${r.amount_uah} ₴ з кожного напою в кав'ярні${r.point_name ? ` ${r.point_name}` : ""} на ${Math.round((r.seconds ?? 120) / 60)} хв або до першого чека. Дочекайся, поки знижка з'явиться на екрані кавомашини й на головному екрані кав'ярні, – і тоді купуй: ціни вже будуть нижчими.`
-    : `Знижка стала в чергу: зараз у кав'ярні вже діє інша. Твоя почнеться, щойно скінчиться ${r.ahead > 1 ? `${r.ahead} попередніх` : "попередня"}, і так само діятиме ${Math.round((r.seconds ?? 120) / 60)} хв або до першого чека. Купуй напій, коли знижка з'явиться на екрані кавомашини й на головному екрані кав'ярні.`),
+    ? `Знижку ввімкнено: ${r.amount_uah} ₴ на «${r.drink_name}» у кав'ярні${r.point_name ? ` ${r.point_name}` : ""} на ${Math.round((r.seconds ?? 120) / 60)} хв або до першого чека з ним. Дочекайся, поки знижка з'явиться на екрані кавомашини й на головному екрані кав'ярні, – і тоді купуй: ціна вже буде нижчою.`
+    : `Знижка на «${r.drink_name}» стала в чергу: зараз у кав'ярні вже діє інша. Твоя почнеться, щойно скінчиться ${r.ahead > 1 ? `${r.ahead} попередніх` : "попередня"}, і так само діятиме ${Math.round((r.seconds ?? 120) / 60)} хв або до першого чека з цим напоєм.`),
 };
 
 function Hero({ item }) {
@@ -154,6 +155,10 @@ export function ShopItem({ item, ctx }) {
   const [error, setError] = useState(null);
   const [sapling, setSapling] = useState(null);
   const [amount, setAmount] = useState(1);
+  // Знижка діє на один напій — його обирає гравець сіткою, як в опитуванні
+  // профілю (власник, 08.10.2026). drink — обраний slot.
+  const [drinks, setDrinks] = useState(null);
+  const [drink, setDrink] = useState(null);
   // Що підтверджуємо: кнопка з ціною відкриває попап, а не купує одразу
   // (власник, 01.10.2026).
   const [confirm, setConfirm] = useState(null);
@@ -168,6 +173,12 @@ export function ShopItem({ item, ctx }) {
     })).catch(() => {});
   }, [item?.code]);
 
+  // Напої для вибору знижки — лише коли її взагалі можна купити.
+  useEffect(() => {
+    if (item?.code !== "pos_discount" || item.available === false) return;
+    api.get("/shop/drinks").then((r) => setDrinks(r.drinks ?? [])).catch(() => setDrinks([]));
+  }, [item?.code, item?.available]);
+
   if (!item) return null;
   const b = ctx.me?.balances ?? {};
   const delivery = item.kind === "delivery";
@@ -178,8 +189,9 @@ export function ShopItem({ item, ctx }) {
     setBusy(true);
     setError(null);
     try {
-      const r = await api.post("/shop/buy", target.kind === "exchange"
-        ? { code: target.code, amount: Math.max(1, Number(amount) || 1) }
+      const r = await api.post("/shop/buy",
+        target.kind === "exchange" ? { code: target.code, amount: Math.max(1, Number(amount) || 1) }
+        : target.code === "pos_discount" ? { code: target.code, drink }
         : { code: target.code });
       await ctx.refreshMe();
       const close = () => ctx.notify(null);
@@ -287,6 +299,24 @@ export function ShopItem({ item, ctx }) {
 
       {exchange && <ExchangePicker amount={amount} setAmount={setAmount} have={beansHave} rate={item.gives_coins ?? 15} />}
 
+      {item.code === "pos_discount" && item.available !== false && (
+        <div className="discount-pick">
+          <div className="sectionTitle">На який напій</div>
+          {drinks === null ? (
+            <div className="muted">вантажимо напої…</div>
+          ) : drinks.length === 0 ? (
+            <div className="muted">напоїв зараз немає</div>
+          ) : (
+            <DrinkGrid
+              options={drinks.map((d) => d.name)}
+              sprites={Object.fromEntries(drinks.map((d) => [d.name, d.sprite]))}
+              value={drinks.find((d) => d.slot === drink)?.name ?? null}
+              onChange={(name) => setDrink(drinks.find((d) => d.name === name)?.slot ?? null)}
+            />
+          )}
+        </div>
+      )}
+
       {error && <div className="panel" style={{ color: "var(--accent-text)" }}>{error}</div>}
 
       <div className="buy-row">
@@ -312,6 +342,11 @@ export function ShopItem({ item, ctx }) {
           </button>
         ) : item.available === false ? (
           <button className="cta" disabled>Скоро на точці</button>
+        ) : item.code === "pos_discount" ? (
+          // Знижку не купити, доки не обрано напій (власник, 08.10.2026).
+          <button className="cta" disabled={busy || !drink} onClick={() => ask()}>
+            {drink ? <><Bean w={19} h={21} />{item.price}</> : "Обери напій"}
+          </button>
         ) : item.currency === "beans" ? (
           <button className="cta" disabled={busy} onClick={() => ask()}>
             <Bean w={19} h={21} />{item.price}
