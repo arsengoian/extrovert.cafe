@@ -24,6 +24,9 @@ docker compose exec -T "$SVC" bun -e '
   if (!m) { console.error("образ застарів — онови: docker compose up -d --build <сервіс>"); process.exit(2); }
   await m.login({});
   console.log("вхід ок — сесія в Redis");
+  // Явний вихід: login() лишає відкритим конект ioredis, інакше bun -e
+  // висить, а з ним і docker compose exec.
+  process.exit(0);
 '
 
 # 2. Переносимо куку з Redis у файл для host-скриптів.
