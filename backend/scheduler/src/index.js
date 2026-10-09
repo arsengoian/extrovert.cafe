@@ -19,6 +19,7 @@ import { deployMenus } from "./jobs/menu.js";
 import { runDiscounts } from "./jobs/discounts.js";
 import { backupDatabase } from "./jobs/backup.js";
 import { aggregateAnalytics, flushAnalytics } from "./jobs/analytics.js";
+import { pollJetinno } from "./jobs/jetinno.js";
 
 const log = makeLog("scheduler");
 initErrors("scheduler", { log });
@@ -46,6 +47,10 @@ const JOBS = [
   { name: "np-directory", every: 6 * HOUR, ttl: 3 * HOUR, run: () => syncDirectory({ pool, log }) },
   // Щогодини лише перевірка «чи є сьогоднішній дамп» — сам дамп раз на добу.
   { name: "db-backup", every: HOUR, ttl: 50 * MINUTE, run: () => backupDatabase({ log }) },
+  // Телеметрія кавомашини з порталу Jetinno (jobs/jetinno.js): рідше за
+  // малину, бо портал чужий і темп низький. Типово раз на 30 хв.
+  { name: "jetinno-poll", every: (Number(process.env.JETINNO_TELEMETRY_MIN) || 30) * MINUTE, ttl: 5 * MINUTE,
+    run: () => pollJetinno({ pool, redis, log }) },
 ];
 
 // Порту в scheduler немає — про те, що він живий, каже позначка в Redis.

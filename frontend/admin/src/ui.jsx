@@ -42,6 +42,12 @@ export const METRIC_LABELS = {
   monitor_src: "чим перевірено монітор", monitor_woke: "будили монітор",
   throttled: "живлення (біти)", root_ro: "картка read-only", usb_ok: "флешка",
   kiosk_frames: "кадрів усього",
+  // Кавомашина Jetinno (jobs/jetinno.js)
+  online: "машина онлайн", session: "сесія порталу", last_login: "востаннє в мережі",
+  faults: "несправності", warnings: "попередження", supply_short: "дефіцит інгредієнтів",
+  fault_codes: "коди несправностей", orders_card_24h: "карткових замовлень за добу",
+  orders_cash_24h: "готівкових замовлень за добу", receipts_24h: "чеків за добу",
+  reconcile_ok: "замовлення сходяться з чеками", note: "примітка",
 };
 
 export const metricValue = (key, value) => {

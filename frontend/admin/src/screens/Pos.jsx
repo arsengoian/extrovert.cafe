@@ -75,6 +75,18 @@ const ORDER = [
   "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
+// Рядок підсумку кавомашини: кольорова крапка (ok/погано/нейтрально),
+// значення й необов'язковий підпис.
+function JetRow({ label, ok, value, sub }) {
+  const tone = ok === null || ok === undefined ? "var(--muted)" : ok ? "var(--ok)" : "var(--bad)";
+  return (
+    <div className="row" style={{ justifyContent: "space-between", fontSize: 11.5, gap: 8 }}>
+      <span className="row" style={{ gap: 6 }}><i style={{ width: 7, height: 7, borderRadius: "50%", background: tone, display: "inline-block" }} />{label}</span>
+      <span style={{ textAlign: "right" }}><b>{value}</b>{sub ? <span className="muted" style={{ marginLeft: 6 }}>{sub}</span> : null}</span>
+    </div>
+  );
+}
+
 export function Pos({ id }) {
   const [range, setRange] = useRange();
   const { data, error, loading } = useData(() => api.point(id, range), [id, range]);
@@ -96,6 +108,7 @@ export function Pos({ id }) {
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
     });
   const pi = latest.find((l) => l.source === "pi");
+  const jet = latest.find((l) => l.source === "jetinno");
   const series = (key) => history
     .filter((h) => h.metrics && h.metrics[key] !== undefined && h.metrics[key] !== null)
     .map((h) => ({ x: h.measured_at, y: Number(h.metrics[key]) }));
@@ -200,10 +213,10 @@ export function Pos({ id }) {
         </div>
 
         <Card title="Компоненти точки" note="остання проба">
-          {latest.length === 0 ? (
+          {latest.filter((l) => l.source !== "jetinno").length === 0 ? (
             <Empty>телеметрії ще не було</Empty>
           ) : (
-            latest.map((l) => (
+            latest.filter((l) => l.source !== "jetinno").map((l) => (
               <div key={l.source} style={{ marginBottom: 10 }}>
                 <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
                   <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : l.source === "jetinno" ? "Автомат Jetinno" : "Камера"}</b>
@@ -229,6 +242,37 @@ export function Pos({ id }) {
                 </div>
               </div>
             ))
+          )}
+        </Card>
+      </div>
+
+      {/* Окрема категорія — кавомашина Jetinno (власник, 09.10.2026):
+          знімається з порталу раз на пів години (jobs/jetinno.js), тож тут
+          не графіки, а підсумок останньої проби — онлайн, поломки, звірка
+          замовлень із чеками. */}
+      <div style={{ marginTop: 12 }}>
+        <Card
+          title="Кавомашина (Jetinno)"
+          note={jet ? `проба ${fmt.ago(jet.measured_at)}` : "раз на пів години"}
+        >
+          {!jet ? (
+            <Empty>телеметрії з порталу ще не було</Empty>
+          ) : jet.metrics?.session === false ? (
+            <div className="beat-row"><span className="name">сесія порталу</span><span className="fill" style={{ color: "var(--bad)" }}>злетіла — потрібен вхід у портал</span></div>
+          ) : (
+            <div className="grid k2" style={{ gap: 8 }}>
+              <JetRow label="машина" ok={jet.metrics.online} value={jet.metrics.online ? "онлайн" : "офлайн"}
+                      sub={jet.metrics.last_login ? `востаннє ${fmt.ago(jet.metrics.last_login)}` : null} />
+              <JetRow label="несправності" ok={!jet.metrics.faults}
+                      value={jet.metrics.faults ? `${jet.metrics.faults}${jet.metrics.fault_codes?.length ? ` (${jet.metrics.fault_codes.join(", ")})` : ""}` : "немає"} />
+              <JetRow label="попередження" ok={!jet.metrics.warnings} value={jet.metrics.warnings ? String(jet.metrics.warnings) : "немає"} />
+              <JetRow label="дефіцит інгредієнтів" ok={!jet.metrics.supply_short} value={jet.metrics.supply_short ? String(jet.metrics.supply_short) : "немає"} />
+              <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
+                      value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
+                      sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
+              <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
+                      sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
+            </div>
           )}
         </Card>
       </div>
