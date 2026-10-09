@@ -32,11 +32,13 @@
 # ціль d-* і є явне «так, на проді» — make власні опції з дефісом однаково
 # не пропустив би (03.10.2026). Червоне попередження скрипт друкує все одно.
 
-.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel
+.PHONY: d-help d-sale d-sales d-list d-plant d-skip d-supply d-give d-user d-db d-sql d-tunnel d-pi
 
 # Через bash явно: make на Windows виконує рецепти не тим шелом, і скрипт
 # із шебангом просто не запускається.
 PRODDB := bash scripts/prod-db.sh
+POINT  ?= kyiv-01
+CMD    ?=
 DRINK  ?=
 PAY    ?= card
 NICK   ?=
@@ -62,6 +64,7 @@ d-help:
 	@echo   make d-user MAIL=пошта         баланси, кавенята, останні чеки
 	@echo   make d-db                      psql до прод-бази
 	@echo   make d-tunnel                  тунель до прод-бази на localhost:5455, доки не Ctrl+C
+	@echo   make d-pi                      ssh на малину точки через тунель (POINT=kyiv-01 CMD='uptime')
 
 d-list:
 	$(BUN) scripts/dev-sale.mjs --list
@@ -113,6 +116,11 @@ d-db:
 # із командою — той самий prod-db.sh, що й решта d-*.
 d-tunnel:
 	$(PRODDB) sh -c 'echo "тунель відкритий: localhost:5455, база extrovert, користувач extrovert (пароль — POSTGRES_PASSWORD у .env.prod). Ctrl+C — закрити"; while :; do sleep 3600; done'
+
+# ssh на малину точки через її зворотний тунель (scripts/pi-ssh.sh). Запускати
+# з Windows теж можна — make кличе bash, а скрипт сам лагодить права на ключі.
+d-pi:
+	bash scripts/pi-ssh.sh $(POINT) $(CMD)
 
 # Довільний запит: make d-sql Q="select count(*) from users"
 d-sql:

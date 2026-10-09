@@ -4,6 +4,7 @@
 #
 #   bash scripts/pi-ssh.sh                  # kyiv-01, інтерактивно
 #   bash scripts/pi-ssh.sh kyiv-01 'uptime' # одна команда
+#   make d-pi            /  make d-pi CMD='uptime'   # те саме з Windows
 #
 # Порт точки береться з бази (points.tunnel_port) через той самий дроплет.
 # Ключі: root дроплета — keys/extrovert_ed25519, малина — та сама пара, що й
@@ -12,13 +13,22 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 POINT="${1:-kyiv-01}"; shift || true
 DROPLET="${DROPLET:-46.101.213.31}"
-JUMP_KEY=keys/extrovert_ed25519
-PI_KEY=raspberry/kiosk/.deploy/id_ed25519
 
-PORT=$(ssh -p 2222 -i "$JUMP_KEY" -o BatchMode=yes "root@$DROPLET" \
+# Ключі копіюємо в тимчасову теку з правами 600: на Windows (Git Bash) файли
+# з /mnt чи репозиторію видно як 0777, і ssh їх відхиляє («UNPROTECTED PRIVATE
+# KEY FILE»). Копія з 600 лікує це і на Windows, і в WSL, і на Linux/macOS.
+KEYDIR=$(mktemp -d 2>/dev/null || echo "${TMPDIR:-/tmp}/pi-ssh.$$")
+mkdir -p "$KEYDIR"; chmod 700 "$KEYDIR"
+trap 'rm -rf "$KEYDIR"' EXIT
+cp keys/extrovert_ed25519 "$KEYDIR/jump"
+cp raspberry/kiosk/.deploy/id_ed25519 "$KEYDIR/pi"
+chmod 600 "$KEYDIR/jump" "$KEYDIR/pi"
+JUMP_KEY="$KEYDIR/jump"; PI_KEY="$KEYDIR/pi"
+
+PORT=$(ssh -p 2222 -i "$JUMP_KEY" -o BatchMode=yes -o StrictHostKeyChecking=accept-new "root@$DROPLET" \
   "docker exec extrovert-postgres-1 psql -U extrovert -d extrovert -tA -c \"select tunnel_port from points where id = '$POINT'\"")
 [ -n "$PORT" ] || { echo "✗ у точки $POINT ще немає порту тунелю — малина не реєструвалась" >&2; exit 1; }
 
 exec ssh -i "$PI_KEY" \
-  -o "ProxyCommand=ssh -p 2222 -i $JUMP_KEY -o BatchMode=yes -W %h:%p root@$DROPLET" \
-  -o "HostKeyAlias=pi-$POINT" -p "$PORT" pi@127.0.0.1 "$@"
+  -o "ProxyCommand=ssh -p 2222 -i $JUMP_KEY -o BatchMode=yes -o StrictHostKeyChecking=accept-new -W %h:%p root@$DROPLET" \
+  -o "HostKeyAlias=pi-$POINT" -o StrictHostKeyChecking=accept-new -p "$PORT" pi@127.0.0.1 "$@"
