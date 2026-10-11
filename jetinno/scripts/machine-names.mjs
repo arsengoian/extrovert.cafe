@@ -29,6 +29,13 @@ const RENAMES = {
   15: "Мокачино",               // було «Мокачіно»
 };
 
+// Час у форматі, яким машина підписує свої записи: «20261008 16:29».
+// Локальний час машини — київський, тож беремо час цієї машини як є.
+const stamp = (d = new Date()) => {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+};
+
 const args = process.argv.slice(2);
 const PUSH = args.includes("--push");
 const restoreIdx = args.indexOf("--restore");
@@ -92,6 +99,12 @@ function patch(buf) {
     if (!obj.nameLang) obj.nameLang = {};
     obj.nameLang.uk_ = want;
     obj.nameCN = want;                       // машина показує nameCN як головний напис; тримаємо однаковим із uk_
+    // Бампаємо й date. Гіпотеза (11.10.2026): перший живий upgrade машина
+    // прийняла («Надіслано успішно»), але назву не змінила навіть після
+    // перезапуску застосунку — схоже, вона застосовує лише записи, датовані
+    // пізніше за наявні, а ми віддавали стару дату, тож пакет мовчки
+    // ігнорувався. Формат — як пише сама машина: «20261008 16:29».
+    obj.date = stamp();
     diffs.push({ id, from: curUk || curCn, to: want });
   }
   // .product назад тим самим форматом (4 пробіли, без екранування кирилиці),
