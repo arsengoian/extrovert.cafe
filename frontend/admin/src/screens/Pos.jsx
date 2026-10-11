@@ -100,6 +100,10 @@ function JetRow({ label, ok, value, sub }) {
 
 export function Pos({ id }) {
   const [range, setRange] = useRange();
+  // Таб таблиці показників — хук мусить стояти тут, над ранніми return:
+  // інакше на «вантажимо…» він не викликається, а після приходу даних
+  // викликається, і React падає на зміні кількості хуків (11.10.2026).
+  const [tab, setTab] = useState("pi");
   const { data, error, loading } = useData(() => api.point(id, range), [id, range]);
 
   if (loading && !data) return <Empty>вантажимо…</Empty>;
@@ -117,7 +121,6 @@ export function Pos({ id }) {
   // ключів, і в спільній таблиці половина кожного рядка була прочерками
   // (власник, 11.10.2026). Колонки рахуємо вже по відфільтрованих пробах,
   // тож у кожному табі лишаються тільки його метрики.
-  const [tab, setTab] = useState("pi");
   const tabRows = recent.filter((r) => (tab === "jetinno" ? isJet(r) : !isJet(r)));
   const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
