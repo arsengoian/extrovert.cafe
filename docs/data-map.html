@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 7a6d339</p>
+  <p class="eyebrow">extrovert.cafe · джерело 6e87e39</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -13818,6 +13818,17 @@ temp-access-credentials) + реєстрація сегмента; bucket lock н
 </ol>
 <h3 id="roadmap-крок-4-аналітика-й-звʼязок-із-pos"><a class="anchor" href="#roadmap-крок-4-аналітика-й-звʼязок-із-pos" aria-hidden="true">#</a>Крок 4. Аналітика й звʼязок із POS</h3>
 <ul>
+<li><strong>Гейт по руху — перший, а не оптимізація потім.</strong> Більшість часу перед
+камерою нікого немає (власник, 11.10.2026), а нерухомий сегмент коштує
+~1 с замість ~13 (<a class="doclink" href="#video"><code>video.md</code></a>, «Скільки насправді треба дроплету аналізу»).
+При 90 % нерухомих сегментів середня ціна хвилини відео падає з ~13 с CPU
+до ~2 с — це різниця між «потрібен окремий дроплет» і «кілька відсотків
+ядра», тобто між окремим сервером і життям у наявному стеку. Тому гейт —
+умова всього кроку, а не те, що додають потім.</li>
+<li><strong>Напрацьовувати аналізатор можна вже зараз</strong>, не чекаючи полагодженого
+аплінка: у R2 лежать 29 сегментів (172 МБ) за 06–09.10 — справжнє відео
+точки, а не чуже CCTV, на якому робився перший замір. Ще ~1,2 ГБ чекає на
+флешці малини (<code>/mnt/buf/video-hold</code>).</li>
 <li>звести подію <code>approach</code> із чеком за таймстемпом → <code>receipt_id</code></li>
 <li>метрика, заради якої все робилось: <strong>конверсія підхід → покупка</strong></li>
 <li>далі — тривалість підходу, черга, час доби; звіти через overseer у Telegram</li>
@@ -14347,7 +14358,7 @@ Checkbox і до ФОП, не до коду.</li>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 7a6d339 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 6e87e39 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
