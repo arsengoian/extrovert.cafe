@@ -8,18 +8,32 @@
 // Пише в device_telemetry з source='jetinno' (одна проба на прохід). Сесії
 // немає / портал лежить — не падаємо: лишаємо пробу з session:false, щоб
 // адмінка показала «потрібен вхід», і йдемо далі.
-import { portalClient, JetinnoSessionError } from "@extrovert/lib/jetinno/portal.js";
+import { portalClient, JetinnoSessionError, ORDER_COL } from "@extrovert/lib/jetinno/portal.js";
 
-// Текст типу оплати з CSV → наш код. Інше лишаємо як є (побачимо в raw).
+// Текст типу оплати з CSV → наш код. Значення теж перекладне, тож тримаємо
+// кілька основ, а «безготівку» перевіряємо ПЕРШОЮ: німецьке «bargeldlos»
+// містить «bargeld». Нерозпізнане лишаємо як є — його видно в raw.
 function payType(text) {
   const s = (text || "").toLowerCase();
-  if (s.includes("cashless")) return "mdb_cashless";
-  if (s.includes("готівк") || s.includes("cash")) return "mdb_cash";
+  if (s.includes("cashless") || s.includes("bargeldlos") || s.includes("безготів")) return "mdb_cashless";
+  if (s.includes("готівк") || s.includes("bargeld") || s.includes("cash")) return "mdb_cash";
   if (s.includes("пробн") || s.includes("test")) return "test";
   return s || null;
 }
 
 const kyiv = (v) => (v && v.trim() ? v.trim() : null); // час машини — київський; каст у SQL
+
+// Подія з /error ще висить (портал лишає «скинуто» порожнім або «--»).
+const isActive = (f) => !f.cleared || f.cleared === "--" || f.cleared === "";
+// «ERROR:5A00 Піддон повний» — рядком, а не об'єктом: так воно однаково
+// читабельне і в картці машини, і в спільній таблиці показників.
+const brief = (f) => [f.code, f.desc].filter(Boolean).join(" ").slice(0, 80);
+// Час машини — київський, без зони; нерозібране віддаємо як 0, тобто «давнє»,
+// щоб сміття не лізло в добовий зріз.
+const eventAt = (s) => {
+  const t = Date.parse(String(s || "").replace(" ", "T"));
+  return Number.isFinite(t) ? t : 0;
+};
 
 // Замовлення машини за місяць → machine_orders (upsert за order_no).
 async function syncOrders(client, portal, point, vmc) {
@@ -32,11 +46,14 @@ async function syncOrders(client, portal, point, vmc) {
   }
   let seen = 0;
   for (const month of months) {
-    const rows = await portal.orders(vmc, month);
+    const { header, rows } = await portal.orders(vmc, month);
     for (const r of rows) {
-      const orderNo = r["Номер замовлення"];
+      const orderNo = r[ORDER_COL.orderNo];
       if (!orderNo) continue;
       seen++;
+      // raw лишаємо з заголовками тієї мови, якою портал віддав CSV: читаємо
+      // все одно за позицією, а підписи рятують, коли щось не зійдеться.
+      const raw = Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""]));
       await client.query(
         `insert into machine_orders (point_id, order_no, product_id, price_uah, pay_type, status, purchased_at, uploaded_at, raw)
          values ($1, $2, $3, $4, $5, $6,
@@ -45,9 +62,10 @@ async function syncOrders(client, portal, point, vmc) {
          on conflict (point_id, order_no) do update
            set price_uah = excluded.price_uah, pay_type = excluded.pay_type, status = excluded.status`,
         [
-          point, orderNo, Number(r["Код напою"]) || null, Number(r["Ціна напою"]) || null,
-          payType(r["Тип оплати"]), r["Стан"] || null, kyiv(r["Час покупки"]), kyiv(r["Час завантаження"]),
-          JSON.stringify(r),
+          point, orderNo, Number(r[ORDER_COL.productId]) || null, Number(r[ORDER_COL.price]) || null,
+          payType(r[ORDER_COL.payType]), r[ORDER_COL.status] || null,
+          kyiv(r[ORDER_COL.purchasedAt]), kyiv(r[ORDER_COL.uploadedAt]),
+          JSON.stringify(raw),
         ]
       );
     }
@@ -86,10 +104,18 @@ async function pollPoint(client, redis, point, vmc, log) {
       metrics.warnings = Number(dev.warning_count) || 0;
       metrics.supply_short = Number(dev.supply_count) || 0;
     }
-    if (metrics.faults) {
-      const active = (await portal.faults(vmc)).filter((f) => !f.cleared || f.cleared === "--" || f.cleared === "");
-      metrics.fault_codes = active.map((f) => f.code).slice(0, 20);
-    }
+    // Журнал несправностей тягнемо ЗАВЖДИ, а не лише коли get_device показав
+    // лічильник. 11.10.2026: на машині були відчинені дверцята, повний піддон
+    // і MDB offline, а error_count/warning_count віддавали 0 — через цей гейт
+    // у телеметрію не потрапляло взагалі нічого. Крім активних беремо й ті,
+    // що піднялись і згасли між проходами: опитування рідке (раз на 30 хв),
+    // інакше короткі події (ті самі дверцята) видно лише на самій машині.
+    const all = await portal.faults(vmc);
+    const active = all.filter(isActive);
+    const since = Date.now() - 24 * 60 * 60 * 1000;
+    const recent = all.filter((f) => !isActive(f) && eventAt(f.raised) >= since);
+    metrics.fault_codes = active.map(brief).slice(0, 20);
+    if (recent.length) metrics.faults_recent_24h = recent.map(brief).slice(0, 20);
     await syncOrders(client, portal, point, vmc);
     Object.assign(metrics, await reconcile(client, point));
   } catch (e) {

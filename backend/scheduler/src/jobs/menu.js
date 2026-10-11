@@ -12,7 +12,7 @@ import { buildMenu } from "@extrovert/lib/menu.js";
 import { put } from "@extrovert/lib/r2.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { catalogClient, uahToKop } from "@extrovert/lib/checkbox-catalog.js";
-import { portalClient, JetinnoSessionError, isPending } from "@extrovert/lib/jetinno/portal.js";
+import { portalClient, JetinnoSessionError, isPendingRow } from "@extrovert/lib/jetinno/portal.js";
 
 // Ціль `checkbox`: ціни меню точки → каталог Checkbox (lib/checkbox-catalog.js).
 // Кожна ціна після запису перечитується, і ціль done, лише коли в каталозі
@@ -141,7 +141,7 @@ async function waitExecuted(portal, vmc, timeoutS, log) {
   while (Date.now() - t0 < timeoutS * 1000) {
     await new Promise((r) => setTimeout(r, 3000));
     const last = (await portal.commandLog(vmc, 5))[0];
-    if (last && !isPending(last.status)) return last;
+    if (last && !isPendingRow(last)) return last;
   }
   log?.info(`Jetinno ${vmc}: звіт напоїв не підтвердився за ${timeoutS} с — перевіряю як є`);
   return null;

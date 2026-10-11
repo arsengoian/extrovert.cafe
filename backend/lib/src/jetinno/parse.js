@@ -59,17 +59,37 @@ export function parseCommandLog(html) {
 }
 
 // Несправності / попередження (/error): код, опис, тип, час, скидання.
+// >= 9, а не 8: читаємо r[8] (cleared), і 8-клітинковий рядок давав би
+// cleared === undefined — тобто вже скинуту подію рахувало б як активну.
 export function parseFaults(html) {
   return tableRows(html)
-    .filter((r) => r.length >= 8)
+    .filter((r) => r.length >= 9)
     .map((r) => ({ code: r[3], desc: r[4], kind: r[5], status: r[6], raised: r[7], cleared: r[8] }));
 }
 
-// Стан «відправлено» в журналі — ще не виконано машиною.
-export const isPending = (status) => /надіслано|sent|发送/i.test(status ?? "");
+// Команда в журналі ще не виконана машиною — визначаємо структурно, а не за
+// текстом статусу. Портал проставляє `updated`, коли машина відзвітувала, тож
+// у просто надісланої він дорівнює `created`. Текст перекладається разом із
+// мовою сесії (uk «Надіслано» = de «Abwurf erfolgreich»), а мову портал
+// обирає за IP на вході — 11.10.2026 прод зайшов у німецьку, і waitExecuted
+// став вважати команду виконаною одразу, не дочекавшись машини. Мову ми все
+// одно прибиваємо (portal.js, setLanguage), але логіка на неї не спирається.
+export const isPendingRow = (row) => !row?.updated || row.updated === row.created;
+
+// Колонки CSV замовлень (/order?export=1) — за позицією, а не за назвою
+// заголовка: назви так само перекладаються («Тип оплати» = «Welche art Von
+// zahlung»), і пошук за назвою мовчки давав порожнечу — machine_orders не
+// наповнювались, а звірка в адмінці показувала «0 карткою / N чеків
+// розходяться». Порядок колонок однаковий у всіх мовах (звірено uk і de,
+// 11.10.2026).
+export const ORDER_COL = {
+  orderNo: 1, productId: 3, name: 4, price: 5, payType: 6, status: 7,
+  purchasedAt: 12, uploadedAt: 13,
+};
 
 // CSV експорту замовлень (/order?export=1): рядки з лапками, UTF-8. Повертає
-// масив об'єктів за заголовком. Парсер простий, але тримає коми в лапках.
+// матрицю — `header` і `rows` масивами, щоб читати за позицією (ORDER_COL), а
+// не за перекладною назвою. Парсер простий, але тримає коми в лапках.
 export function parseCsv(text) {
   const rows = [];
   let row = [], field = "", quoted = false;
@@ -86,7 +106,6 @@ export function parseCsv(text) {
     } else field += c;
   }
   if (field !== "" || row.length) { row.push(field); rows.push(row); }
-  if (!rows.length) return [];
-  const head = rows[0];
-  return rows.slice(1).map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ""])));
+  if (!rows.length) return { header: [], rows: [] };
+  return { header: rows[0], rows: rows.slice(1) };
 }

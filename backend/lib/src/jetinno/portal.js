@@ -10,7 +10,7 @@
 // JSON дають лише AJAX-ендпоінти; CSRF не вимагає, сесія — httpOnly-кука.
 import { redisClient } from "../redis.js";
 import { rateLimiter } from "./limiter.js";
-import { USER_AGENT, parseProducts, parseCommandLog, parseFaults, parseCsv, tableById, isPending } from "./parse.js";
+import { USER_AGENT, parseProducts, parseCommandLog, parseFaults, parseCsv, tableById, isPendingRow, ORDER_COL } from "./parse.js";
 
 export const SESSION_KEY = "jetinno:session";
 
@@ -188,6 +188,30 @@ async function fetchCaptcha(base, cookie) {
 }
 
 
+// Мова сесії. Портал рендерить таблиці, CSV замовлень і стани команд тією
+// мовою, що вибрана в сесії, а за замовчуванням вона НЕ детермінована: сесія
+// з браузера власника була українською, а та, якою 11.10.2026 зайшов прод, —
+// німецькою. Наслідок тихий і дорогий: заголовки CSV («Тип оплати» →
+// «Welche art Von zahlung») перестали збігатись, machine_orders лишились
+// порожні, і звірка показувала «0 карткою / 3 чеків розходяться»; так само
+// відвалились isPending і описи несправностей. Тому одразу після входу
+// прибиваємо мову, під яку написані парсери. Портал знає 16 мов, перемикач —
+// POST /language.
+const SESSION_LANG = "uk";
+async function setLanguage(base, cookie, lang = SESSION_LANG) {
+  try {
+    await fetch(`${base}/language`, {
+      method: "POST",
+      headers: {
+        cookie, "user-agent": USER_AGENT,
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest",
+      },
+      body: new URLSearchParams({ language: lang }),
+    });
+  } catch { /* вхід уже вдався — не валимо його через мову, лише парсери будуть гірші */ }
+}
+
 async function solveCaptcha(captchaString){
     const response = await fetch(`http://ddddocr:8000/ocr`, {
         method: 'POST',
@@ -233,6 +257,7 @@ export async function login({ redis, env = process.env, maxCaptchaTries = 5 } = 
 
     if (body.status === "success") {
       cookie = mergeCookie(cookie, setCookie);
+      await setLanguage(base, cookie);
       await client.set(SESSION_KEY, cookie);
       return { ok: true, cookie };     // cookie — щоб викликач міг покласти її і у файл
     }
@@ -245,4 +270,4 @@ export async function login({ redis, env = process.env, maxCaptchaTries = 5 } = 
   throw new Error(`капчу не розпізнано за ${maxCaptchaTries} спроб — перевір solveCaptcha`);
 }
 
-export { isPending, tableById, fetchCaptcha };
+export { isPendingRow, ORDER_COL, tableById, fetchCaptcha };

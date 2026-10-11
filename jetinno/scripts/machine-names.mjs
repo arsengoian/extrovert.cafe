@@ -16,7 +16,7 @@
 // --push і дивись різницю; перший --push роби з --only на один напій.
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { get, post, postForm, getBuffer, BASE, VMC, sendAndWatch, machineProducts, menuDrinks, die, sleep } from "./portal.mjs";
+import { get, post, postForm, getBuffer, VMC, sendAndWatch, die, sleep } from "./portal.mjs";
 import { readZip, writeZip } from "./zip.mjs";
 
 // Стандартні назви (productId → наша назва). Рівно ті, що розходяться з

@@ -8,7 +8,7 @@
 // Розбір таблиць — зі спільного модуля (@extrovert/lib/jetinno/parse.js), щоб
 // колонки не розійшлися з серверним клієнтом (власник, 08.10.2026).
 import { readFileSync } from "node:fs";
-import { USER_AGENT, tableRows, parseCommandLog, parseProducts, isPending } from "@extrovert/lib/jetinno/parse.js";
+import { USER_AGENT, tableRows, parseCommandLog, parseProducts, isPendingRow } from "@extrovert/lib/jetinno/parse.js";
 
 export const BASE = "https://saas.jetinno.com";
 export const VMC = process.env.JETINNO_VMC || "206946"; // kyiv-01
@@ -136,7 +136,7 @@ export async function menuDrinks() {
   }));
 }
 
-export { isPending };
+export { isPendingRow };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -158,7 +158,7 @@ export async function sendAndWatch(route, fields, { timeoutS = 90, untilLogged =
     if (!mine) continue;
     const line = `${mine.status}${mine.reason && mine.reason !== "--" ? ` (${mine.reason})` : ""}`;
     if (line !== last) { console.log(`  ${Math.round((Date.now() - t0) / 1000)} с: ${line}`); last = line; }
-    if (untilLogged || !isPending(mine.status)) return mine;
+    if (untilLogged || !isPendingRow(mine)) return mine;
   }
   console.log(`  за ${timeoutS} с машина не відповіла — подивись пізніше: bun jetinno/scripts/log.mjs`);
   return null;
