@@ -35,6 +35,26 @@ const SIGNALS = [
     pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80) },
 ];
 
+// Те саме для кавомашини. Проби рідші (раз на пів години проти хвилини в
+// малини), тож у півгодинному відрі зазвичай рівно одна — смужка виходить
+// суцільною, без «?» між пробами. Відповідає на те саме питання, що й
+// смужки малини: не «як зараз», а «коли саме стало погано».
+const JET_SIGNALS = [
+  { key: "jet_session", name: "сесія порталу", note: "вхід живий",
+    pick: (m) => (m.session === undefined ? null : Boolean(m.session)) },
+  { key: "jet_online", name: "машина на звʼязку", note: "портал її бачить",
+    pick: (m) => (m.online === undefined ? null : Boolean(m.online)) },
+  { key: "jet_faults", name: "без несправностей", note: "активних немає",
+    pick: (m) => (m.fault_codes !== undefined ? !m.fault_codes.length
+      : m.faults === undefined ? null : !Number(m.faults)) },
+  { key: "jet_warnings", name: "без попереджень", note: "лічильник нуль",
+    pick: (m) => (m.warnings === undefined ? null : !Number(m.warnings)) },
+  { key: "jet_supply", name: "інгредієнти", note: "дефіциту немає",
+    pick: (m) => (m.supply_short === undefined ? null : !Number(m.supply_short)) },
+  { key: "jet_reconcile", name: "замовлення ↔ чеки", note: "сходяться",
+    pick: (m) => (m.reconcile_ok === undefined ? null : Boolean(m.reconcile_ok)) },
+];
+
 // Що малюємо лініями під мережею: три показники, по яких видно, що точці
 // стає зле ще до того, як щось упаде (прохання власника 24.09.2026).
 // CPU — 01.10.2026: малина його й так шле кожну пробу, а на одноядерному
@@ -122,6 +142,12 @@ export function Pos({ id }) {
   // (власник, 11.10.2026). Колонки рахуємо вже по відфільтрованих пробах,
   // тож у кожному табі лишаються тільки його метрики.
   const tabRows = recent.filter((r) => (tab === "jetinno" ? isJet(r) : !isJet(r)));
+  // Історія приходить спільною для всіх джерел, тож смужки рахуємо кожна за
+  // своїм: інакше проби кавомашини потрапляли б у відра малини й навпаки.
+  // Проріджування на місяці групує по джерелах (api/admin-ops.js, thin), тож
+  // `source` тут є на будь-якому періоді.
+  const piHistory = history.filter((h) => !isJet(h));
+  const jetHistory = history.filter(isJet);
   const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
   const jet = latest.find((l) => l.source === "jetinno");
@@ -166,34 +192,25 @@ export function Pos({ id }) {
              note={pi ? "остання проба з малини" : "малина ще нічого не слала"} />
       </div>
 
-      {/* Сирі проби — найвище: саме сюди дивляться передусім, коли щось не
-          так (прохання власника 11.10.2026). І окремими табами, а не однією
-          таблицею: набори ключів у малини й кавомашини різні, тож колонки
-          рахуються вже по відфільтрованих пробах — без половини прочерків. */}
-      <div style={{ marginBottom: 12 }}>
-        <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <b style={{ fontSize: 12.5 }}>{tab === "jetinno" ? "Показники Jetinno" : "Показники Raspberry"}</b>
-          <span className="chips">
-            <button className={`pill${tab === "pi" ? " on" : ""}`} onClick={() => setTab("pi")}>Raspberry</button>
-            <button className={`pill${tab === "jetinno" ? " on" : ""}`} onClick={() => setTab("jetinno")}>Jetinno</button>
-          </span>
-        </div>
-        <Table
-          scroll
-          columns={[
-            { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
-            ...metricKeys.map((k) => ({
-              key: `m:${k}`, title: LABELS[k] ?? k,
-              render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
-            })),
-          ]}
-          rows={tabRows}
-          empty={tab === "jetinno" ? `проб з порталу ${span} немає` : `телеметрії ${span} немає`}
-          foot={tabRows.length
-            ? (tab === "jetinno" ? "проби з порталу Jetinno, раз на пів години" : "останні проби, як їх надіслала точка")
-            : null}
-        />
-      </div>
+
+
+      {/* Те саме, що смужки малини нижче, тільки з відер кавомашини
+          (прохання власника 11.10.2026): коли саме вона відвалювалась, коли
+          висіла несправність, коли розʼїхались замовлення з чеками. */}
+      <Card title="Показники Jetinno" note={`${span}, відра по ${stepLabel}`}>
+        {JET_SIGNALS.map((sig) => {
+          const series = boolSeries(jetHistory, sig.pick, win);
+          return (
+            <div className="beat-row" key={sig.key}>
+              <span className="name">{sig.name}</span>
+              <Beat history={series} />
+              <span className="ms" />
+              <span className="value">{series.seen ? sig.note : "проб немає"}</span>
+            </div>
+          );
+        })}
+        <BeatScale history={health} />
+      </Card>
 
       {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
           там потрібна одна відповідь «усе гаразд / ні», а «коли саме
@@ -201,7 +218,7 @@ export function Pos({ id }) {
           (прохання власника 24.09.2026).
           Відра півгодинні, як у overseer: у відрі досить однієї поганої
           проби, щоб воно стало червоним, — поломку так не проґавиш. */}
-      <Card title="Історія показників" note={`${span}, відра по ${stepLabel}`}>
+      <Card title="Показники Raspberry" note={`${span}, відра по ${stepLabel}`}>
         <div className="beat-row">
           <span className="name">точка на звʼязку</span>
           <Beat history={health} />
@@ -209,7 +226,7 @@ export function Pos({ id }) {
           <span className="value">проби overseer</span>
         </div>
         {SIGNALS.map((s) => {
-          const series = boolSeries(history, s.pick, win);
+          const series = boolSeries(piHistory, s.pick, win);
           return (
             <div className="beat-row" key={s.key}>
               <span className="name">{s.name}</span>
@@ -330,6 +347,35 @@ export function Pos({ id }) {
       </div>
 
 
+
+      {/* Сирі проби — як і було, у підвалі сторінки. Але табами, а не однією
+          таблицею: набори ключів у малини й кавомашини різні, тож колонки
+          рахуються вже по відфільтрованих пробах — без половини прочерків
+          (власник, 11.10.2026). */}
+      <div style={{ marginBottom: 12 }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <b style={{ fontSize: 12.5 }}>{tab === "jetinno" ? "Показники Jetinno" : "Показники Raspberry"}</b>
+          <span className="chips">
+            <button className={`pill${tab === "pi" ? " on" : ""}`} onClick={() => setTab("pi")}>Raspberry</button>
+            <button className={`pill${tab === "jetinno" ? " on" : ""}`} onClick={() => setTab("jetinno")}>Jetinno</button>
+          </span>
+        </div>
+        <Table
+          scroll
+          columns={[
+            { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
+            ...metricKeys.map((k) => ({
+              key: `m:${k}`, title: LABELS[k] ?? k,
+              render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
+            })),
+          ]}
+          rows={tabRows}
+          empty={tab === "jetinno" ? `проб з порталу ${span} немає` : `телеметрії ${span} немає`}
+          foot={tabRows.length
+            ? (tab === "jetinno" ? "проби з порталу Jetinno, раз на пів години" : "останні проби, як їх надіслала точка")
+            : null}
+        />
+      </div>
     </>
   );
 }
