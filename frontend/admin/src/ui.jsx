@@ -45,7 +45,8 @@ export const METRIC_LABELS = {
   // Кавомашина Jetinno (jobs/jetinno.js)
   online: "машина онлайн", session: "сесія порталу", last_login: "востаннє в мережі",
   faults: "несправності", warnings: "попередження", supply_short: "дефіцит інгредієнтів",
-  fault_codes: "коди несправностей", orders_card_24h: "карткових замовлень за добу",
+  fault_codes: "активні несправності", faults_recent_24h: "події за добу (скинуті)",
+  orders_card_24h: "карткових замовлень за добу",
   orders_cash_24h: "готівкових замовлень за добу", receipts_24h: "чеків за добу",
   reconcile_ok: "замовлення сходяться з чеками", note: "примітка",
 };
@@ -55,6 +56,9 @@ export const metricValue = (key, value) => {
     const h = Number(value) / 3600;
     return h < 48 ? `${h.toFixed(1)} год` : `${(h / 24).toFixed(1)} діб`;
   }
+  // Списки (несправності, події за добу) — крапкою з комою, бо самі рядки
+  // вже містять коми в описах; порожній список читається як «немає».
+  if (Array.isArray(value)) return value.length ? value.join("; ") : "немає";
   return typeof value === "boolean" ? (value ? "так" : "ні") : String(value);
 };
 

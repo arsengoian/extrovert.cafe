@@ -3,6 +3,8 @@
 // Малина збирає метрики локально й досилає їх пачками, тому графік будуємо
 // за measured_at, а не за часом отримання: проґавлений інтернет має
 // виглядати як пізні точки на тій самій лінії, а не як діра.
+import { useState } from "react";
+
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Beat, BeatScale, Line } from "../charts.jsx";
@@ -75,6 +77,15 @@ const ORDER = [
   "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
+// Спільний порядок ключів: спершу знайомі (ORDER), далі за абеткою.
+const byOrder = (a, b) => {
+  const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
+  return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+};
+
+// Джерела проб: кавомашина окремо, решта (малина, камера) — «залізо точки».
+const isJet = (r) => r.source === "jetinno";
+
 // Рядок підсумку кавомашини: кольорова крапка (ok/погано/нейтрально),
 // значення й необов'язковий підпис.
 function JetRow({ label, ok, value, sub }) {
@@ -102,11 +113,13 @@ export function Pos({ id }) {
   // картки «Компоненти точки». Раніше всі метрики йшли одним рядком тексту
   // через «·», і знайти в ньому, скажімо, температуру вчорашнього вечора
   // було неможливо (власник, 27.09.2026).
-  const metricKeys = [...new Set(recent.flatMap((r) => Object.keys(r.metrics ?? {})))]
-    .sort((a, b) => {
-      const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
-      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
-    });
+  // Таби замість однієї спільної таблиці: у малини й кавомашини різні набори
+  // ключів, і в спільній таблиці половина кожного рядка була прочерками
+  // (власник, 11.10.2026). Колонки рахуємо вже по відфільтрованих пробах,
+  // тож у кожному табі лишаються тільки його метрики.
+  const [tab, setTab] = useState("pi");
+  const tabRows = recent.filter((r) => (tab === "jetinno" ? isJet(r) : !isJet(r)));
+  const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
   const jet = latest.find((l) => l.source === "jetinno");
   const series = (key) => history
@@ -148,6 +161,35 @@ export function Pos({ id }) {
         <Kpi label="Чеків за добу" value={fmt.int(receipts.day)} note={receipts.last ? `останній ${fmt.ago(receipts.last)}` : "чеків не було"} />
         <Kpi label="Телеметрія" value={pi ? fmt.ago(pi.measured_at) : "—"} tone={pi ? "" : "bad"}
              note={pi ? "остання проба з малини" : "малина ще нічого не слала"} />
+      </div>
+
+      {/* Сирі проби — найвище: саме сюди дивляться передусім, коли щось не
+          так (прохання власника 11.10.2026). І окремими табами, а не однією
+          таблицею: набори ключів у малини й кавомашини різні, тож колонки
+          рахуються вже по відфільтрованих пробах — без половини прочерків. */}
+      <div style={{ marginBottom: 12 }}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <b style={{ fontSize: 12.5 }}>{tab === "jetinno" ? "Показники Jetinno" : "Показники Raspberry"}</b>
+          <span className="chips">
+            <button className={`pill${tab === "pi" ? " on" : ""}`} onClick={() => setTab("pi")}>Raspberry</button>
+            <button className={`pill${tab === "jetinno" ? " on" : ""}`} onClick={() => setTab("jetinno")}>Jetinno</button>
+          </span>
+        </div>
+        <Table
+          scroll
+          columns={[
+            { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
+            ...metricKeys.map((k) => ({
+              key: `m:${k}`, title: LABELS[k] ?? k,
+              render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
+            })),
+          ]}
+          rows={tabRows}
+          empty={tab === "jetinno" ? `проб з порталу ${span} немає` : `телеметрії ${span} немає`}
+          foot={tabRows.length
+            ? (tab === "jetinno" ? "проби з порталу Jetinno, раз на пів години" : "останні проби, як їх надіслала точка")
+            : null}
+        />
       </div>
 
       {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
@@ -213,13 +255,14 @@ export function Pos({ id }) {
         </div>
 
         <Card title="Компоненти точки" note="остання проба">
-          {latest.filter((l) => l.source !== "jetinno").length === 0 ? (
+          {latest.length === 0 ? (
             <Empty>телеметрії ще не було</Empty>
           ) : (
-            latest.filter((l) => l.source !== "jetinno").map((l) => (
+            <>
+            {latest.filter((l) => !isJet(l)).map((l) => (
               <div key={l.source} style={{ marginBottom: 10 }}>
                 <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
-                  <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : l.source === "jetinno" ? "Автомат Jetinno" : "Камера"}</b>
+                  <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : "Камера"}</b>
                   <span className="muted" style={{ fontSize: 10.5 }}>{fmt.ago(l.measured_at)}</span>
                 </div>
                 {/* Усі метрики, а не перші дванадцять. Обрізання підвело
@@ -229,10 +272,7 @@ export function Pos({ id }) {
                     Знайомі підписи йдуть першими, решта — як прийшли. */}
                 <div className="grid k2" style={{ gap: 6 }}>
                   {Object.entries(l.metrics ?? {})
-                    .sort(([a], [b]) => {
-                      const ia = ORDER.indexOf(a), ib = ORDER.indexOf(b);
-                      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
-                    })
+                    .sort(([a], [b]) => byOrder(a, b))
                     .map(([k, v]) => (
                     <div key={k} className="row" style={{ justifyContent: "space-between", fontSize: 11.5 }}>
                       <span className="muted">{LABELS[k] ?? k}</span>
@@ -241,58 +281,52 @@ export function Pos({ id }) {
                   ))}
                 </div>
               </div>
-            ))
-          )}
-        </Card>
-      </div>
+            ))}
 
-      {/* Окрема категорія — кавомашина Jetinno (власник, 09.10.2026):
-          знімається з порталу раз на пів години (jobs/jetinno.js), тож тут
-          не графіки, а підсумок останньої проби — онлайн, поломки, звірка
-          замовлень із чеками. */}
-      <div style={{ marginTop: 12 }}>
-        <Card
-          title="Кавомашина (Jetinno)"
-          note={jet ? `проба ${fmt.ago(jet.measured_at)}` : "раз на пів години"}
-        >
-          {!jet ? (
-            <Empty>телеметрії з порталу ще не було</Empty>
-          ) : jet.metrics?.session === false ? (
-            <div className="beat-row"><span className="name">сесія порталу</span><span className="fill" style={{ color: "var(--bad)" }}>злетіла — потрібен вхід у портал</span></div>
-          ) : (
-            <div className="grid k2" style={{ gap: 8 }}>
-              <JetRow label="машина" ok={jet.metrics.online} value={jet.metrics.online ? "онлайн" : "офлайн"}
-                      sub={jet.metrics.last_login ? `востаннє ${fmt.ago(jet.metrics.last_login)}` : null} />
-              <JetRow label="несправності" ok={!jet.metrics.faults}
-                      value={jet.metrics.faults ? `${jet.metrics.faults}${jet.metrics.fault_codes?.length ? ` (${jet.metrics.fault_codes.join(", ")})` : ""}` : "немає"} />
-              <JetRow label="попередження" ok={!jet.metrics.warnings} value={jet.metrics.warnings ? String(jet.metrics.warnings) : "немає"} />
-              <JetRow label="дефіцит інгредієнтів" ok={!jet.metrics.supply_short} value={jet.metrics.supply_short ? String(jet.metrics.supply_short) : "немає"} />
-              <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
-                      value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
-                      sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
-              <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
-                      sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
+            {/* Кавомашина — такий самий компонент точки, як малина й камера
+                (прохання власника 11.10.2026). Знімається не з пристрою, а з
+                порталу раз на пів години, тож показуємо не сирі метрики, а
+                підсумок: онлайн, поломки, звірка з чеками. Несправності
+                беремо зі списку, а не з лічильника get_device: 11.10.2026 він
+                показував 0, коли на машині були й відчинені дверцята, і
+                повний піддон. */}
+            <div>
+              <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+                <b style={{ fontSize: 12 }}>Кавомашина (Jetinno)</b>
+                <span className="muted" style={{ fontSize: 10.5 }}>{jet ? fmt.ago(jet.measured_at) : "проб не було"}</span>
+              </div>
+              {!jet ? (
+                <Empty>телеметрії з порталу ще не було</Empty>
+              ) : jet.metrics?.session === false ? (
+                <JetRow label="сесія порталу" ok={false} value="злетіла — потрібен вхід" />
+              ) : (
+                <div className="stack" style={{ gap: 6 }}>
+                  <JetRow label="машина" ok={jet.metrics.online} value={jet.metrics.online ? "онлайн" : "офлайн"}
+                          sub={jet.metrics.last_login ? `востаннє ${fmt.ago(jet.metrics.last_login)}` : null} />
+                  <JetRow label="несправності" ok={!jet.metrics.fault_codes?.length}
+                          value={jet.metrics.fault_codes?.length ? jet.metrics.fault_codes.join("; ") : "немає"} />
+                  <JetRow label="попередження" ok={!jet.metrics.warnings}
+                          value={jet.metrics.warnings ? String(jet.metrics.warnings) : "немає"} />
+                  <JetRow label="дефіцит інгредієнтів" ok={!jet.metrics.supply_short}
+                          value={jet.metrics.supply_short ? String(jet.metrics.supply_short) : "немає"} />
+                  {jet.metrics.faults_recent_24h?.length ? (
+                    <JetRow label="події за добу" ok={false} sub="уже скинуті"
+                            value={jet.metrics.faults_recent_24h.join("; ")} />
+                  ) : null}
+                  <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
+                          value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
+                          sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
+                  <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
+                          sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
+                </div>
+              )}
             </div>
+            </>
           )}
         </Card>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <Table
-          scroll
-          columns={[
-            { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
-            { key: "source", title: "джерело" },
-            ...metricKeys.map((k) => ({
-              key: `m:${k}`, title: LABELS[k] ?? k,
-              render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
-            })),
-          ]}
-          rows={recent}
-          empty={`телеметрії ${span} немає`}
-          foot={recent.length ? "останні 50 проб, як їх надіслала точка" : null}
-        />
-      </div>
+
     </>
   );
 }
