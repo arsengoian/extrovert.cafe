@@ -162,6 +162,10 @@ services:
 
   ddddocr:
     <<: *defaults
+    # Образ збирає CI (deploy.yml) і пушить у ghcr — на проді вихідників немає,
+    # тож build: лишається тільки для локалки. Розпізнає капчу входу в портал
+    # Jetinno: scheduler ходить до нього по http://ddddocr:8000 (lib/jetinno).
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-ddddocr:${TAG:-latest}
     build: { context: ., dockerfile: docker/ddddocr.Dockerfile }
     environment:
       - DEBUG=1

@@ -23,7 +23,10 @@ ROLLING="api ws checkbox"
 # Решта — звичайний перезапуск: трафіку ззовні в них немає, і те, що вони на
 # півхвилини зникають, не бачить ніхто.
 # docker-proxy — перед overseer: --no-deps нижче сам його не підніме.
-PLAIN="scheduler docker-proxy overseer glitchtip glitchtip-worker"
+# ddddocr — розпізнавач капчі для входу в портал Jetinno (scheduler ходить до
+# нього по http://ddddocr:8000). CI-образ (deploy.yml + image: у compose), тож
+# rollout тягне й піднімає його, як решту; на проді він не збирається.
+PLAIN="scheduler docker-proxy overseer glitchtip glitchtip-worker ddddocr"
 # Caddy тут немає навмисно — він єдиний тримає 80/443 і має власний крок
 # нижче (caddy_step).
 

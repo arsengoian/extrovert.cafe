@@ -45,6 +45,7 @@ jobs:
           - { svc: checkbox,  context: ".",            file: "docker/bun.Dockerfile" }
           - { svc: scheduler, context: ".",            file: "docker/bun.Dockerfile" }
           - { svc: overseer,  context: ".",            file: "docker/bun.Dockerfile" }
+          - { svc: ddddocr,   context: ".",            file: "docker/ddddocr.Dockerfile" }
           - { svc: migrate,   context: "./db",         file: "db/Dockerfile" }
           - { svc: caddy,     context: "./docker/caddy", file: "docker/caddy/Dockerfile" }
     steps:
@@ -70,6 +71,9 @@ jobs:
           case "${{ matrix.svc }}" in
             migrate) paths="db";;
             caddy)   paths="docker/caddy";;
+            # Python-сервіс капчі: тека називається dddocr (3 «d»), а образ і
+            # Dockerfile — ddddocr (4). Залежить лише від себе, не від bun-lib.
+            ddddocr) paths="backend/dddocr docker/ddddocr.Dockerfile";;
             # Сервіс залежить ще й від спільної бібліотеки, Dockerfile-а та
             # lock-файла: зміна будь-чого з них міняє образ.
             *)       paths="backend/${{ matrix.svc }} backend/lib docker/bun.Dockerfile package.json bun.lock";;
@@ -387,7 +391,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        svc: [api, ws, checkbox, scheduler, overseer, migrate, caddy]
+        svc: [api, ws, checkbox, scheduler, overseer, ddddocr, migrate, caddy]
     steps:
       - name: Лишити п'ять останніх версій ${{ matrix.svc }}
         if: ${{ env.ACT != 'true' }}
