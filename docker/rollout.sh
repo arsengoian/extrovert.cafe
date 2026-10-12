@@ -26,7 +26,9 @@ ROLLING="api ws checkbox"
 # ddddocr — розпізнавач капчі для входу в портал Jetinno (scheduler ходить до
 # нього по http://ddddocr:8000). CI-образ (deploy.yml + image: у compose), тож
 # rollout тягне й піднімає його, як решту; на проді він не збирається.
-PLAIN="scheduler docker-proxy overseer glitchtip glitchtip-worker ddddocr"
+# worker — аналіз відео (backend/worker); теж CI-образ, черга в постгресі
+# переживе його перезапуск без втрат.
+PLAIN="scheduler docker-proxy overseer glitchtip glitchtip-worker ddddocr worker"
 # Caddy тут немає навмисно — він єдиний тримає 80/443 і має власний крок
 # нижче (caddy_step).
 

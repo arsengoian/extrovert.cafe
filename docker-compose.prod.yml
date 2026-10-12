@@ -171,6 +171,28 @@ services:
       - DEBUG=1
     restart: always
 
+  # Аналіз відео (backend/worker, 12.10.2026): бере сегменти з черги
+  # video_segments, качає з R2, пише події й кадри-докази. План був —
+  # окремий дроплет (docs/video.md), але з гейтом по руху й лімітами він
+  # уміщається тут. Ліміти — не на око: пів ядра дає 2,4× реального часу на
+  # найзавантаженішому сегменті, пік памʼяті — 101 МБ python + до 236 МБ
+  # ffmpeg на 1080p (заміри на наших записах). Без стелі onnxruntime і
+  # ffmpeg забрали б ядро в api, а памʼяті на дроплеті вільно менше гігабайта.
+  worker:
+    <<: *defaults
+    image: ${REGISTRY:-ghcr.io/arsengoian}/extrovert-worker:${TAG:-latest}
+    build: { context: ., dockerfile: backend/worker/docker/Dockerfile }
+    env_file: [.env]
+    environment:
+      <<: *net
+    cpus: 0.5
+    mem_limit: 600m
+    # Отримавши SIGTERM, воркер дороблює поточний сегмент (worker/main.py),
+    # а це до пів хвилини на пів ядра.
+    stop_grace_period: 60s
+    depends_on:
+      postgres: { condition: service_healthy }
+
   # Стан контейнерів для телеметрії сервера в адмінці (overseer/server.js,
   # 03.10.2026). Сокет докера — це root над усім хостом, тому overseer його
   # не отримує: проксі пропускає тільки GET на /containers, а запис (POST),
