@@ -58,8 +58,12 @@ json_get_num() { # json_get_num <файл> <ключ>
 # traditional-збіркою без -U.
 telemetry_read() { # telemetry_read <шлях-сокета>
     [ -S "$1" ] || return 1
-    if command -v nc >/dev/null 2>&1 && nc -U "$1" 2>/dev/null | head -n1 | grep -q fps; then
-        nc -U "$1" 2>/dev/null | head -n1
+    # timeout обовʼязковий: кіоск, що завис у кадрі, лишає сокет у listen, і
+    # ядро приймає зʼєднання й без нього — nc тоді чекав би відповіді вічно,
+    # а разом із ним і телеметрія (12.10.2026). У python-гілці нижче той
+    # самий таймаут у 3 с.
+    if command -v nc >/dev/null 2>&1 && timeout 3 nc -U "$1" 2>/dev/null | head -n1 | grep -q fps; then
+        timeout 3 nc -U "$1" 2>/dev/null | head -n1
         return 0
     fi
     command -v python3 >/dev/null 2>&1 || return 1
@@ -115,7 +119,9 @@ current_release() {
 # те, що закриває вікно до його першої синхронізації.
 CLOCK_MARK="${CLOCK_MARK:-$EXTROVERT_STATE/clock}"
 
-clock_ntp_ok() { timedatectl 2>/dev/null | grep -qi "NTP synchronized: *yes"; }
+# timedatectl ходить у systemd по D-Bus; зависла шина тримала б кожного, хто
+# питає годинник (телеметрію щокола, супервізор щохвилини).
+clock_ntp_ok() { timeout 5 timedatectl 2>/dev/null | grep -qi "NTP synchronized: *yes"; }
 
 _clock_mark_read() {
     _m=$(cat "$CLOCK_MARK" 2>/dev/null) || _m=""

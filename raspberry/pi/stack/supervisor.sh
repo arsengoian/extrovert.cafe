@@ -94,6 +94,18 @@ stop_component() { # stop_component <імʼя>
     if kill -0 "$_pid" 2>/dev/null; then
         log "$1: не вийшов за ${STOP_GRACE_S:-10}с — SIGKILL"
         kill -KILL "$_pid" 2>/dev/null || true
+        # Процес, що завис у ядрі (D-state: мертва USB-шина Pi 1 — флешка чи
+        # Ethernet), не вмирає навіть від SIGKILL. `wait` на ньому повісив би
+        # увесь супервізор, і більше не перезапустилось би нічого — ні після
+        # падіння, ні з новим релізом (12.10.2026). Даємо п'ять секунд і
+        # відпускаємо: процес лишається висіти, але сусіди живуть далі.
+        _w=0
+        while kill -0 "$_pid" 2>/dev/null && [ "$_w" -lt 5 ]; do sleep 1; _w=$((_w + 1)); done
+        if kill -0 "$_pid" 2>/dev/null; then
+            log "$1: не вмирає й від SIGKILL (висить у ядрі) — не чекаємо"
+            forget "$1"
+            return 0
+        fi
     else
         log "$1: зупинено ґречно за ${_w}с"
     fi
@@ -193,6 +205,10 @@ while read -r _n _x _ov _args; do
     start_component "$_n" "$_x" "$(slot_of "$_n")" $_args
 done < "$WANT"
 
+# Мітки пульсу з минулого запуску (вони на картці й переживають ребут) —
+# геть, інакше перша ж перевірка 1б смикнула б свіжий процес за вчорашню
+# тишу. Без мітки компонент не перевіряється, доки не поставить свою.
+rm -f "$EXTROVERT_STATE"/beat.*
 LAST_RELEASE=$(current_release)
 CLOCK_TICK=0
 
@@ -214,6 +230,22 @@ while :; do
         log "$_name: впав (код $_rc) — перезапуск через ${RESTART_DELAY_S:-3}с"
         forget "$_name"
         sleep "${RESTART_DELAY_S:-3}"
+        restart_plain "$_name"
+    done
+
+    # 1б. Живий, але завислий. Пункт 1 бачить лише тих, хто впав, а
+    # телеметрія з 09.10.2026 висіла годинами з живим PID — проб не було, і
+    # ніхто цього не помічав. Компонент, якому є що сказати, раз на коло
+    # оновлює state/beat.<імʼя>; мітка старша за BEAT_STALE_S — перезапуск.
+    # Мітку оновлюємо одразу, щоб новий процес встиг зробити своє перше коло.
+    for _beat in "$EXTROVERT_STATE"/beat.*; do
+        [ -f "$_beat" ] || continue
+        _name=${_beat##*/beat.}
+        pid_of "$_name" >/dev/null || continue
+        _age=$(( $(date +%s) - $(stat -c %Y "$_beat" 2>/dev/null || date +%s) ))
+        [ "$_age" -gt "${BEAT_STALE_S:-600}" ] || continue
+        log "$_name: мовчить ${_age}с (state/beat.$_name) — перезапуск"
+        : > "$_beat"
         restart_plain "$_name"
     done
 
