@@ -93,7 +93,7 @@ function boolSeries(history, pick, { hours, step }) {
 // за абеткою. Ключ, якого тут немає, не зникає — просто йде в кінець.
 const ORDER = [
   "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
-  "ping_ms", "jitter_ms", "loss_pct", "throttled", "temp_c", "cpu",
+  "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "throttled", "temp_c", "cpu",
   "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
@@ -123,6 +123,7 @@ const PI_SIGNAL = {
   usb_ok: "usb", loss_pct: "net", video_ok: "video", temp_c: "temp",
 };
 const PI_EXTRA = {
+  upload_ok: (m) => (m.upload_ok === undefined || m.upload_ok === null ? null : m.upload_ok),
   disk_free_mb: (m) => (Number.isFinite(m.disk_free_mb) ? m.disk_free_mb >= 300 : null),
   mem_used_mb: (m) => (Number.isFinite(m.mem_used_mb) && m.mem_total_mb > 0
     ? m.mem_used_mb / m.mem_total_mb <= 0.92 : null),

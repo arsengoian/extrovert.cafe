@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 1b04b3f</p>
+  <p class="eyebrow">extrovert.cafe · джерело 37aa40e</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5515,12 +5515,20 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 <li><code>POST /points/:id/video/upload</code> (ключ точки) → ключ
 <code>&lt;точка&gt;/&lt;камера&gt;/&lt;UTC-дата&gt;/&lt;ім'я&gt;</code> і підписаний <code>PUT</code> на годину.
 Ключ детермінований: повтор після обриву перезаливає той самий об&#39;єкт.</li>
-<li><code>curl -4 -T</code> прямо в R2, байт-у-байт, зі стелею <code>--limit-rate 400k</code> і
-порогом швидкості <code>--speed-limit 2000 --speed-time 30</code>: якщо віддача
-падає нижче 2 КБ/с на 30 с — обрив (не висіння до <code>--max-time</code>), бо відео
-— найнижчий пріоритет і не має тримати аплінк, по якому ходять платіжний
-термінал і зворотний тунель (власник, 09.10.2026). IPv4 — бо IPv6 до R2
-на 4G точки зламаний. <strong>Була межа заліза:</strong> 1080p — це ~1,2 Мбіт/с, а 4G на
+<li><code>curl -4 -T</code> прямо в R2, байт-у-байт, з <strong>адаптивною стелею</strong> й порогом
+<code>--speed-limit 2000 --speed-time 30</code>: якщо віддача падає нижче 2 КБ/с на
+30 с — обрив (не висіння до <code>--max-time</code>), бо відео — найнижчий пріоритет
+і не має тримати аплінк, по якому ходять платіжний термінал, тунель і
+телеметрія (власник, 09.10 і 12.10.2026). <code>nice</code>/<code>ionice</code> знижують
+пріоритет лише на процесорі й диску, мережа їх не бачить, і фіксовані
+400 КБ/с на каналі в 10 КБ/с були всім каналом. Тому стеля рахується з
+заміру кожної заливки: уперлись у неї — ×1,5 (до <code>UPLOAD_RATE</code>, 400 КБ/с);
+не дотягли — наступна 0,6 від того, що дав канал, тобто ~40 % лишається
+решті; не нижче 8 КБ/с. Стеля й останній замір лежать у <code>state/</code>
+(<code>upload.cap</code>, <code>upload.last</code>) і переживають ребут, а телеметрія щохвилини
+відправляє замір: <code>upload_kb_s</code>, <code>upload_ok</code>, <code>upload_at</code>,
+<code>upload_limit_kb_s</code> (в адмінці — «Компоненти точки»). IPv4 — бо IPv6 до
+R2 на 4G точки зламаний. <strong>Була межа заліза:</strong> 1080p — це ~1,2 Мбіт/с, а 4G на
 віддачу стільки стабільно не тягне, тож буфер ріс, а аплоудер майже
 завжди активний. Лікування — <code>stream1</code> на 720p замість 1080p
 (09.10.2026, через ONVIF — <code>scripts/camera-onvif.mjs</code>, нижче
@@ -14409,7 +14417,7 @@ Checkbox і до ФОП, не до коду.</li>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 1b04b3f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 37aa40e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

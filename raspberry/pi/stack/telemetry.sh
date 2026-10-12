@@ -212,6 +212,24 @@ net_metrics() {
     echo "$_rtt ${_loss:-0}"
 }
 
+# Канал угору — за останньою заливкою відео (uploader.sh пише state/upload.last
+# після кожної спроби, ідея власника 12.10.2026). Пінг каже лише, що інтернет
+# є; скільки він тягне вгору, видно тільки з реальної заливки. Віддаємо
+# швидкість, чи спроба вдалась, коли вона була й стелю --limit-rate: 400 при
+# стелі 400 означає «щонайменше 400», а не «канал дає 400». Файл на картці
+# (розділ data), не на флешці: якщо ляже USB, ця перевірка не зависне.
+upload_metrics() {
+    _f="$EXTROVERT_STATE/upload.last"
+    [ -s "$_f" ] || { echo "null null null null"; return; }
+    # shellcheck disable=SC2046 # рядок файла — пʼять чисел через пробіл
+    set -- $(head -n 1 "$_f")
+    [ $# -ge 5 ] || { echo "null null null null"; return; }
+    _kb=$(awk -v b="$3" -v s="$4" 'BEGIN { if (s > 0) printf "%.1f", b / 1024 / s; else printf "0" }')
+    _ok=false; [ "$2" = 1 ] && _ok=true
+    _when=$(date -u -d "@$1" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)
+    echo "$_kb $_ok ${_when:-null} $5"
+}
+
 # Кіоск сам розповідає про себе через UNIX-сокет (telemetry.c). Беремо fps
 # і версію: саме вони кажуть, чи малюється меню.
 kiosk_metrics() { # kiosk_metrics <сокет>
@@ -243,12 +261,15 @@ sample_json() {
     _rofs=$(root_readonly)
     _usb=$(usb_ok)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
+    set -- $(upload_metrics); _upkb=$1; _upok=$2; _upat=$3; _uplim=$4
+    [ "$_upat" = null ] || _upat="\"$_upat\""
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_memt:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
         "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" "${_throttled:-null}" \
-        "${_rofs:-null}" "${_usb:-null}" "${_release:-unknown}"
+        "${_rofs:-null}" "${_usb:-null}" "${_upkb:-null}" "${_upok:-null}" "${_upat:-null}" "${_uplim:-null}" \
+        "${_release:-unknown}"
 }
 
 # ── відправка ────────────────────────────────────────────────────────────
