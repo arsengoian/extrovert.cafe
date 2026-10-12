@@ -419,6 +419,41 @@ export async function checkPoints(pool) {
   });
 }
 
+// Токен касира для перевірки вебхука. Раніше вхід був на кожен виклик —
+// кожні 2 хв для дашборда й кожні 5 для алертів, ~1000 нових сесій на добу.
+// Кожна така спроба — шанс зловити миттєвий 520 від Cloudflare перед
+// Checkbox, і саме вони 1–3 рази на добу фарбували «вебхук» червоним, хоча
+// чеки доходили вебхуком за секунду (перевірено 12.10.2026). Токен живе
+// годину; 50 хв — як у backend/checkbox/src/cashier.js.
+const HOOK_TOKEN_TTL_MS = 50 * 60_000;
+let hookToken = null;
+let hookTokenAt = 0;
+
+// Один повтор через 5 с, якщо Checkbox відповів 5xx або обірвав зʼєднання:
+// такі збої в нього тривають секунди. Довший збій (26.09.2026 — година
+// 503/504) повтор не сховає, і так має бути.
+async function once(request) {
+  try {
+    const res = await request();
+    if (res.status < 500) return res;
+  } catch { /* обрив — спробуємо ще раз */ }
+  await new Promise((r) => setTimeout(r, 5000));
+  return request();
+}
+
+async function webhookToken(api, login, password) {
+  if (hookToken && Date.now() - hookTokenAt < HOOK_TOKEN_TTL_MS) return { token: hookToken };
+  const auth = await once(() => fetch(`${api}/api/v1/cashier/signin`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ login, password }),
+  }));
+  if (!auth.ok) return { error: `signin HTTP ${auth.status}` };
+  hookToken = (await auth.json()).access_token;
+  hookTokenAt = Date.now();
+  return { token: hookToken };
+}
+
 // Checkbox сам розповідає, чи доходили до нас його вебхуки: last_error_date
 // у GET /api/v1/webhook. Дірки в даних мають бути видимі, а не мовчазні
 // (docs/checkbox.md).
@@ -429,21 +464,25 @@ export async function checkWebhook() {
 
   const api = process.env.CHECKBOX_API || "https://api.checkbox.ua";
   try {
-    const auth = await fetch(`${api}/api/v1/cashier/signin`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ login, password }),
-    });
-    if (!auth.ok) return { state: "unreachable", message: `signin HTTP ${auth.status}` };
-    const { access_token: token } = await auth.json();
-
     // X-License-Key обов'язковий: налаштування вебхука зберігаються на касу,
     // а не на організацію. Без нього Checkbox відповідає 422, і дашборд
     // півдоби писав «не зареєстрований» про робочий вебхук (23.09.2026).
     const license = process.env.CHECKBOX_LICENSE_KEY;
-    const res = await fetch(`${api}/api/v1/webhook`, {
-      headers: { authorization: `Bearer ${token}`, ...(license ? { "X-License-Key": license } : {}) },
-    });
+    const ask = async () => {
+      const auth = await webhookToken(api, login, password);
+      if (auth.error) return { error: auth.error };
+      return once(() => fetch(`${api}/api/v1/webhook`, {
+        headers: { authorization: `Bearer ${auth.token}`, ...(license ? { "X-License-Key": license } : {}) },
+      }));
+    };
+    let res = await ask();
+    // Токен міг протухнути раніше за наш кеш (Checkbox його відкликав або
+    // перезапустився) — тоді один свіжий вхід.
+    if (res.status === 401) {
+      hookToken = null;
+      res = await ask();
+    }
+    if (res.error) return { state: "unreachable", message: res.error };
     if (res.status === 422) return { state: "unknown", message: "не спитати: немає CHECKBOX_LICENSE_KEY" };
     // 404 — на цій касі вебхука справді немає. Це не поломка (чеки підбирає
     // опитування), але знати про це треба: вебхук реєструють на кожну касу
