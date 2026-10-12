@@ -69,7 +69,12 @@ class Config:
     approach_min_s: float = 4.0
     queue_min_s: float = 3.0
     queue_min_people: int = 2
-    idle_min_s: float = 45.0
+    # Хто рахується перехожим (events.is_person): один кадр — шум; два —
+    # лише якщо рамка стоїть окремо (у чужій менше ніж на 30 %); від трьох —
+    # якщо в чужій рамці менше ніж на 60 %. Заміри — там само.
+    pass_min_frames: int = 2
+    fragment_cover: float = 0.3
+    shadow_cover: float = 0.6
     stitch_gap_s: float = 2.0  # шов між сегментами: див. events.py
 
     zones: dict = field(default_factory=dict)
@@ -98,8 +103,9 @@ def load(env: dict | None = None) -> Config:
 
     app_env = env.get("APP_ENV", "local")
     # R2_DEV_* — лише поза продом, як у backend/lib/src/r2.js (r2Config).
-    # У прод-.env вони теж лежать (локальний MinIO з .env.example), і без
-    # цієї перевірки воркер на проді ходив би по сегменти на 127.0.0.1:9100.
+    # У прод-.env ці ключі теж є (env-prod.mjs тримає набір як у
+    # .env.example), поки що порожні; варто одному заповнитись — і без цієї
+    # перевірки воркер на проді пішов би по сегменти в локальний MinIO.
     dev = app_env != "production"
 
     def r2(name):
@@ -130,7 +136,9 @@ def load(env: dict | None = None) -> Config:
         approach_min_s=_f(env, "APPROACH_MIN_S", d.approach_min_s),
         queue_min_s=_f(env, "QUEUE_MIN_S", d.queue_min_s),
         queue_min_people=_i(env, "QUEUE_MIN_PEOPLE", d.queue_min_people),
-        idle_min_s=_f(env, "IDLE_MIN_S", d.idle_min_s),
+        pass_min_frames=_i(env, "PASS_MIN_FRAMES", d.pass_min_frames),
+        fragment_cover=_f(env, "FRAGMENT_COVER", d.fragment_cover),
+        shadow_cover=_f(env, "SHADOW_COVER", d.shadow_cover),
         stitch_gap_s=_f(env, "STITCH_GAP_S", d.stitch_gap_s),
         zones=zones,
     )

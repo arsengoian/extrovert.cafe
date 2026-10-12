@@ -117,9 +117,18 @@ def still(path: str, at_s: float, width: int = 960, boxes=()) -> bytes:
     for x1, y1, x2, y2 in boxes:
         vf.append(f"drawbox=x=iw*{x1:.4f}:y=ih*{y1:.4f}:w=iw*{x2 - x1:.4f}:"
                   f"h=ih*{y2 - y1:.4f}:color=red@0.9:t=3")
-    out = subprocess.run(
-        ["ffmpeg", "-nostdin", "-loglevel", "error",
-         "-ss", f"{max(0.0, at_s):.3f}", "-i", path, "-frames:v", "1",
-         "-vf", ",".join(vf), "-q:v", "4", "-f", "mjpeg", "-"],
-        capture_output=True, check=True).stdout
-    return out
+    # Під кінець сегмента відео може скінчитись раніше за його тривалість
+    # (fps-фільтр семплера дублює останній кадр до кінця), і на цю мить
+    # кадру просто немає: ffmpeg нічого не пише й падає (12.10.2026, старий
+    # TS — останній кадр за ~2 с до кінця). Тоді беремо трохи раніше —
+    # людина там та сама, а рамка зсунеться на крок.
+    for back in (0.0, 1.0, 2.5):
+        run = subprocess.run(
+            ["ffmpeg", "-nostdin", "-loglevel", "error",
+             "-ss", f"{max(0.0, at_s - back):.3f}", "-i", path, "-frames:v", "1",
+             "-vf", ",".join(vf), "-q:v", "4", "-f", "mjpeg", "-"],
+            capture_output=True)
+        if run.returncode == 0 and run.stdout:
+            return run.stdout
+    raise RuntimeError(f"ffmpeg не дав кадру на {at_s:.1f} с: "
+                       f"{run.stderr.decode(errors='replace')[-200:]}")

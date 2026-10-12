@@ -40,23 +40,42 @@ def test_track_survives_gap_between_boxes():
     assert tracks[0].seen == 3
 
 
-def test_approach_and_idle():
+def test_approach_without_idle():
     cfg = config.load()
-    cfg.idle_min_s = 1.5
     tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
     times = [i * 0.5 for i in range(40)]  # 20 секунд
     for t in times:
         # людина стоїть біля стійки з 2-ї по 8-му секунду
         tr.update(t, [box(500, 700)] if 2.0 <= t <= 8.0 else [])
     found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 20.0)
-    kinds = [e.kind for e in found]
-    assert "approach" in kinds, kinds
-    app = next(e for e in found if e.kind == "approach")
+    assert [e.kind for e in found] == ["approach"], [e.kind for e in found]
+    app = found[0]
     assert 6.0 <= app.end_s - app.start_s <= 7.5, (app.start_s, app.end_s)
     assert not app.open_start and not app.open_end
-    idles = [e for e in found if e.kind == "idle"]
-    assert len(idles) == 2, [(e.start_s, e.end_s) for e in idles]
-    assert idles[0].open_start and idles[-1].open_end
+
+
+def test_walker_is_a_pass_not_an_approach():
+    # Іде коридором (ноги вище за зону) — перехожий. Одна людина — одна подія.
+    cfg = config.load()
+    tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
+    times = [i * 0.5 for i in range(20)]
+    for t in times:
+        tr.update(t, [box(100 + 120 * t, 300)] if 1.0 <= t <= 4.0 else [])
+    found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 10.0)
+    assert [e.kind for e in found] == ["pass"], [e.kind for e in found]
+    assert found[0].meta["frames"] == 7
+
+
+def test_approacher_is_not_also_a_pass():
+    # Прийшов коридором і став біля стійки — це підхід, і лише підхід.
+    cfg = config.load()
+    tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
+    times = [i * 0.5 for i in range(30)]
+    for t in times:
+        y = 300 + 100 * t if t < 4.0 else 700  # ноги сповзають у зону
+        tr.update(t, [box(500, y)])
+    found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 15.0)
+    assert [e.kind for e in found] == ["approach"], [e.kind for e in found]
 
 
 def test_queue_needs_two():
@@ -76,25 +95,36 @@ def test_queue_needs_two():
 
 
 def test_fragment_does_not_count_as_person():
-    # Уламок рамки на секунду поруч зі справжньою людиною — не третій у черзі
-    # і не привід рвати простій.
+    # Уламок рамки на секунду всередині справжньої людини — не третій у черзі
+    # і не перехожий. Окремий шум на один кадр — теж не перехожий.
     cfg = config.load()
-    cfg.idle_min_s = 1.5
     tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
     times = [i * 0.5 for i in range(40)]
     for t in times:
         boxes = []
         if 2.0 <= t <= 12.0:
             boxes += [box(300, 700), box(700, 750)]
-        if 5.0 <= t <= 5.5 or 15.0 <= t <= 15.5:
-            boxes.append(box(500, 900, w=60, h=150))
+        if 5.0 <= t <= 5.5:
+            boxes.append(box(300, 680, w=60, h=150))  # сидить у рамці першого
+        if t == 15.0:
+            boxes.append(box(500, 300))  # один кадр де завгодно
         tr.update(t, boxes)
     found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 20.0)
     queues = [e for e in found if e.kind == "queue"]
     assert len(queues) == 1 and queues[0].meta["max_people"] == 2, queues
-    idles = [e for e in found if e.kind == "idle"]
-    assert any(e.start_s <= 13.0 and e.end_s >= 19.5 for e in idles), \
-        [(e.start_s, e.end_s) for e in idles]
+    assert not [e for e in found if e.kind == "pass"], [(e.kind, e.meta) for e in found]
+
+
+def test_fast_walker_two_frames_counts():
+    # Біля самої камери людина проскакує за два кадри — це перехожий, якщо
+    # рамка ні в чиїй не сидить.
+    cfg = config.load()
+    tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
+    times = [i * 0.5 for i in range(10)]
+    for t in times:
+        tr.update(t, [box(700 + 100 * t, 300, w=300)] if 1.0 <= t <= 1.5 else [])
+    found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 5.0)
+    assert [e.kind for e in found] == ["pass"], [e.kind for e in found]
 
 
 def test_open_edges_marked():
@@ -109,25 +139,26 @@ def test_open_edges_marked():
 
 
 def test_every_event_has_evidence_frame():
-    # Доказ зберігається для всіх подій, тож кадр мусить знати кожна: підхід —
-    # з рамкою людини, черга — з усіма, хто стояв, простій — порожній.
+    # Доказ зберігається для всіх подій, тож кадр мусить знати кожна: підхід і
+    # перехожий — з рамкою людини, черга — з усіма, хто стояв.
     cfg = config.load()
-    cfg.idle_min_s = 1.5
     tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
     times = [i * 0.5 for i in range(40)]
     for t in times:
         boxes = [box(400, 700)] if 2.0 <= t <= 12.0 else []
         if 4.0 <= t <= 9.0:
             boxes.append(box(700, 750))
+        if 14.0 <= t <= 16.0:
+            boxes.append(box(100 + 100 * (t - 14), 300))
         tr.update(t, boxes)
     found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 20.0)
     by = {e.kind: e for e in found}
-    assert set(by) == {"approach", "queue", "idle"}, [e.kind for e in found]
+    assert set(by) == {"approach", "queue", "pass"}, [e.kind for e in found]
     assert all(e.best is not None for e in found)
     at, boxes = by["approach"].best
     assert len(boxes) == 1 and all(0.0 <= v <= 1.0 for v in boxes[0]), boxes
     assert len(by["queue"].best[1]) == 2
-    assert by["idle"].best[1] == []
+    assert len(by["pass"].best[1]) == 1
 
 
 def test_load_keeps_class_defaults():

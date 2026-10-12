@@ -10,18 +10,19 @@ import { api } from "../api.js";
 import { Bars } from "../charts.jsx";
 import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
-const KIND = { approach: "підійшов", queue: "черга", idle: "простій" };
+// idle («простій») до 12.10.2026 теж був подією; тепер порожню стійку не пишемо.
+const KIND = { approach: "підійшов", pass: "пройшов повз", queue: "черга" };
 // Що саме на кадрі — щоб не гадати, чому на «простої» порожньо.
 const EVIDENCE_NOTE = {
   approach: "Кадр, де детектор найвпевненіший; червона рамка — людина, яку він вів.",
+  pass: "Кадр, де детектор найвпевненіший; червона рамка — перехожий, що до кавʼярні не підійшов.",
   queue: "Кадр, коли біля кавʼярні було найбільше людей одночасно.",
-  idle: "Кадр із середини простою: біля кавʼярні нікого.",
 };
 const mb = (n) => `${(Number(n ?? 0) / 1024 / 1024).toFixed(1)} МБ`;
 
 const TITLES = {
   segments: ["Записи з камер", "сегменти з камер у R2, по 6 МБ на хвилину"],
-  events: ["Події з камер", "підхід до автомата, черга, простій"],
+  events: ["Події з камер", "підхід до кавʼярні, перехожий, черга"],
   analytics: ["Аналітика відео", "події за днями й звʼязок із чеками"],
 };
 
@@ -74,6 +75,21 @@ function Viewer({ view, onClose }) {
 }
 
 const STATUS = { pending: "у R2", processing: "обробляється", done: "оброблено", failed: "помилка", expired: "видалено" };
+
+// Конверсія перехожих у підходи — питання, заради якого рахуємо pass
+// (власник, 12.10.2026): з усіх, хто був у кадрі, скільки підійшли.
+function Conversion({ perDay }) {
+  const sum = (kind) => perDay.filter((r) => r.kind === kind).reduce((n, r) => n + r.n, 0);
+  const approach = sum("approach");
+  const people = approach + sum("pass");
+  return (
+    <div className="grid k3" style={{ marginBottom: 12 }}>
+      <Kpi label="Людей у кадрі" value={fmt.int(people)} note="30 днів: підійшли + пройшли повз" />
+      <Kpi label="Підійшли" value={fmt.int(approach)} note="стояли біля кавʼярні від 4 с" />
+      <Kpi label="Підходять" value={people ? `${Math.round((100 * approach) / people)} %` : "—"} note="з тих, хто був у кадрі" />
+    </div>
+  );
+}
 
 export function Video({ tab = "segments" }) {
   const { data, error } = useData(() => api.video());
@@ -157,6 +173,8 @@ export function Video({ tab = "segments" }) {
           empty="подій ще немає"
         />
       )}
+
+      {tab === "analytics" && <Conversion perDay={data.per_day} />}
 
       {tab === "analytics" && (
         <div className="wrap-cols">

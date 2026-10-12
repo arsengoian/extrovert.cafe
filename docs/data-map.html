@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 8c4e528</p>
+  <p class="eyebrow">extrovert.cafe · джерело 1b04b3f</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1098,7 +1098,7 @@ SDK у <strong>свій проєкт</strong>: сповіщення, квоти 
 працював, база <code>glitchtip</code> була без жодної таблиці (міграції не виконались
 при першому старті), а сервіси нічого не слали — тобто «failed to fetch»
 у власника не лишав по собі жодного сліду ніде. Тепер є організація
-<code>extrovert</code>, девʼять проєктів і DSN на кожен.</p>
+<code>extrovert</code>, девʼять проєктів і DSN на кожен (десятий, <code>worker</code>, — з 12.10.2026).</p>
 <p><strong>Своїх сервісів це коштувало сто рядків замість SDK</strong> (03.10.2026 прибрали
 й сам <code>@sentry/node</code>, що досі лежав у залежностях чотирьох сервісів) — <code>lib/errors.js</code>
 шле envelope сам. <code>@sentry/node</code> тягне OpenTelemetry з десятком пакетів і
@@ -1140,7 +1140,7 @@ DSN — у <code>.env.production</code> кожного застосунку, rel
 <tr>
 <td><code>worker</code></td>
 <td>відео</td>
-<td>SDK своєї мови</td>
+<td><code>sentry-sdk</code> (<code>backend/worker/worker/errors.py</code>), стеля 20 подій/хв — <strong>зроблено 12.10.2026</strong></td>
 </tr>
 <tr>
 <td><code>client</code>, <code>admin</code></td>
@@ -2370,7 +2370,7 @@ erDiagram
     VIDEO_EVENTS {
         bigserial id PK
         text point_id FK
-        text kind &quot;approach|queue|idle&quot;
+        text kind &quot;approach|pass|queue&quot;
         timestamptz started_at
         timestamptz ended_at
         bigint segment_id FK
@@ -2481,7 +2481,7 @@ erDiagram
 </article>
 <article class="entity" id="t-video_events">
   <header><h4>video_events</h4><span class="entity-count">9 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">approach|queue|idle</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ended_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">segment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">likely_receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">ймовірний чек: зведено за часом, не з обличчя</td></tr><tr><td class="c-name">evidence</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">ключі кадрів і кліпа в R2; null - воркер нічого не зберіг</td></tr><tr><td class="c-name">meta</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">GIN-індекс</td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">approach|pass|queue</td></tr><tr><td class="c-name">started_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">ended_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr><tr><td class="c-name">segment_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">likely_receipt_id</td><td class="c-type">bigint</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note">ймовірний чек: зведено за часом, не з обличчя</td></tr><tr><td class="c-name">evidence</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">ключі кадрів і кліпа в R2; null - воркер нічого не зберіг</td></tr><tr><td class="c-name">meta</td><td class="c-type">jsonb</td><td class="c-keys"></td><td class="c-note">GIN-індекс</td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-video_segments">video_segments</a><span class="rel-label">що знайшов воркер</span></li><li><span class="rel-card">← 1</span><a href="#t-receipts">receipts</a><span class="rel-label">ймовірний чек події</span></li></ul>
 </article>
 <article class="entity" id="t-health_samples">
@@ -5694,7 +5694,7 @@ create index on video_segments (point_id, started_at desc);
 create table video_events (
   id         bigserial primary key,
   point_id   text        not null,
-  kind       text        not null,          -- approach | queue | idle
+  kind       text        not null,          -- approach | pass | queue (idle — до 12.10.2026)
   started_at timestamptz not null,
   ended_at   timestamptz,
   segment_id bigint references video_segments(id),
@@ -5772,11 +5772,17 @@ ffmpeg -i seg.mkv -vf fps=2 -f rawvideo -pix_fmt rgb24 -
 </code></pre>
 <p>Чорнова реалізація цього циклу — <code>backend/worker/</code> (23.09.2026): черга через
 <code>SKIP LOCKED</code>, обидва проходи ffmpeg, yolo11n в ONNX, події <code>approach</code> /
-<code>queue</code> / <code>idle</code> і звірка з чеками. Що там заміряно й де ТЗ виявилось
-неточним — у <code>backend/worker/README.md</code>. Один висновок варто тримати тут:
-<strong>гейт по руху не мовчить, а пише <code>idle</code></strong>. Сегмент, у якому нічого не
-ворухнулось, — це не «немає даних», це порожня стійка, і без цього запису
-не було б знаменника для конверсії.</p>
+<code>pass</code> / <code>queue</code> і звірка з чеками. Що там заміряно й де ТЗ виявилось
+неточним — у <code>backend/worker/README.md</code>.</p>
+<p><strong>Знаменник конверсії — перехожі, а не порожні хвилини</strong> (власник,
+12.10.2026). Питання до відео: який відсоток тих, хто проходить повз,
+підходить до кавʼярні. Тому кожна людина в кадрі стає рівно однією подією:
+<code>approach</code>, якщо стояла біля кавʼярні, або <code>pass</code>, якщо пройшла повз.
+Конверсія — <code>approach / (approach + pass)</code>, в адмінці «Відео» →
+«Аналітика». До того знаменником був <code>idle</code> — рядок на кожен період, коли
+біля стійки нікого, і сегмент без руху теж писав <code>idle</code>. Порожнечу
+складувати сенсу немає: тепер сегмент без руху просто позначається
+обробленим, а старі <code>idle</code> прибрала міграція <code>20261012100000</code>.</p>
 <h3 id="video-зона-біля-кавʼярні-це-впритул-12-10-2026"><a class="anchor" href="#video-зона-біля-кавʼярні-це-впритул-12-10-2026" aria-hidden="true">#</a>Зона: «біля кавʼярні» — це впритул (12.10.2026)</h3>
 <p>Камера висить <strong>на самій кавʼярні</strong> — зі стелі ніші ліворуч від монітора,
 обʼєктив на 1745 мм, нахил 15° (<code>design/mockup</code>, <code>CAM</code>). У кадрі коридор
@@ -5788,14 +5794,21 @@ ffmpeg -i seg.mkv -vf fps=2 -f rawvideo -pix_fmt rgb24 -
 висить однаково).</p>
 <p>Заміри на 29 сегментах: люди біля кавʼярні стоять у цій смузі 19–62 с,
 перехожі, що йдуть повз саму камеру в коридор, — до 2,5 с. Поріг підходу —
-<strong>4 с</strong>: півтора запасу над найдовшим перехожим. Чергу й простій рахуємо по
-тих самих відрізках, що тягнуть на підхід, — інакше уламок рамки (детектор
-інколи дає другу рамку на руку тієї ж людини) роздував чергу, а перехожий
-рвав простій навпіл. Результат на тих самих 29 хвилинах: 4 підходи, 1 черга,
-26 простоїв — замість 23 «підходів» без зони.</p>
+<strong>4 с</strong>: півтора запасу над найдовшим перехожим. Чергу рахуємо по тих самих
+відрізках, що тягнуть на підхід, — інакше уламок рамки (детектор інколи дає
+другу рамку на руку тієї ж людини) роздував чергу.</p>
+<p>Перехожий — трек, що жодного разу не тягнув на підхід, від двох кадрів і не
+сидить у чужій рамці (<code>events.is_person</code>). Уламки рамок — постер на стіні,
+рука людини, що вже має свою рамку, — живуть 1–2 кадри й на 30–96 % сидять у
+чужій; перехожий біля самої камери проскакує за 2 кадри, але ні з ким не
+перетинається. Результат на тих самих 29 хвилинах: 4 підходи, 17
+перехожих, 1 черга — підходять ~19 %. Кадри перехожих перевірені очима:
+групу з трьох-чотирьох людей лічильник бачить як трьох, а людину, що
+підійшла й пішла під новим треком, вдруге не рахує. Чого він не вміє —
+впізнати того самого гостя, що пройшов двічі (див. «Ідентифікація людей»).</p>
 <p><strong>Доказ — для кожної події</strong> (рішення власника, 12.10.2026): кадр у
-<code>extrovert-evidence</code> з червоними рамками тих, кого порахували (у простою —
-порожній кадр). Поки зону й пороги підкручуємо, очима треба перевіряти саме
+<code>extrovert-evidence</code> з червоними рамками тих, кого порахували. Поки зону й
+пороги підкручуємо, очима треба перевіряти саме
 події без чека. Це знімки людей без покупки, тож коли якість устоїться,
 обмеження варто повернути (лише підходи з чеком). В адмінці («Відео» →
 «Події») — «переглянути» в попапі й «завантажити».</p>
@@ -13859,8 +13872,8 @@ temp-access-credentials) + реєстрація сегмента; bucket lock н
 <ul>
 <li><strong>Гейт по руху вже є</strong> — <code>backend/worker</code> (<code>frames.motion_score</code>: лише
 ключові кадри, сірим, 160 px; поріг <code>MOTION_MIN_FRACTION</code>). Заміряно
-23.09.2026: нерухомий сегмент 60 с коштує 1,05 с і дає один <code>idle</code> замість
-120 кадрів через модель. Лишилось не написати його, а <strong>підібрати пороги за
+23.09.2026: нерухомий сегмент 60 с коштує 1,05 с замість 120 кадрів через
+модель. Лишилось не написати його, а <strong>підібрати пороги за
 нашим відео</strong>: <code>config.py</code> прямо попереджає, що перші тижні значення будуть
 інші, бо висота й кут камери були тільки на папері.</li>
 <li><strong>Напрацьовувати аналізатор можна вже зараз</strong>, не чекаючи полагодженого
@@ -14396,7 +14409,7 @@ Checkbox і до ФОП, не до коду.</li>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 8c4e528 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 1b04b3f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

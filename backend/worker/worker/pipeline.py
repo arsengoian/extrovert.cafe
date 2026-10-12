@@ -28,14 +28,12 @@ def process(path: str, cfg, detector, zone=None) -> Result:
     if cfg.motion_gate:
         motion = fr.motion_score(path, p, cfg.motion_pixel_delta)
         if motion < cfg.motion_min_fraction:
-            # Нічого не ворухнулось — але це не «немає даних», це idle.
-            # Саме так гейт економить 90 % кадрів і не робить дірку в добі.
+            # Нічого не ворухнулось — отже, ні підходів, ні перехожих: подій
+            # немає, і сегмент просто позначається обробленим. Саме так гейт
+            # економить 90 % кадрів.
             gate_s = time.monotonic() - t0
             return Result(
-                [ev.Event("idle", 0.0, p.duration_s,
-                          {"gated": True, "motion": round(motion, 5),
-                           "open_start": True, "open_end": True}, True, True,
-                          ((p.duration_s or 0) / 2, []))],
+                [],
                 {"gated": True, "motion": motion, "frames": 0,
                  "duration_s": p.duration_s, "gate_s": gate_s,
                  "total_s": gate_s, "width": p.width, "height": p.height},

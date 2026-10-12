@@ -809,7 +809,7 @@ erDiagram
     VIDEO_EVENTS {
         bigserial id PK
         text point_id FK
-        text kind "approach|queue|idle"
+        text kind "approach|pass|queue"
         timestamptz started_at
         timestamptz ended_at
         bigint segment_id FK

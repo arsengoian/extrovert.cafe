@@ -8,7 +8,9 @@ import { Card, DateRange, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 // Кольори точок — у порядку макета (кадр «Дохід»): помаранчевий, синій,
 // фіолетовий і далі. Решта відтінків підписана там, де вживається.
 const COLORS = ["#FE810B", "#5AA9FF", "#B07CFF", "#3FBF6F", "#FFB020", "#FF2D6F"];
-const CAMERA = { approach: "#FE810B", payment: "#5AA9FF", pour: "#3FBF6F" };
+// Події з камери (backend/worker): підійшли, пройшли повз, черга.
+const CAMERA = { approach: "#FE810B", pass: "#5AA9FF", queue: "#3FBF6F" };
+const CAMERA_NAME = { approach: "підійшли", pass: "пройшли повз", queue: "черга" };
 const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Нд"];
 const DAY = 86400_000;
 
@@ -81,10 +83,10 @@ export function Stats() {
     points: data.revenue.filter((r) => r.point_id === id).map((r) => ({ x: r.day, y: r.receipts })),
   }));
 
-  // Камери ще не стоять — ряд лишається порожнім, і графік сам скаже це
+  // Подій за період немає — ряд лишається порожнім, і графік сам скаже це
   // словами замість порожньої сітки.
   const cameraSeries = [...new Set((data.events ?? []).map((e) => e.kind))].map((kind, i) => ({
-    name: kind,
+    name: CAMERA_NAME[kind] ?? kind,
     color: CAMERA[kind] ?? COLORS[i % COLORS.length],
     points: data.events.filter((e) => e.kind === kind).map((e) => ({ x: e.day, y: e.n })),
   }));

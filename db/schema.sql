@@ -1828,7 +1828,7 @@ CREATE TABLE public.video_events (
     likely_receipt_id bigint,
     evidence jsonb,
     meta jsonb DEFAULT '{}'::jsonb NOT NULL,
-    CONSTRAINT video_events_kind_check CHECK ((kind = ANY (ARRAY['approach'::text, 'queue'::text, 'idle'::text])))
+    CONSTRAINT video_events_kind_check CHECK ((kind = ANY (ARRAY['approach'::text, 'queue'::text, 'pass'::text])))
 );
 
 
@@ -3982,4 +3982,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261007120000'),
     ('20261009100000'),
     ('20261009100100'),
-    ('20261009100200');
+    ('20261009100200'),
+    ('20261012100000');
