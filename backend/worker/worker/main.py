@@ -29,12 +29,12 @@ def evidence_for(conn, path: str, seg, event_id: int, e, storage, cfg) -> None:
     """Кадр (і за потреби кліп) у extrovert-evidence, ключі — в подію."""
     if e.best is None:
         return
-    at, _box = e.best
+    at, boxes = e.best
     keys = {}
     try:
         keys["frame_00"] = storage.put_evidence(
             f"{seg['point_id']}/{event_id}/frame_00.jpg",
-            fr.still(path, at), "image/jpeg")
+            fr.still(path, at, boxes=boxes), "image/jpeg")
         if cfg.evidence_clips:
             with tempfile.TemporaryDirectory() as tmp:
                 dst = os.path.join(tmp, "clip.mp4")
@@ -59,13 +59,15 @@ def handle(conn, seg, detector, storage, cfg) -> None:
         res = pipeline.process(path, cfg, detector, zone)
 
         written = db.write_events(conn, seg, res.events, cfg)
-        # Доказ зберігаємо лише для підходів із чеком: це те, що показує
-        # адмінка в замовленнях, і одночасно єдині кадри, які точно варті
-        # місця. Складати картинку кожного перехожого — це персональні дані,
-        # яких ми не просили.
         matched = db.match_receipts(conn, seg, res.stats.get("duration_s") or 0)
-        for event_id, e in written:
-            if event_id in matched:
+        # Доказ — для КОЖНОЇ події, не лише для підходів із чеком (рішення
+        # власника 12.10.2026): поки зону й пороги підкручуємо за живим
+        # відео, перевіряти очима треба саме ті події, до яких чек не
+        # причепився. Це знімки людей без покупки, тож коли якість устоїться,
+        # варто повернути обмеження. Зшита подія кадр уже має з першого
+        # сегмента — другий не потрібен.
+        for event_id, e, stitched in written:
+            if not stitched:
                 evidence_for(conn, path, seg, event_id, e, storage, cfg)
 
     db.finish(conn, seg["id"], "done")

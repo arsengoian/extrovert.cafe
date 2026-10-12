@@ -22,6 +22,7 @@
 можна не дивитись. Якщо розділяє — це ще не перемога, а лише те, що легкий
 випадок узятий.
 
+  pip install opencv-python-headless==4.10.0.84   # у робочому образі його нема
   python -m tools.reid_lab /samples/*.mp4 --faces /models/yunet.onnx,/models/sface.onnx
 """
 import argparse

@@ -70,8 +70,8 @@ select id, ended_at, meta from video_events
 """
 
 
-def write_events(conn, seg, events, cfg) -> list[tuple[int, object]]:
-    """Вставляє (або зшиває) події сегмента. Повертає (id, подія)."""
+def write_events(conn, seg, events, cfg) -> list[tuple[int, object, bool]]:
+    """Вставляє (або зшиває) події сегмента. Повертає (id, подія, зшита?)."""
     out = []
     base = seg["started_at"]
     with conn.cursor() as cur:
@@ -96,14 +96,14 @@ def write_events(conn, seg, events, cfg) -> list[tuple[int, object]]:
                 cur.execute(
                     "update video_events set ended_at = %s, meta = %s where id = %s",
                     (ended, json.dumps(meta), stitched["id"]))
-                out.append((stitched["id"], e))
+                out.append((stitched["id"], e, True))
                 continue
             cur.execute(
                 "insert into video_events (point_id, kind, started_at, ended_at, "
                 "segment_id, meta) values (%s, %s, %s, %s, %s, %s) returning id",
                 (seg["point_id"], e.kind, started, ended, seg["id"],
                  json.dumps(e.meta)))
-            out.append((cur.fetchone()["id"], e))
+            out.append((cur.fetchone()["id"], e, False))
     return out
 
 

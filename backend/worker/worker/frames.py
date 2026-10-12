@@ -101,16 +101,25 @@ def clip(src: str, dst: str, start_s: float, duration_s: float) -> None:
         check=True)
 
 
-def still(path: str, at_s: float, width: int = 960) -> bytes:
-    """Один кадр у JPEG — доказ для адмінки.
+def still(path: str, at_s: float, width: int = 960, boxes=()) -> bytes:
+    """Один кадр у JPEG — доказ для адмінки, з рамками людей, яких порахували.
 
     Дістаємо окремим запуском ffmpeg, а не тримаємо кадри в памʼяті весь
     прохід: доказ потрібен для одиниць подій із сотні кадрів, і зайвий
     seek дешевший за мегабайти RGB, які довелось би возити з собою.
+
+    Рамка на кадрі — не прикраса: без неї з доказу не видно, кого саме
+    воркер вважав «біля кавʼярні», і перевіряти зону довелось би навмання.
+    Рамки в частках кадру, тому малюємо після scale — товщина в пікселях
+    готової картинки.
     """
+    vf = [f"scale='min({width},iw)':-2"]
+    for x1, y1, x2, y2 in boxes:
+        vf.append(f"drawbox=x=iw*{x1:.4f}:y=ih*{y1:.4f}:w=iw*{x2 - x1:.4f}:"
+                  f"h=ih*{y2 - y1:.4f}:color=red@0.9:t=3")
     out = subprocess.run(
         ["ffmpeg", "-nostdin", "-loglevel", "error",
          "-ss", f"{max(0.0, at_s):.3f}", "-i", path, "-frames:v", "1",
-         "-vf", f"scale='min({width},iw)':-2", "-q:v", "4", "-f", "mjpeg", "-"],
+         "-vf", ",".join(vf), "-q:v", "4", "-f", "mjpeg", "-"],
         capture_output=True, check=True).stdout
     return out

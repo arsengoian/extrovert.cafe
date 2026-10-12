@@ -75,6 +75,28 @@ def test_queue_needs_two():
     assert len([e for e in found if e.kind == "approach"]) == 2
 
 
+def test_fragment_does_not_count_as_person():
+    # Уламок рамки на секунду поруч зі справжньою людиною — не третій у черзі
+    # і не привід рвати простій.
+    cfg = config.load()
+    cfg.idle_min_s = 1.5
+    tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
+    times = [i * 0.5 for i in range(40)]
+    for t in times:
+        boxes = []
+        if 2.0 <= t <= 12.0:
+            boxes += [box(300, 700), box(700, 750)]
+        if 5.0 <= t <= 5.5 or 15.0 <= t <= 15.5:
+            boxes.append(box(500, 900, w=60, h=150))
+        tr.update(t, boxes)
+    found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 20.0)
+    queues = [e for e in found if e.kind == "queue"]
+    assert len(queues) == 1 and queues[0].meta["max_people"] == 2, queues
+    idles = [e for e in found if e.kind == "idle"]
+    assert any(e.start_s <= 13.0 and e.end_s >= 19.5 for e in idles), \
+        [(e.start_s, e.end_s) for e in idles]
+
+
 def test_open_edges_marked():
     cfg = config.load()
     tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
@@ -84,6 +106,43 @@ def test_open_edges_marked():
     found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 10.0)
     app = next(e for e in found if e.kind == "approach")
     assert app.open_start and app.open_end, "подія на весь сегмент має шви з обох боків"
+
+
+def test_every_event_has_evidence_frame():
+    # Доказ зберігається для всіх подій, тож кадр мусить знати кожна: підхід —
+    # з рамкою людини, черга — з усіма, хто стояв, простій — порожній.
+    cfg = config.load()
+    cfg.idle_min_s = 1.5
+    tr = Tracker(cfg.track_max_age_s, cfg.track_min_score)
+    times = [i * 0.5 for i in range(40)]
+    for t in times:
+        boxes = [box(400, 700)] if 2.0 <= t <= 12.0 else []
+        if 4.0 <= t <= 9.0:
+            boxes.append(box(700, 750))
+        tr.update(t, boxes)
+    found = ev.derive(tr.finish(), times, ZONE, W, H, cfg, 20.0)
+    by = {e.kind: e for e in found}
+    assert set(by) == {"approach", "queue", "idle"}, [e.kind for e in found]
+    assert all(e.best is not None for e in found)
+    at, boxes = by["approach"].best
+    assert len(boxes) == 1 and all(0.0 <= v <= 1.0 for v in boxes[0]), boxes
+    assert len(by["queue"].best[1]) == 2
+    assert by["idle"].best[1] == []
+
+
+def test_load_keeps_class_defaults():
+    # load() колись мав свою копію значень, і вона перемагала клас.
+    d, cfg = config.Config(), config.load({})
+    assert cfg.motion_min_fraction == d.motion_min_fraction
+    assert cfg.approach_min_s == d.approach_min_s
+    assert config.load({"APPROACH_MIN_S": "7"}).approach_min_s == 7.0
+
+
+def test_prod_ignores_dev_r2():
+    # У прод-.env лежать і R2_DEV_* від локального MinIO — прод їх не бере.
+    env = {"R2_DEV_ENDPOINT": "http://127.0.0.1:9100", "R2_ENDPOINT": "https://r2"}
+    assert config.load({**env, "APP_ENV": "production"}).r2_endpoint == "https://r2"
+    assert config.load(env).r2_endpoint == "http://127.0.0.1:9100"
 
 
 if __name__ == "__main__":

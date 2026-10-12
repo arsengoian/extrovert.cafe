@@ -50,8 +50,12 @@ COPY --from=model /export/model.onnx /app/models/model.onnx
 COPY --from=model /export/model-fp32.onnx /app/models/model-fp32.onnx
 COPY backend/worker/worker /app/worker
 COPY backend/worker/tools /app/tools
+# Зона їде в образі, а не в env: вона виведена з геометрії стійки й живих
+# замірів і змінюється разом із кодом, що її читає.
+COPY backend/worker/zones.json /app/zones.json
 ENV PYTHONUNBUFFERED=1 \
     MODEL_PATH=/app/models/model.onnx \
+    ZONES_PATH=/app/zones.json \
     OMP_NUM_THREADS=1
 # Одне ядро — і onnxruntime про це має знати сам: інакше він підніме пул
 # потоків на всі ядра хоста й на shared vCPU це дасть мінус, а не плюс.

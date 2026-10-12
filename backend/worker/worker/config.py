@@ -11,12 +11,12 @@ from dataclasses import dataclass, field
 DEFAULT_ZONE = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
 
 
-def _f(name: str, default: float) -> float:
-    return float(os.environ.get(name, default))
+def _f(env, name: str, default: float) -> float:
+    return float(env.get(name, default))
 
 
-def _i(name: str, default: int) -> int:
-    return int(os.environ.get(name, default))
+def _i(env, name: str, default: int) -> int:
+    return int(env.get(name, default))
 
 
 @dataclass
@@ -61,13 +61,12 @@ class Config:
     # ── трекінг і події ─────────────────────────────────────────────────
     track_max_age_s: float = 1.5
     track_min_score: float = 0.2
-    # 5 с, а не 1,5. Поки зона не задана, зоною вважається весь кадр, а в
-    # кадрі в нас коридор: на 1,5 с кожен перехожий ставав «підходом» — 23
-    # підходи на 29 хвилин відео, з них десять коротші за дві секунди
-    # (11.10.2026, прогін по 29 сегментах). За 5 с лишилось сім, і всі сім —
-    # люди, що справді зупинились. Межа чесна й з іншого боку: каву машина
-    # варить близько хвилини, за пʼять секунд її ніхто не купує.
-    approach_min_s: float = 5.0
+    # 4 с у зоні впритул (zones.json). Заміряно 12.10.2026 на 29 сегментах:
+    # люди біля кавʼярні стоять там від 19 до 62 с, а перехожі, що йдуть
+    # повз саму камеру в коридор, потрапляють у зону максимум на 2,5 с. Чотири
+    # секунди — півтора запасу над найдовшим перехожим і все ще досить мало,
+    # щоб порахувати того, хто лише прочитав меню.
+    approach_min_s: float = 4.0
     queue_min_s: float = 3.0
     queue_min_people: int = 2
     idle_min_s: float = 45.0
@@ -87,6 +86,9 @@ class Config:
 
 def load(env: dict | None = None) -> Config:
     env = os.environ if env is None else env
+    # Запасні значення — з полів класу, а не другою копією тут: дві копії
+    # уже розʼїхались (гейт 0,002 тут проти 0,01 у класі), і перемагала стара.
+    d = Config()
     zones = {}
     path = env.get("ZONES_PATH")
     if path and os.path.exists(path):
@@ -94,32 +96,41 @@ def load(env: dict | None = None) -> Config:
     elif env.get("ZONES_JSON"):
         zones = json.loads(env["ZONES_JSON"])
 
+    app_env = env.get("APP_ENV", "local")
+    # R2_DEV_* — лише поза продом, як у backend/lib/src/r2.js (r2Config).
+    # У прод-.env вони теж лежать (локальний MinIO з .env.example), і без
+    # цієї перевірки воркер на проді ходив би по сегменти на 127.0.0.1:9100.
+    dev = app_env != "production"
+
+    def r2(name):
+        return (dev and env.get(f"R2_DEV_{name}")) or env.get(f"R2_{name}", "")
+
     return Config(
         database_url=env.get("DATABASE_URL", ""),
-        poll_s=_f("POLL_S", 5.0),
-        lock_stale_min=_i("LOCK_STALE_MIN", 15),
-        max_attempts=_i("MAX_ATTEMPTS", 5),
-        app_env=env.get("APP_ENV", "local"),
-        r2_endpoint=env.get("R2_DEV_ENDPOINT") or env.get("R2_ENDPOINT", ""),
-        r2_key=env.get("R2_DEV_ACCESS_KEY_ID") or env.get("R2_ACCESS_KEY_ID", ""),
-        r2_secret=env.get("R2_DEV_SECRET_ACCESS_KEY") or env.get("R2_SECRET_ACCESS_KEY", ""),
+        poll_s=_f(env, "POLL_S", d.poll_s),
+        lock_stale_min=_i(env, "LOCK_STALE_MIN", d.lock_stale_min),
+        max_attempts=_i(env, "MAX_ATTEMPTS", d.max_attempts),
+        app_env=app_env,
+        r2_endpoint=r2("ENDPOINT"),
+        r2_key=r2("ACCESS_KEY_ID"),
+        r2_secret=r2("SECRET_ACCESS_KEY"),
         r2_region=env.get("R2_REGION", "auto"),
         evidence_clips=env.get("EVIDENCE_CLIPS", "0") == "1",
-        sample_fps=_f("SAMPLE_FPS", 2.0),
-        decode_width=_i("DECODE_WIDTH", 640),
+        sample_fps=_f(env, "SAMPLE_FPS", d.sample_fps),
+        decode_width=_i(env, "DECODE_WIDTH", d.decode_width),
         motion_gate=env.get("MOTION_GATE", "1") == "1",
-        motion_pixel_delta=_i("MOTION_PIXEL_DELTA", 14),
-        motion_min_fraction=_f("MOTION_MIN_FRACTION", 0.002),
-        model_path=env.get("MODEL_PATH", "/app/models/model.onnx"),
-        conf=_f("CONF", 0.35),
-        nms_iou=_f("NMS_IOU", 0.45),
-        min_box_h=_f("MIN_BOX_H", 0.08),
-        track_max_age_s=_f("TRACK_MAX_AGE_S", 1.5),
-        track_min_score=_f("TRACK_MIN_SCORE", 0.2),
-        approach_min_s=_f("APPROACH_MIN_S", 1.5),
-        queue_min_s=_f("QUEUE_MIN_S", 3.0),
-        queue_min_people=_i("QUEUE_MIN_PEOPLE", 2),
-        idle_min_s=_f("IDLE_MIN_S", 45.0),
-        stitch_gap_s=_f("STITCH_GAP_S", 2.0),
+        motion_pixel_delta=_i(env, "MOTION_PIXEL_DELTA", d.motion_pixel_delta),
+        motion_min_fraction=_f(env, "MOTION_MIN_FRACTION", d.motion_min_fraction),
+        model_path=env.get("MODEL_PATH", d.model_path),
+        conf=_f(env, "CONF", d.conf),
+        nms_iou=_f(env, "NMS_IOU", d.nms_iou),
+        min_box_h=_f(env, "MIN_BOX_H", d.min_box_h),
+        track_max_age_s=_f(env, "TRACK_MAX_AGE_S", d.track_max_age_s),
+        track_min_score=_f(env, "TRACK_MIN_SCORE", d.track_min_score),
+        approach_min_s=_f(env, "APPROACH_MIN_S", d.approach_min_s),
+        queue_min_s=_f(env, "QUEUE_MIN_S", d.queue_min_s),
+        queue_min_people=_i(env, "QUEUE_MIN_PEOPLE", d.queue_min_people),
+        idle_min_s=_f(env, "IDLE_MIN_S", d.idle_min_s),
+        stitch_gap_s=_f(env, "STITCH_GAP_S", d.stitch_gap_s),
         zones=zones,
     )

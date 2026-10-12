@@ -52,7 +52,7 @@ docker run --rm --cpus 1 --memory 1400m -v "$PWD/samples:/samples" \
 | `R2_*` | — | ключ із правом читати `extrovert-video` і писати `extrovert-evidence` |
 | `SAMPLE_FPS` | `2` | більше — не влазить в одне ядро, менше — губиться короткий підхід |
 | `MOTION_GATE` | `1` | вимкнути можна, але тоді кадрів через модель у ~9 разів більше |
-| `ZONES_PATH` | — | JSON `{"<point>:<camera>": [[x,y], …]}`, полігон стійки в частках кадру |
+| `ZONES_PATH` | `/app/zones.json` | JSON `{"<point>:<camera>": [[x,y], …]}` (або `"default"`), зона біля кавʼярні в частках кадру; чому саме така — у самому `zones.json` |
 | `EVIDENCE_CLIPS` | `0` | кліп-доказ окрім кадру; вмикати, коли буде видно, чи потрібен |
 
 ## Події
