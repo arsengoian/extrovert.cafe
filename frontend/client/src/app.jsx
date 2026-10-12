@@ -26,6 +26,7 @@ import { readLoginWait } from "./loginWait.js";
 import { ResultPopup } from "./ui/Popup.jsx";
 import { clearBonuses, dropBonus, isStashed, stashBonus, stashedBonuses } from "./bonusStash.js";
 import { beans as beansText } from "./ui/plural.js";
+import { reportQrPos } from "./qr.js";
 import "./theme.js";
 
 const TAB_KEY = "extrovert.tab";
@@ -56,6 +57,8 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
   const where = stack[stack.length - 1]?.name ?? tab;
   useEffect(() => { setErrorUser(me?.id); clarityUser(me?.id); }, [me?.id]);
+  // Точка з QR, що привела людину (qr.js), — в акаунт, щойно він відомий.
+  useEffect(() => { if (me?.id) reportQrPos(); }, [me?.id]);
   // Макет куща й розміри спрайтів — щойно відомо, що людина в акаунті, а не
   // коли відкриється кавенятко: інакше спрайти чекали ще й на ці файли.
   useEffect(() => { if (me) loadPlantAssets().catch(() => {}); }, [Boolean(me)]);

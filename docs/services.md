@@ -540,8 +540,8 @@ nothing`, а бонус і подія створюються лише там, д
 
 ```
 телефон → qr.extrovert.cafe?p=1 → 302 (воркер frontend/qr) → extrovert.cafe/?p=1
-  → client: параметр p поки ніде не зберігається (задумано: localStorage і
-    після входу POST /me/qr → users.metadata.qr_pos — не реалізовано)
+  → client (src/qr.js): подія qr в аналітику, p → localStorage, параметр з
+    адреси геть; після входу POST /me/qr → users.metadata.qr_pos (раз, першу)
 ```
 
 Адреса на наклейці вічна, тому між нею й сайтом стоїть лише переадресація:

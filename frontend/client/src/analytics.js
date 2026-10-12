@@ -42,6 +42,12 @@ export function trackScreen(screen) {
   else timer ??= setTimeout(flush, FLUSH_MS);
 }
 
+/** Застосунок відкрили з QR (qr.js): точка з ?p= і звідки — наклейка чи бонус. */
+export function trackQr(pos, via) {
+  queue.push({ type: "qr", pos, via, t: Date.now() });
+  timer ??= setTimeout(flush, FLUSH_MS);
+}
+
 if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
   window.addEventListener("pagehide", flush);

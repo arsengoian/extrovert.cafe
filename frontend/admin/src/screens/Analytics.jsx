@@ -167,6 +167,30 @@ export function Analytics() {
         </Card>
       </div>
 
+      {/* QR (власник, 12.10.2026): рахує застосунок, коли відкрився з ?p=
+          (client/src/qr.js), — тож перевірка здоровʼя й боти, що ходять на
+          qr.extrovert.cafe, сюди не потрапляють: JavaScript вони не виконують. */}
+      <h2 className="section-title">QR</h2>
+      <div className="grid k3">
+        <Kpi label="Відкрили з наклейки" value={fmt.int(w.qr_scans?.sticker ?? 0)}
+             note={`людей: ${fmt.int(w.qr_people?.sticker ?? 0)} · qr.extrovert.cafe на автоматі`} />
+        <Kpi label="Нових акаунтів з наклейки" value={fmt.int(one("qr_signups"))}
+             note={`з ${fmt.int(one("signups"))} нових за період · точка пишеться в акаунт після входу`} />
+        <Kpi label="Відкрили з бонусу на кіоску" value={fmt.int(w.qr_scans?.bonus ?? 0)}
+             note={`людей: ${fmt.int(w.qr_people?.bonus ?? 0)} · QR бонусу за чек на екрані`} />
+      </div>
+      <div className="grid k2" style={{ marginTop: 12 }}>
+        <Card title="Відкриття з QR по днях" note={`останні ${Math.max(days, 14)} днів`}>
+          <Line series={[
+            series(daily, trendDays, "qr_scans", "наклейка", "#FE810B", "sticker"),
+            series(daily, trendDays, "qr_scans", "бонус на кіоску", "#5AA9FF", "bonus"),
+          ]} />
+        </Card>
+        <Card title="Нові акаунти з наклейки по днях" note={`останні ${Math.max(days, 14)} днів`}>
+          <Columns items={trendDays.map((day) => ({ label: fmt.day(`${day}T12:00:00`), value: valueOn(daily, "qr_signups", day) }))} every={days > 14 ? 5 : 2} />
+        </Card>
+      </div>
+
       <h2 className="section-title">Навігація</h2>
       <div className="grid k3">
         <Card title="Екрани за переглядами">

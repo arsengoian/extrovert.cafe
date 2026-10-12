@@ -8,6 +8,7 @@ import { readLoginWait } from "./loginWait.js";
 import { initErrors } from "./errors.js";
 import { initClarity } from "./clarity.js";
 import { trackScreen } from "./analytics.js";
+import { takeQrPos } from "./qr.js";
 import { Crash } from "./ui/Crash.jsx";
 import "./theme.css";
 
@@ -18,6 +19,10 @@ initClarity();
 
 // Кільце тапу — один слухач на весь документ, а не обгортка кожної кнопки.
 installTapFx();
+
+// ?p= із QR (наклейка чи бонус на кіоску) — забираємо ПЕРШИМ, до будь-якого
+// replaceState нижче: шлях бонусу далі переписується на «/» разом із query.
+takeQrPos();
 
 // Два шляхи поза звичайним застосунком. Роутера немає (див. app.jsx), тож
 // розбираємо їх тут, до монтування:

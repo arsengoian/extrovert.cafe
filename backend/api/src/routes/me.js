@@ -9,6 +9,7 @@ import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
 import { pickFaceSet } from "../faceSets.js";
 import { FEATURES } from "../features.js";
+import { QR_POS } from "../analytics.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -200,6 +201,22 @@ export async function nicknameRoutes(app) {
     if (!NICKNAME_RE.test(nickname)) return { valid: false, free: false };
     const taken = await one("select 1 from users where nickname = $1 and id <> $2", [nickname, user.id]);
     return { valid: true, free: !taken };
+  });
+
+  // Точка з QR, що привела гравця (docs/urls.md, «Куди дівається p»): у
+  // приховану users.metadata.qr_pos, один раз — першу — і не перезаписуємо.
+  // Застосунок шле її після входу з localStorage (client/src/qr.js).
+  app.post("/me/qr", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const pos = String(req.body?.pos ?? "");
+    if (!QR_POS.test(pos)) return reply.code(400).send({ error: "bad_pos" });
+    const res = await query(
+      `update users set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('qr_pos', $2::text)
+        where id = $1 and not coalesce(metadata ? 'qr_pos', false)`,
+      [user.id, pos]
+    );
+    return { saved: res.rowCount > 0 };
   });
 
   // Перший вхід: гравець лишає чи міняє згенерований нікнейм і приймає

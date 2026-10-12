@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело c037fe2</p>
+  <p class="eyebrow">extrovert.cafe · джерело 1d05c26</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 21 документ у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -747,8 +747,8 @@ Checkbox ─ опитування раз на хв ───┤
 застарілий рядок кіоск прибирає сам за <code>BONUS_TTL_S</code> (нижче).</p>
 <h3 id="svc-скан-наклейки-на-автоматі"><a class="anchor" href="#svc-скан-наклейки-на-автоматі" aria-hidden="true">#</a>Скан наклейки на автоматі</h3>
 <pre><code>телефон → qr.extrovert.cafe?p=1 → 302 (воркер frontend/qr) → extrovert.cafe/?p=1
-  → client: параметр p поки ніде не зберігається (задумано: localStorage і
-    після входу POST /me/qr → users.metadata.qr_pos — не реалізовано)
+  → client (src/qr.js): подія qr в аналітику, p → localStorage, параметр з
+    адреси геть; після входу POST /me/qr → users.metadata.qr_pos (раз, першу)
 </code></pre>
 <p>Адреса на наклейці вічна, тому між нею й сайтом стоїть лише переадресація:
 воркер, у якому немає нічого, крім 302 (<a class="doclink" href="#urls"><code>urls.md</code></a>). Бонус за покупку — інший QR: його малює кіоск на
@@ -2607,7 +2607,7 @@ ER-діаграму не винесені: звʼязків немає свід�
 </thead>
 <tbody><tr>
 <td><code>analytics_events</code></td>
-<td>подія: <code>at</code>, <code>user_id</code> (без FK — insert пачками має бути дешевим), <code>ip</code> (inet), <code>type</code> (<code>nav</code> / <code>api</code>), <code>payload</code> jsonb: для nav — <code>screen</code>, <code>from</code>, <code>platform</code>; для api — <code>method</code>, шаблон <code>route</code>, <code>status</code>, <code>ms</code></td>
+<td>подія: <code>at</code>, <code>user_id</code> (без FK — insert пачками має бути дешевим), <code>ip</code> (inet), <code>type</code> (<code>nav</code> / <code>api</code> / <code>qr</code>), <code>payload</code> jsonb: для nav — <code>screen</code>, <code>from</code>, <code>platform</code>; для api — <code>method</code>, шаблон <code>route</code>, <code>status</code>, <code>ms</code>; для qr (застосунок відкрили з QR, 12.10.2026) — <code>pos</code>, <code>via</code> (<code>sticker</code> / <code>bonus</code>), <code>platform</code></td>
 <td>90 діб; IP видалених акаунтів затирає scheduler</td>
 </tr>
 <tr>
@@ -3137,8 +3137,17 @@ Cloudflare: куди веде надрукована адреса, з репоз
 зʼявиться друга наклейка.</p>
 <p>Воркер викочений (з 22.09.2026): <code>qr.extrovert.cafe?p=1</code> відповідає 302 на
 <code>extrovert.cafe/?p=1</code> з <code>no-store</code>, домен — у Terraform
-(<code>infra/terraform/cloudflare.tf</code>). Сам <code>p</code> застосунок поки не забирає
-(нижче).</p>
+(<code>infra/terraform/cloudflare.tf</code>). Застосунок забирає <code>p</code> з 12.10.2026
+(<code>frontend/client/src/qr.js</code>): записує подію <code>qr</code> (<code>via: sticker</code>), кладе
+точку в <code>localStorage</code> і прибирає параметр з адреси, а після входу шле
+<code>POST /api/v1/me/qr</code>.</p>
+<p><strong>Скан рахуємо в застосунку, а не у воркері.</strong> Метрики воркера в Cloudflare —
+700–1000 запитів на добу, але 720 з них — перевірка здоровʼя overseer
+(<code>front-qr</code> у <code>backend/overseer/src/health.js</code>, раз на дві хвилини), а решта
+— переважно боти: справжніх сканів серед цього не видно. Подія <code>qr</code> іде з
+JavaScript застосунку, якого ні перевірка, ні боти не виконують, тож вона
+означає саме «людина відкрила застосунок з наклейки». В адмінці — «Аналітика»
+→ «QR»: відкриття з наклейки й з бонусу, люди, нові акаунти з наклейки.</p>
 <h2 id="urls-qr-бонусу-на-екрані-кіоска-b-токен-p-точка"><a class="anchor" href="#urls-qr-бонусу-на-екрані-кіоска-b-токен-p-точка" aria-hidden="true">#</a>QR бонусу на екрані кіоска — <code>/b/&lt;токен&gt;?p=&lt;точка&gt;</code></h2>
 <pre><code>https://extrovert.cafe/b/3f9c0e…a41d?p=kyiv-01
 </code></pre>
@@ -3159,8 +3168,8 @@ Cloudflare: куди веде надрукована адреса, з репоз
 <li>Параметр не робить QR щільнішим: з токеном у 24 символи посилання й так
 займає версію 4 (33×33 модулі), і з <code>?p=kyiv-01</code> лишається в ній.</li>
 </ul>
-<p>⚠️ Сайт <code>p</code> поки не забирає, і <code>POST /api/v1/me/qr</code> немає: зараз параметр
-просто ігнорується, екран бонусу відкривається як і без нього.</p>
+<p><code>p</code> із QR бонусу застосунок забирає так само, як з наклейки (з 12.10.2026,
+<code>via: bonus</code>), — до того, як шлях <code>/b/&lt;токен&gt;</code> переписується на «/».</p>
 <p><strong>Адресу застосунок чистить одразу</strong> (23.09.2026): токен переїжджає в памʼять
 сторінки, а в рядку лишається <code>extrovert.cafe/</code>. Перезавантаження після
 сканування відкриває звичайний застосунок, а не спробу забрати бонус удруге;
@@ -3242,11 +3251,11 @@ GET  /api/v1/market/plants?limit=       лоти кавенят, так само
 GET  /api/v1/me/listings               мої лоти з лічильником показів
 POST /api/v1/repost/visit/&lt;token&gt;      перехід за посиланням репосту
 </code></pre>
-<p>Задумані раніше <code>POST /points/&lt;point&gt;/token</code> (ключ точки → годинний JWT),
-<code>POST /points/&lt;point&gt;/r2-credentials</code> (тимчасовий ключ R2 для recorder) і
-<code>POST /me/qr</code> (параметр <code>p</code> → <code>users.metadata.qr_pos</code>) <strong>не існують</strong>:
-токен точки довгий і видається скриптом (<a class="doclink" href="#svc"><code>services.md</code></a> §3), recorder
-поки чернетка, а <code>p</code> застосунок не забирає.</p>
+<p>Задумані раніше <code>POST /points/&lt;point&gt;/token</code> (ключ точки → годинний JWT) і
+<code>POST /points/&lt;point&gt;/r2-credentials</code> (тимчасовий ключ R2 для recorder)
+<strong>не існують</strong>: токен точки довгий і видається скриптом (<a class="doclink" href="#svc"><code>services.md</code></a> §3), а
+recorder вантажить сегменти за підписаними посиланнями. <code>POST /me/qr</code>
+(параметр <code>p</code> → <code>users.metadata.qr_pos</code>) є з 12.10.2026.</p>
 <p>Окремої стрічки подій точки роутом <strong>немає</strong>: усе, що відбувається, приходить
 вебсокетом, а другий канал тих самих подій — це два джерела правди, які рано
 чи пізно розійдуться. Після обриву кіоск бере знімок стану одним запитом і
@@ -14501,7 +14510,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел c037fe2 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 1d05c26 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

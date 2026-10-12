@@ -989,7 +989,7 @@ ER-діаграму не винесені: звʼязків немає свід�
 
 | Таблиця | Що | Скільки живе |
 |---|---|---|
-| `analytics_events` | подія: `at`, `user_id` (без FK — insert пачками має бути дешевим), `ip` (inet), `type` (`nav` / `api`), `payload` jsonb: для nav — `screen`, `from`, `platform`; для api — `method`, шаблон `route`, `status`, `ms` | 90 діб; IP видалених акаунтів затирає scheduler |
+| `analytics_events` | подія: `at`, `user_id` (без FK — insert пачками має бути дешевим), `ip` (inet), `type` (`nav` / `api` / `qr`), `payload` jsonb: для nav — `screen`, `from`, `platform`; для api — `method`, шаблон `route`, `status`, `ms`; для qr (застосунок відкрили з QR, 12.10.2026) — `pos`, `via` (`sticker` / `bonus`), `platform` | 90 діб; IP видалених акаунтів затирає scheduler |
 | `analytics_daily` | денні відра за київським днем: `(day, metric, dim) → value`, лише те, що складається між днями | без обмеження |
 | `analytics_window` | готові зрізи за 1/7/30 діб: унікальні люди, сесії, воронки, перцентилі — те, що з денних не виводиться; перераховується цілком раз на 10 хв | перезаписується |
 

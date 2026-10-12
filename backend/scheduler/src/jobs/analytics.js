@@ -48,7 +48,7 @@ export async function flushAnalytics({ pool, redis }) {
     const rows = raw.map((line) => {
       try {
         const e = JSON.parse(line);
-        if (!Number.isFinite(e.at) || (e.type !== "nav" && e.type !== "api")) return null;
+        if (!Number.isFinite(e.at) || !TYPES.has(e.type)) return null;
         return [e.at / 1000, UUID.test(e.user_id ?? "") ? e.user_id : null, IP.test(e.ip ?? "") ? e.ip : null, e.type, JSON.stringify(e.payload ?? null)];
       } catch {
         return null;
@@ -69,6 +69,9 @@ export async function flushAnalytics({ pool, redis }) {
   return total ? { done: `подій перенесено: ${total}` } : {};
 }
 
+// qr — застосунок відкрили з QR (api: src/analytics.js, client: src/qr.js).
+const TYPES = new Set(["nav", "api", "qr"]);
+
 // ── зрізи ───────────────────────────────────────────────────────────────
 // Події проміжку [$1, $2) без адмінки й точок; who — людина: акаунт, а
 // гість — за адресою (у кав'ярні гості за одним Wi-Fi зливаються в одного,
@@ -85,7 +88,7 @@ const EV = `
       from analytics_events e
      where e.at >= $1 and e.at < $2
        and (e.user_id is null or e.user_id not in (select id from users where stats_excluded))
-       and (e.type = 'nav' or (e.payload->>'route') !~ '${NOT_CLIENT}')
+       and (e.type in ('nav', 'qr') or (e.payload->>'route') !~ '${NOT_CLIENT}')
   )`;
 
 // Сесії: події однієї людини з паузами не довшими за SESSION_GAP. Рахуємо
@@ -139,6 +142,17 @@ async function sliceMetrics(pool, from, to) {
   put("signups", "", sign.n);
   const [ret] = await q(`with ${EV} select count(distinct ev.user_id) as n from ev join users u on u.id = ev.user_id where u.created_at < $1`);
   put("returning", "", ret.n);
+
+  // QR (власник, 12.10.2026): скільки разів застосунок відкрили з наклейки
+  // на автоматі (dim sticker) чи з бонусу на кіоску (bonus), скільки це
+  // людей і скільки нових акаунтів прийшло з наклейки (users.metadata.qr_pos
+  // пише POST /me/qr — один раз, першу точку).
+  for (const r of await q(`with ${EV} select payload->>'via' as dim, count(*) as n, count(distinct who) as people from ev where type = 'qr' group by 1`)) {
+    put("qr_scans", r.dim, r.n);
+    put("qr_people", r.dim, r.people);
+  }
+  const [qrSign] = await q("select count(*) as n from users where created_at >= $1 and created_at < $2 and not stats_excluded and metadata ? 'qr_pos'");
+  put("qr_signups", "", qrSign.n);
 
   // Сесії
   const [ses] = await q(`with ${SESSIONS}
@@ -273,7 +287,7 @@ async function retention(pool) {
 }
 
 // У денні відра — лише те, що складається між днями або має сенс на день.
-const DAILY = new Set(["users", "guests", "views", "requests", "signups", "sessions", "api_5xx", "screen_views", "action_count"]);
+const DAILY = new Set(["users", "guests", "views", "requests", "signups", "sessions", "api_5xx", "screen_views", "action_count", "qr_scans", "qr_signups"]);
 
 async function writeRows(pool, table, keyCol, keyVal, rows) {
   const client = await pool.connect();

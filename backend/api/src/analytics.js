@@ -76,6 +76,8 @@ export function platformOf(ua = "") {
 }
 
 const SCREEN = /^[A-Za-z][A-Za-z0-9_:/-]{0,39}$/;
+// Точка в ?p= QR: «1» на наклейці, «kyiv-01» у бонусі кіоска (docs/urls.md).
+export const QR_POS = /^[A-Za-z0-9_-]{1,16}$/;
 const screenOf = (v) => (typeof v === "string" && SCREEN.test(v) ? v : null);
 
 // Навігація з фронтенду: застосунок шле пачку раз на кілька секунд (і
@@ -96,11 +98,27 @@ export default async function routes(app) {
     const platform = platformOf(req.headers["user-agent"]);
     const now = Date.now();
     for (const e of list) {
+      const ago = Math.min(Math.max(0, Number(e?.ago) || 0), 10 * 60_000);
+      // Застосунок відкрили з QR (client/src/qr.js): точка з ?p= і звідки —
+      // наклейка на автоматі чи QR бонусу на кіоску. Рахуємо тут, а не у
+      // воркері qr.*: туди ходять перевірка здоровʼя й боти, а JavaScript
+      // виконує лише людина з телефоном (12.10.2026).
+      if (e?.type === "qr") {
+        const pos = typeof e.pos === "string" && QR_POS.test(e.pos) ? e.pos : null;
+        if (!pos) continue;
+        track({
+          at: now - ago,
+          user_id: userId,
+          ip,
+          type: "qr",
+          payload: { pos, via: e.via === "bonus" ? "bonus" : "sticker", platform },
+        });
+        continue;
+      }
       if (e?.type !== "nav") continue;
       const screen = screenOf(e.screen);
       if (!screen) continue;
       const from = screenOf(e.from);
-      const ago = Math.min(Math.max(0, Number(e.ago) || 0), 10 * 60_000);
       track({
         at: now - ago,
         user_id: userId,
