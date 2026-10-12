@@ -139,7 +139,52 @@ pace() { # pace <файл> — віддає файл у stdout у темпі, я
 
 STOPPING=0
 trap 'STOPPING=1' TERM INT
-idle() { _s=$1; while [ "$_s" -gt 0 ] && [ "$STOPPING" = 0 ]; do sleep 1; _s=$((_s - 1)); done; }
+# ── КОСТИЛЬ: самолікування мосту br0 (12.10.2026) ────────────────────────
+# Прибрати разом із самим мостом, коли його знімуть з картки кардрідером
+# (docs/raspberry-pi.md, «Міст br0 — пережиток до світча»).
+#
+# IP малини живе на br0, а eth0 для dhcpcd заборонений (denyinterfaces у
+# конфігу мосту). Якщо мережевий чип перезапуститься — на Pi 1 це USB-хаб
+# LAN9512, той самий, на якому флешка, і просідання живлення чи збій
+# драйвера його скидають, — eth0 повертається вже ПОЗА мостом, а udev-правило
+# кладе назад лише eth1. Міст лишається порожнім, і мережі немає до ребуту.
+# Головна гіпотеза для «малина зникає за 3–8 хв після старту» з 09.10.2026.
+#
+# Живе в аплоудері, бо він крутиться завжди, а sudo без пароля в pi є (ним
+# же користується крон-сторож). Раз на 30 с: міст є, eth0 є, а в мості
+# його немає — повертаємо. У лог — хвіст dmesg на мить поломки (чому чип
+# перезапустився: USB disconnect, under-voltage), у state/bridge.heal —
+# лічильник для телеметрії, щоб спрацювання було видно в адмінці, а не лише
+# в лозі на самій малині.
+HEAL_FILE="$EXTROVERT_STATE/bridge.heal"
+BRIDGE_BROKEN=0
+bridge_heal() {
+    [ -d /sys/class/net/br0 ] && [ -e /sys/class/net/eth0 ] || return 0
+    if [ -d /sys/class/net/eth0/brport ]; then BRIDGE_BROKEN=0; return 0; fi
+    if [ "$BRIDGE_BROKEN" = 0 ]; then
+        BRIDGE_BROKEN=1
+        log "eth0 випав із мосту br0 — повертаю (костиль до прибирання мосту); dmesg:"
+        sudo -n dmesg 2>/dev/null | tail -n 25 | while IFS= read -r _l; do log "  $_l"; done
+    fi
+    if sudo -n /bin/ip link set eth0 master br0 && sudo -n /bin/ip link set eth0 up; then
+        set -- $(cat "$HEAL_FILE" 2>/dev/null)
+        printf '%s %s\n' "$(( ${1:-0} + 1 ))" "$(date +%s)" > "$HEAL_FILE.tmp" && mv "$HEAL_FILE.tmp" "$HEAL_FILE"
+        log "eth0 знову в br0 (спрацювань усього: $(( ${1:-0} + 1 )))"
+        BRIDGE_BROKEN=0
+    else
+        log "не вийшло повернути eth0 у br0 — спробую за 30 с"
+    fi
+}
+
+# Чекання — посекундно, щоб SIGTERM не чекав хвилинами; заразом раз на 30 с
+# перевіряємо міст (костиль вище), навіть коли заливка стоїть у backoff.
+idle() {
+    _s=$1
+    while [ "$_s" -gt 0 ] && [ "$STOPPING" = 0 ]; do
+        [ $((_s % 30)) = 0 ] && bridge_heal
+        sleep 1; _s=$((_s - 1))
+    done
+}
 LAST=""
 say() { [ "$1" = "$LAST" ] && return; LAST=$1; log "$1"; }
 
@@ -231,6 +276,7 @@ mkdir -p "$EXTROVERT_STATE"
 log "старт, черга $DIR → $API, темп $(cap_kb) КБ/с (межі $MIN_KB…$MAX_KB, пінг до $PING_HOST)"
 FAILS=0
 while [ "$STOPPING" = 0 ]; do
+    bridge_heal  # костиль, див. угорі; між пачками заливки idle не кличеться
     if [ ! -f "$TOKEN_FILE" ]; then say "немає ключа точки $TOKEN_FILE — вантажити нікуди"; idle 300; continue; fi
     TOKEN=$(cat "$TOKEN_FILE")
     # Готові сегменти — ті, які ffmpeg уже не дописує: не мінялись понад
