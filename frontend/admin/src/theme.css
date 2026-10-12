@@ -257,3 +257,7 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 .quote time { flex: none; font-size: 10.5px; color: var(--muted) }
 .sub-head { font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted) }
 .hr { height: 1px; background: var(--line) }
+
+/* ── попап із записом або кадром-доказом (screens/Video.jsx) ─────────── */
+.confirm.viewer { width: min(1000px, calc(100vw - 32px)) }
+.viewer video, .viewer img { width: 100%; max-height: 75vh; object-fit: contain; background: #000; border-radius: 8px }

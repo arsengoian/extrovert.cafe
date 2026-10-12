@@ -126,6 +126,11 @@ export const api = {
   video: (p) => request(`/admin/video${qs(p)}`),
   // Сегмент лежить у приватному бакеті: беремо підписане посилання на 10 хв.
   videoDownload: (id) => request(`/admin/video/segments/${id}/download`),
+  // Те саме для плеєра: без attachment і на годину, щоб перемотування не впиралось у термін.
+  videoPlay: (id) => request(`/admin/video/segments/${id}/play`),
+  // Доказ події з приватного extrovert-evidence: name — ключ у video_events.evidence.
+  evidence: (id, name, download = false) =>
+    request(`/admin/video/events/${id}/evidence/${name}${download ? "?download=1" : ""}`),
   supportThreads: (status) => request(`/admin/support/threads` + qs({ status })),
   supportThread: (id) => request(`/admin/support/threads/${id}`),
   supportReply: (id, text) => request(`/admin/support/threads/${id}/reply`, { method: "POST", body: { text } }),

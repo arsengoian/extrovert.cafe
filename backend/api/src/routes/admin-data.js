@@ -556,9 +556,9 @@ export default async function routes(app) {
   });
 
   // ── Відео ───────────────────────────────────────────────────────────
-  // Камер поки немає (docs/video.md — план), тож екрани чесно показують
-  // порожньо. Таблиці вже є, і щойно зʼявиться worker, ці ж запити почнуть
-  // повертати дані.
+  // Сегменти пише recorder на малині, події — worker (backend/worker). Ключі
+  // доказів у `evidence` віддаємо як є: підписує їх окремий маршрут у
+  // routes/video.js, бо бакет приватний.
   app.get("/admin/video", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const point = String(req.query.point ?? "");

@@ -82,14 +82,32 @@ export default async function routes(app) {
     return { ok: true };
   });
 
-  // Адмінка: посилання на завантаження сегмента. Ні mkv зі звуком A-law, ні
-  // MPEG-TS браузер сам не програє — файл відкривається у VLC.
-  app.get("/admin/video/segments/:id/download", async (req, reply) => {
+  // Адмінка: посилання на сегмент — завантажити або дивитись у плеєрі.
+  // Відео йде браузеру прямо з R2: api лише підписує посилання й через себе
+  // жодного байта не пропускає. Перегляд — без attachment і на годину, бо
+  // плеєр докачує файл шматками (Range), поки його перемотують.
+  const segmentUrl = (play) => async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const seg = await one("select r2_key, point_id, started_at from video_segments where id = $1", [req.params.id]);
     if (!seg) fail(404, "no_such_segment");
-    const filename = `${seg.point_id}-${seg.r2_key.split("/").pop()}`;
-    const { url } = presign({ method: "GET", purpose: "video", key: seg.r2_key, expiresIn: 600, filename });
+    const filename = play ? null : `${seg.point_id}-${seg.r2_key.split("/").pop()}`;
+    const { url } = presign({ method: "GET", purpose: "video", key: seg.r2_key, expiresIn: play ? 3600 : 600, filename });
+    return { url };
+  };
+  app.get("/admin/video/segments/:id/download", segmentUrl(false));
+  app.get("/admin/video/segments/:id/play", segmentUrl(true));
+
+  // Доказ події (кадр, а з EVIDENCE_CLIPS=1 ще й кліп) з приватного бакета
+  // extrovert-evidence. Ключ беремо з самої події, а не з запиту: інакше
+  // адмінка могла б підписати будь-який обʼєкт бакета.
+  app.get("/admin/video/events/:id/evidence/:name", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const ev = await one("select point_id, evidence from video_events where id = $1", [req.params.id]);
+    const key = ev?.evidence?.[req.params.name];
+    if (typeof key !== "string") fail(404, "no_such_evidence");
+    const download = req.query.download === "1";
+    const filename = download ? `${ev.point_id}-${req.params.id}-${key.split("/").pop()}` : null;
+    const { url } = presign({ method: "GET", purpose: "evidence", key, expiresIn: 600, filename });
     return { url };
   });
 

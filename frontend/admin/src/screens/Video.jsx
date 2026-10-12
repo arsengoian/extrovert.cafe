@@ -1,15 +1,22 @@
 // Відео: записи, події з камер і аналітика (docs/admin_panel.md, група
 // «відео»).
 //
-// Записи пише recorder на малині й вантажить uploader у R2 (з 06.10.2026).
-// `worker`, який шукає події, ще не написаний (docs/video.md), тож «Події» й
-// «Аналітика» чесно порожні замість вигаданих цифр.
-import { useState } from "react";
+// Записи пише recorder на малині й вантажить uploader у R2 (з 06.10.2026),
+// події шукає worker (backend/worker) і до кожної кладе кадр-доказ у
+// приватний extrovert-evidence. І запис, і доказ браузер бере прямо з R2 за
+// підписаним посиланням — через наш сервер відео не ходить.
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Bars } from "../charts.jsx";
 import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const KIND = { approach: "підійшов", queue: "черга", idle: "простій" };
+// Що саме на кадрі — щоб не гадати, чому на «простої» порожньо.
+const EVIDENCE_NOTE = {
+  approach: "Кадр, де детектор найвпевненіший; червона рамка — людина, яку він вів.",
+  queue: "Кадр, коли біля кавʼярні було найбільше людей одночасно.",
+  idle: "Кадр із середини простою: біля кавʼярні нікого.",
+};
 const mb = (n) => `${(Number(n ?? 0) / 1024 / 1024).toFixed(1)} МБ`;
 
 const TITLES = {
@@ -18,22 +25,61 @@ const TITLES = {
   analytics: ["Аналітика відео", "події за днями й звʼязок із чеками"],
 };
 
-// Сегменти (mkv з відео й звуком A-law, раніше TS) браузер сам не програє,
-// тож це завантаження: файл відкривається у VLC. Посилання живе 10 хвилин.
-function Download({ id }) {
+const small = { height: 24, padding: "0 8px" };
+
+// Кнопка, яка спершу просить в api підписане посилання (живе 10 хвилин), а
+// тоді віддає його браузеру — на завантаження або в попап.
+function UrlButton({ get, onUrl, children }) {
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setBusy(true);
-    try { window.location.assign((await api.videoDownload(id)).url); } finally { setBusy(false); }
+    try { onUrl((await get()).url); } catch (e) { onUrl(null, e); } finally { setBusy(false); }
   };
-  return <button className="btn" style={{ height: 24, padding: "0 8px" }} disabled={busy} onClick={go}>{busy ? "…" : "завантажити"}</button>;
+  return <button className="btn" style={small} disabled={busy} onClick={go}>{busy ? "…" : children}</button>;
+}
+
+const download = (url, e) => (url ? window.location.assign(url) : alert(`не вдалось: ${e?.message ?? "помилка"}`));
+
+// Попап із записом або кадром. mkv (H.264 + звук A-law) Chromium програє сам,
+// разом зі звуком (перевірено 12.10.2026 на сегменті з R2); перші три
+// MPEG-TS від 06.10 — ні, як і Safari. Тоді лишається «завантажити» й VLC,
+// тому помилку плеєра показуємо словами, а не чорним прямокутником.
+function Viewer({ view, onClose }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
+  return (
+    <div className="confirm-back" onClick={onClose}>
+      <div className="confirm viewer" onClick={(e) => e.stopPropagation()}>
+        <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <b>{view.title}</b>
+          <button className="btn" style={small} onClick={onClose}>закрити</button>
+        </div>
+        {view.error ? (
+          <p>не вдалось отримати посилання: {view.error.message}</p>
+        ) : broken ? (
+          <p>Браузер не може програти цей файл — завантаж його й відкрий у VLC.</p>
+        ) : view.type === "video" ? (
+          <video src={view.url} controls autoPlay playsInline onError={() => setBroken(true)} />
+        ) : (
+          <img src={view.url} alt={view.title} onError={() => setBroken(true)} />
+        )}
+        {view.note && <p>{view.note}</p>}
+      </div>
+    </div>
+  );
 }
 
 const STATUS = { pending: "у R2", processing: "обробляється", done: "оброблено", failed: "помилка", expired: "видалено" };
 
 export function Video({ tab = "segments" }) {
   const { data, error } = useData(() => api.video());
+  const [view, setView] = useState(null);
   const [title, note] = TITLES[tab] ?? TITLES.segments;
+  const open = (title, type, note) => (url, error) => setView({ title, type, url, error, note });
 
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
@@ -56,11 +102,13 @@ export function Video({ tab = "segments" }) {
         <Kpi label="Обʼєм" value={mb(data.stats.bytes)} note="усе, що лежить у R2" />
       </div>
 
+      {view && <Viewer key={view.url ?? "error"} view={view} onClose={() => setView(null)} />}
+
       {empty && (
         <Card style={{ marginBottom: 12 }}>
           <div className="empty">
             Записів ще немає: сегменти пише <b>recorder</b> на малині й вантажить у R2 <b>uploader</b> — щойно
-            перший доїде, він буде тут. Події й аналітику рахуватиме <b>worker</b> на окремому дроплеті (docs/video.md).
+            перший доїде, він буде тут. Події й аналітику рахує <b>worker</b> (backend/worker, docs/video.md).
           </div>
         </Card>
       )}
@@ -74,7 +122,14 @@ export function Video({ tab = "segments" }) {
             { key: "bytes", title: "розмір", num: true, render: (s) => mb(s.bytes) },
             { key: "status", title: "стан", render: (s) => STATUS[s.status] ?? s.status },
             { key: "error", title: "помилка", render: (s) => s.error ?? "" },
-            { key: "file", title: "", render: (s) => (s.status === "expired" ? null : <Download id={s.id} />) },
+            {
+              key: "file", title: "", render: (s) => (s.status === "expired" ? null : (
+                <span className="row" style={{ gap: 4 }}>
+                  <UrlButton get={() => api.videoPlay(s.id)} onUrl={open(`${s.point_id} · ${s.camera_id} · ${fmt.time(s.started_at)}`, "video")}>дивитися</UrlButton>
+                  <UrlButton get={() => api.videoDownload(s.id)} onUrl={download}>завантажити</UrlButton>
+                </span>
+              )),
+            },
           ]}
           rows={data.segments}
           empty="записів ще немає"
@@ -89,6 +144,14 @@ export function Video({ tab = "segments" }) {
             { key: "kind", title: "подія", render: (e) => KIND[e.kind] ?? e.kind },
             { key: "len", title: "тривалість", num: true, render: (e) => (e.ended_at ? `${Math.round((new Date(e.ended_at) - new Date(e.started_at)) / 1000)} с` : "—") },
             { key: "likely_receipt_id", title: "ймовірний чек", render: (e) => e.likely_receipt_id ?? <span className="muted">—</span> },
+            {
+              key: "evidence", title: "доказ", render: (e) => (e.evidence?.frame_00 ? (
+                <span className="row" style={{ gap: 4 }}>
+                  <UrlButton get={() => api.evidence(e.id, "frame_00")} onUrl={open(`${KIND[e.kind] ?? e.kind} · ${fmt.time(e.started_at)}`, "image", EVIDENCE_NOTE[e.kind])}>переглянути</UrlButton>
+                  <UrlButton get={() => api.evidence(e.id, "frame_00", true)} onUrl={download}>завантажити</UrlButton>
+                </span>
+              ) : <span className="muted">—</span>),
+            },
           ]}
           rows={data.events}
           empty="подій ще немає"
