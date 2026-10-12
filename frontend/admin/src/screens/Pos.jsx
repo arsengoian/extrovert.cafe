@@ -106,13 +106,39 @@ const byOrder = (a, b) => {
 // Джерела проб: кавомашина окремо, решта (малина, камера) — «залізо точки».
 const isJet = (r) => r.source === "jetinno";
 
+// Кольорова крапка стану: зелена — добре, червона — погано, сіра — судити
+// нема з чого або показник просто довідковий.
+function Dot({ ok }) {
+  const tone = ok === null || ok === undefined ? "var(--muted)" : ok ? "var(--ok)" : "var(--bad)";
+  return <i style={{ width: 7, height: 7, borderRadius: "50%", background: tone, display: "inline-block", flex: "none" }} />;
+}
+
+// Крапки біля метрик малини (прохання власника 12.10.2026, «як у Jetinno»).
+// Правила — ті самі, що в смужок «Показники Raspberry» (SIGNALS), щоб
+// крапка й смужка над нею не сперечались; місце на картці й памʼять — за
+// порогами алертів overseer (backend/overseer/src/checks.js). Решта полів —
+// довідка (реліз, аптайм, пінг), їм сіра крапка.
+const PI_SIGNAL = {
+  monitor_on: "monitor", kiosk_fps: "kiosk", throttled: "power", root_ro: "card",
+  usb_ok: "usb", loss_pct: "net", video_ok: "video", temp_c: "temp",
+};
+const PI_EXTRA = {
+  disk_free_mb: (m) => (Number.isFinite(m.disk_free_mb) ? m.disk_free_mb >= 300 : null),
+  mem_used_mb: (m) => (Number.isFinite(m.mem_used_mb) && m.mem_total_mb > 0
+    ? m.mem_used_mb / m.mem_total_mb <= 0.92 : null),
+};
+function piOk(key, metrics) {
+  const sig = SIGNALS.find((x) => x.key === PI_SIGNAL[key]);
+  if (sig) return sig.pick(metrics);
+  return PI_EXTRA[key]?.(metrics) ?? null;
+}
+
 // Рядок підсумку кавомашини: кольорова крапка (ok/погано/нейтрально),
 // значення й необов'язковий підпис.
 function JetRow({ label, ok, value, sub }) {
-  const tone = ok === null || ok === undefined ? "var(--muted)" : ok ? "var(--ok)" : "var(--bad)";
   return (
     <div className="row" style={{ justifyContent: "space-between", fontSize: 11.5, gap: 8 }}>
-      <span className="row" style={{ gap: 6 }}><i style={{ width: 7, height: 7, borderRadius: "50%", background: tone, display: "inline-block" }} />{label}</span>
+      <span className="row" style={{ gap: 6 }}><Dot ok={ok} />{label}</span>
       <span style={{ textAlign: "right" }}><b>{value}</b>{sub ? <span className="muted" style={{ marginLeft: 6 }}>{sub}</span> : null}</span>
     </div>
   );
@@ -308,8 +334,8 @@ export function Pos({ id }) {
                   {Object.entries(l.metrics ?? {})
                     .sort(([a], [b]) => byOrder(a, b))
                     .map(([k, v]) => (
-                    <div key={k} className="row" style={{ justifyContent: "space-between", fontSize: 11.5 }}>
-                      <span className="muted">{LABELS[k] ?? k}</span>
+                    <div key={k} className="row" style={{ justifyContent: "space-between", fontSize: 11.5, gap: 8 }}>
+                      <span className="row muted" style={{ gap: 6 }}><Dot ok={piOk(k, l.metrics)} />{LABELS[k] ?? k}</span>
                       <b>{human(k, v)}</b>
                     </div>
                   ))}
