@@ -199,6 +199,18 @@ export function Pos({ id }) {
 
   const ping = series("ping_ms");
   const jitter = series("jitter_ms");
+  // Заливка вгору (stack/uploader.sh). Телеметрія щохвилини повторює
+  // ОСТАННІЙ замір, навіть коли заливки не було, тож точка — одна на
+  // заливку, за її власним часом (upload_at), а не на кожну пробу: інакше
+  // старе значення малювалось би пласкою сходинкою, ніби канал його й досі
+  // дає. Стеля поруч — щоб «400 при стелі 400» читалось як «щонайменше».
+  const uploads = [...new Map(history
+    .filter((h) => h.metrics?.upload_at && h.metrics.upload_kb_s !== undefined && h.metrics.upload_kb_s !== null)
+    .map((h) => [h.metrics.upload_at, h.metrics])).values()]
+    .sort((a, b) => new Date(a.upload_at) - new Date(b.upload_at));
+  const upload = uploads.map((m) => ({ x: m.upload_at, y: Number(m.upload_kb_s) }));
+  const uploadCap = uploads.filter((m) => m.upload_limit_kb_s != null)
+    .map((m) => ({ x: m.upload_at, y: Number(m.upload_limit_kb_s) }));
   // Вісь графіків — увесь обраний період: години без проб лишаються
   // порожнім місцем, а не зникають.
   const domain = [Date.now() - (data.window?.hours ?? 168) * 3600_000, Date.now()];
@@ -282,15 +294,34 @@ export function Pos({ id }) {
 
       <div className="wrap-cols" style={{ marginTop: 12 }}>
         <div className="stack">
-        <Card title="Ping і jitter" note={`${span}, за часом виміру`}>
-          {ping.length || jitter.length ? (
-            <Line domain={domain} series={[
-              ...(ping.length ? [{ name: "ping, мс", color: "#FE810B", points: ping }] : []),
-              ...(jitter.length ? [{ name: "jitter, мс", color: "#3FBF6F", points: jitter }] : []),
-            ]} />
-          ) : (
-            <Empty>малина ще не слала мережевих метрик</Empty>
-          )}
+        {/* Мережа точки (власник, 12.10.2026): пінг каже, чи є інтернет,
+            а заливка — скільки він тягне вгору. Окремими графіками, бо
+            мілісекунди й КБ/с на одній осі не живуть. */}
+        <Card title="Мережа точки" note={`${span}, за часом виміру`}>
+          <div className="stack" style={{ gap: 10 }}>
+            <div>
+              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>ping і jitter, мс</div>
+              {ping.length || jitter.length ? (
+                <Line domain={domain} series={[
+                  ...(ping.length ? [{ name: "ping, мс", color: "#FE810B", points: ping }] : []),
+                  ...(jitter.length ? [{ name: "jitter, мс", color: "#3FBF6F", points: jitter }] : []),
+                ]} />
+              ) : (
+                <Empty>малина ще не слала мережевих метрик</Empty>
+              )}
+            </div>
+            <div>
+              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>заливка відео вгору, КБ/с — точка на кожну заливку</div>
+              {upload.length ? (
+                <Line domain={domain} format={(v) => v.toFixed(0)} series={[
+                  { name: "швидкість, КБ/с", color: "#5AA9FF", points: upload },
+                  ...(uploadCap.length ? [{ name: "стеля, КБ/с", color: "#8B94A3", points: uploadCap }] : []),
+                ]} />
+              ) : (
+                <Empty>замірів заливки ще не було</Empty>
+              )}
+            </div>
+          </div>
         </Card>
 
         {/* Кожен показник — своя вісь і своя лінія на всю ширину колонки:
