@@ -132,7 +132,8 @@ export function Pos({ id }) {
   const { point, latest, history, recent = [], health, uptime, receipts } = data;
   const win = data.window ?? { hours: 168, step: 30 * 60_000 };
   const span = `за ${rangeLabel(range) === "доба" ? "добу" : rangeLabel(range)}`;
-  const stepLabel = win.step >= 3600_000 ? `${win.step / 3600_000} год` : `${win.step / 60_000} хв`;
+  const stepText = (ms) => (ms >= 3600_000 ? `${ms / 3600_000} год` : `${ms / 60_000} хв`);
+  const stepLabel = stepText(win.step);
   // Історія проб колонками: кожна метрика — своя, у тому ж порядку, що й
   // картки «Компоненти точки». Раніше всі метрики йшли одним рядком тексту
   // через «·», і знайти в ньому, скажімо, температуру вчорашнього вечора
@@ -148,6 +149,20 @@ export function Pos({ id }) {
   // `source` тут є на будь-якому періоді.
   const piHistory = history.filter((h) => !isJet(h));
   const jetHistory = history.filter(isJet);
+  // Відра машини — завширшки з її справжній інтервал опитування, а не з крок
+  // вікна. На «добі» крок 10 хв, а машину питаємо раз на 30 хв: пробу мало
+  // лише кожне третє відро, і смужка виглядала так, ніби дві третини даних
+  // загублено (власник, 12.10.2026). Інтервал беремо з самих проб — медіана
+  // проміжків, округлена до кроку вікна, — а не константою: зміниться
+  // JETINNO_TELEMETRY_MIN у scheduler, і відра підлаштуються самі. Ширших за
+  // вікно не буває: на місяці історія вже зведена у відра цього кроку.
+  const jetWin = (() => {
+    const ts = jetHistory.map((h) => new Date(h.measured_at).getTime()).sort((a, b) => a - b);
+    const gaps = ts.slice(1).map((t, i) => t - ts[i]).filter((g) => g > 0).sort((a, b) => a - b);
+    const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+    return { ...win, step: Math.max(win.step, Math.round(median / win.step) * win.step) };
+  })();
+  const jetSeries = JET_SIGNALS.map((sig) => ({ sig, series: boolSeries(jetHistory, sig.pick, jetWin) }));
   const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
   const jet = latest.find((l) => l.source === "jetinno");
@@ -197,9 +212,8 @@ export function Pos({ id }) {
       {/* Те саме, що смужки малини нижче, тільки з відер кавомашини
           (прохання власника 11.10.2026): коли саме вона відвалювалась, коли
           висіла несправність, коли розʼїхались замовлення з чеками. */}
-      <Card title="Показники Jetinno" note={`${span}, відра по ${stepLabel}`}>
-        {JET_SIGNALS.map((sig) => {
-          const series = boolSeries(jetHistory, sig.pick, win);
+      <Card title="Показники Jetinno" note={`${span}, відра по ${stepText(jetWin.step)}`}>
+        {jetSeries.map(({ sig, series }) => {
           return (
             <div className="beat-row" key={sig.key}>
               <span className="name">{sig.name}</span>
@@ -209,7 +223,7 @@ export function Pos({ id }) {
             </div>
           );
         })}
-        <BeatScale history={health} />
+        <BeatScale history={jetSeries[0]?.series} />
       </Card>
 
       {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:

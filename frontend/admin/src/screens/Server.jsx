@@ -127,12 +127,15 @@ export function ServerSection({ range, span }) {
         </Card>
       </div>
 
+      {/* Удвічі вищі за решту графіків (власник, 12.10.2026): ліній тут
+          стільки ж, скільки контейнерів, і на 150 px вони злипались у смугу,
+          з якої не видно, хто саме росте. */}
       <div className="grid k2" style={{ marginTop: 12 }}>
         <Card title="Памʼять контейнерів" note={stepNote}>
-          <Line domain={domain} format={bytes} series={svcMem} />
+          <Line domain={domain} format={bytes} series={svcMem} height={300} />
         </Card>
         <Card title="Процесор контейнерів" note={`${stepNote}, % від ядра`}>
-          <Line domain={domain} format={(v) => `${Math.round(v)}%`} series={svcCpu} />
+          <Line domain={domain} format={(v) => `${Math.round(v)}%`} series={svcCpu} height={300} />
         </Card>
       </div>
 
