@@ -10,7 +10,7 @@ import signal
 import tempfile
 import time
 
-from . import config, db, log
+from . import config, db, errors, log
 from . import frames as fr
 from . import pipeline
 from .detect import Detector
@@ -45,6 +45,7 @@ def evidence_for(conn, path: str, seg, event_id: int, e, storage, cfg) -> None:
                         fh.read(), "video/mp4")
     except Exception as err:  # доказ — приємний бонус, а не причина впасти
         log.warn("доказ не зберігся", event=event_id, err=str(err)[:120])
+        errors.capture(err, event=event_id, stage="evidence")
         if not keys:
             return
     db.set_evidence(conn, event_id, keys)
@@ -82,6 +83,7 @@ def handle(conn, seg, detector, storage, cfg) -> None:
 
 def main() -> None:
     cfg = config.load()
+    reporting = errors.init(cfg.app_env)
     if not cfg.database_url:
         raise SystemExit("немає DATABASE_URL")
     signal.signal(signal.SIGTERM, _on_signal)
@@ -91,7 +93,7 @@ def main() -> None:
     storage = Storage(cfg)
     conn = db.connect(cfg.database_url)
     log.info("воркер піднявся", env=cfg.app_env, model=cfg.model_path,
-             fps=cfg.sample_fps, gate=cfg.motion_gate)
+             fps=cfg.sample_fps, gate=cfg.motion_gate, glitchtip=reporting)
 
     idle_logged = False
     while not _stop:
@@ -121,6 +123,8 @@ def main() -> None:
         except Exception as err:
             db.finish(conn, seg["id"], "failed", f"{type(err).__name__}: {err}")
             log.error("сегмент впав", id=seg["id"], err=str(err)[:200])
+            errors.capture(err, segment=seg["id"], key=seg["r2_key"],
+                           attempt=seg.get("attempts"))
         if _stop:
             break
 

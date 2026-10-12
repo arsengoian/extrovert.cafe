@@ -8,3 +8,5 @@ onnxruntime==1.19.2
 numpy==1.26.4
 psycopg[binary]==3.2.3
 boto3==1.35.36
+# Помилки — у GlitchTip, проєкт worker (worker/errors.py).
+sentry-sdk==2.14.0
