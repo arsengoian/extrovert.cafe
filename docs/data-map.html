@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 1505c8d</p>
+  <p class="eyebrow">extrovert.cafe · джерело 0ac0f46</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -8359,13 +8359,12 @@ DisplayPort, але від 3 999 ₴ і контраст 1000:1. Друге мі
 <code>07_права-колона-розводка</code>.</p>
 <h2 id="site-visit-що-взяти-з-собою"><a class="anchor" href="#site-visit-що-взяти-з-собою" aria-hidden="true">#</a>Що взяти з собою</h2>
 <ul>
-<li><strong>Нову SD-картку</strong>, якісну й розраховану на постійний запис: SanDisk High
-Endurance / Max Endurance або Samsung PRO Endurance, 32 ГБ. Краще
-повнорозмірну SD (у Pi 1 Model B великий слот) — без перехідника. Якщо
-microSD — то з якісним перехідником.</li>
+<li><strong>Запасну SD-картку на 16 ГБ</strong> (є у власника) — лише резерв, якщо поточна
+не підніметься. Картку не міняємо (рішення власника 13.10.2026): CRC-помилки
+в журналі ядра вказують радше на контакт чи живлення, ніж на саму памʼять.</li>
 <li><strong>Блок живлення 5 В / 2,5 А</strong> і короткий товстий кабель micro-USB.</li>
-<li>Ноутбук із кардрідером — якщо образ для нової картки пишемо на місці
-(див. «Підготувати заздалегідь»).</li>
+<li>Ноутбук із кардрідером і Docker Desktop — щоб на місці пропатчити поточну
+картку (див. «Підготувати заздалегідь»).</li>
 <li>За можливості — USB-тестер (UM25C чи подібний): поміряти напругу малини під
 навантаженням. У Pi 1 B детектора низької напруги немає, тож програмно ми
 просідань не бачимо.</li>
@@ -8373,13 +8372,11 @@ microSD — то з якісним перехідником.</li>
 </ul>
 <h2 id="site-visit-підготувати-заздалегідь-вдома-разом-зі-мною"><a class="anchor" href="#site-visit-підготувати-заздалегідь-вдома-разом-зі-мною" aria-hidden="true">#</a>Підготувати заздалегідь (вдома, разом зі мною)</h2>
 <ol>
-<li><strong>Образ для нової картки.</strong> Збирається за <a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a> (patch-image /
-<code>patch-card.ps1</code>). Потрібні дані зі старої картки — <code>config/point.key</code>,
-<code>config/camera.env</code>, <code>config/env</code> на розділі <code>data</code>. Стара картка в
-кардрідері ПК зазвичай читається кілька хвилин, поки не прогріється; не
-вийде — ключ точки перевипускаємо скриптом (<a class="doclink" href="#svc"><code>services.md</code></a> §3), а
-<code>camera.env</code> є в репозиторії.</li>
-<li><strong>У новий образ одразу:</strong><ul>
+<li><strong>Патч поточної картки</strong> — <code>raspberry/pi/patch-card.ps1</code> (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>,
+«Як це ставилось»): знімок кореня, правка, запис лише змінених мегабайтів;
+ключ точки, <code>camera.env</code> і решта <code>data</code> лишаються на місці. Копія
+оригіналу лишається на ноутбуці, <code>-Rollback</code> повертає її назад.</li>
+<li><strong>Що патчимо:</strong><ul>
 <li><strong>прибрати пережиток мосту <code>br0</code></strong> — <code>extrovert-bridge.sh</code>,
 <code>extrovert-bridge.service</code>, drop-in dhcpcd, udev-правило
 (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>, «Міст br0 — пережиток до світча»): він робить
@@ -8390,15 +8387,18 @@ microSD — то з якісним перехідником.</li>
 зараз не перезапускає ніхто.</li>
 </ul>
 </li>
-<li><strong>Після заміни картки — у коді:</strong> прибрати костиль <code>bridge_heal</code> з
+<li><strong>Після патчу — у коді:</strong> прибрати костиль <code>bridge_heal</code> з
 <code>uploader.sh</code> (і <code>bridge_heals</code> з телеметрії й адмінки), повернути запис і
 заливку (<code>RECORDER_PAUSED</code> / <code>UPLOAD_PAUSED</code>), якщо перевірка 13.10.2026
 покаже, що винна не флешка.</li>
 </ol>
 <h2 id="site-visit-на-місці-у-такому-порядку"><a class="anchor" href="#site-visit-на-місці-у-такому-порядку" aria-hidden="true">#</a>На місці — у такому порядку</h2>
 <h3 id="site-visit-малина-головне-вона-вмирає-за-3-8-хв-після-кожного-старту"><a class="anchor" href="#site-visit-малина-головне-вона-вмирає-за-3-8-хв-після-кожного-старту" aria-hidden="true">#</a>Малина (головне: вона «вмирає» за 3–8 хв після кожного старту)</h3>
-<p>Причина — SD-картка: 13.10.2026 у журналі ядра CRC-помилки й таймаути
-читання/запису (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>, «Справжня причина…»).</p>
+<p>13.10.2026 у журналі ядра — CRC-помилки й таймаути читання/запису SD-картки
+саме в момент «смерті» (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>, «Справжня причина…»). CRC — це
+сигнал між малиною й карткою: контакт, перехідник або живлення. Власник певен,
+що сама картка ціла, тож лікуємо контакт і живлення, а пауза запису з
+13.10.2026 покаже, чи грає роль навантаження на USB.</p>
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Сфотографувати до будь-яких змін:</strong> світлодіоди на платі (OK, PWR,
 FDX, LNK, 100), картку в слоті збоку (чи стирчить, чи це microSD у
@@ -8408,9 +8408,10 @@ FDX, LNK, 100), картку в слоті збоку (чи стирчить, ч
 <li><input disabled="" type="checkbox"> <strong>Вийняти USB-перехідник SR9900</strong> (білий кабель, висить за правою
 антеною роутера): він не потрібен зі світчем, а 13.10.2026 засипав журнал
 ядра помилками <code>cdc_ether eth1: kevent 11 may have been dropped</code>.</li>
-<li><input disabled="" type="checkbox"> <strong>Замінити картку</strong> на нову з підготовленим образом. Якщо образу ще
-немає — бодай вийняти стару, протерти контакти, вставити до упору (це
-розрізнить «контакт» і «картку»: житиме годинами — був контакт).</li>
+<li><input disabled="" type="checkbox"> <strong>Перевставити картку:</strong> вийняти, протерти контакти спиртом (і
+перехідника, якщо microSD у ньому), вставити до упору. Житиме годинами —
+був контакт. Тут же, поки картка в ноутбуці, — патч (міст, watchdog).
+Запасна 16 ГБ — лише якщо поточна не підніметься.</li>
 <li><input disabled="" type="checkbox"> <strong>Замінити блок живлення малини</strong> на 5 В / 2,5 А з коротким кабелем;
 якщо є тестер — поміряти напругу до й після.</li>
 <li><input disabled="" type="checkbox"> <strong>Написати мені після ввімкнення</strong> — гляну через тунель, що малина
@@ -14624,7 +14625,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 1505c8d — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 0ac0f46 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
