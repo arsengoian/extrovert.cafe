@@ -275,8 +275,15 @@ upload_one() { # upload_one <файл>
 mkdir -p "$EXTROVERT_STATE"
 log "старт, черга $DIR → $API, темп $(cap_kb) КБ/с (межі $MIN_KB…$MAX_KB, пінг до $PING_HOST)"
 FAILS=0
+# ПЕРЕВІРКА (13.10.2026): разом із записом на паузі й заливка — щоб флешка
+# не працювала зовсім (див. recorder.sh). Сам аплоудер живе далі: у ньому
+# костиль мосту (bridge_heal), він ходить і в idle. Повернути —
+# UPLOAD_PAUSED=0 у config/env або прибрати цей блок наступним релізом.
+UPLOAD_PAUSED="${UPLOAD_PAUSED:-1}"
+
 while [ "$STOPPING" = 0 ]; do
     bridge_heal  # костиль, див. угорі; між пачками заливки idle не кличеться
+    if [ "$UPLOAD_PAUSED" = 1 ]; then say "заливка на паузі (перевірка картки й живлення, 13.10.2026)"; idle 300; continue; fi
     if [ ! -f "$TOKEN_FILE" ]; then say "немає ключа точки $TOKEN_FILE — вантажити нікуди"; idle 300; continue; fi
     TOKEN=$(cat "$TOKEN_FILE")
     # Готові сегменти — ті, які ffmpeg уже не дописує: не мінялись понад
