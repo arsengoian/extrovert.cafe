@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 2ab1d01</p>
+  <p class="eyebrow">extrovert.cafe · джерело 7a188a3</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5549,6 +5549,12 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 стояла годинами, а в телеметрії не було навіть невдалих замірів (збій до
 самої заливки замір не пише). На 401/403/429 і обриви файли лишаються в
 черзі: відкликаний ключ не має перенести в <code>rejected/</code> усе підряд.
+<strong>409 від R2</strong> — окремий випадок, і саме він зупинив чергу 14.10.2026 на
+дев&#39;ять годин: заливка дійшла до кінця, реєстрацію обірвав перезапуск
+аплоудера, а повторна заливка того самого ключа впирається в bucket lock
+(перезаписувати не можна тиждень). Тепер на 409 аплоудер просить api
+зареєструвати вже наявний об&#39;єкт (api звіряє розмір HEAD-ом): збігся —
+локальну копію прибирає, ні (<code>size_mismatch</code>) — файл у <code>rejected/</code>.
 Межа 800 КБ/с ≈ 8 потоків 720p (~95 КБ/с; до 12.10.2026 була 400): година накопиченого
 доганяється за ~8 хвилин. Довжину файла curl отримує заголовком і без
 chunked (<code>Transfer-Encoding:</code> порожній): R2 chunked не приймає, а curl
@@ -14765,7 +14771,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 2ab1d01 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 7a188a3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

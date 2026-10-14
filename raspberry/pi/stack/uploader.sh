@@ -251,11 +251,28 @@ upload_one() { # upload_one <файл> — 0 залито, 3 відкладен�
     _start=$(cap_kb)
     _mt=$(( _bytes / (MIN_KB * 1024) * 3 / 2 + 60 )); [ "$_mt" -lt 300 ] && _mt=300
     _stat=$(pace "$_f" | nice -n 10 ionice -c 3 curl -4 -fsS --max-time "$_mt" --speed-limit 2000 --speed-time 30 \
-        -w '%{size_upload} %{time_total}' -H "content-type: $_type" -H "Content-Length: $_bytes" -H "Transfer-Encoding:" \
+        -w '%{size_upload} %{time_total} %{http_code}' -H "content-type: $_type" -H "Content-Length: $_bytes" -H "Transfer-Encoding:" \
         -T - "$_url" -o /dev/null)
     _rc=$?
-    # shellcheck disable=SC2086 # -w дає рівно два числа — два аргументи
-    upload_mark "$_name" "$_rc" "$_start" $_stat
+    # shellcheck disable=SC2086 # -w дає рівно три значення
+    set -- $_stat
+    upload_mark "$_name" "$_rc" "$_start" "$1" "$2"
+    # 409 від R2: об'єкт із цим ключем уже є, а bucket lock (7 днів,
+    # docs/video.md «R2») перезаписати його не дає. Так буває, коли заливка
+    # дійшла до кінця, а реєстрацію обірвав перезапуск аплоудера: 14.10.2026
+    # о 11:50 саме так черга стала на дев'ять годин — кожна повторна заливка
+    # отримувала 409, до реєстрації справа не доходила, і файл вічно стояв
+    # першим. Тож просимо api зареєструвати те, що вже лежить: він сам звіряє
+    # розмір HEAD-ом. Збігся — сегмент наш, локальна копія не потрібна; не
+    # збігся — перезаписати не вийде ще тиждень, тож у rejected/.
+    if [ "$_rc" -ne 0 ] && [ "${3:-}" = 409 ]; then
+        _seg=$(api_post /video/segment "{\"key\":\"$_key\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}")
+        if [ $? -eq 0 ]; then log "$_name: уже лежав у R2 (409) — зареєстрував наявний"; rm -f "$_f"; return 0; fi
+        case "$_seg" in *size_mismatch*)
+            reject "$_f" "у R2 під цим ключем інший розмір (409), а перезаписати не дає bucket lock"; return 3 ;;
+        esac
+        return 1
+    fi
     [ "$_rc" -eq 0 ] || return 1
     api_post /video/segment "{\"key\":\"$_key\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}" >/dev/null || return 1
     rm -f "$_f"
