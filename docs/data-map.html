@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 876e07b</p>
+  <p class="eyebrow">extrovert.cafe · джерело 5175036</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -6335,6 +6335,15 @@ wpa_supplicant, якого на <code>wlan0</code> запускає dhcpcd.</li>
 <li><strong>Wi-Fi — перша дорога, LTE — запасна</strong>: <code>metric 100</code> для <code>wlan0</code> проти
 203 у <code>br0</code>. Камера лишається в Wi-Fi роутера LTE, і до неї малина ходить
 через <code>br0</code>: маршрут до <code>192.168.199.0/24</code> від default не залежить.</li>
+<li><strong>Wi-Fi зник — LTE сам.</strong> Немає зв&#39;язку з точкою — dhcpcd прибирає маршрут
+<code>wlan0</code>, лишається LTE; точка повернулась — маршрут теж.</li>
+<li><strong>Wi-Fi є, а інтернету за ним нема</strong> — цього dhcpcd не бачить, тож
+перевіряє компонент: раз на 30 с <code>ping -I wlan0</code> до 1.1.1.1 і 8.8.8.8.
+Три невдачі поспіль (~1,5–2 хв) — кладе поверх маршрутів dhcpcd свій
+default через LTE з <code>metric 50</code>; п&#39;ять вдалих (~2,5 хв) — прибирає. Запас
+навмисний: кожне перемикання рве тунель, вебсокет і заливку, хай краще
+рідко. Маршрутів dhcpcd компонент не чіпає, а свій при зупинці лишає —
+новий екземпляр підхоплює стан, ребут його стирає.</li>
 <li><strong>dhcpcd тут читає <code>/run/dhcpcd.conf</code></strong>, а не <code>/etc</code> (пережиток мосту,
 нижче). Метрику компонент дописує туди й перезапускає юніт; <code>dhcpcd -n</code>
 не годиться — він перечитує <code>/etc/dhcpcd.conf</code>, і dhcpcd береться за <code>eth0</code>
@@ -14716,7 +14725,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 876e07b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 5175036 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
