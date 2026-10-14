@@ -129,7 +129,7 @@ function boolSeries(history, sig, { hours, step }) {
 // за абеткою. Ключ, якого тут немає, не зникає — просто йде в кінець.
 const ORDER = [
   "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
-  "uplink", "wifi_dbm", "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "temp_c", "cpu",
+  "uplink", "wifi_dbm", "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "upload_queue", "upload_oldest", "temp_c", "cpu",
   "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
@@ -363,6 +363,16 @@ export function Pos({ id }) {
                 ]} />
               ) : (
                 <Empty>замірів заливки ще не було</Empty>
+              )}
+              {/* Хвіст на флешці (14.10.2026): графік показує, як ішли
+                  заливки, а не скільки ще чекає. Без цього рядка застрягла
+                  черга виглядала просто як «замірів давно не було». */}
+              {Number.isFinite(pi?.metrics?.upload_queue) && (
+                <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
+                  {pi.metrics.upload_queue
+                    ? <>у черзі <b>{fmt.int(pi.metrics.upload_queue)}</b> сегм.{pi.metrics.upload_oldest && <>, найстаріший записаний {fmt.time(pi.metrics.upload_oldest)}</>}</>
+                    : "черга порожня — усе записане вже в R2"}
+                </div>
               )}
             </div>
           </div>

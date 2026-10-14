@@ -182,21 +182,49 @@ upload_mark() { # upload_mark <файл> <код curl> <темп на старт
 
 json_field() { printf '%s' "$1" | sed -n "s/.*\"$2\":\"\([^\"]*\)\".*/\1/p"; }
 
-api_post() { # api_post <шлях> <json> — тіло відповіді в stdout, код curl — у $?
-    curl -fsS --max-time 30 -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
-        -d "$2" "$API/points/$POINT$1"
+# api_post <шлях> <json> — тіло відповіді в stdout. Код: 0 — 2xx; 2 — 400,
+# сервер забракував сам запит (поганий файл), і повтор нічого не змінить;
+# 1 — усе інше (мережа, 5xx, 401/403/429) — варто спробувати згодом.
+#
+# Досі тут був `curl -f`, і 400 не відрізнявся від обриву: 14.10.2026 битий
+# сегмент на початку черги (найстаріші — першими) повертав 400 щоразу, а
+# аплоудер на кожен збій ставав на паузу до 10 хв і починав з того самого
+# файлу — заливка стояла годинами. Саме 400, а не будь-який 4xx: на 401
+# (відкликаний ключ) переносити файли не можна — з'їхала б уся черга.
+api_post() {
+    _ap=$(curl -sS --max-time 30 -w '\n%{http_code}' -H "authorization: Bearer $TOKEN" -H "content-type: application/json" \
+        -d "$2" "$API/points/$POINT$1" 2>/dev/null)
+    _apc=$(printf '%s\n' "$_ap" | tail -n 1)
+    printf '%s\n' "$_ap" | sed '$d'
+    case "$_apc" in 2??) return 0 ;; 400) return 2 ;; *) return 1 ;; esac
 }
 
-upload_one() { # upload_one <файл>
+# Файл, який заливати марно, не стираємо (запис — чиясь робота, і глянути,
+# що з ним, ще захочеться), а переносимо поруч, у rejected/: черга йде далі.
+# find нижче туди не заглядає (-maxdepth 1), recorder.sh при нестачі місця
+# чистить лише сам буфер — rejected/ лишається, доки людина не прибере.
+REJECT_DIR="$DIR/rejected"
+reject() { # reject <файл> <причина>
+    mkdir -p "$REJECT_DIR" && mv -f "$1" "$REJECT_DIR/" \
+        && log "$(basename "$1"): $2 — переніс у rejected/, беру наступний"
+}
+
+upload_one() { # upload_one <файл> — 0 залито, 3 відкладено в rejected/, 1 збій (повторимо)
     _f=$1; _name=$(basename "$_f")
     _bytes=$(stat -c %s "$_f") || return 1
     _at=$(start_epoch "$_name")
-    [ -n "$_at" ] || { log "$_name: не розібрав час з імені — пропускаю"; return 1; }
+    [ -n "$_at" ] || { reject "$_f" "не розібрав час з імені"; return 3; }
+    # Порожній файл лишає ffmpeg, якого вбили на старті сегмента (09.10.2026
+    # малина «вмирала» через картку саме так). Файл старший за хвилину —
+    # find нижче інших не дає, — тож він уже не доросте.
+    [ "$_bytes" -gt 0 ] || { reject "$_f" "порожній файл"; return 3; }
     # Тип — за розширенням: з 07.10.2026 recorder пише mkv (відео й звук),
     # раніше — TS. Api підписує посилання саме під цей content-type.
     case "$_name" in *.mkv) _type=video/x-matroska ;; *) _type=video/mp2t ;; esac
     _body="{\"name\":\"$_name\",\"bytes\":$_bytes,\"started_at\":$_at,\"camera\":\"$CAMERA\"}"
-    _resp=$(api_post /video/upload "$_body") || return 1
+    _resp=$(api_post /video/upload "$_body"); _rc=$?
+    if [ "$_rc" -eq 2 ]; then reject "$_f" "api відкинув: $(printf '%s' "$_resp" | head -c 160)"; return 3; fi
+    [ "$_rc" -eq 0 ] || return 1
     _url=$(json_field "$_resp" url); _key=$(json_field "$_resp" key)
     [ -n "$_url" ] && [ -n "$_key" ] || { log "$_name: api не дав посилання"; return 1; }
     # -4: заливаємо по IPv4. На 4G-мережі точки IPv6 до Cloudflare R2
@@ -241,13 +269,20 @@ while [ "$STOPPING" = 0 ]; do
     TOKEN=$(cat "$TOKEN_FILE")
     # Готові сегменти — ті, які ffmpeg уже не дописує: не мінялись понад
     # дві хвилини. Найстаріші — першими, щоб архів у R2 ріс без дірок.
-    _list=$(find "$DIR" -maxdepth 1 \( -name '*.mkv' -o -name '*.ts' \) -mmin +1 2>/dev/null | sort | head -n "$BATCH")
-    if [ -z "$_list" ]; then idle 30; continue; fi
+    _all=$(find "$DIR" -maxdepth 1 \( -name '*.mkv' -o -name '*.ts' \) -mmin +1 2>/dev/null | sort)
+    # Черга для телеметрії (14.10.2026): скільки сегментів чекає й з якого
+    # часу найстаріший — інакше хвіст на флешці видно лише з ssh.
+    _qn=$(printf '%s' "$_all" | grep -c .)
+    _qo=0; [ "$_qn" -gt 0 ] && _qo=$(start_epoch "$(basename "$(printf '%s\n' "$_all" | head -n 1)")")
+    printf '%s %s\n' "$_qn" "${_qo:-0}" > "$EXTROVERT_STATE/upload.queue.tmp" && mv "$EXTROVERT_STATE/upload.queue.tmp" "$EXTROVERT_STATE/upload.queue"
+    _list=$(printf '%s\n' "$_all" | head -n "$BATCH")
+    if [ -z "$_all" ]; then idle 30; continue; fi
     _done=0
     for _f in $_list; do
         [ "$STOPPING" = 0 ] || break
-        if upload_one "$_f"; then
-            _done=$((_done + 1))
+        upload_one "$_f"; _res=$?   # не _r: ним користується pace()
+        if [ "$_res" -eq 0 ] || [ "$_res" -eq 3 ]; then
+            _done=$((_done + 1))   # 3 — відкладено в rejected/: черга йде далі, без паузи
         else
             FAILS=$((FAILS + 1))
             [ "$FAILS" -eq 1 ] && log "$(basename "$_f"): заливка не вдалась — повторю пізніше"

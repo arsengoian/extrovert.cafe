@@ -52,6 +52,8 @@ export const METRIC_LABELS = {
   // «щонайменше стільки», а не «канал дає рівно стільки».
   upload_kb_s: "заливка вгору, КБ/с", upload_limit_kb_s: "стеля заливки, КБ/с",
   upload_ok: "остання заливка вдалась", upload_at: "остання заливка",
+  // Черга на флешці (uploader.sh пише state/upload.queue, 14.10.2026).
+  upload_queue: "сегментів у черзі на заливку", upload_oldest: "найстаріший у черзі записаний",
   // Кавомашина Jetinno (jobs/jetinno.js)
   online: "машина онлайн", session: "сесія порталу", last_login: "востаннє в мережі",
   // «Лічильник машини» в підписі навмисно: get_device повертав 0 тоді, коли
@@ -80,7 +82,7 @@ export const metricValue = (key, value) => {
     return h < 48 ? `${h.toFixed(1)} год` : `${(h / 24).toFixed(1)} діб`;
   }
   // Час машини з порталу — як і решта часу в таблиці, а не сирий ISO.
-  if (key === "last_login" || key === "upload_at") return value ? fmt.time(value) : "—";
+  if (key === "last_login" || key === "upload_at" || key === "upload_oldest") return value ? fmt.time(value) : "—";
   // Списки (несправності, події за добу) — крапкою з комою, бо самі рядки
   // вже містять коми в описах; порожній список читається як «немає».
   if (Array.isArray(value)) return value.length ? value.join("; ") : "немає";

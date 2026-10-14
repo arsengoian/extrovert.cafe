@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 4d83b1b</p>
+  <p class="eyebrow">extrovert.cafe · джерело 2ab1d01</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5538,7 +5538,17 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 8 КБ/с один сегмент іде 12 хвилин. Темп і останній замір лежать у
 <code>state/</code> (<code>upload.cap</code>, <code>upload.last</code>) і переживають ребут, а телеметрія
 щохвилини відправляє замір: <code>upload_kb_s</code>, <code>upload_ok</code>, <code>upload_at</code>,
-<code>upload_limit_kb_s</code> (в адмінці — «Мережа точки» й «Компоненти точки»).
+<code>upload_limit_kb_s</code> (в адмінці — «Мережа точки» й «Компоненти точки»),
+а з 14.10.2026 ще й черга: <code>upload_queue</code> (скільки сегментів чекає) і
+<code>upload_oldest</code> (коли записаний найстаріший) — рядок під графіком
+заливки. <strong>Битий сегмент чергу не тримає</strong> (14.10.2026): порожній файл,
+ім&#39;я без часу чи 400 від api (<code>bad_bytes</code>, <code>bad_started_at</code>…) — і файл
+їде в <code>rejected/</code> поруч із буфером з причиною в лозі, а аплоудер бере
+наступний. Досі такий файл повертав помилку щоразу, аплоудер на кожну
+ставав на паузу до 10 хв і починав з нього ж, найстарішого, — заливка
+стояла годинами, а в телеметрії не було навіть невдалих замірів (збій до
+самої заливки замір не пише). На 401/403/429 і обриви файли лишаються в
+черзі: відкликаний ключ не має перенести в <code>rejected/</code> усе підряд.
 Межа 800 КБ/с ≈ 8 потоків 720p (~95 КБ/с; до 12.10.2026 була 400): година накопиченого
 доганяється за ~8 хвилин. Довжину файла curl отримує заголовком і без
 chunked (<code>Transfer-Encoding:</code> порожній): R2 chunked не приймає, а curl
@@ -14755,7 +14765,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 4d83b1b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 2ab1d01 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

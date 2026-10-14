@@ -266,6 +266,21 @@ upload_metrics() {
     echo "$_kb $_ok ${_when:-null} $5"
 }
 
+# Черга заливки (14.10.2026): скільки сегментів чекає на флешці й коли
+# записано найстаріший. Рахує аплоудер на кожному проході (state/upload.queue,
+# «<кількість> <epoch найстарішого>») — сам телеметрії на флешку лізти не
+# треба. Без черги найстаріший — null.
+queue_metrics() {
+    _f="$EXTROVERT_STATE/upload.queue"
+    [ -s "$_f" ] || { echo "null null"; return; }
+    # shellcheck disable=SC2046 # два числа через пробіл
+    set -- $(head -n 1 "$_f")
+    [ $# -ge 2 ] || { echo "null null"; return; }
+    _old=null
+    [ "$1" -gt 0 ] 2>/dev/null && [ "$2" -gt 0 ] 2>/dev/null && _old="\"$(date -u -d "@$2" +%Y-%m-%dT%H:%M:%SZ)\""
+    echo "$1 $_old"
+}
+
 # Кіоск сам розповідає про себе через UNIX-сокет (telemetry.c). Беремо fps
 # і версію: саме вони кажуть, чи малюється меню.
 kiosk_metrics() { # kiosk_metrics <сокет>
@@ -297,14 +312,15 @@ sample_json() {
     _rofs=$(root_readonly)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     set -- $(upload_metrics); _upkb=$1; _upok=$2; _upat=$3; _uplim=$4
+    set -- $(queue_metrics); _qn=$1; _qold=$2
     [ "$_upat" = null ] || _upat="\"$_upat\""
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"uplink":%s,"wifi_dbm":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"upload_queue":%s,"upload_oldest":%s,"uplink":%s,"wifi_dbm":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_memt:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
         "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" \
         "${_rofs:-null}" "${_usb:-null}" "${_upkb:-null}" "${_upok:-null}" "${_upat:-null}" "${_uplim:-null}" \
-        "${_uplink:-null}" "${_wdbm:-null}" "${_release:-unknown}"
+        "${_qn:-null}" "${_qold:-null}" "${_uplink:-null}" "${_wdbm:-null}" "${_release:-unknown}"
 }
 
 # ── відправка ────────────────────────────────────────────────────────────
