@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 373438e</p>
+  <p class="eyebrow">extrovert.cafe · джерело b5c0279</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -8523,15 +8523,14 @@ Wi-Fi клубу першою дорогою без перезапуску dhcpc
 <li><input disabled="" type="checkbox"> <strong>Сфотографувати до будь-яких змін:</strong> світлодіоди на платі (OK, PWR,
 FDX, LNK, 100), картку в слоті збоку (чи стирчить, чи це microSD у
 перехіднику), блок живлення малини в мережевому фільтрі (модель, струм).</li>
-<li><input disabled="" type="checkbox"> <strong>Перевірити, чи картка не зачеплена</strong> кабелями чи кільцями патч-кордів:
-у Pi 1 B вона виступає за край плати. 14.10.2026 її вже раз зачепили,
-міняючи блок живлення, — кабелі відвести від того краю.</li>
-<li><input disabled="" type="checkbox"> <strong>Постійний блок живлення 5 В / 2,5 А</strong> з коротким кабелем, якщо
-зарядку OnePlus 6T з точки заберуть. Блок на 1 А назад не ставити.</li>
+<li><input disabled="" type="checkbox"> <strong>Постійний блок живлення 5 В / 2,5 А</strong> з коротким кабелем — лише якщо
+зарядку OnePlus 6T з точки заберуть (14.10.2026 лишили, закріплену
+скотчем). Блок на 1 А назад не ставити.</li>
 </ul>
-<p>Патч картки (міст прибрано, SSH лише за ключем, <code>wlan0</code> у <code>dhcpcd.conf</code>),
-повний образ і Wi-Fi клубу через USB-адаптер — зроблено 14.10.2026
-(<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>).</p>
+<p>Зроблено 14.10.2026 (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>): патч картки (міст прибрано, SSH
+лише за ключем, <code>wlan0</code> у <code>dhcpcd.conf</code>), повний образ, Wi-Fi клубу через
+USB-адаптер, кабелі відведено від краю плати з карткою, блок живлення
+закріплено.</p>
 <h3 id="site-visit-кавомашина-jetinno"><a class="anchor" href="#site-visit-кавомашина-jetinno" aria-hidden="true">#</a>Кавомашина Jetinno</h3>
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Перевірка помилки 5A00 (відро стічної води).</strong> Витягнути відро на 1–2
@@ -14750,7 +14749,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 373438e — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел b5c0279 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
