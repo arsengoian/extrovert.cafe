@@ -8,7 +8,7 @@ import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { BeatRow, BeatScale } from "../charts.jsx";
 import { ServerSection } from "./Server.jsx";
-import { Card, Empty, Kpi, METRIC_LABELS, RangePicker, fmt, metricValue, rangeLabel, useData, useRange } from "../ui.jsx";
+import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS, RangePicker, UPLINK, fmt, metricValue, rangeLabel, useData, useRange } from "../ui.jsx";
 
 // Підсумок по точці: зелена крапка лише тоді, коли зелене все, що ми вміємо
 // перевірити. Дивитись доводилось у пʼять рядків одразу — тепер відповідь
@@ -24,7 +24,6 @@ function pointOk(p) {
     p.monitor ? p.monitor.ok : null,
     m.monitor_on === false ? false : null,
     m.root_ro === true ? false : null,
-    Number.isFinite(m.throttled) && (m.throttled & 0x5) !== 0 ? false : null,
     m.kiosk_fps !== undefined && (m.kiosk_fps === null || Number(m.kiosk_fps) <= 0) ? false : null,
     Number.isFinite(m.disk_free_mb) && m.disk_free_mb < 300 ? false : null,
     // Ті самі пороги, що в overseer (checks.js, DEVICE_CHECKS): підсумок на
@@ -87,12 +86,13 @@ function PointTelemetry({ point }) {
           доїжджає й після обриву, а ping із втратами показує зв'язок, який
           ще живий, але вже поганий. */}
       <DataRow
-        label="інтернет"
-        note="ping до api"
-        ok={dot(loss === null ? null : Number(loss) < 5)}
+        label="пінг до сервера"
+        note="5 пакетів до api; червоне — від двох загублених"
+        ok={dot(loss === null ? null : Number(loss) < LOSS_BAD_PCT)}
         at={at}
         value={bits(
-          num(m.ping_ms) && `ping ${num(m.ping_ms)} мс`,
+          m.uplink && `через ${UPLINK[m.uplink] ?? m.uplink}`,
+          num(m.ping_ms) && `пінг ${num(m.ping_ms)} мс`,
           num(m.jitter_ms) && `jitter ${num(m.jitter_ms)} мс`,
           loss !== null && `втрати ${loss} %`
         )}

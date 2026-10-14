@@ -135,23 +135,25 @@ monitor_wake() {
     return 0
 }
 
-# Стан живлення прошивки: 0x1 — просідає прямо зараз, 0x10000 — просідало з
-# моменту завантаження. Саме воно малює той «райдужний квадрат» у кутку, і
-# воно ж — головна причина, чому вмирають SD-карти: запис під час просідання
-# псує файлову систему (docs/raspberry-pi.md). Пишемо число як є: розбирати
-# біти зручніше на сервері, ніж у sh.
-throttled() {
-    if command -v vcgencmd >/dev/null 2>&1; then
-        # vcgencmd питає прошивку VideoCore; кіоск, що зачепив GPU, може
-        # тримати її довго — без таймауту чекала б і телеметрія.
-        _t=$(timeout 5 vcgencmd get_throttled 2>/dev/null)
-        case "$_t" in
-            throttled=0x*) printf '%d' "$(printf '%s' "${_t#throttled=}")" 2>/dev/null || echo null ;;
-            *) echo null ;;
-        esac
-        return
-    fi
-    echo null
+# Якою дорогою малина зараз ходить в інтернет (14.10.2026): Wi-Fi клубу чи
+# LTE через eth0 — туди, куди ядро шле пакет до 1.1.1.1, тож видно й
+# перемикання компонента wifi на LTE, коли за Wi-Fi нема інтернету. Сигнал —
+# рівень з /proc/net/wireless, дБм; без адаптера — null.
+#
+# vcgencmd get_throttled («живлення без просідань») прибрано того ж дня: у
+# Pi 1 B детектора просідань нема, і він завжди віддавав 0 — зокрема поки
+# слабкий блок валив картку (raspberry-pi.md, «Винний блок живлення»).
+uplink_metrics() {
+    # Імена з префіксом _ul: у sh змінні функції глобальні, а sample_json
+    # уже тримає, наприклад, _up (аптайм) — перетерли б.
+    _ul_dev=$(ip route get 1.1.1.1 2>/dev/null | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
+    case "$_ul_dev" in
+        wlan*) _ul='"wifi"' ;;
+        eth*|br*) _ul='"lte"' ;;
+        *) _ul=null ;;
+    esac
+    _ul_dbm=$(awk '$1 ~ /^wlan[0-9]*:$/ { sub(/\./, "", $4); print $4; exit }' /proc/net/wireless 2>/dev/null)
+    echo "$_ul ${_ul_dbm:-null}"
 }
 
 # Відеопотік: чи пише recorder (stack/recorder.sh). Правда тут — свіжий
@@ -291,18 +293,18 @@ sample_json() {
     # пробі стояло б «будили» — неправда, яку потім видно в алерті.
     if [ "$_monitor" = "false" ] && [ "$_msrc" = "cec" ] && monitor_wake; then _woke=true; fi
     set -- $(flash_probe); _video=$1; _usb=$2
-    _throttled=$(throttled)
+    set -- $(uplink_metrics); _uplink=$1; _wdbm=$2
     _rofs=$(root_readonly)
     _release=$(basename "$(readlink -f "$EXTROVERT_CURRENT" 2>/dev/null)" 2>/dev/null)
     set -- $(upload_metrics); _upkb=$1; _upok=$2; _upat=$3; _uplim=$4
     [ "$_upat" = null ] || _upat="\"$_upat\""
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"throttled":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"release":"%s"}}' \
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"uplink":%s,"wifi_dbm":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_memt:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
-        "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" "${_throttled:-null}" \
+        "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" \
         "${_rofs:-null}" "${_usb:-null}" "${_upkb:-null}" "${_upok:-null}" "${_upat:-null}" "${_uplim:-null}" \
-        "${_release:-unknown}"
+        "${_uplink:-null}" "${_wdbm:-null}" "${_release:-unknown}"
 }
 
 # ── відправка ────────────────────────────────────────────────────────────

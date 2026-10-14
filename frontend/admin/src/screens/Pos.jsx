@@ -8,7 +8,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Beat, BeatScale, Line } from "../charts.jsx";
-import { Card, Empty, Kpi, METRIC_LABELS as LABELS, RangePicker, Table, fmt, metricValue as human, rangeLabel, useData, useRange } from "../ui.jsx";
+import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, RangePicker, Table, UPLINK, fmt, metricValue as human, rangeLabel, useData, useRange } from "../ui.jsx";
 
 // Булеві показники, для яких малюємо тижневу смужку. `pick` повертає
 // true/false або null — «проби не було й судити нема з чого».
@@ -21,14 +21,13 @@ const SIGNALS = [
     pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on) },
   { key: "kiosk", name: "кіоск малює", note: "fps > 0",
     pick: (m) => (m.kiosk_fps === undefined || m.kiosk_fps === null ? null : Number(m.kiosk_fps) > 0) },
-  { key: "power", name: "живлення", note: "без просідань",
-    pick: (m) => (m.throttled === undefined || m.throttled === null ? null : (Number(m.throttled) & 0x5) === 0) },
   { key: "card", name: "картка пишеться", note: "не read-only",
     pick: (m) => (m.root_ro === undefined || m.root_ro === null ? null : m.root_ro === false) },
   { key: "usb", name: "флешка", note: "змонтована й пишеться",
     pick: (m) => (m.usb_ok === undefined ? null : m.usb_ok) },
-  { key: "net", name: "інтернет", note: "втрати менші за 5 %",
-    pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < 5) },
+  // Поріг і чому саме такий — LOSS_BAD_PCT в ui.jsx (14.10.2026).
+  { key: "net", name: "пінг до сервера", note: "губиться ≤ 1 пакета з 5",
+    pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < LOSS_BAD_PCT) },
   { key: "video", name: "відеопотік", note: "камера відповідає",
     pick: (m) => (m.video_ok === undefined ? null : m.video_ok) },
   { key: "temp", name: "температура", note: "нижче 80 °C",
@@ -93,7 +92,7 @@ function boolSeries(history, pick, { hours, step }) {
 // за абеткою. Ключ, якого тут немає, не зникає — просто йде в кінець.
 const ORDER = [
   "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
-  "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "throttled", "temp_c", "cpu",
+  "uplink", "wifi_dbm", "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "temp_c", "cpu",
   "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
 ];
 
@@ -119,7 +118,7 @@ function Dot({ ok }) {
 // порогами алертів overseer (backend/overseer/src/checks.js). Решта полів —
 // довідка (реліз, аптайм, пінг), їм сіра крапка.
 const PI_SIGNAL = {
-  monitor_on: "monitor", kiosk_fps: "kiosk", throttled: "power", root_ro: "card",
+  monitor_on: "monitor", kiosk_fps: "kiosk", root_ro: "card",
   usb_ok: "usb", loss_pct: "net", video_ok: "video", temp_c: "temp",
 };
 const PI_EXTRA = {
@@ -299,11 +298,19 @@ export function Pos({ id }) {
             мілісекунди й КБ/с на одній осі не живуть. */}
         <Card title="Мережа точки" note={`${span}, за часом виміру`}>
           <div className="stack" style={{ gap: 10 }}>
+            {/* Дві дороги в інтернет з 14.10.2026: Wi-Fi клубу й запасний LTE
+                (stack/wifi.sh). Остання проба каже, якою малина ходить зараз. */}
+            {pi?.metrics?.uplink && (
+              <div style={{ fontSize: 12.5 }}>
+                зараз через <b>{UPLINK[pi.metrics.uplink] ?? pi.metrics.uplink}</b>
+                {Number.isFinite(pi.metrics.wifi_dbm) && <span className="muted"> · сигнал Wi-Fi {pi.metrics.wifi_dbm} дБм</span>}
+              </div>
+            )}
             <div>
-              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>ping і jitter, мс</div>
+              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>пінг до сервера (api.extrovert.cafe) і jitter, мс</div>
               {ping.length || jitter.length ? (
                 <Line domain={domain} series={[
-                  ...(ping.length ? [{ name: "ping, мс", color: "#FE810B", points: ping }] : []),
+                  ...(ping.length ? [{ name: "пінг, мс", color: "#FE810B", points: ping }] : []),
                   ...(jitter.length ? [{ name: "jitter, мс", color: "#3FBF6F", points: jitter }] : []),
                 ]} />
               ) : (
