@@ -16,22 +16,35 @@ import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, RangePicker, T
 // Памʼяті тут немає навмисно: у неї є своя лінія нижче, а «є запас / немає
 // запасу» на тижневій смужці однаково зелене й не каже нічого, чого не
 // видно з графіка (прохання власника 24.09.2026).
+// why — що саме не так у поганій пробі, для тултіпа червоного відра; rank —
+// наскільки погано (більше — гірше): з кількох поганих проб відра в тултіп
+// іде найгірша. Досі там стояло просто «падало» (власник, 14.10.2026).
 const SIGNALS = [
   { key: "monitor", name: "монітор", note: "CEC: увімкнений",
-    pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on) },
+    pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on),
+    why: (m) => `${m.monitor_src === "cec" ? "монітор у режимі очікування (CEC)" : `монітор не відповідає (${m.monitor_src ?? "?"})`}${m.monitor_woke ? ", будили" : ""}` },
   { key: "kiosk", name: "кіоск малює", note: "fps > 0",
-    pick: (m) => (m.kiosk_fps === undefined || m.kiosk_fps === null ? null : Number(m.kiosk_fps) > 0) },
+    pick: (m) => (m.kiosk_fps === undefined || m.kiosk_fps === null ? null : Number(m.kiosk_fps) > 0),
+    why: (m) => `кіоск не малює: fps ${m.kiosk_fps}` },
   { key: "card", name: "картка пишеться", note: "не read-only",
-    pick: (m) => (m.root_ro === undefined || m.root_ro === null ? null : m.root_ro === false) },
+    pick: (m) => (m.root_ro === undefined || m.root_ro === null ? null : m.root_ro === false),
+    why: () => "картка стала read-only" },
   { key: "usb", name: "флешка", note: "змонтована й пишеться",
-    pick: (m) => (m.usb_ok === undefined ? null : m.usb_ok) },
+    pick: (m) => (m.usb_ok === undefined ? null : m.usb_ok),
+    why: () => "флешка не змонтована або не пишеться" },
   // Поріг і чому саме такий — LOSS_BAD_PCT в ui.jsx (14.10.2026).
   { key: "net", name: "пінг до сервера", note: "губиться ≤ 1 пакета з 5",
-    pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < LOSS_BAD_PCT) },
+    pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < LOSS_BAD_PCT),
+    why: (m) => (Number(m.loss_pct) >= 100 ? "сервер недосяжний: усі пінги загубились"
+      : `втрати ${m.loss_pct} %${m.ping_ms != null ? `, пінг ${m.ping_ms} мс` : ""}`)
+      + (m.uplink ? ` (через ${UPLINK[m.uplink] ?? m.uplink})` : ""),
+    rank: (m) => Number(m.loss_pct) },
   { key: "video", name: "відеопотік", note: "камера відповідає",
-    pick: (m) => (m.video_ok === undefined ? null : m.video_ok) },
+    pick: (m) => (m.video_ok === undefined ? null : m.video_ok),
+    why: () => "запис не йде: свіжих сегментів із камери немає" },
   { key: "temp", name: "температура", note: "нижче 80 °C",
-    pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80) },
+    pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80),
+    why: (m) => `${m.temp_c} °C`, rank: (m) => Number(m.temp_c) },
 ];
 
 // Те саме для кавомашини. Проби рідші (раз на пів години проти хвилини в
@@ -40,18 +53,25 @@ const SIGNALS = [
 // смужки малини: не «як зараз», а «коли саме стало погано».
 const JET_SIGNALS = [
   { key: "jet_session", name: "сесія порталу", note: "вхід живий",
-    pick: (m) => (m.session === undefined ? null : Boolean(m.session)) },
+    pick: (m) => (m.session === undefined ? null : Boolean(m.session)),
+    why: () => "вхід на портал Jetinno злетів" },
   { key: "jet_online", name: "машина на звʼязку", note: "портал її бачить",
-    pick: (m) => (m.online === undefined ? null : Boolean(m.online)) },
+    pick: (m) => (m.online === undefined ? null : Boolean(m.online)),
+    why: (m) => `портал не бачить машину${m.last_login ? `, востаннє ${fmt.time(m.last_login)}` : ""}` },
   { key: "jet_faults", name: "без несправностей", note: "активних немає",
     pick: (m) => (m.fault_codes !== undefined ? !m.fault_codes.length
-      : m.faults === undefined ? null : !Number(m.faults)) },
+      : m.faults === undefined ? null : !Number(m.faults)),
+    why: (m) => (m.fault_codes?.length ? m.fault_codes.join("; ") : `лічильник несправностей: ${m.faults}`),
+    rank: (m) => m.fault_codes?.length ?? Number(m.faults) },
   { key: "jet_warnings", name: "без попереджень", note: "лічильник нуль",
-    pick: (m) => (m.warnings === undefined ? null : !Number(m.warnings)) },
+    pick: (m) => (m.warnings === undefined ? null : !Number(m.warnings)),
+    why: (m) => `попереджень: ${m.warnings}`, rank: (m) => Number(m.warnings) },
   { key: "jet_supply", name: "інгредієнти", note: "дефіциту немає",
-    pick: (m) => (m.supply_short === undefined ? null : !Number(m.supply_short)) },
+    pick: (m) => (m.supply_short === undefined ? null : !Number(m.supply_short)),
+    why: (m) => `дефіцит інгредієнтів: ${m.supply_short}`, rank: (m) => Number(m.supply_short) },
   { key: "jet_reconcile", name: "замовлення ↔ чеки", note: "сходяться",
-    pick: (m) => (m.reconcile_ok === undefined ? null : Boolean(m.reconcile_ok)) },
+    pick: (m) => (m.reconcile_ok === undefined ? null : Boolean(m.reconcile_ok)),
+    why: (m) => `замовлень карткою ${m.orders_card_24h ?? "?"}, готівкою ${m.orders_cash_24h ?? "?"}, чеків ${m.receipts_24h ?? "?"} (за добу)` },
 ];
 
 // Що малюємо лініями під мережею: три показники, по яких видно, що точці
@@ -71,21 +91,38 @@ const HARDWARE = [
 // години; вікно й крок каже сервер). Рахуємо на клієнті, бо історія проб
 // уже приїхала разом зі сторінкою — окремий запит тут був би за тими самими
 // даними.
-function boolSeries(history, pick, { hours, step }) {
+// Для червоного відра — що саме було не так (sig.why) у найгіршій пробі
+// (sig.rank) і скільки проб відра були поганими.
+function boolSeries(history, sig, { hours, step }) {
   const buckets = new Map();
   for (const h of history) {
-    const v = pick(h.metrics ?? {});
+    const m = h.metrics ?? {};
+    const v = sig.pick(m);
     if (v === null || v === undefined) continue;
     const t = Math.floor(new Date(h.measured_at).getTime() / step) * step;
-    buckets.set(t, (buckets.get(t) ?? true) && Boolean(v));
+    const b = buckets.get(t) ?? { ok: true, bad: 0, total: 0, worst: null, rank: -Infinity };
+    b.total += 1;
+    if (!v) {
+      b.ok = false; b.bad += 1;
+      const r = sig.rank ? sig.rank(m) : 0;
+      if (b.worst === null || r > b.rank) { b.worst = m; b.rank = r; }
+    }
+    buckets.set(t, b);
   }
   const last = Math.floor(Date.now() / step) * step;
   const from = last - hours * 3600_000;
   let line = "";
+  const fails = [];
   for (let t = from; t <= last; t += step) {
-    line += buckets.has(t) ? (buckets.get(t) ? "1" : "0") : "?";
+    const b = buckets.get(t);
+    line += b ? (b.ok ? "1" : "0") : "?";
+    if (b && !b.ok) {
+      const what = sig.why ? sig.why(b.worst) : "погано";
+      const share = b.total > 1 ? ` · погано в ${b.bad} з ${b.total} проб` : "";
+      fails.push({ t, detail: `${b.bad > 1 && sig.rank ? "найгірше: " : ""}${what}${share}` });
+    }
   }
-  return { from, step, line, fails: [], seen: buckets.size > 0 };
+  return { from, step, line, fails, seen: buckets.size > 0 };
 }
 
 // Порядок карток метрик: спершу те, про що питають найчастіше, далі решта
@@ -188,7 +225,7 @@ export function Pos({ id }) {
     const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
     return { ...win, step: Math.max(win.step, Math.round(median / win.step) * win.step) };
   })();
-  const jetSeries = JET_SIGNALS.map((sig) => ({ sig, series: boolSeries(jetHistory, sig.pick, jetWin) }));
+  const jetSeries = JET_SIGNALS.map((sig) => ({ sig, series: boolSeries(jetHistory, sig, jetWin) }));
   const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
   const jet = latest.find((l) => l.source === "jetinno");
@@ -278,7 +315,7 @@ export function Pos({ id }) {
           <span className="value">проби overseer</span>
         </div>
         {SIGNALS.map((s) => {
-          const series = boolSeries(piHistory, s.pick, win);
+          const series = boolSeries(piHistory, s, win);
           return (
             <div className="beat-row" key={s.key}>
               <span className="name">{s.name}</span>

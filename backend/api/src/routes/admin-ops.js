@@ -55,7 +55,7 @@ const RANGES = {
 };
 const rangeOf = (key) => ({ key: RANGES[key] ? key : "7d", ...(RANGES[key] ?? RANGES["7d"]) });
 
-// Ряд відер одним рядком: «1» — усе гаразд, «0» — падало, «?» — проб не
+// Ряд відер одним рядком: «1» — усе гаразд, «0» — було погано, «?» — проб не
 // було. Відсутнє відро саме «не знаємо», а не «зелено»: так видно, що
 // збирач не працював. Рядок замість масиву обʼєктів — сотні символів
 // проти десятків кілобайтів на кожну ціль, а екран малює смужку саме
@@ -65,8 +65,12 @@ function series(rows, range, now = Date.now()) {
   const byBucket = new Map();
   for (const r of rows) {
     const t = Math.floor(new Date(r.bucket_start).getTime() / step) * step;
-    const cur = byBucket.get(t);
-    if (!cur || (cur.ok && !r.ok)) byBucket.set(t, { ok: r.ok, detail: r.ok ? null : r.detail });
+    const cur = byBucket.get(t) ?? { ok: true, detail: null, bad: 0, total: 0 };
+    cur.total += 1;
+    // Остання погана проба відра, а не перша: «мовчить 25 хв» каже більше,
+    // ніж «мовчить 10 хв» на початку того самого відра.
+    if (!r.ok) { cur.ok = false; cur.bad += 1; cur.detail = r.detail ?? cur.detail; }
+    byBucket.set(t, cur);
   }
   const last = Math.floor(now / step) * step;
   const first = last - range.hours * 3600_000;
@@ -75,11 +79,15 @@ function series(rows, range, now = Date.now()) {
   for (let t = first; t <= last; t += step) {
     const row = byBucket.get(t);
     line += row ? (row.ok ? "1" : "0") : "?";
-    if (row && !row.ok) fails.push({ t, detail: row.detail });
+    if (row && !row.ok) {
+      const share = row.total > 1 ? ` · погано в ${row.bad} з ${row.total} проб` : "";
+      fails.push({ t, detail: `${row.detail ?? "без подробиць"}${share}` });
+    }
   }
-  // Деталі — лише для червоних відер: у тултіпі показувати нема чого, коли
-  // все гаразд.
-  return { from: first, step, line, fails: fails.slice(-40) };
+  // Деталі — для кожного червоного відра (власник, 14.10.2026). Досі їх
+  // різали до останніх 40, і старіші червоні відра в тултіпі казали просто
+  // «падало». Навіть місяць по дві години — 361 відро, кілобайти.
+  return { from: first, step, line, fails };
 }
 
 // Проби малини приходять раз на пʼять хвилин: за місяць — 8640 рядків на

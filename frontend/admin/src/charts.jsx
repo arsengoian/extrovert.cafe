@@ -31,7 +31,7 @@ export function Beat({ history, title }) {
         const when = new Date(t).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
         return (
           <rect key={i} data-s={c} x={i + 0.1} width={0.8} y={0} height={1}>
-            <title>{c === "?" ? `${when}: проб не було` : c === "1" ? `${when}: усе гаразд` : `${when}: ${detail ?? "падало"}`}</title>
+            <title>{c === "?" ? `${when}: проб не було` : c === "1" ? `${when}: усе гаразд` : `${when}: ${detail ?? "погано, подробиць немає"}`}</title>
           </rect>
         );
       })}
