@@ -50,13 +50,30 @@ static size_t write_cb(char *ptr, size_t size, size_t nmemb, void *userdata) {
     return add;
 }
 
+/* Рядок із меню в буфер фіксованого розміру — цілими символами UTF-8.
+ * snprintf різав по байту: у жовтні 2026 дрібний рядок акції на 79 байтів
+ * обрізався на 63-му, посеред кириличної літери, librsvg відкинув увесь
+ * шаблон із невалідним UTF-8, і плашки акції на екрані не стало зовсім.
+ * Задовгий текст тепер просто коротшає, а не валить плашку. */
+static void copy_utf8(char *dst, size_t n, const char *src) {
+    size_t len = strlen(src);
+    if (len >= n) {
+        len = n - 1;
+        /* Перший невлізлий байт — продовження символу (10xxxxxx)? Тоді
+         * відступаємо до початку цього символу, щоб не лишити його половину. */
+        while (len > 0 && ((unsigned char)src[len] & 0xC0) == 0x80) len--;
+    }
+    memcpy(dst, src, len);
+    dst[len] = 0;
+}
+
 static void parse_drink(cJSON *item, drink_t *d) {
     memset(d, 0, sizeof(*d));
     cJSON *j;
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "name")) && cJSON_IsString(j))
-        snprintf(d->name, MENU_STR, "%s", j->valuestring);
+        copy_utf8(d->name, MENU_STR, j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "vol")) && cJSON_IsString(j))
-        snprintf(d->vol, MENU_STR, "%s", j->valuestring);
+        copy_utf8(d->vol, MENU_STR, j->valuestring);
     if ((j = cJSON_GetObjectItemCaseSensitive(item, "cup")) && cJSON_IsString(j))
         snprintf(d->cup, sizeof(d->cup), "%s", j->valuestring);
     /* Округлення, а не valueint (той відкидає дріб): знижена ціна — ціле
@@ -229,7 +246,10 @@ bool menu_expire_discount(menu_t *m, long long now) {
 }
 
 unsigned long menu_visible_hash(const menu_t *m) {
-    char buf[256];
+    /* Вміщує всі рядки реклами повністю (5 × MENU_STR + спрайт): обрізаний
+     * хвіст не потрапив би в хеш, і правка лише кінця дрібного рядка не
+     * оновила б запасну картинку. */
+    char buf[6 * MENU_STR + 64];
     unsigned long h = 2166136261UL;   /* 32-бітний FNV: на ARMv6 long 32-бітний */
     for (int i = 0; i < m->drink_count; i++) {
         const drink_t *d = &m->drinks[i];
@@ -359,15 +379,15 @@ static bool parse_body(const char *data, size_t len, menu_t *out) {
     if (ad) {
         next.ad.valid = true;
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "promo_label")) && cJSON_IsString(j))
-            snprintf(next.ad.promo_label, MENU_STR, "%s", j->valuestring);
+            copy_utf8(next.ad.promo_label, MENU_STR, j->valuestring);
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "head1")) && cJSON_IsString(j))
-            snprintf(next.ad.head1, MENU_STR, "%s", j->valuestring);
+            copy_utf8(next.ad.head1, MENU_STR, j->valuestring);
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "head2")) && cJSON_IsString(j))
-            snprintf(next.ad.head2, MENU_STR, "%s", j->valuestring);
+            copy_utf8(next.ad.head2, MENU_STR, j->valuestring);
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "sub")) && cJSON_IsString(j))
-            snprintf(next.ad.sub, MENU_STR, "%s", j->valuestring);
+            copy_utf8(next.ad.sub, MENU_STR, j->valuestring);
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "fine")) && cJSON_IsString(j))
-            snprintf(next.ad.fine, MENU_STR, "%s", j->valuestring);
+            copy_utf8(next.ad.fine, MENU_STR, j->valuestring);
         if ((j = cJSON_GetObjectItemCaseSensitive(ad, "sprite")) && cJSON_IsString(j))
             snprintf(next.ad.sprite, sizeof(next.ad.sprite), "%s", j->valuestring);
     }

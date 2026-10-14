@@ -10,7 +10,12 @@
 
 #define MENU_MAX_DRINKS 24
 #define MENU_MAX_CUPS 4
-#define MENU_STR 64
+/* Байти, не символи: кирилиця — 2 байти на літеру, «→» — 3. До 14.10.2026
+ * тут було 64, і дрібний рядок акції на 79 байтів («Сайт extrovert.cafe →
+ * Покупки → Кнопка на покупці») не вміщався — див. copy_utf8 у menu.c.
+ * Адмінка й api ріжуть поля акції до 64 символів JS (admin-ops.js), а це
+ * щонайбільше 192 байти UTF-8 — у 256 влазить будь-який такий рядок. */
+#define MENU_STR 256
 
 typedef struct {
     char name[MENU_STR];
