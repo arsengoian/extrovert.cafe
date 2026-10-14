@@ -127,18 +127,8 @@ newest_age() {
     echo $(( $(date +%s) - $(stat -c %Y "$_f") ))
 }
 
-# ПЕРЕВІРКА (13.10.2026, власник погодив): запис на флешку на паузі. З 07.10
-# малина гине за 3–8 хв після старту з CRC-помилками SD-картки
-# (mmcblk0: timed out sending r/w cmd, status 0x800900), а почалось це в день,
-# коли запис на флешку став безперервним. Без запису видно, чи винне
-# навантаження на USB та живлення (Pi 1 B просідань не бачить —
-# детектора напруги в ньому немає), чи сама картка або контакт. Повернути —
-# RECORDER_PAUSED=0 у config/env або прибрати цей блок наступним релізом.
-RECORDER_PAUSED="${RECORDER_PAUSED:-1}"
-
 log "старт, буфер $DIR"
 while [ "$STOPPING" = 0 ]; do
-    if [ "$RECORDER_PAUSED" = 1 ]; then say "запис на паузі (перевірка картки й живлення, 13.10.2026)"; idle 300; continue; fi
     if [ ! -f "$CAM_ENV" ]; then say "немає $CAM_ENV — камера не налаштована, чекаю"; idle 300; continue; fi
     CAM_MAC=""; CAM_USER=""; CAM_PASS=""; CAM_IP=""; CAM_STREAM=""; CAM_URL=""
     read_camera_env "$CAM_ENV"
