@@ -1,5 +1,5 @@
-﻿# patch-card.ps1 — ставить міст до платіжного терміналу прямо на картку точки
-# в кардрідері Windows-ПК (docs/raspberry-pi.md, «Термінал через малину»).
+﻿# patch-card.ps1 — правки кореня точки (patch-image.sh) прямо на картці в
+# кардрідері Windows-ПК (docs/raspberry-pi.md, «Як це ставилось»).
 #
 # Чому так: `wsl --mount` USB-кардрідерів не бере (обмеження WSL), а Docker
 # фізичних дисків не бачить. Тож розділ кореня читаємо сирим у файл, патчимо
@@ -10,6 +10,9 @@
 # Потрібні права адміністратора (сирий доступ до диска) і Docker Desktop.
 #   powershell -ExecutionPolicy Bypass -File raspberry\pi\patch-card.ps1 -Disk 2
 #   ... -Rollback   — повернути змінені мегабайти з копії оригіналу
+#   ... -Backup D:\kyiv-01.img — спершу повний образ картки (усі розділи,
+#       і data з ключами теж), корінь для патча береться вже з нього: картка
+#       читається один раз. Такий образ пише назад write-card.ps1.
 #
 # Розмітка — kyiv-01 (docs/raspberry-pi.md §5): корінь із сектора 3874816,
 # 12582912 секторів. Скрипт звіряє її з таблицею розділів картки й відмовляє,
@@ -19,6 +22,7 @@ param(
     [long]$RootStart = 3874816,
     [long]$RootSectors = 12582912,
     [string]$Work = "$env:TEMP\extrovert-card",
+    [string]$Backup = '',
     [switch]$Rollback
 )
 $ErrorActionPreference = 'Stop'
@@ -86,11 +90,33 @@ try {
         $src = $orig
         $changed = Changed-Chunks $orig $img $length $chunk
     } else {
-        # 1. Сирий корінь із картки у файл
-        Say "читаю корінь із картки…"
-        $dev = Open-Disk $false
-        $out = [IO.File]::Create($img)
         $buf = New-Object byte[] $chunk
+        if ($Backup) {
+            # 0. Повний образ картки. Розмір картки кратний сектору, тож
+            # останній шматок, коротший за мегабайт, теж читається цілими
+            # секторами — інакше сирий диск відмовив би.
+            if (Test-Path $Backup) { throw "$Backup уже є — старий образ не перезаписую, дай інше ім'я" }
+            $size = [long]$d.Size
+            Say ("повний образ картки → {0} ({1:N1} ГБ)…" -f $Backup, ($size / 1GB))
+            $dev = Open-Disk $false
+            $out = [IO.File]::Create($Backup)
+            for ($done = 0L; $done -lt $size; $done += $n) {
+                $want = [int][math]::Min([long]$chunk, $size - $done)
+                $n = $dev.Read($buf, 0, $want)
+                if ($n -ne $want) { throw "коротке читання образу на байті $done ($n із $want)" }
+                $out.Write($buf, 0, $n)
+                if ((($done / $chunk) % 1024) -eq 0) { Say ("  {0:N1} / {1:N1} ГБ" -f ($done / 1GB), ($size / 1GB)) }
+            }
+            $out.Close(); $dev.Close()
+            $mbr = New-Object byte[] 512
+            $fs = [IO.File]::OpenRead($Backup); [void]$fs.Read($mbr, 0, 512); $fs.Close()
+            if ($mbr[510] -ne 0x55 -or $mbr[511] -ne 0xAA) { throw "в образі $Backup немає таблиці розділів — читання зіпсоване?" }
+            Say "образ картки готовий: $Backup"
+        }
+        # 1. Сирий корінь у файл — з образу, якщо він щойно знятий, інакше з картки
+        Say $(if ($Backup) { "беру корінь з образу…" } else { "читаю корінь із картки…" })
+        $dev = if ($Backup) { [IO.File]::OpenRead($Backup) } else { Open-Disk $false }
+        $out = [IO.File]::Create($img)
         [void]$dev.Seek($offset, [IO.SeekOrigin]::Begin)
         for ($done = 0L; $done -lt $length; $done += $chunk) {
             $n = $dev.Read($buf, 0, $chunk)
