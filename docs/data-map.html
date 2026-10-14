@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 2938317</p>
+  <p class="eyebrow">extrovert.cafe · джерело 876e07b</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -6357,15 +6357,14 @@ wpa_supplicant, якого на <code>wlan0</code> запускає dhcpcd.</li>
 мережевий чип — це USB-хаб LAN9512, той самий, що й під флешкою; коли він
 перезапускається (просідання живлення, збій драйвера), <code>eth0</code> повертається
 вже поза мостом, а udev-правило кладе назад лише <code>eth1</code>. Міст порожній —
-мережі немає до ребуту. Це головна гіпотеза для «малина зникає за 3–8 хв
-після кожного старту» з 09.10.2026. Без мосту dhcpcd просто підхопив би
-<code>eth0</code> знову.</p>
-<p>Доки міст не знято з картки (кардрідер, як нижче), стоїть <strong>костиль</strong> в
-<code>stack/uploader.sh</code> (<code>bridge_heal</code>): раз на 30 с повертає <code>eth0</code> у <code>br0</code>,
-пише в лог хвіст <code>dmesg</code> на мить поломки, а лічильник спрацювань іде в
-телеметрію (<code>bridge_heals</code>, в адмінці — «Компоненти точки»). Лічильник
-росте — гіпотеза підтвердилась, і в <code>dmesg</code> видно, чому чип скидався.
-<strong>Прибрати костиль разом із мостом.</strong></p>
+мережі немає до ребуту. Здавалось, що саме це пояснює «малина зникає за
+3–8 хв після кожного старту» з 09.10.2026; справжньою причиною виявився блок
+живлення («Винний блок живлення»), але міст і далі робить будь-який збій
+<code>eth0</code> вічним. Без мосту dhcpcd просто підхопив би <code>eth0</code> знову.</p>
+<p>З 12 до 14.10.2026 тут стояв <strong>костиль</strong> <code>bridge_heal</code> у <code>stack/uploader.sh</code>:
+раз на 30 с повертав <code>eth0</code> у <code>br0</code>, а лічильник спрацювань ішов у
+телеметрію (<code>bridge_heals</code>). Прибраний разом із переходом на Wi-Fi клубу:
+тепер збій <code>eth0</code> малину не відрізає, а сам міст знімає патч картки.</p>
 <div class="tablewrap"><table>
 <thead>
 <tr>
@@ -8461,11 +8460,13 @@ DisplayPort, але від 3 999 ₴ і контраст 1000:1. Друге мі
 </ul>
 <h2 id="site-visit-підготувати-заздалегідь-вдома-разом-зі-мною"><a class="anchor" href="#site-visit-підготувати-заздалегідь-вдома-разом-зі-мною" aria-hidden="true">#</a>Підготувати заздалегідь (вдома, разом зі мною)</h2>
 <ol>
-<li><strong>Патч поточної картки</strong> — <code>raspberry/pi/patch-card.ps1</code> (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>,
+<li><p><strong>Патч поточної картки</strong> — <code>raspberry/pi/patch-card.ps1</code> (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>,
 «Як це ставилось»): знімок кореня, правка, запис лише змінених мегабайтів;
 ключ точки, <code>camera.env</code> і решта <code>data</code> лишаються на місці. Копія
-оригіналу лишається на ноутбуці, <code>-Rollback</code> повертає її назад.</li>
-<li><strong>Що патчимо:</strong><ul>
+оригіналу лишається на ноутбуці, <code>-Rollback</code> повертає її назад.</p>
+</li>
+<li><p><strong>Що патчимо:</strong></p>
+<ul>
 <li><strong>прибрати пережиток мосту <code>br0</code></strong> — <code>extrovert-bridge.sh</code>,
 <code>extrovert-bridge.service</code>, drop-in dhcpcd, udev-правило
 (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>, «Міст br0 — пережиток до світча»): він робить
@@ -8474,14 +8475,18 @@ DisplayPort, але від 3 999 ₴ і контраст 1000:1. Друге мі
 <code>/etc/ssh/sshd_config</code>: з 14.10.2026 малина в Wi-Fi клубу поруч із
 чужими пристроями, а <code>pi</code> досі пускає за паролем (<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>,
 «Секрети точки»);</li>
-<li><strong>watchdog systemd для супервізора</strong> — <code>WatchdogSec=60</code> +
-<code>NotifyAccess=all</code> у <code>extrovert.service</code> і <code>systemd-notify WATCHDOG=1</code> з
-кола <code>supervisor.sh</code> (код — до виїзду): завислий, а не впалий, супервізор
-зараз не перезапускає ніхто.</li>
+<li><strong>блок <code>wlan0</code> у <code>/etc/dhcpcd.conf</code></strong> — <code>metric 100</code> і власні DNS:
+Wi-Fi клубу першою дорогою без перезапуску dhcpcd на кожному старті.</li>
 </ul>
+<p>Усе це — <code>patch-image.sh</code> (14.10.2026), повний образ картки перед
+патчем — <code>patch-card.ps1 -Backup</code>. Сторож супервізора відкладено
+(14.10.2026, рішення власника): причину зависань знайдено, а
+<code>WatchdogSec</code> із <code>systemd-notify</code> на systemd 232 губить сигнали
+короткоживучого процесу й убивав би стек щохвилини.</p>
 </li>
-<li><strong>Після патчу — у коді:</strong> прибрати костиль <code>bridge_heal</code> з
-<code>uploader.sh</code> (і <code>bridge_heals</code> з телеметрії й адмінки).</li>
+<li><p><strong>Після патчу — у коді:</strong> спростити <code>wifi.sh</code> (без пошуку
+<code>/run/dhcpcd.conf</code>), прибрати з репозиторію файли мосту.</p>
+</li>
 </ol>
 <h2 id="site-visit-на-місці-у-такому-порядку"><a class="anchor" href="#site-visit-на-місці-у-такому-порядку" aria-hidden="true">#</a>На місці — у такому порядку</h2>
 <h3 id="site-visit-малина-головне-вона-вмирає-за-3-8-хв-після-кожного-старту"><a class="anchor" href="#site-visit-малина-головне-вона-вмирає-за-3-8-хв-після-кожного-старту" aria-hidden="true">#</a>Малина (головне: вона «вмирає» за 3–8 хв після кожного старту)</h3>
@@ -14711,7 +14716,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 2938317 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 876e07b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
