@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 3c5c7aa</p>
+  <p class="eyebrow">extrovert.cafe · джерело 5d63bd9</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -8524,19 +8524,24 @@ Wi-Fi клубу першою дорогою без перезапуску dhcpc
 FDX, LNK, 100), картку в слоті збоку (чи стирчить, чи це microSD у
 перехіднику), блок живлення малини в мережевому фільтрі (модель, струм).</li>
 <li><input disabled="" type="checkbox"> <strong>Перевірити, чи картка не зачеплена</strong> кабелями чи кільцями патч-кордів:
-у Pi 1 B вона виступає за край плати.</li>
-<li><input disabled="" type="checkbox"> <strong>Патч картки</strong> (міст, watchdog) — наступного разу, коли буде з собою
-ноутбук із кардрідером.</li>
+у Pi 1 B вона виступає за край плати. 14.10.2026 її вже раз зачепили,
+міняючи блок живлення, — кабелі відвести від того краю.</li>
 <li><input disabled="" type="checkbox"> <strong>Постійний блок живлення 5 В / 2,5 А</strong> з коротким кабелем, якщо
 зарядку OnePlus 6T з точки заберуть. Блок на 1 А назад не ставити.</li>
 </ul>
+<p>Патч картки (міст прибрано, SSH лише за ключем, <code>wlan0</code> у <code>dhcpcd.conf</code>),
+повний образ і Wi-Fi клубу через USB-адаптер — зроблено 14.10.2026
+(<a class="doclink" href="#raspberry-pi"><code>raspberry-pi.md</code></a>).</p>
 <h3 id="site-visit-кавомашина-jetinno"><a class="anchor" href="#site-visit-кавомашина-jetinno" aria-hidden="true">#</a>Кавомашина Jetinno</h3>
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Перевірка помилки 5A00 (відро стічної води).</strong> Витягнути відро на 1–2
 хвилини й написати мені — я в цей час дивлюсь портал. Зʼявиться 5A00 на
 порталі — ланцюжок працює, додаю алерт у Telegram. Не зʼявиться — машина
 несправностей у хмару не шле (з 17.04.2026 у журналі порталу лише
-заводський тест, <a class="doclink" href="#jetinno"><code>jetinno.md</code></a>), і це питання до дилера.</li>
+заводський тест, <a class="doclink" href="#jetinno"><code>jetinno.md</code></a>), і це питання до дилера. 14.10.2026
+відро вийняли й одразу вставили — помилки не було навіть на екрані
+машини, а дверцята ключем дали очікувану: датчик відра, схоже, реагує
+не миттєво, тож тримати відро вийнятим довше.</li>
 <li><input disabled="" type="checkbox"> <strong>Сервісне меню машини:</strong> знайти журнал помилок (справжній архів —
 піддон, дверцята, MDB offline 09.10) і чи є налаштування на кшталт
 «вивантажувати несправності» / мережеві звіти. Сфотографувати.</li>
@@ -8548,10 +8553,13 @@ FDX, LNK, 100), картку в слоті збоку (чи стирчить, ч
 <h3 id="site-visit-роутер-і-звʼязок"><a class="anchor" href="#site-visit-роутер-і-звʼязок" aria-hidden="true">#</a>Роутер і звʼязок</h3>
 <ul>
 <li><input disabled="" type="checkbox"> <strong>Колір індикатора LTE</strong> на роутері CPF903 (жовтий — 2G/слабкий сигнал).
-Канал угору буває від 10 до 400+ КБ/с; тепер його видно в адмінці
-(«Мережа точки» — графік заливки), але причину бачить лише око на місці.</li>
-<li><input disabled="" type="checkbox"> <strong>Тариф SIM:</strong> чи немає ліміту трафіку, після якого ріжуть швидкість —
-повна заливка відео 720p це ~8 ГБ на добу.</li>
+З 14.10.2026 малина ходить в інтернет через Wi-Fi клубу, а LTE —
+запасна дорога, але від нього й далі залежать термінал Ingenico, камера
+й телеметрія Jetinno: 14.10 з телефона в його мережі не відкривався
+навіть спідтест.</li>
+<li><input disabled="" type="checkbox"> <strong>Тариф SIM:</strong> чи немає ліміту трафіку, після якого ріжуть швидкість.
+Відео тепер іде через Wi-Fi клубу (до 800 КБ/с, рішення власника), на
+LTE — лише коли Wi-Fi без інтернету.</li>
 </ul>
 
 </section>
@@ -14738,7 +14746,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 3c5c7aa — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 5d63bd9 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
