@@ -44,9 +44,6 @@ dhcpcd_conf() {
 }
 
 apply() {
-    { printf 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=0\ncountry=UA\n\n'
-      cat "$CONF"; } | sudo -n tee "$WPA" >/dev/null || return 1
-    sudo -n chmod 600 "$WPA"
     _dc=$(dhcpcd_conf)
     if ! grep -q "^interface $IFACE\$" "$_dc"; then
         printf '\ninterface %s\nmetric %s\n' "$IFACE" "$METRIC" | sudo -n tee -a "$_dc" >/dev/null || return 1
@@ -58,9 +55,16 @@ apply() {
         # а адреси br0 на час перезапуску лишаються (`persistent` у конфігу).
         sudo -n systemctl restart dhcpcd || return 1
     fi
+    # reconfigure рве з'єднання з точкою на ~30 с, тож лише коли конфіг
+    # справді інший: після ребуту (/etc у RAM заводський) чи нового
+    # wifi.conf. Перезапуск самого компонента (кожен реліз) Wi-Fi не смикає.
+    _want=$(printf 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev\nupdate_config=0\ncountry=UA\n\n'; cat "$CONF")
     if pgrep -f "wpa_supplicant.*-i ?$IFACE" >/dev/null; then
+        [ "$(sudo -n cat "$WPA" 2>/dev/null)" = "$_want" ] && return 0
+        printf '%s\n' "$_want" | sudo -n tee "$WPA" >/dev/null && sudo -n chmod 600 "$WPA" || return 1
         sudo -n wpa_cli -i "$IFACE" reconfigure >/dev/null 2>&1 || return 1
     else
+        printf '%s\n' "$_want" | sudo -n tee "$WPA" >/dev/null && sudo -n chmod 600 "$WPA" || return 1
         sudo -n wpa_supplicant -B -c "$WPA" -i "$IFACE" -Dnl80211,wext >/dev/null 2>&1 || return 1
     fi
 }
