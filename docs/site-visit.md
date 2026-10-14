@@ -32,6 +32,10 @@
      `extrovert-bridge.service`, drop-in dhcpcd, udev-правило
      (`raspberry-pi.md`, «Міст br0 — пережиток до світча»): він робить
      будь-який збій Ethernet вічним;
+   - **SSH лише за ключем** — `PasswordAuthentication no` у
+     `/etc/ssh/sshd_config`: з 14.10.2026 малина в Wi-Fi клубу поруч із
+     чужими пристроями, а `pi` досі пускає за паролем (`raspberry-pi.md`,
+     «Секрети точки»);
    - **watchdog systemd для супервізора** — `WatchdogSec=60` +
      `NotifyAccess=all` у `extrovert.service` і `systemd-notify WATCHDOG=1` з
      кола `supervisor.sh` (код — до виїзду): завислий, а не впалий, супервізор
