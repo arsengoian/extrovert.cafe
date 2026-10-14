@@ -92,18 +92,25 @@ find_camera() {
     _mac=$(printf '%s' "$CAM_MAC" | tr 'A-Z-' 'a-z:')
     _ip=$(arp_lookup "$_mac")
     [ -n "$_ip" ] && { echo "$_ip"; return; }
-    _dev=$(ip -4 route show default | awk '{ for (i = 1; i < NF; i++) if ($i == "dev") { print $(i + 1); exit } }')
-    _cidr=$(ip -4 -o addr show dev "$_dev" 2>/dev/null | awk '{ print $4; exit }')
-    case "$_cidr" in */24) ;; *) return ;; esac
-    _base=${_cidr%.*}
-    _i=1
-    while [ "$_i" -le 254 ]; do
-        ping -c 1 -W 1 "$_base.$_i" >/dev/null 2>&1 &
-        [ $((_i % 32)) -eq 0 ] && wait
-        _i=$((_i + 1))
+    # Перебираємо підмережі всіх інтерфейсів, крім петлі й Wi-Fi, а не того,
+    # куди веде default. З 14.10.2026 default іде через Wi-Fi клубу
+    # (wifi.sh), а камера лишилась у мережі роутера LTE на eth0: після ребуту
+    # з порожнім ARP-кешем рекордер чесав пінгами мережу клубу, камери там не
+    # знаходив, і ~2 години запису не було. Чужу мережу клубу не чешемо й
+    # тепер.
+    for _cidr in $(ip -4 -o addr show 2>/dev/null | awk '$2 != "lo" && $2 !~ /^wlan/ { print $4 }'); do
+        case "$_cidr" in */24) ;; *) continue ;; esac
+        _base=${_cidr%.*}
+        _i=1
+        while [ "$_i" -le 254 ]; do
+            ping -c 1 -W 1 "$_base.$_i" >/dev/null 2>&1 &
+            [ $((_i % 32)) -eq 0 ] && wait
+            _i=$((_i + 1))
+        done
+        wait
+        _ip=$(arp_lookup "$_mac")
+        [ -n "$_ip" ] && { echo "$_ip"; return; }
     done
-    wait
-    arp_lookup "$_mac"
 }
 
 # Запис по колу: стираємо найстаріші за часом зміни, доки вільного не стане
