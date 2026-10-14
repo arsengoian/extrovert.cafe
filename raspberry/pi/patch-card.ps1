@@ -100,16 +100,52 @@ try {
             if (Test-Path $Backup) { throw "$Backup уже є — старий образ не перезаписую, дай інше ім'я" }
             $size = [long]$d.Size
             Say ("повний образ картки → {0} ({1:N1} ГБ)…" -f $Backup, ($size / 1GB))
+            # Нечитабельне місце на картці не має зривати бекап (14.10.2026
+            # kyiv-01 віддала «Data error (CRC)» на 210-му мегабайті розділу
+            # відновлення NOOBS — і в кардрідері ПК, тобто без живлення
+            # малини). Мегабайт, що не читається, повторюємо, далі читаємо
+            # посекторно; сектор, що не віддався й утретє, пишемо нулями й
+            # записуємо номер. Позиція — щоразу явним Seek: після винятку
+            # FileStream за свою не ручається.
             $dev = Open-Disk $false
             $out = [IO.File]::Create($Backup)
-            for ($done = 0L; $done -lt $size; $done += $n) {
+            $bad = New-Object System.Collections.Generic.List[long]
+            $sec = New-Object byte[] 512
+            for ($done = 0L; $done -lt $size; $done += $want) {
                 $want = [int][math]::Min([long]$chunk, $size - $done)
-                $n = $dev.Read($buf, 0, $want)
-                if ($n -ne $want) { throw "коротке читання образу на байті $done ($n із $want)" }
-                $out.Write($buf, 0, $n)
+                $ok = $false
+                for ($try = 1; $try -le 3 -and -not $ok; $try++) {
+                    try { [void]$dev.Seek($done, [IO.SeekOrigin]::Begin); $ok = ($dev.Read($buf, 0, $want) -eq $want) } catch { $ok = $false }
+                }
+                if (-not $ok) {
+                    $before = $bad.Count
+                    for ($o = 0; $o -lt $want; $o += 512) {
+                        $good = $false
+                        for ($try = 1; $try -le 3 -and -not $good; $try++) {
+                            try { [void]$dev.Seek($done + $o, [IO.SeekOrigin]::Begin); $good = ($dev.Read($sec, 0, 512) -eq 512) } catch { $good = $false }
+                        }
+                        if ($good) { [Array]::Copy($sec, 0, $buf, $o, 512) } else { [Array]::Clear($buf, $o, 512); $bad.Add(($done + $o) / 512) }
+                        if ($bad.Count -gt 4096) { throw "понад 4096 нечитабельних секторів (2 МБ) — картка чи кардрідер відмовляють, зупиняюсь" }
+                    }
+                    Say ("  на {0:N2} ГБ: нечитабельних секторів у цьому мегабайті {1}, усього {2}" -f ($done / 1GB), ($bad.Count - $before), $bad.Count)
+                }
+                $out.Write($buf, 0, $want)
                 if ((($done / $chunk) % 1024) -eq 0) { Say ("  {0:N1} / {1:N1} ГБ" -f ($done / 1GB), ($size / 1GB)) }
             }
             $out.Close(); $dev.Close()
+            if ($bad.Count) {
+                $list = Join-Path $Work 'bad-sectors.txt'
+                $parts = @(Get-Partition -DiskNumber $Disk | Where-Object { $_.Type -ne 'Extended' })
+                $where = $bad | ForEach-Object {
+                    $lba = $_
+                    $p = $parts | Where-Object { $lba -ge $_.Offset / 512 -and $lba -lt ($_.Offset + $_.Size) / 512 } | Select-Object -First 1
+                    if ($p) { "розділ $($p.PartitionNumber)" } else { 'поза розділами' }
+                }
+                $bad | Set-Content -Path $list -Encoding ASCII
+                Say ("нечитабельних секторів: {0} ({1}) — номери в {2}" -f $bad.Count, (($where | Group-Object | ForEach-Object { "$($_.Name): $($_.Count)" }) -join ', '), $list)
+                $inRoot = @($bad | Where-Object { $_ -ge $RootStart -and $_ -lt $RootStart + $RootSectors }).Count
+                if ($inRoot) { throw "$inRoot нечитабельних секторів у корені — патч не роблю, картку не чіпаю (образ збережено)" }
+            }
             $mbr = New-Object byte[] 512
             $fs = [IO.File]::OpenRead($Backup); [void]$fs.Read($mbr, 0, 512); $fs.Close()
             if ($mbr[510] -ne 0x55 -or $mbr[511] -ne 0xAA) { throw "в образі $Backup немає таблиці розділів — читання зіпсоване?" }
