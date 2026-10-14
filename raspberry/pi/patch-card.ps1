@@ -82,7 +82,9 @@ try {
     $part = Get-Partition -DiskNumber $Disk | Where-Object { $_.Offset -eq $offset -and $_.Size -eq $length }
     if (-not $part) { throw "на диску $Disk немає розділу з сектора $RootStart на $RootSectors секторів — це не картка kyiv-01?" }
     $d = Get-Disk -Number $Disk
-    if ($d.BusType -ne 'USB') { throw "диск $Disk — $($d.BusType), а не USB: на системний диск скрипт не пише" }
+    # USB — зовнішній кардрідер; SD і MMC — вбудований у ноутбук (PCIe-рідер
+    # Windows показує саме так). Системні диски — NVMe чи SATA, їх не пускаємо.
+    if (@('USB', 'SD', 'MMC') -notcontains [string]$d.BusType) { throw "диск $Disk — $($d.BusType), а не кардрідер (USB, SD чи MMC): на системний диск скрипт не пише" }
     Say ("диск {0} ({1}), корінь — розділ {2}, {3} ГБ" -f $Disk, $d.FriendlyName, $part.PartitionNumber, [math]::Round($length / 1GB, 1))
 
     if ($Rollback) {
