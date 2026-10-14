@@ -50,7 +50,8 @@ try {
     $img = Get-Item $Image
     $size = $img.Length
     $d = Get-Disk -Number $Disk
-    if ($d.BusType -ne 'USB') { throw "диск $Disk — $($d.BusType), а не USB" }
+    # Як у patch-card.ps1: зовнішній кардрідер — USB, вбудований у ноутбук — SD чи MMC.
+    if (@('USB', 'SD', 'MMC') -notcontains [string]$d.BusType) { throw "диск $Disk — $($d.BusType), а не кардрідер (USB, SD чи MMC)" }
     if ($d.Size -lt $size) { throw ("картка {0:N0} байт менша за образ {1:N0}" -f $d.Size, $size) }
     if ($d.Size -gt 64GB) { throw ("диск {0} на {1:N0} ГБ — це не SD-картка, не пишу" -f $Disk, ($d.Size / 1GB)) }
     if ($size % 1MB -ne 0) { throw "розмір образу не кратний мегабайту" }

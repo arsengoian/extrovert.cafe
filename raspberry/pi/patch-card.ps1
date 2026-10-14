@@ -172,6 +172,9 @@ try {
         # Docker пише попередження в stderr; у Windows PowerShell 5.1 з ErrorActionPreference=Stop
         # це обірвало б скрипт, хоча сам Docker відпрацював. Результат судимо за кодом виходу.
         $ErrorActionPreference = 'Continue'
+        # Вивід Docker — UTF-8; без цього PowerShell 5.1 читає його в OEM-кодуванні,
+        # і кирилиця з patch-image.sh приходить кракозябрами (14.10.2026).
+        [Console]::OutputEncoding = [Text.Encoding]::UTF8
         & docker run --rm --privileged -v "${w}:/w" -v "${p}:/p:ro" debian:bookworm sh -c 'set -e; e2fsck -fn /w/root.img >/dev/null; mkdir /r; mount -o loop /w/root.img /r; sh /p/patch-image.sh --root /r; sync; umount /r; e2fsck -fn /w/root.img; echo e2fsck-ok' 2>&1 | ForEach-Object { Say "  $_" }
         $rc = $LASTEXITCODE; $ErrorActionPreference = 'Stop'
         if ($rc -ne 0) { throw "патч у Docker не вдався (код $rc) — картку не чіпали" }

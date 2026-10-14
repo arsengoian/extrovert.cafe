@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 5175036</p>
+  <p class="eyebrow">extrovert.cafe · джерело 3c5c7aa</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -6416,9 +6416,11 @@ Desktop): <code>wsl --mount</code> USB-кардрідерів не бере, т�
 розділ кореня у файл, патчить його в Docker тим самим <code>patch-image.sh --root</code>
 з <code>e2fsck</code> до й після, а на картку пише тільки змінені мегабайти й перечитує
 їх. Копія оригіналу лишається в <code>%TEMP%extrovert-card</code>, і <code>-Rollback</code> повертає
-її назад. <strong>Не старий <code>raspberry/pi/pi.img</code></strong>: він від 25.09.2026, у ньому
-інший ключ точки (на проді <code>key_hash</code> уже інший), немає власних DNS і старий
-<code>data</code> — після запису телеметрія й бонуси зламались би.</p>
+її назад. З <code>-Backup &lt;файл&gt;</code> спершу знімається повний образ картки, і корінь
+береться вже з нього — картка читається один раз; сектор, що не читається,
+пишеться в образ нулями й у перелік, а якщо такий є в корені, патч не
+починається. Так 14.10.2026 знято теперішній <code>raspberry/pi/pi.img</code> («Запасна
+картка» нижче) і знято міст.</p>
 <h2 id="raspberry-pi-2-що-крутиться-на-точці"><a class="anchor" href="#raspberry-pi-2-що-крутиться-на-точці" aria-hidden="true">#</a>2. Що крутиться на точці</h2>
 <p>Усе наше — в <strong><code>/home/pi/extrovert</code></strong> і керується <strong>одним</strong> процесом.
 systemd знає лише супервізора; склад стеку, версії й перезапуски — у нашій
@@ -6670,7 +6672,8 @@ graph TB
 <p>На ПК розробника секрети теж у відомих місцях і всі поза git: <code>keys/</code>
 (ключ до дроплета), <code>raspberry/kiosk/.deploy/</code> (ключ до малини),
 <code>.secrets</code> (токени сервісів), <code>raspberry/pi/camera.env</code> (для
-<code>scripts/camera-onvif.mjs</code>). <code>scripts/pi-ssh.sh</code> возить ключі тимчасовою
+<code>scripts/camera-onvif.mjs</code>) і <code>raspberry/pi/pi.img</code> — повний образ картки,
+а з ним і копія всього <code>config/</code> (14.10.2026). <code>scripts/pi-ssh.sh</code> возить ключі тимчасовою
 копією й стирає її після сесії.</p>
 <h3 id="raspberry-pi-що-лежить-поза-home-pi-extrovert"><a class="anchor" href="#raspberry-pi-що-лежить-поза-home-pi-extrovert" aria-hidden="true">#</a>Що лежить поза <code>/home/pi/extrovert</code></h3>
 <p>Лише системне, і змінюється вручну, а не релізом. Копія кожного файла — у
@@ -7004,13 +7007,23 @@ initramfs, а <code>init=/sbin/overlayRoot.sh</code> у <code>cmdline.txt</code>
 колонка показує останній виданий ключ, а перевіряє api підпис.</li>
 </ul>
 <p>Записує <code>raspberry/pi/write-card.ps1 -Disk &lt;N&gt; -Image &lt;образ&gt;</code> (від
-адміністратора): лише USB-диск від розміру образу до 64 ГБ, стара розмітка
-стирається, перший мегабайт (MBR) пишеться останнім, щоб Windows не
-змонтував FAT-розділи посеред запису, а наприкінці все перечитується й
-звіряється з образом. Картка на 16 ГБ вміщає образ упритул: обидві
-мають 15 552 479 232 байти.</p>
-<p>Наступного разу, коли жива картка буде в кардрідері, бекап краще зняти з
-неї цілком — тоді <code>data</code> теж буде свіжим.</p>
+адміністратора): лише кардрідер (USB, SD чи MMC) від розміру образу до
+64 ГБ, стара розмітка стирається, перший мегабайт (MBR) пишеться останнім,
+щоб Windows не змонтував FAT-розділи посеред запису, а наприкінці все
+перечитується й звіряється з образом. Картка на 16 ГБ вміщає образ упритул:
+обидві мають 15 552 479 232 байти.</p>
+<p><strong>Свіжий повний образ — 14.10.2026.</strong> <code>raspberry/pi/pi.img</code> тепер знімок
+живої картки разом із патчем того дня (без мосту, SSH лише за ключем, <code>wlan0</code>
+у <code>dhcpcd.conf</code>) і з <code>data</code> — тож у ньому <strong>всі секрети точки</strong> («Секрети
+точки»), і поводитись із ним треба відповідно. Картка kyiv-01 на 78 МБ
+більша, але розділи закінчуються на 15 552 479 232 байтах, тож образ обрізано
+до цього розміру й він вміщається на запасну. sha256 — в
+<code>raspberry/pi/.gitignore</code>. Запасна картка лишається зібраною 06.10 — з
+мостом, паролем для SSH і старим <code>data</code>; оновити її — записати цей образ.</p>
+<p>Перший прохід бекапу того дня впав на «Data error (CRC)» на 210-му мегабайті
+розділу відновлення NOOBS, другий повний пройшов без жодного нечитабельного
+сектора. Тобто разовий збій читання в кардрідері — схоже на контакт, а не
+на знос памʼяті.</p>
 <p>Правити систему «крізь» працюючий overlay (перемонтувати <code>/mnt/lower</code> у rw)
 <strong>не треба</strong>: overlayfs не підтримує зміну нижнього шару під змонтованим
 overlay, і наслідки там не визначені.</p>
@@ -14725,7 +14738,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 5175036 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 3c5c7aa — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
