@@ -25,8 +25,10 @@ cp raspberry/kiosk/.deploy/id_ed25519 "$KEYDIR/pi"
 chmod 600 "$KEYDIR/jump" "$KEYDIR/pi"
 JUMP_KEY="$KEYDIR/jump"; PI_KEY="$KEYDIR/pi"
 
+# </dev/null: інакше цей ssh з'їдає stdin, призначений малині, і
+# `… | scripts/pi-ssh.sh kyiv-01 'cat > файл'` пише порожній файл.
 PORT=$(ssh -p 2222 -i "$JUMP_KEY" -o BatchMode=yes -o StrictHostKeyChecking=accept-new "root@$DROPLET" \
-  "docker exec extrovert-postgres-1 psql -U extrovert -d extrovert -tA -c \"select tunnel_port from points where id = '$POINT'\"")
+  "docker exec extrovert-postgres-1 psql -U extrovert -d extrovert -tA -c \"select tunnel_port from points where id = '$POINT'\"" </dev/null)
 [ -n "$PORT" ] || { echo "✗ у точки $POINT ще немає порту тунелю — малина не реєструвалась" >&2; exit 1; }
 
 exec ssh -i "$PI_KEY" \
