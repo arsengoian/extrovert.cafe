@@ -38,6 +38,24 @@ QUEUE_MAX=500                      # ~8 годин проб: більше нік
 BATCH_MAX=200
 PING_HOST="${TELEMETRY_PING_HOST:-api.extrovert.cafe}"
 
+# ── bin/telemetry — те саме одним процесом (15.10.2026) ──────────────────
+# Цей скрипт щохвилини запускав кілька десятків коротких процесів (awk,
+# sed, date, timeout, nc, timedatectl…) і curl із новим TLS-рукостисканням
+# (~0,95 с CPU на Pi 1). bin/telemetry (raspberry/kiosk/src/pitelemetry/)
+# робить те саме — ті самі метрики, черга, перештампування й рядки в лозі —
+# але зʼєднання з api тримає між пробами, а /proc, сокет кіоска, флешку й
+# маршрут читає напряму; окремими процесами лишились ping і cec-client.
+# TELEMETRY_IMPL=sh у config/env повертає цей скрипт (відкат без релізу:
+# правка config/env + touch state/restart.telemetry).
+TELEMETRY_BIN="$(dirname "$0")/../bin/telemetry"
+if [ "${TELEMETRY_IMPL:-c}" = c ] && [ -x "$TELEMETRY_BIN" ]; then
+    export POINT API_URL="$API" WS_TOKEN_FILE="$TOKEN_FILE" TELEMETRY_PERIOD_S="$PERIOD" \
+        TELEMETRY_PING_HOST="$PING_HOST" RECORDER_BUF="${RECORDER_BUF-/mnt/buf}" \
+        RECORDER_RAM="${RECORDER_RAM-/dev/shm/extrovert-video}" \
+        TELEMETRY_MONITOR_PROBE_S="${TELEMETRY_MONITOR_PROBE_S:-300}" MONITOR_AUTOWAKE="${MONITOR_AUTOWAKE:-1}"
+    exec "$TELEMETRY_BIN"
+fi
+
 STOPPING=0
 trap 'STOPPING=1' TERM INT
 

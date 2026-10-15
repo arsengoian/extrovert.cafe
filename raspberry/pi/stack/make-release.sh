@@ -46,21 +46,25 @@ BIN="$NATIVE/bin/kiosk"
 if command -v file >/dev/null 2>&1; then
     file "$BIN" | grep -q "ARM" || { echo "$BIN не ARM — це не той бінарник" >&2; exit 1; }
 fi
-# Заливка відео (src/uploader, 15.10.2026) — збирається тим самим `make pi`.
-# Обовʼязкова: реліз без неї тихо повернув би точку на uploader.sh, а
-# помітно це стало б лише по процесору.
-UPLOADER="$NATIVE/bin/uploader"
-[ -f "$UPLOADER" ] || { echo "нема $UPLOADER — спершу: ./raspberry/kiosk/docker/make-pi.sh" >&2; exit 1; }
-if command -v file >/dev/null 2>&1; then
-    file "$UPLOADER" | grep -q "ARM" || { echo "$UPLOADER не ARM — це не той бінарник" >&2; exit 1; }
-fi
+# Заливка відео й проби точки (src/uploader, src/pitelemetry, 15.10.2026) —
+# збираються тим самим `make pi`. Обовʼязкові: реліз без них тихо повернув
+# би точку на uploader.sh і telemetry.sh, а помітно це стало б лише по
+# процесору.
+for _b in uploader telemetry; do
+    _p="$NATIVE/bin/$_b"
+    [ -f "$_p" ] || { echo "нема $_p — спершу: ./raspberry/kiosk/docker/make-pi.sh" >&2; exit 1; }
+    if command -v file >/dev/null 2>&1; then
+        file "$_p" | grep -q "ARM" || { echo "$_p не ARM — це не той бінарник" >&2; exit 1; }
+    fi
+done
 
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/bin" "$STAGE/assets" "$STAGE/stack"
 
-cp -a "$BIN" "$UPLOADER" "$STAGE/bin/"
-chmod +x "$STAGE/bin/kiosk" "$STAGE/bin/uploader"
+cp -a "$BIN" "$STAGE/bin/"
+for _b in uploader telemetry; do cp -a "$NATIVE/bin/$_b" "$STAGE/bin/"; done
+chmod +x "$STAGE/bin/"*
 cp -a "$NATIVE/assets/." "$STAGE/assets/"
 # Увесь stack/, а не перелік файлів. 23.09.2026 перелік уже відстав:
 # telemetry.sh додали в components.conf, а в архів він не потрапив — на

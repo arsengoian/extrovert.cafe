@@ -177,9 +177,11 @@ jobs:
           mkdir -p raspberry/kiosk/bin   # bin/ під .gitignore, у воркспейсі його немає
           docker cp "$cid:/work/bin/kiosk" raspberry/kiosk/bin/kiosk
           docker cp "$cid:/work/bin/uploader" raspberry/kiosk/bin/uploader   # заливка відео, src/uploader
+          docker cp "$cid:/work/bin/telemetry" raspberry/kiosk/bin/telemetry # проби точки, src/pitelemetry
           docker rm "$cid"
           file raspberry/kiosk/bin/kiosk | grep -q ARM
           file raspberry/kiosk/bin/uploader | grep -q ARM
+          file raspberry/kiosk/bin/telemetry | grep -q ARM
 
       - name: Зібрати архів релізу
         if: ${{ steps.published.outputs.source != steps.src.outputs.hash }}

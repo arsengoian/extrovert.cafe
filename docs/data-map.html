@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 9379369</p>
+  <p class="eyebrow">extrovert.cafe · джерело c88db33</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -6648,8 +6648,8 @@ graph TB
 </tr>
 <tr>
 <td><code>telemetry</code></td>
-<td>здоровʼя точки для адмінки (<a class="doclink" href="#admin-panel"><code>admin_panel.md</code></a>)</td>
-<td><strong>на пристрої</strong>; <code>video_ok</code> — чи є на флешці сегмент, молодший за 3 хв</td>
+<td>здоровʼя точки для адмінки (<a class="doclink" href="#admin-panel"><code>admin_panel.md</code></a>); з 15.10.2026 — <code>bin/telemetry</code> на C (<code>raspberry/kiosk/src/pitelemetry/</code>), у який exec-ає <code>telemetry.sh</code>: ті самі проби й черга, але зʼєднання з api живе між пробами, а окремими процесами лишились тільки <code>ping</code> і <code>cec-client</code> (<code>TELEMETRY_IMPL=sh</code> — назад на скрипт)</td>
+<td><strong>на пристрої</strong>; <code>video_ok</code> — чи є сегмент, молодший за 3 хв (у RAM чи на флешці)</td>
 </tr>
 </tbody></table>
 </div>
@@ -7223,7 +7223,7 @@ overlay помер: точка щоразу піднімається з тим �
 моменту зникнення живлення, а проби лягають у чергу зі зсувом рівно на
 довжину простою. NTP згодом пересуне час — і черга поїде на сервер із
 брехливим <code>measured_at</code>, тобто на графіках виникне купа точок у минулому.
-Тому <code>telemetry.sh</code> перештамповує чергу: кожна проба несе <code>uptime_s</code>, який
+Тому телеметрія (<code>telemetry.sh</code>, з 15.10.2026 — <code>bin/telemetry</code>) перештамповує чергу: кожна проба несе <code>uptime_s</code>, який
 від годинника не залежить, і справжній час рахується як
 <code>зараз − (аптайм зараз − аптайм проби)</code>. Коли годинник увесь час був
 правильний, формула дає те саме значення, що вже стоїть у рядку, — тобто
@@ -7931,6 +7931,7 @@ sha. Заглушки більше ніде немає.</li>
 │   ├── 2026.09.21-ssh4/
 │   │   ├── bin/kiosk          до 21.09.2026 звався pos-native-pi
 │   │   ├── bin/uploader       заливка відео (C, з 15.10.2026); exec з stack/uploader.sh
+│   │   ├── bin/telemetry      проби точки (C, з 15.10.2026); exec з stack/telemetry.sh
 │   │   ├── assets/…           шаблони SVG, шрифти, картинки
 │   │   ├── stack/{supervisor,updater,common}.sh + components.conf
 │   │   └── release.json
@@ -7974,6 +7975,10 @@ sha. Заглушки більше ніде немає.</li>
 <tr>
 <td><code>bin/uploader</code></td>
 <td>заливка сегментів камери в R2 (компонент <code>uploader</code>: <code>uploader.sh</code> exec-ає його; <code>UPLOADER_IMPL=sh</code> у <code>config/env</code> — назад на скрипт)</td>
+</tr>
+<tr>
+<td><code>bin/telemetry</code></td>
+<td>проби точки в api (компонент <code>telemetry</code>: <code>telemetry.sh</code> exec-ає його; <code>TELEMETRY_IMPL=sh</code> — назад на скрипт)</td>
 </tr>
 </tbody></table>
 </div>
@@ -14900,7 +14905,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 9379369 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел c88db33 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -47,7 +47,7 @@ API_URL_PI = https://api.extrovert.cafe/api/v1
 
 .PHONY: desktop pi tools clean
 
-desktop: bin/kiosk-desktop bin/uploader-desktop
+desktop: bin/kiosk-desktop bin/uploader-desktop bin/telemetry-desktop
 
 bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 	@mkdir -p bin
@@ -61,7 +61,7 @@ bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 # шлях libraspberrypi-dev усередині того самого Raspbian, без sysroot.
 # GL/EGL лінкуються напряму на Broadcom-ові .so (не через pkg-config egl/
 # glesv2 — дивись коментар при PKGS_BASE вище).
-pi: bin/kiosk bin/uploader
+pi: bin/kiosk bin/uploader bin/telemetry
 
 bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 	@mkdir -p bin
@@ -88,8 +88,17 @@ bin/uploader bin/uploader-desktop: $(SRC_UPLOADER)
 		$(SRC_UPLOADER) -o $@ $(shell pkg-config --libs libcurl)
 	@echo "== зібрано $@ =="
 
+# Проби точки в api (src/pitelemetry/pitelemetry.c — компонент telemetry
+# стеку, 15.10.2026; telemetry.sh exec-ає його). Ім'я бінарника — як у
+# компонента: супервізор порівнює bin/<компонент> між релізами (same_code).
+bin/telemetry bin/telemetry-desktop: src/pitelemetry/pitelemetry.c
+	@mkdir -p bin
+	$(CC) -std=c11 -Wall -Wextra -O2 $(shell pkg-config --cflags libcurl) \
+		$< -o $@ $(shell pkg-config --libs libcurl)
+	@echo "== зібрано $@ =="
+
 # Службові утиліти для малини — не частина релізу (make-release.sh бере лише
-# bin/kiosk і bin/uploader). dispmanx-snap: знімок усього екрана з ПК (tools/dispmanx-snap.c).
+# bin/kiosk, bin/uploader і bin/telemetry). dispmanx-snap: знімок усього екрана з ПК (tools/dispmanx-snap.c).
 tools: bin/dispmanx-snap
 
 bin/dispmanx-snap: tools/dispmanx-snap.c

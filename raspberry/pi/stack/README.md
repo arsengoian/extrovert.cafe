@@ -21,6 +21,7 @@
 │   ├── 2026.09.21-ssh4/
 │   │   ├── bin/kiosk          до 21.09.2026 звався pos-native-pi
 │   │   ├── bin/uploader       заливка відео (C, з 15.10.2026); exec з stack/uploader.sh
+│   │   ├── bin/telemetry      проби точки (C, з 15.10.2026); exec з stack/telemetry.sh
 │   │   ├── assets/…           шаблони SVG, шрифти, картинки
 │   │   ├── stack/{supervisor,updater,common}.sh + components.conf
 │   │   └── release.json
@@ -52,6 +53,7 @@
 | `updater.sh` | раз на `UPDATE_PERIOD_S` питає маніфест, привозить, перевіряє, підміняє, за потреби відкочує |
 | `bin/kiosk` | власне кіоск (компонент `kiosk`) |
 | `bin/uploader` | заливка сегментів камери в R2 (компонент `uploader`: `uploader.sh` exec-ає його; `UPLOADER_IMPL=sh` у `config/env` — назад на скрипт) |
+| `bin/telemetry` | проби точки в api (компонент `telemetry`: `telemetry.sh` exec-ає його; `TELEMETRY_IMPL=sh` — назад на скрипт) |
 
 Апдейтер **ніколи не вбиває процеси сам** — він кладе файл-запит
 `state/restart.<компонент>`, а гасить і піднімає завжди супервізор. Інакше
