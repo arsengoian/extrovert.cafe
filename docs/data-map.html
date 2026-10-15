@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 9d62e9a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 825dcf3</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5532,10 +5532,18 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 пріоритет лише на процесорі й диску, мережа їх не бачить, і фіксовані
 400 КБ/с на каналі в 10 КБ/с були всім каналом. Тому файл у curl подає
 сам аплоудер (<code>pace()</code>): по шматку на секунду, а темп підлаштовується
-щодві секунди <strong>прямо під час файла</strong> — пінг до api виріс на 150 мс або
-загубився, чи curl не встигає забрати шматок → ×0,6; тихо → ×1,25, від 8
-до 800 КБ/с за ~40 с. Стеля між файлами піднімалась би годинами: на
-8 КБ/с один сегмент іде 12 хвилин. Темп і останній замір лежать у
+щодві секунди <strong>прямо під час файла</strong> — пінг до api понад базу на 400 мс
+або загубився <strong>два рази поспіль</strong>, чи curl не встигає забрати шматок →
+×0,8; тихо (до +150 мс) → ×1,25; межі 32…800 КБ/с. Так з 15.10.2026:
+доти гальмувало ×0,6 від одного пінгу на +150 мс, і на Wi-Fi клубу, де
+затримка гуляє й без нас, темп сидів на 10–50 КБ/с при записі ~155 КБ/с —
+черга росла на ~8 ГБ за добу. Регулятор однаковий для всіх точок,
+крутиться через <code>config/env</code>: <code>UPLOAD_RTT_SLACK_MS</code> (400),
+<code>UPLOAD_RTT_QUIET_MS</code> (150), <code>UPLOAD_BACKOFF_PCT</code> (80),
+<code>UPLOAD_BAD_SAMPLES</code> (2), <code>UPLOAD_MIN_KB</code> (32), <code>UPLOAD_RATE</code> (800k);
+старий, обережний — 150 / 60 / 60 / 1 / 8. Стеля між файлами
+піднімалась би годинами: на 8 КБ/с один сегмент іде 12 хвилин. Темп і
+останній замір лежать у
 <code>state/</code> (<code>upload.cap</code>, <code>upload.last</code>) і переживають ребут, а телеметрія
 щохвилини відправляє замір: <code>upload_kb_s</code>, <code>upload_ok</code>, <code>upload_at</code>,
 <code>upload_limit_kb_s</code> (в адмінці — «Мережа точки» й «Компоненти точки»),
@@ -7959,6 +7967,15 @@ QR і плашку <strong>в памʼять, без дисплея</strong> —
 <strong>звільняє шар</strong>; <code>SIGKILL</code> тільки якщо не вклався у <code>STOP_GRACE_S</code>. Це не
 формальність — VideoCore уміє лишати шар за мертвим процесом (споріднена
 пастка з <code>bcm_host_init</code>, <a class="doclink" href="#roadmap"><code>docs/roadmap.md</code></a>).</p>
+<p><strong>Сигнал іде всій групі компонента</strong> (з 15.10.2026): супервізор запускає
+кожен через <code>setsid</code>, тож компонент — лідер власної групи процесів, а
+<code>signal_group</code> шле <code>kill -SIG -pid</code> (саме так: вбудований <code>kill</code> у dash
+форму <code>-- -pid</code> не приймає). Після виходу скрипта групу ще й добиваємо
+<code>SIGKILL</code>. Досі сигнал отримував лише сам скрипт, а його конвеєри жили
+далі: 14.10.2026 осиротілий <code>pace | curl</code> старого аплоудера дозалив сегмент
+у R2 поруч із новою копією, і черга стала на дев&#39;ять годин
+(<a class="doclink" href="#video"><code>docs/video.md</code></a>, «409 від R2»). Правки <code>supervisor.sh</code> діють із
+наступного старту юніта (ребут чи <code>systemctl restart extrovert</code>).</p>
 <p>Заміряно на десктопній збірці: <code>SIGTERM</code> → вихід за <strong>91–110 мс</strong> (три
 прогони). До цього вихід міг чекати до 15 с, якщо сигнал прилітав, поки
 фоновий потік висів на повільному HTTPS, — тепер curl обриває передачу
@@ -14771,7 +14788,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 9d62e9a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 825dcf3 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

@@ -71,7 +71,18 @@ start_component() { # start_component <імʼя> <exec> <слот> [аргуме
     _bin="$EXTROVERT_CURRENT/$_exec"
     [ -x "$_bin" ] || { log "$_name: нема виконуваного $_bin — пропускаю"; return 1; }
     component_env "$_name" "$_slot"
-    "$_bin" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    # Власна група процесів (setsid): зупинка гасить компонент разом із
+    # дітьми (signal_group). Досі сигнал ішов лише самому скрипту, а його
+    # конвеєри жили далі: 14.10.2026 аплоудер перезапустили на новому
+    # релізі, а осиротілий `pace | curl` дозалив сегмент у R2, і реєструвати
+    # його вже не було кому — далі bucket lock і дев'ять годин стоячої
+    # черги. Фон у неінтерактивному sh — не лідер групи, тож setsid не
+    # форкає: $! — це й PID компонента, й номер його групи.
+    if command -v setsid >/dev/null 2>&1; then
+        setsid "$_bin" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    else
+        "$_bin" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    fi
     _pid=$!
     PIDS="$PIDS $_name:$_pid"
     slot_set "$_name" "$_slot"
@@ -83,9 +94,17 @@ start_component() { # start_component <імʼя> <exec> <слот> [аргуме
 # Кіоск на SIGTERM закриває GL і звільняє dispmanx-шар; якщо просто
 # вбити, VideoCore може лишити шар за мертвим процесом (спорідена пастка
 # з bcm_host_init, docs/roadmap.md).
+# signal_group <сигнал> <pid> — усій групі компонента (start_component
+# запускає його лідером через setsid). `kill -SIG -pid` — саме так, без
+# `--`: вбудований kill у dash інакше групу не приймає (перевірено на
+# kyiv-01 14.10.2026). Якщо групи нема (setsid відсутній) — самому процесу.
+signal_group() {
+    kill -"$1" -"$2" 2>/dev/null || kill -"$1" "$2" 2>/dev/null || true
+}
+
 stop_component() { # stop_component <імʼя>
     _pid=$(pid_of "$1") || return 0
-    kill -TERM "$_pid" 2>/dev/null || true
+    signal_group TERM "$_pid"
     _w=0
     while kill -0 "$_pid" 2>/dev/null; do
         [ "$_w" -ge "${STOP_GRACE_S:-10}" ] && break
@@ -93,7 +112,7 @@ stop_component() { # stop_component <імʼя>
     done
     if kill -0 "$_pid" 2>/dev/null; then
         log "$1: не вийшов за ${STOP_GRACE_S:-10}с — SIGKILL"
-        kill -KILL "$_pid" 2>/dev/null || true
+        signal_group KILL "$_pid"
         # Процес, що завис у ядрі (D-state: мертва USB-шина Pi 1 — флешка чи
         # Ethernet), не вмирає навіть від SIGKILL. `wait` на ньому повісив би
         # увесь супервізор, і більше не перезапустилось би нічого — ні після
@@ -110,6 +129,9 @@ stop_component() { # stop_component <імʼя>
         log "$1: зупинено ґречно за ${_w}с"
     fi
     wait "$_pid" 2>/dev/null || true
+    # Сам скрипт вийшов, а дитина могла не послухатись TERM — добиваємо
+    # групу, щоб нічого від старої копії не лишилось поруч із новою.
+    kill -KILL -"$_pid" 2>/dev/null || true
     forget "$1"
 }
 
@@ -144,7 +166,12 @@ restart_overlap() { # restart_overlap <імʼя>
 
     log "$_name: overlap-перезапуск, слот $_old_slot → $_new_slot"
     component_env "$_name" "$_new_slot"
-    "$EXTROVERT_CURRENT/$_exec" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    # Так само у власній групі, як у start_component.
+    if command -v setsid >/dev/null 2>&1; then
+        setsid "$EXTROVERT_CURRENT/$_exec" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    else
+        "$EXTROVERT_CURRENT/$_exec" "$@" >> "$EXTROVERT_LOGS/$_name.log" 2>&1 &
+    fi
     _new_pid=$!
 
     _w=0
@@ -158,13 +185,14 @@ restart_overlap() { # restart_overlap <імʼя>
         if telemetry_healthy "$_new_sock"; then
             log "$_name: нова версія малює (за ${_w}с) — гашу стару"
             [ -n "$_old_pid" ] && {
-                kill -TERM "$_old_pid" 2>/dev/null || true
+                signal_group TERM "$_old_pid"
                 _g=0
                 while kill -0 "$_old_pid" 2>/dev/null && [ "$_g" -lt "${STOP_GRACE_S:-10}" ]; do
                     sleep 1; _g=$((_g + 1))
                 done
-                kill -0 "$_old_pid" 2>/dev/null && kill -KILL "$_old_pid" 2>/dev/null
+                kill -0 "$_old_pid" 2>/dev/null && signal_group KILL "$_old_pid"
                 wait "$_old_pid" 2>/dev/null || true
+                kill -KILL -"$_old_pid" 2>/dev/null || true
             }
             forget "$_name"
             PIDS="$PIDS $_name:$_new_pid"
@@ -175,10 +203,11 @@ restart_overlap() { # restart_overlap <імʼя>
     done
 
     log "$_name: нова версія не ожила за ${OVERLAP_HEALTH_S:-25}с — гашу її, послідовний перезапуск"
-    kill -TERM "$_new_pid" 2>/dev/null || true
+    signal_group TERM "$_new_pid"
     sleep 2
-    kill -0 "$_new_pid" 2>/dev/null && kill -KILL "$_new_pid" 2>/dev/null
+    kill -0 "$_new_pid" 2>/dev/null && signal_group KILL "$_new_pid"
     wait "$_new_pid" 2>/dev/null || true
+    kill -KILL -"$_new_pid" 2>/dev/null || true
     restart_plain "$_name"
 }
 
