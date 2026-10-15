@@ -40,7 +40,10 @@ const JOBS = [
   { name: "analytics-aggregate", every: 10 * MINUTE, ttl: 9 * MINUTE, run: () => aggregateAnalytics({ pool }) },
   // Десять секунд: людина натиснула «викотити меню» й чекає, поки цифри
   // на екрані зміняться. Запит дешевий — один select у порожню чергу.
-  { name: "menu-deploy", every: 10_000, ttl: 120_000, run: () => deployMenus({ pool, redis, log }) },
+  // Блокування — довше за найдовшу перевірку цін на кавомашині
+  // (JETINNO_VERIFY_S, 5 хв, jobs/menu.js): інакше друга копія scheduler
+  // могла б узяти наступний деплоймент, поки цей ще перевіряється.
+  { name: "menu-deploy", every: 10_000, ttl: 7 * MINUTE, run: () => deployMenus({ pool, redis, log }) },
   // Знижки в кав'ярні: кінець за часом і повернення зерен (jobs/discounts.js).
   { name: "discounts", every: 5_000, ttl: 30_000, run: () => runDiscounts({ pool }) },
   { name: "np-tracking", every: HOUR, ttl: 50 * MINUTE, run: () => trackShipments({ pool, log }) },

@@ -116,16 +116,36 @@ async function deployJetinno(client, redis, t, menu, vmc, log) {
       if (res.status !== "success") return finish("failed", `priceset ${code}: ${res.message ?? res.info ?? "портал не прийняв"}`);
     }
 
-    // Просимо машину звітувати напої й чекаємо, поки команда виконається
-    // (upload машина підтверджує, на відміну від priceset), тоді перечитуємо.
-    const up = await portal.command("upload", vmc, { uptype: "product" });
-    if (up.status !== "success") return finish("failed", "не вдалось попросити звіт напоїв для перевірки");
-    await waitExecuted(portal, vmc, 90, log);
+    // Просимо машину звітувати напої (upload машина підтверджує, на відміну
+    // від priceset), чекаємо підтвердження й перечитуємо. Терпляче: команди
+    // машина бере, лише доготувавши поточний напій. 14.10.2026 повернення
+    // ціни після знижки прийшло саме тоді, коли машина готувала каву з цією
+    // знижкою, — звіт не підтвердився за 90 с, ми прочитали старий (30
+    // замість 60), і ціль упала, хоча ціна на машині стала правильною
+    // (деплоймент №29). Так було б майже щоразу: знижка закінчується першою
+    // ж покупкою. Тепер чекаємо до JETINNO_VERIFY_S (5 хв); звіт підтвердився,
+    // а ціна ще не та — просимо ще один, поки не вийде час.
+    const deadline = Date.now() + VERIFY_S * 1000;
+    let after = new Map(), wrong = toSet, fresh = false, cut = false;
+    while (wrong.length && Date.now() < deadline) {
+      const up = await portal.command("upload", vmc, { uptype: "product" });
+      if (up.status !== "success") return finish("failed", "не вдалось попросити звіт напоїв для перевірки");
+      const executed = await waitExecuted(portal, vmc, (deadline - Date.now()) / 1000, log);
+      after = new Map((await portal.products(vmc)).map((p) => [p.productId, p.price]));
+      wrong = toSet.filter(([code, price]) => after.get(code) !== price);
+      if (stopping) { cut = true; break; }
+      if (!executed) break;            // до кінця часу звіт так і не підтвердився
+      fresh = true;
+    }
 
-    const after = new Map((await portal.products(vmc)).map((p) => [p.productId, p.price]));
-    const wrong = toSet.filter(([code, price]) => after.get(code) !== price)
-      .map(([code, price]) => `${code}: хотіли ${price}, на машині ${after.get(code) ?? "?"}`);
-    const note = [...wrong, missing.length ? `немає на машині: ${missing.join(", ")}` : ""].filter(Boolean).join("; ");
+    const list = wrong.map(([code, price]) => `${code}: хотіли ${price}, на машині ${after.get(code) ?? "?"}`);
+    // «Ціна інша» — лише коли це показав свіжий, підтверджений машиною звіт.
+    // Без жодного такого звіту ми ціну не перевірили, а не спіймали на хибі.
+    const why = !wrong.length ? ""
+      : cut ? `перевірку обірвав перезапуск scheduler — ціну не перевірено; в останньому звіті ${list.join(", ")}`
+      : !fresh ? `машина не підтвердила звіт напоїв за ${VERIFY_S >= 120 ? `${Math.round(VERIFY_S / 60)} хв` : `${VERIFY_S} с`} (мабуть, готувала напої) — ціну не перевірено; в останньому звіті ${list.join(", ")}`
+      : list.join("; ");
+    const note = [why, missing.length ? `немає на машині: ${missing.join(", ")}` : ""].filter(Boolean).join("; ");
     log?.info(`Jetinno для ${t.point_id}: задано ${toSet.length - wrong.length}/${toSet.length}${note ? `; ${note}` : ""}`);
     return finish(wrong.length || missing.length ? "failed" : "done", note || null);
   } catch (e) {
@@ -135,15 +155,27 @@ async function deployJetinno(client, redis, t, menu, vmc, log) {
   }
 }
 
+// Скільки чекати, поки машина підтвердить звіт напоїв після нових цін
+// (deployJetinno). Блокування роботи menu-deploy (scheduler/index.js) — довше.
+const VERIFY_S = Number(process.env.JETINNO_VERIFY_S) || 300;
+
+// Перезапуск scheduler чекає поточний прохід лише stop_grace_period (45 с),
+// а перевірка ціни на машині може тривати хвилини. Обірвана посередині,
+// вона лишила б ціль у «deploying» назавжди — тож на SIGTERM перевірка
+// закінчується сама й пише, чому ціну не перевірено.
+let stopping = false;
+process.once("SIGTERM", () => { stopping = true; });
+
 // Чекаємо, поки остання команда машини в журналі перестане бути «відправлено».
+// Раз на 5 с: портал чужий, а чекати тепер можна хвилинами.
 async function waitExecuted(portal, vmc, timeoutS, log) {
   const t0 = Date.now();
-  while (Date.now() - t0 < timeoutS * 1000) {
-    await new Promise((r) => setTimeout(r, 3000));
+  while (Date.now() - t0 < timeoutS * 1000 && !stopping) {
+    await new Promise((r) => setTimeout(r, 5000));
     const last = (await portal.commandLog(vmc, 5))[0];
     if (last && !isPendingRow(last)) return last;
   }
-  log?.info(`Jetinno ${vmc}: звіт напоїв не підтвердився за ${timeoutS} с — перевіряю як є`);
+  log?.info(`Jetinno ${vmc}: звіт напоїв не підтвердився за ${Math.round((Date.now() - t0) / 1000)} с — перевіряю як є`);
   return null;
 }
 
