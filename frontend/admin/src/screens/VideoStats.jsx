@@ -89,7 +89,14 @@ export function VideoAnalytics() {
   if (error) return <>{head}<Empty>не вдалось прочитати: {error.message}</Empty></>;
   if (!data) return <>{head}<Empty>вантажимо…</Empty></>;
 
-  const days = data.days.filter((d) => d.visitors > 0);
+  // Середнє — лише по добах, записаних хоча б на пів доби: доба, де камера
+  // писала годину ввечері, тягнула б середнє вниз (архів картки 09.10).
+  const covered = new Map();
+  for (const c of data.coverage) {
+    const { day } = kyiv(c.hour);
+    covered.set(day, (covered.get(day) ?? 0) + c.video_s);
+  }
+  const days = data.days.filter((d) => d.visitors > 0 && (covered.get(d.day) ?? 0) >= 12 * 3600);
   const avg = days.length ? days.reduce((n, d) => n + d.visitors, 0) / days.length : 0;
   const f = data.funnel;
   const receipts = new Map(data.receipts_by_day.map((r) => [r.day, r.receipts]));
@@ -101,7 +108,7 @@ export function VideoAnalytics() {
       {head}
       <div className="grid k4" style={{ marginBottom: 12 }}>
         <Kpi label="Відвідувачів за добу" value={fmt.int(Math.round(avg))}
-             note={`у середньому за ${days.length} ${fmt.plural(days.length, "добу", "доби", "діб")} з записом; без персоналу`} />
+             note={`у середньому за ${days.length} ${fmt.plural(days.length, "добу", "доби", "діб")}, записаних хоча б на пів доби; без персоналу`} />
         <Kpi label="Доходять до автомата" value={pct(f.at_machine, f.visitors)}
              note={`${fmt.int(f.at_machine)} з ${fmt.int(f.visitors)} людей стояли впритул до автомата`} />
         <Kpi label="Купують" value={pct(f.buyers, f.at_machine)}
