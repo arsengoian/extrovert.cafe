@@ -786,7 +786,13 @@ erDiagram
 ```mermaid
 erDiagram
     POINTS ||--o{ VIDEO_SEGMENTS : "запис"
+    POINTS ||--o{ VIDEO_COVERAGE : "коли писала картка"
+    VIDEO_SEGMENTS ||--o{ VIDEO_PASSAGES : "проходи людей"
     VIDEO_SEGMENTS ||--o{ VIDEO_EVENTS : "що знайшов воркер"
+    VIDEO_PASSAGES ||--o{ VIDEO_EVENTS : "подія проходу"
+    VIDEO_PEOPLE ||--o{ VIDEO_PASSAGES : "людина за одягом"
+    VIDEO_PEOPLE ||--o{ VIDEO_VISITS : "візити"
+    RECEIPTS ||--o| VIDEO_PASSAGES : "хто стояв біля автомата"
     RECEIPTS ||--o| VIDEO_EVENTS : "ймовірний чек події"
     POINTS ||--o{ PROBLEM_REPORTS : "скарги з форми"
     ADMIN_USERS ||--o{ MENU_DEPLOYMENTS : "хто викотив ціни"
@@ -805,17 +811,76 @@ erDiagram
         timestamptz locked_at "черга через SKIP LOCKED"
         timestamptz processed_at
         text error
+        text source "pi - малина, sd - архів картки камери"
+        smallint analysis_version "старша версія воркера переробляє"
+    }
+    VIDEO_COVERAGE {
+        bigserial id PK
+        text point_id FK
+        text camera_id
+        text source "sd"
+        timestamptz started_at "камера працювала з"
+        timestamptz ended_at "до"
+    }
+    VIDEO_PASSAGES {
+        bigserial id PK
+        text point_id FK
+        text camera_id
+        bigint segment_id FK "сегмент, де прохід почався"
+        smallint analysis_version
+        timestamptz started_at
+        timestamptz ended_at
+        text direction "away|toward|near|far|uturn|uturn_far"
+        text heading "in|out|null - що це на точці"
+        int frames
+        real start_depth "низ рамки на початку"
+        real end_depth
+        real min_depth
+        real max_depth
+        boolean at_zone "стояла біля кавʼярні від 4 с"
+        boolean at_machine "впритул до автомата"
+        boolean open_start "впирається в шов сегмента"
+        boolean open_end
+        jsonb points "трек: мс від started_at і рамка"
+        jsonb crops "смужки вирізок у R2"
+        real_array embedding "вектор зовнішності, 768"
+        real emb_weight "вага для злиття половинок"
+        bigint person_id FK
+        bigint receipt_id FK "чек, оплачений у мить, коли стояла біля автомата"
+        text receipt_match "alone|ambiguous"
+        timestamptz superseded_at
+    }
+    VIDEO_PEOPLE {
+        bigserial id PK
+        text point_id FK
+        timestamptz first_seen
+        timestamptz last_seen "не довше 18 год"
+        int passages
+        boolean staff "12+ проходів - персонал"
+        timestamptz computed_at
+    }
+    VIDEO_VISITS {
+        bigserial id PK
+        bigint person_id FK
+        text point_id FK
+        timestamptz entered_at "null - вхід не видно"
+        timestamptz left_at "null - вихід не видно"
+        int passages
     }
     VIDEO_EVENTS {
         bigserial id PK
         text point_id FK
-        text kind "approach|pass|queue"
+        text camera_id
+        text kind "approach|machine|pass|queue"
         timestamptz started_at
         timestamptz ended_at
         bigint segment_id FK
+        bigint passage_id FK "прохід людини; у черги - null"
         bigint likely_receipt_id FK "ймовірний чек: зведено за часом, не з обличчя"
-        jsonb evidence "ключі кадрів і кліпа в R2; null - воркер нічого не зберіг"
+        jsonb evidence "ключі аркуша (кадрів) і кліпа в R2"
         jsonb meta "GIN-індекс"
+        smallint analysis_version
+        timestamptz superseded_at "замінена переаналізом"
     }
     HEALTH_SAMPLES {
         bigserial id PK
@@ -914,22 +979,52 @@ erDiagram
     }
 ```
 
-`VIDEO_SEGMENTS`/`VIDEO_EVENTS` — дослівно зі схеми у `video.md`, включно з
-чергою через `SKIP LOCKED`.
+`VIDEO_SEGMENTS` — черга через `SKIP LOCKED` (`video.md`, «Черга»): запис
+малини першим, архів картки потім, і переаналіз старих сегментів, коли
+нових немає.
+
+**Проходи, люди й візити** (15.10.2026, `video.md` «Люди й візити»). Подія —
+це не людина: гість, що за вечір тричі пройшов коридором, давав три `pass`.
+Тому воркер пише ще й `VIDEO_PASSAGES` — прохід людини з напрямком,
+вирізками й вектором зовнішності, — а окрема робота складає з проходів
+`VIDEO_PEOPLE` (кластер за одягом, не довший за 18 год) і `VIDEO_VISITS` (від
+входу в зал до виходу). Людей і візити вона переписує за останню добу
+щоразу заново, тож `video_people.id` — не стабільний ключ, і посилатися на
+нього ззовні не можна (`person_id` у проходах — `on delete set null`).
+Вектор лежить у самій базі (`real[]`, 768 чисел, ~3 КБ): кластеризація
+потребує всіх векторів доби разом, і тягнути їх із R2 щоразу дорожче, ніж
+тримати поруч. Розширення `pgvector` не потрібне — пошуку найближчих тут
+немає, лише попарна схожість у вікні.
+
+`VIDEO_COVERAGE` — коли камера працювала, для архіву картки: картка пише
+лише рух, і пауза між її фрагментами — це або порожній коридор, або
+вимкнена камера. Для запису малини окремі рядки не потрібні: вона пише
+безперервно, і покриття — це самі сегменти.
+
+**Переаналіз не видаляє події** (15.10.2026): нова версія воркера
+(`analysis_version`) переробляє старі сегменти, а їхні події позначає
+`superseded_at` — на них може посилатись `redemptions.evidence_event_id`.
+Усі запити адмінки беруть `superseded_at is null`. Проходи сегмента
+переписуються (ззовні на них посилаються лише події, `on delete set null`).
 
 **Чек у події — гіпотеза, і колонка так і зветься** (20.09.2026).
-`likely_receipt_id` — не «чий це чек», а «чек, який за часом найкраще
-підходить під цей підхід до автомата». Зводить його воркер один раз, при
-розборі сегмента, і записує; запит потім не збігає таймстемпи наново — з
-двох підходів у те саме вікно вийшли б різні відповіді на різних прогонах.
-Якщо у вікно потрапило кілька чеків і жоден не виграє впевнено, колонка
-лишається `null`, а кандидати — у `meta`. Правило, яке з цього випливає:
+`likely_receipt_id` — не «чий це чек», а «чек, оплачений тоді, коли ця
+людина стояла біля автомата». Зводить його воркер один раз, при розборі
+сегмента (і ще раз для чеків, що доїхали пізніше), і записує; запит потім
+не збігає таймстемпи наново. З 15.10.2026 чек спершу дістається проходу
+(`video_passages.receipt_id`): чия рамка в мить оплати стоїть біля самого
+автомата, а немає такої — у зоні біля кавʼярні; кілька кандидатів —
+`receipt_match = 'ambiguous'`. Правило, яке з цього випливає:
 на `likely_receipt_id` не вішається нічого, що рухає гроші чи бонуси —
 бонус нараховує сам чек (§1), а відео дає лише конверсію «підійшов →
 купив».
 
-**Докази — ключі в самій події.** `evidence` містить ключі кадрів і кліпа,
-які воркер поклав у `extrovert-evidence`. Раніше звʼязок існував лише як
+**Докази — ключі в самій події.** `evidence` містить ключі аркуша
+(`sheet`, з 15.10.2026: три кадри події й вирізки людини), а в старих подіях —
+кадру (`frame_00`) і кліпа, які воркер поклав у `extrovert-evidence`.
+Вирізки проходу — у `video_passages.crops`: `[{key, h, parts: [[мс, x,
+ширина, якість], ...]}]`, по смужці на кожен сегмент, через який прохід
+тягнувся. Раніше звʼязок існував лише як
 домовленість про імена (`<point>/<event_id>/…` у `video.md`), а з неї не
 відповісти на просте «чи є докази до цієї події» — довелося б лістити
 бакет. Кадрів до того ж буває різна кількість, а бакет приватний: адмінці
