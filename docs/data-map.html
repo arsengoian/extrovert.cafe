@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 3fec90b</p>
+  <p class="eyebrow">extrovert.cafe · джерело 37ff35b</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5540,7 +5540,8 @@ Stretch не вміє підписувати S3-запити (<code>--aws-sigv4<
 черга росла на гігабайти за добу. Регулятор однаковий для всіх точок,
 крутиться через <code>config/env</code>: <code>UPLOAD_RTT_SLACK_MS</code> (400),
 <code>UPLOAD_RTT_QUIET_MS</code> (150), <code>UPLOAD_BACKOFF_PCT</code> (80),
-<code>UPLOAD_BAD_SAMPLES</code> (2), <code>UPLOAD_MIN_KB</code> (32), <code>UPLOAD_RATE</code> (800k);
+<code>UPLOAD_BAD_SAMPLES</code> (2), <code>UPLOAD_MIN_KB</code> (32), <code>UPLOAD_RATE</code> (800k),
+<code>UPLOAD_MAX_PAUSE_S</code> (120 — пауза після збоїв);
 старий, обережний — 150 / 60 / 60 / 1 / 8. Стеля між файлами
 піднімалась би годинами: на 8 КБ/с один сегмент іде 12 хвилин. Темп і
 останній замір лежать у
@@ -5577,7 +5578,7 @@ IPv4 — бо IPv6 до R2 на 4G точки зламаний. <strong>Була
 <li><code>POST /points/:id/video/segment</code> — api сам робить <code>HEAD</code> в R2 і
 реєструє сегмент у <code>video_segments</code> лише тоді, коли об&#39;єкт є й має той
 самий розмір. Тільки після цього локальна копія стирається.</li>
-<li>Збій — пауза від 30 с до 10 хв, без однакових рядків у лозі.</li>
+<li>Збій — пауза від 30 с до 2 хв (<code>UPLOAD_MAX_PAUSE_S</code>; до 15.10.2026 — до 10 хв: після обриву на пів хвилини заливка стояла по 5–10), без однакових рядків у лозі.</li>
 </ol>
 <p>Імена сегментів з 06.10.2026 — в UTC із <code>Z</code> (<code>20261007T171019Z.mkv</code>; до
 07.10.2026 — <code>.ts</code>): місцевий час на переході на літній дає дві однакові
@@ -14816,7 +14817,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 3fec90b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 37ff35b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
