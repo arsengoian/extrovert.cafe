@@ -294,16 +294,21 @@ while :; do
     # ніхто цього не помічав. Компонент, якому є що сказати, раз на коло
     # оновлює state/beat.<імʼя>; мітка старша за BEAT_STALE_S — перезапуск.
     # Мітку оновлюємо одразу, щоб новий процес встиг зробити своє перше коло.
-    for _beat in "$EXTROVERT_STATE"/beat.*; do
-        [ -f "$_beat" ] || continue
-        _name=${_beat##*/beat.}
-        pid_of "$_name" >/dev/null || continue
-        _age=$(( $(date +%s) - $(stat -c %Y "$_beat" 2>/dev/null || date +%s) ))
-        [ "$_age" -gt "${BEAT_STALE_S:-600}" ] || continue
-        log "$_name: мовчить ${_age}с (state/beat.$_name) — перезапуск"
-        : > "$_beat"
-        restart_plain "$_name"
-    done
+    # Раз на хвилину, а не щокола (15.10.2026): поріг — 10 хвилин, а кожна
+    # перевірка — це date і stat, тобто процеси щодві секунди на Pi 1.
+    if [ "$CLOCK_TICK" -eq 0 ]; then
+        _bt=$(date +%s)
+        for _beat in "$EXTROVERT_STATE"/beat.*; do
+            [ -f "$_beat" ] || continue
+            _name=${_beat##*/beat.}
+            pid_of "$_name" >/dev/null || continue
+            _age=$(( _bt - $(stat -c %Y "$_beat" 2>/dev/null || echo "$_bt") ))
+            [ "$_age" -gt "${BEAT_STALE_S:-600}" ] || continue
+            log "$_name: мовчить ${_age}с (state/beat.$_name) — перезапуск"
+            : > "$_beat"
+            restart_plain "$_name"
+        done
+    fi
 
     # 2. Запити на перезапуск від апдейтера
     for _req in "$EXTROVERT_STATE"/restart.*; do
@@ -327,7 +332,14 @@ while :; do
     #
     # Чекаємо, поки апдейтер добіжить (прапорець `updating`): перезапустити
     # його посеред перевірки здоров'я нової версії означало б зламати відкат.
-    _now=$(current_release)
+    #
+    # Симлінк той самий — `test -ef` (вбудований), без readlink і basename
+    # щодві секунди (15.10.2026); імʼя релізу читаємо, лише коли він змінився.
+    if [ -n "$LAST_RELEASE" ] && [ "$EXTROVERT_CURRENT" -ef "$EXTROVERT_RELEASES/$LAST_RELEASE" ]; then
+        _now=$LAST_RELEASE
+    else
+        _now=$(current_release)
+    fi
     if [ "$_now" != "$LAST_RELEASE" ]; then
         log "реліз змінився: $LAST_RELEASE → $_now"
         # Порівнювати будемо з релізом, з якого компоненти запущені, — тобто
