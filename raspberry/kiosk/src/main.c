@@ -17,6 +17,7 @@
 #include "popup.h"
 #include "update.h"
 #include "selftest.h"
+#include "ssl_locks.h"
 
 #include <fontconfig/fontconfig.h>
 #include <curl/curl.h>
@@ -443,6 +444,11 @@ int main(int argc, char **argv) {
 
     fprintf(stderr, "main: старт, url=%s\n", url); fflush(stderr);
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    /* До першого мережевого потоку (меню, ws): OpenSSL 1.0.2 на Stretch без
+     * замків не можна чіпати з двох потоків одночасно (ssl_locks.c). */
+    int ssl_locks = ssl_locks_init();
+    if (ssl_locks > 0) fprintf(stderr, "main: замки OpenSSL 1.0.2 поставлено (%d)\n", ssl_locks);
+    else if (ssl_locks < 0) fprintf(stderr, "main: OpenSSL 1.0.2 є, а замки поставити не вдалось\n");
 
     /* Події точки. Адреса за замовчуванням прошита збіркою: десктопна ціль
      * дивиться в локальний ws, малинова — одразу в прод (Makefile,

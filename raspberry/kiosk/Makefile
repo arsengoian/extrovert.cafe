@@ -17,7 +17,7 @@
 CC ?= gcc
 SRC_COMMON = src/main.c src/menu.c src/render.c src/gl.c src/telemetry.c \
              src/svgtpl.c src/qr.c src/bonus.c src/popup.c src/update.c src/selftest.c \
-             src/ws.c \
+             src/ws.c src/ssl_locks.c \
              third_party/cjson/cJSON.c third_party/qrcodegen/qrcodegen.c
 CFLAGS_COMMON = -std=c11 -D_DEFAULT_SOURCE -Wall -Wextra -O2 -Isrc \
                 -Ithird_party/cjson -Ithird_party/qrcodegen -pthread
@@ -54,7 +54,7 @@ bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 	$(CC) $(CFLAGS_COMMON) -DWS_DEFAULT_URL='"$(WS_URL_DESKTOP)"' -DAPI_DEFAULT_URL='"$(API_URL_DESKTOP)"' $(shell pkg-config --cflags $(PKGS_DESKTOP)) \
 		$(SRC_COMMON) src/platform_desktop.c \
 		-o $@ \
-		$(shell pkg-config --libs $(PKGS_DESKTOP)) -lm
+		$(shell pkg-config --libs $(PKGS_DESKTOP)) -lm -ldl
 	@echo "== зібрано $@ =="
 
 # Ціль для малини (у Pi-контейнері, docker/make-pi.sh): /opt/vc — стандартний
@@ -71,7 +71,7 @@ bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 		$(SRC_COMMON) src/platform_dispmanx.c \
 		-o $@ \
 		$(shell pkg-config --libs $(PKGS_BASE)) \
-		-L/opt/vc/lib -l:libbrcmEGL.so -l:libbrcmGLESv2.so -lbcm_host -lvcos -lvchiq_arm -lm \
+		-L/opt/vc/lib -l:libbrcmEGL.so -l:libbrcmGLESv2.so -lbcm_host -lvcos -lvchiq_arm -lm -ldl \
 		-Wl,-rpath,/opt/vc/lib
 	@echo "== зібрано $@ =="
 
