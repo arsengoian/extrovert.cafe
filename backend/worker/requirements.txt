@@ -10,3 +10,10 @@ psycopg[binary]==3.2.3
 boto3==1.35.36
 # Помилки — у GlitchTip, проєкт worker (worker/errors.py).
 sentry-sdk==2.14.0
+# Впізнавання за одягом (worker/reid.py): моделі Intel уже у форматі
+# OpenVINO, і його рантайм на CPU їх і запускає.
+openvino==2024.4.0
+# Вирізки людей, смужки й аркуші-доказів (crops.py, evidence.py).
+pillow==10.4.0
+# Київський час на аркушах (evidence.py): у python:slim бази поясів немає.
+tzdata==2024.2

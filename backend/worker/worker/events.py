@@ -1,20 +1,23 @@
-"""З треків — події, які потрібні адмінці: approach | pass | queue.
+"""З проходів (passages.py) — події, які потрібні адмінці.
 
   approach — людина біля стійки: коли підійшла, коли пішла, скільки стояла.
-             Саме до неї потім чіпляється чек (`likely_receipt_id`).
+  machine  — людина впритул до самого автомата, лицем до нього (scene.machine):
+             не тупцює в коридорі біля камери, а дивиться на екран чи
+             забирає напій. Це кандидат у покупці; без розмітки автомата в
+             сцені точки цієї події немає.
   pass     — людина пройшла в кадрі, але до кавʼярні не підійшла. Разом із
              approach це знаменник конверсії: який відсоток тих, хто
-             проходить повз, підходить (власник, 12.10.2026). Одна людина —
-             одна подія: або approach, або pass.
+             проходить повз, підходить (власник, 12.10.2026). Один прохід —
+             або approach, або pass; machine — додатково до approach.
   queue    — двоє й більше біля стійки одночасно: черга, через яку хтось
              міг піти.
 
 Порожню стійку окремою подією не пишемо (до 12.10.2026 це був `idle`):
 порожнеча — це відсутність подій, і складувати її рядками сенсу немає.
 
-Що НЕ рахуємо — ідентичність людини. Причина в `docs/video.md`: з цієї
-камери 52 px між зіницями, і стабільного ID по обличчю не буде. Хто саме
-підійшов — питання до POS, не до відео.
+Хто саме ця людина — не тут: обличчя з цієї камери не впізнати (52 px між
+зіницями), а впізнавання за одягом в межах доби робить people.py з векторів
+проходів.
 
 Зона стійки — полігон у частках кадру. Людина «в зоні», коли в полігон
 потрапляє НИЗ її рамки по центру: це точка, де вона стоїть на підлозі.
@@ -51,9 +54,10 @@ class Event:
     meta: dict
     open_start: bool = False
     open_end: bool = False
-    # Кадр-доказ: (час, [рамки в частках кадру]) — ті рамки, через які подію
-    # порахували.
-    best: tuple | None = None
+    # Прохід, з якого подія (у черги — None) і три миті для аркуша-доказу:
+    # початок, найпевніший кадр, кінець.
+    passage: object = None
+    moments: tuple = ()
 
 
 def _runs(times, flags, max_gap):
@@ -112,68 +116,53 @@ def is_person(tr, tracks, step, cfg) -> bool:
     return _covered(tr, tracks, step) < limit
 
 
-def derive(tracks, times, zone, w, h, cfg, duration_s) -> list[Event]:
+def derive(passages, times, cfg, duration_s) -> list[Event]:
     if not times:
         return []
     step = 1.0 / cfg.sample_fps
     first, last = times[0], times[-1]
     events: list[Event] = []
 
-    def frac(b):
-        return (b[0] / w, b[1] / h, b[2] / w, b[3] / h)
-
     def edges(a, b):
         # Подія, що впирається в край сегмента, ймовірно триває далі —
-        # позначаємо, щоб db.stitch зшив її з сусіднім сегментом.
+        # позначаємо, щоб db.write_events зшив її з сусіднім сегментом.
         return a <= first + step / 2, b >= last - step / 2
 
-    # ── approach ────────────────────────────────────────────────────────
-    # zoned — лише ті відрізки треків, що самі тягнуть на підхід. Черга
-    # рахується по них же: інакше уламок рамки (детектор інколи дає другу,
-    # на руку чи пів тулуба тієї ж людини, і живе вона секунду) роздував
-    # чергу на одну людину (12.10.2026, сегмент 200019).
+    def event(kind, p, a, b, extra=None):
+        span = [q for q in p.points if a <= q[0] <= b]
+        best = max(span, key=lambda q: q[5])
+        o1, o2 = edges(a, b)
+        meta = {"dwell_ms": int((b - a + step) * 1000),
+                "conf": round(best[5], 3), "frames": len(span),
+                "direction": p.direction, "heading": p.heading,
+                "open_start": o1, "open_end": o2, **(extra or {})}
+        return Event(kind, a, b + step, meta, o1, o2, p, (a, best[0], b))
+
+    # ── approach і machine ──────────────────────────────────────────────
+    # zoned — точки проходів, що самі тягнуть на підхід. Черга рахується по
+    # них же: інакше уламок рамки (детектор інколи дає другу, на руку чи пів
+    # тулуба тієї ж людини) роздував чергу на одну людину (12.10.2026).
     zoned = {}
-    for tr in tracks:
-        pts = [(t, box, c) for t, box, c in tr.points if in_zone(box, zone, w, h)]
-        if not pts:
-            continue
-        for a, b in _runs([p[0] for p in pts], [True] * len(pts), cfg.track_max_age_s):
+    for i, p in enumerate(passages):
+        for a, b in p.zone_runs:
             if b - a + step < cfg.approach_min_s:
                 continue
-            span = [p for p in pts if a <= p[0] <= b]
-            zoned.setdefault(tr.id, []).extend(span)
-            best = max(span, key=lambda p: p[2])
-            o1, o2 = edges(a, b)
-            events.append(Event(
-                "approach", a, b + step,
-                {"track": tr.id, "dwell_ms": int((b - a + step) * 1000),
-                 "conf": round(max(p[2] for p in span), 3),
-                 "frames": len(span),
-                 "open_start": o1, "open_end": o2},
-                o1, o2, (best[0], [frac(best[1])])))
+            zoned.setdefault(i, []).extend(q for q in p.points if a <= q[0] <= b)
+            events.append(event("approach", p, a, b))
+        for a, b in p.machine_runs:
+            events.append(event("machine", p, a, b))
 
     # ── pass ────────────────────────────────────────────────────────────
-    # Хто був у кадрі, але жодного разу не тягнув на підхід. Трек, що
+    # Хто був у кадрі, але жодного разу не тягнув на підхід. Прохід, що
     # підходив, сюди не йде навіть частиною: одна людина — одна подія.
-    for tr in tracks:
-        if tr.id in zoned or not is_person(tr, tracks, step, cfg):
-            continue
-        a, b = tr.first_t, tr.last_t
-        best = max(tr.points, key=lambda p: p[2])
-        o1, o2 = edges(a, b)
-        events.append(Event(
-            "pass", a, b + step,
-            {"track": tr.id, "dwell_ms": int((b - a + step) * 1000),
-             "conf": round(best[2], 3), "frames": len(tr.points),
-             "open_start": o1, "open_end": o2},
-            o1, o2, (best[0], [frac(best[1])])))
+    for i, p in enumerate(passages):
+        if i not in zoned:
+            events.append(event("pass", p, p.first_t, p.last_t))
 
     # ── queue ───────────────────────────────────────────────────────────
-    counts, present = [], []
+    counts = []
     for t in times:
-        here = [b for pts in zoned.values() for pt, b, _ in pts if abs(pt - t) < step / 2]
-        counts.append(len(here))
-        present.append(here)
+        counts.append(sum(1 for pts in zoned.values() if any(abs(q[0] - t) < step / 2 for q in pts)))
 
     for a, b in _runs(times, [n >= cfg.queue_min_people for n in counts], step * 1.5):
         if b - a + step < cfg.queue_min_s:
@@ -181,8 +170,8 @@ def derive(tracks, times, zone, w, h, cfg, duration_s) -> list[Event]:
         o1, o2 = edges(a, b)
         i = max((i for i, t in enumerate(times) if a <= t <= b), key=lambda i: counts[i])
         events.append(Event("queue", a, b + step,
-                            {"max_people": counts[i], "open_start": o1, "open_end": o2}, o1, o2,
-                            (times[i], [frac(x) for x in present[i]])))
+                            {"max_people": counts[i], "open_start": o1, "open_end": o2},
+                            o1, o2, None, (a, times[i], b)))
 
     for e in events:
         e.end_s = min(e.end_s, duration_s or e.end_s)

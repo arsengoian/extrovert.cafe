@@ -4,10 +4,10 @@
 #   model   — тягне torch + ultralytics (≈1,5 ГБ) і один раз конвертує
 #             yolo11n.pt у ONNX. Виконується на збірці, тобто в CI чи на
 #             машині розробника, де є і диск, і трафік.
-#   runtime — те, що реально їде на дроплет analysis (1 vCPU / 2 ГБ / 50 ГБ):
-#             python, ffmpeg, onnxruntime і готовий .onnx. Ні torch, ні
-#             ultralytics тут немає — вони б зайняли більше, ніж увесь
-#             робочий набір воркера.
+#   runtime — те, що реально їде в прод (пів ядра й 600 МБ у спільному
+#             стеку): python, ffmpeg, onnxruntime з готовим .onnx і OpenVINO
+#             з моделями впізнавання. Ні torch, ні ultralytics тут немає —
+#             вони б зайняли більше, ніж увесь робочий набір воркера.
 #
 # Збирати на ПК і везти образ, а не збирати на дроплеті: там на це немає
 # ні памʼяті, ні часу — той самий принцип, що з малиною (CLAUDE.md).
@@ -37,6 +37,15 @@ RUN python -c "from ultralytics import YOLO; YOLO('${MODEL}.pt').export(format='
  && pip install --no-cache-dir onnxruntime==1.19.2 \
  && python -c "from onnxruntime.quantization import quantize_dynamic, QuantType; quantize_dynamic('model-fp32.onnx', 'model.onnx', weight_type=QuantType.QUInt8)"
 
+# Моделі впізнавання за одягом (worker/reid.py): Intel Open Model Zoo, уже
+# у форматі OpenVINO, FP32 — разом 17 МБ. Готові файли з їхнього сховища зі
+# звіркою хешу (docker/fetch_reid.py); не ADD --checksum, бо для посилань він
+# досі вимагає labs-канал синтаксису Dockerfile.
+FROM python:3.11-slim AS reid
+WORKDIR /reid
+COPY backend/worker/docker/fetch_reid.py /tmp/
+RUN python /tmp/fetch_reid.py
+
 FROM python:3.11-slim AS runtime
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
@@ -44,18 +53,20 @@ RUN apt-get update \
 WORKDIR /app
 COPY backend/worker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=reid /reid /app/models/reid
 COPY --from=model /export/model.onnx /app/models/model.onnx
 # Неквантована копія лежить поруч: якщо на живому відео int8 почне губити
 # людей, перемикання — це один MODEL_PATH, а не перезбірка образу посеред дня.
 COPY --from=model /export/model-fp32.onnx /app/models/model-fp32.onnx
 COPY backend/worker/worker /app/worker
 COPY backend/worker/tools /app/tools
-# Зона їде в образі, а не в env: вона виведена з геометрії стійки й живих
-# замірів і змінюється разом із кодом, що її читає.
-COPY backend/worker/zones.json /app/zones.json
+# Сцени їдуть в образі, а не в env: зона, маски й автомат виведені з
+# геометрії точки й живих замірів і змінюються разом із кодом, що їх читає.
+COPY backend/worker/scenes.json /app/scenes.json
 ENV PYTHONUNBUFFERED=1 \
     MODEL_PATH=/app/models/model.onnx \
-    ZONES_PATH=/app/zones.json \
+    REID_DIR=/app/models/reid \
+    SCENES_PATH=/app/scenes.json \
     OMP_NUM_THREADS=1
 # Одне ядро — і onnxruntime про це має знати сам: інакше він підніме пул
 # потоків на всі ядра хоста й на shared vCPU це дасть мінус, а не плюс.

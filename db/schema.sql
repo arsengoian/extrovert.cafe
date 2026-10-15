@@ -1815,6 +1815,41 @@ COMMENT ON COLUMN public.users.nickname_changed_at IS 'Остання зміна
 
 
 --
+-- Name: video_coverage; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_coverage (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    camera_id text NOT NULL,
+    source text NOT NULL,
+    started_at timestamp with time zone NOT NULL,
+    ended_at timestamp with time zone NOT NULL,
+    CONSTRAINT video_coverage_check CHECK ((ended_at > started_at)),
+    CONSTRAINT video_coverage_source_check CHECK ((source = 'sd'::text))
+);
+
+
+--
+-- Name: video_coverage_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.video_coverage_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: video_coverage_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.video_coverage_id_seq OWNED BY public.video_coverage.id;
+
+
+--
 -- Name: video_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1828,7 +1863,11 @@ CREATE TABLE public.video_events (
     likely_receipt_id bigint,
     evidence jsonb,
     meta jsonb DEFAULT '{}'::jsonb NOT NULL,
-    CONSTRAINT video_events_kind_check CHECK ((kind = ANY (ARRAY['approach'::text, 'queue'::text, 'pass'::text])))
+    camera_id text,
+    analysis_version smallint DEFAULT 0 NOT NULL,
+    passage_id bigint,
+    superseded_at timestamp with time zone,
+    CONSTRAINT video_events_kind_check CHECK ((kind = ANY (ARRAY['approach'::text, 'queue'::text, 'pass'::text, 'machine'::text])))
 );
 
 
@@ -1852,6 +1891,96 @@ ALTER SEQUENCE public.video_events_id_seq OWNED BY public.video_events.id;
 
 
 --
+-- Name: video_passages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_passages (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    camera_id text NOT NULL,
+    segment_id bigint,
+    analysis_version smallint NOT NULL,
+    started_at timestamp with time zone NOT NULL,
+    ended_at timestamp with time zone NOT NULL,
+    direction text NOT NULL,
+    heading text,
+    frames integer NOT NULL,
+    start_depth real NOT NULL,
+    end_depth real NOT NULL,
+    min_depth real NOT NULL,
+    max_depth real NOT NULL,
+    at_zone boolean DEFAULT false NOT NULL,
+    at_machine boolean DEFAULT false NOT NULL,
+    open_start boolean DEFAULT false NOT NULL,
+    open_end boolean DEFAULT false NOT NULL,
+    points jsonb DEFAULT '[]'::jsonb NOT NULL,
+    crops jsonb DEFAULT '[]'::jsonb NOT NULL,
+    embedding real[],
+    emb_weight real DEFAULT 0 NOT NULL,
+    person_id bigint,
+    receipt_id bigint,
+    receipt_match text,
+    superseded_at timestamp with time zone,
+    CONSTRAINT video_passages_direction_check CHECK ((direction = ANY (ARRAY['away'::text, 'toward'::text, 'near'::text, 'far'::text, 'uturn'::text, 'uturn_far'::text]))),
+    CONSTRAINT video_passages_heading_check CHECK ((heading = ANY (ARRAY['in'::text, 'out'::text]))),
+    CONSTRAINT video_passages_receipt_match_check CHECK ((receipt_match = ANY (ARRAY['alone'::text, 'ambiguous'::text])))
+);
+
+
+--
+-- Name: video_passages_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.video_passages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: video_passages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.video_passages_id_seq OWNED BY public.video_passages.id;
+
+
+--
+-- Name: video_people; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_people (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    first_seen timestamp with time zone NOT NULL,
+    last_seen timestamp with time zone NOT NULL,
+    passages integer NOT NULL,
+    staff boolean DEFAULT false NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: video_people_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.video_people_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: video_people_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.video_people_id_seq OWNED BY public.video_people.id;
+
+
+--
 -- Name: video_segments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1868,6 +1997,9 @@ CREATE TABLE public.video_segments (
     locked_at timestamp with time zone,
     processed_at timestamp with time zone,
     error text,
+    analysis_version smallint DEFAULT 0 NOT NULL,
+    source text DEFAULT 'pi'::text NOT NULL,
+    CONSTRAINT video_segments_source_check CHECK ((source = ANY (ARRAY['pi'::text, 'sd'::text]))),
     CONSTRAINT video_segments_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'processing'::text, 'done'::text, 'failed'::text, 'expired'::text])))
 );
 
@@ -1889,6 +2021,39 @@ CREATE SEQUENCE public.video_segments_id_seq
 --
 
 ALTER SEQUENCE public.video_segments_id_seq OWNED BY public.video_segments.id;
+
+
+--
+-- Name: video_visits; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.video_visits (
+    id bigint NOT NULL,
+    person_id bigint NOT NULL,
+    point_id text NOT NULL,
+    entered_at timestamp with time zone,
+    left_at timestamp with time zone,
+    passages integer NOT NULL
+);
+
+
+--
+-- Name: video_visits_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.video_visits_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: video_visits_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.video_visits_id_seq OWNED BY public.video_visits.id;
 
 
 --
@@ -2218,6 +2383,13 @@ ALTER TABLE ONLY public.user_items ALTER COLUMN id SET DEFAULT nextval('public.u
 
 
 --
+-- Name: video_coverage id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_coverage ALTER COLUMN id SET DEFAULT nextval('public.video_coverage_id_seq'::regclass);
+
+
+--
 -- Name: video_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2225,10 +2397,31 @@ ALTER TABLE ONLY public.video_events ALTER COLUMN id SET DEFAULT nextval('public
 
 
 --
+-- Name: video_passages id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages ALTER COLUMN id SET DEFAULT nextval('public.video_passages_id_seq'::regclass);
+
+
+--
+-- Name: video_people id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_people ALTER COLUMN id SET DEFAULT nextval('public.video_people_id_seq'::regclass);
+
+
+--
 -- Name: video_segments id; Type: DEFAULT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.video_segments ALTER COLUMN id SET DEFAULT nextval('public.video_segments_id_seq'::regclass);
+
+
+--
+-- Name: video_visits id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_visits ALTER COLUMN id SET DEFAULT nextval('public.video_visits_id_seq'::regclass);
 
 
 --
@@ -2830,11 +3023,35 @@ ALTER TABLE ONLY public.users
 
 
 --
+-- Name: video_coverage video_coverage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_coverage
+    ADD CONSTRAINT video_coverage_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: video_events video_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.video_events
     ADD CONSTRAINT video_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_passages video_passages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages
+    ADD CONSTRAINT video_passages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: video_people video_people_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_people
+    ADD CONSTRAINT video_people_pkey PRIMARY KEY (id);
 
 
 --
@@ -2851,6 +3068,14 @@ ALTER TABLE ONLY public.video_segments
 
 ALTER TABLE ONLY public.video_segments
     ADD CONSTRAINT video_segments_r2_key_key UNIQUE (r2_key);
+
+
+--
+-- Name: video_visits video_visits_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_visits
+    ADD CONSTRAINT video_visits_pkey PRIMARY KEY (id);
 
 
 --
@@ -3307,6 +3532,13 @@ CREATE INDEX users_email_idx ON public.users USING btree (email) WHERE (email IS
 
 
 --
+-- Name: video_coverage_point_id_started_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_coverage_point_id_started_at_idx ON public.video_coverage USING btree (point_id, started_at);
+
+
+--
 -- Name: video_events_meta_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3321,6 +3553,55 @@ CREATE INDEX video_events_point_id_started_at_idx ON public.video_events USING b
 
 
 --
+-- Name: video_events_segment_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_events_segment_id_idx ON public.video_events USING btree (segment_id);
+
+
+--
+-- Name: video_events_segment_id_idx1; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_events_segment_id_idx1 ON public.video_events USING btree (segment_id);
+
+
+--
+-- Name: video_passages_person_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_passages_person_id_idx ON public.video_passages USING btree (person_id);
+
+
+--
+-- Name: video_passages_point_id_started_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_passages_point_id_started_at_idx ON public.video_passages USING btree (point_id, started_at);
+
+
+--
+-- Name: video_passages_receipt_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_passages_receipt_id_idx ON public.video_passages USING btree (receipt_id) WHERE (receipt_id IS NOT NULL);
+
+
+--
+-- Name: video_passages_segment_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_passages_segment_id_idx ON public.video_passages USING btree (segment_id);
+
+
+--
+-- Name: video_people_point_id_first_seen_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_people_point_id_first_seen_idx ON public.video_people USING btree (point_id, first_seen);
+
+
+--
 -- Name: video_segments_point_id_started_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3332,6 +3613,20 @@ CREATE INDEX video_segments_point_id_started_at_idx ON public.video_segments USI
 --
 
 CREATE INDEX video_segments_started_at_idx ON public.video_segments USING btree (started_at) WHERE (status = ANY (ARRAY['pending'::text, 'failed'::text]));
+
+
+--
+-- Name: video_visits_person_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_visits_person_id_idx ON public.video_visits USING btree (person_id);
+
+
+--
+-- Name: video_visits_point_id_entered_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_visits_point_id_entered_at_idx ON public.video_visits USING btree (point_id, entered_at);
 
 
 --
@@ -3858,11 +4153,27 @@ ALTER TABLE ONLY public.user_items
 
 
 --
+-- Name: video_coverage video_coverage_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_coverage
+    ADD CONSTRAINT video_coverage_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
 -- Name: video_events video_events_likely_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.video_events
     ADD CONSTRAINT video_events_likely_receipt_id_fkey FOREIGN KEY (likely_receipt_id) REFERENCES public.receipts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_events video_events_passage_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_events
+    ADD CONSTRAINT video_events_passage_id_fkey FOREIGN KEY (passage_id) REFERENCES public.video_passages(id) ON DELETE SET NULL;
 
 
 --
@@ -3882,11 +4193,67 @@ ALTER TABLE ONLY public.video_events
 
 
 --
+-- Name: video_passages video_passages_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages
+    ADD CONSTRAINT video_passages_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.video_people(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_passages video_passages_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages
+    ADD CONSTRAINT video_passages_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
+-- Name: video_passages video_passages_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages
+    ADD CONSTRAINT video_passages_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_passages video_passages_segment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_passages
+    ADD CONSTRAINT video_passages_segment_id_fkey FOREIGN KEY (segment_id) REFERENCES public.video_segments(id) ON DELETE SET NULL;
+
+
+--
+-- Name: video_people video_people_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_people
+    ADD CONSTRAINT video_people_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
 -- Name: video_segments video_segments_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.video_segments
     ADD CONSTRAINT video_segments_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
+-- Name: video_visits video_visits_person_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_visits
+    ADD CONSTRAINT video_visits_person_id_fkey FOREIGN KEY (person_id) REFERENCES public.video_people(id) ON DELETE CASCADE;
+
+
+--
+-- Name: video_visits video_visits_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.video_visits
+    ADD CONSTRAINT video_visits_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
 
 
 --
@@ -3984,4 +4351,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261009100100'),
     ('20261009100200'),
     ('20261012100000'),
-    ('20261012110000');
+    ('20261012110000'),
+    ('20261015180000');

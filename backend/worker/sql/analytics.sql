@@ -2,8 +2,12 @@
 -- адмінки (docs/admin_panel.md, група «відео») і як спосіб перевірити, що
 -- з подій справді виходить те, що ми обіцяли собі отримати.
 --
--- Жоден із них не йде в міграцію вʼюхою: поки камери немає, форма відповіді
--- точно зміниться, а вʼюха в схемі — це обіцянка, яку доведеться тримати.
+-- Жоден із них не йде в міграцію вʼюхою: форма відповіді ще міняється, а
+-- вʼюха в схемі — це обіцянка, яку доведеться тримати. Готові зрізи для
+-- адмінки — api/src/routes/video-stats.js (відвідувачі, воронка, покупці).
+--
+-- Скрізь superseded_at is null: подію, замінену переаналізом сегмента
+-- новою версією воркера, рахувати не можна — вона там уже є новою.
 
 -- 1. Картка «Події з камер» на дашборді статистики: скільки чого за добу.
 select date_trunc('day', started_at) as day,
@@ -12,6 +16,7 @@ select date_trunc('day', started_at) as day,
        round(avg(extract(epoch from (ended_at - started_at)))::numeric, 1) as avg_s
   from video_events
  where point_id = $1 and started_at >= $2 and started_at < $3
+   and superseded_at is null
  group by 1, 2
  order by 1, 2;
 
@@ -23,7 +28,7 @@ select date_trunc('day', started_at) as day,
        round(100.0 * count(likely_receipt_id) / nullif(count(*), 0), 1) as pct
   from video_events
  where kind = 'approach' and point_id = $1
-   and started_at >= $2 and started_at < $3
+   and started_at >= $2 and started_at < $3 and superseded_at is null
  group by 1
  order by 1;
 
@@ -36,7 +41,7 @@ select likely_receipt_id is not null as bought,
              order by (meta->>'dwell_ms')::int) / 1000.0, 1) as p90_s
   from video_events
  where kind = 'approach' and point_id = $1
-   and started_at >= $2 and started_at < $3
+   and started_at >= $2 and started_at < $3 and superseded_at is null
  group by 1;
 
 -- 4. Години, коли біля стійки хтось є. Порівняти з «Дохід за годиною дня»:
@@ -46,6 +51,7 @@ select extract(hour from started_at at time zone 'Europe/Kyiv') as hour,
        count(*) filter (where kind = 'queue') as queues
   from video_events
  where point_id = $1 and started_at >= $2 and started_at < $3
+   and superseded_at is null
  group by 1
  order by 1;
 
@@ -55,14 +61,14 @@ select extract(hour from started_at at time zone 'Europe/Kyiv') as hour,
 with q as (
   select started_at, ended_at, (meta->>'max_people')::int as people
     from video_events
-   where kind = 'queue' and point_id = $1
+   where kind = 'queue' and point_id = $1 and superseded_at is null
      and started_at >= $2 and started_at < $3)
 select count(*) as queues,
        max(people) as max_people,
        round(avg(extract(epoch from (ended_at - started_at)))::numeric, 1) as avg_s,
        (select count(*) from video_events a
          where a.kind = 'approach' and a.point_id = $1
-           and a.likely_receipt_id is null
+           and a.likely_receipt_id is null and a.superseded_at is null
            and exists (select 1 from q
                         where a.started_at < q.ended_at
                           and a.ended_at > q.started_at)) as left_in_queue

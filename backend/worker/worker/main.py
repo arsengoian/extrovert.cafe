@@ -1,19 +1,27 @@
-"""Цикл воркера: взяти сегмент → викачати → продетектити → записати → done.
+"""Цикл воркера: взяти сегмент → викачати → проходи й події → записати → докази.
 
-Сервіс свідомо тупий і однопотоковий. На дроплеті analysis одне ядро, і
-паралелізм там не пришвидшить, а лише зробить памʼять непередбачуваною —
-а саме через непередбачувану памʼять цей воркер і живе окремо від api
-(docs/video.md, «Чому два дроплети»).
+Сервіс свідомо тупий і однопотоковий: у прод-стеку йому дано пів ядра й
+600 МБ (docker-compose.prod.yml), і паралелізм там не пришвидшить, а лише
+зробить памʼять непередбачуваною.
+
+Між сегментами, раз на people_every_s, — дві дрібні роботи: перерахунок
+людей і візитів (people.py) і чеки, що доїхали в базу пізніше за свій
+сегмент. Коли черга порожня, воркер переробляє старі сегменти новою версією
+аналізу (db.claim) і наздоганяє людей по історії — по кроку за раз, щоб
+свіжий сегмент ніколи не чекав довше за один крок.
 """
 import os
 import signal
 import tempfile
 import time
+from datetime import timedelta
 
-from . import config, db, errors, log
-from . import frames as fr
+from . import config, db, errors, log, people
+from . import crops as cr
+from . import evidence as evd
 from . import pipeline
 from .detect import Detector
+from .reid import Reid
 from .storage import Missing, Storage
 
 _stop = False
@@ -25,60 +33,78 @@ def _on_signal(signum, _frame):
     log.warn("отримано сигнал, дороблюємо поточний сегмент", signal=signum)
 
 
-def evidence_for(conn, path: str, seg, event_id: int, e, storage, cfg) -> None:
-    """Кадр (і за потреби кліп) у extrovert-evidence, ключі — в подію."""
-    if e.best is None:
-        return
-    at, boxes = e.best
-    keys = {}
-    try:
-        keys["frame_00"] = storage.put_evidence(
-            f"{seg['point_id']}/{event_id}/frame_00.jpg",
-            fr.still(path, at, boxes=boxes), "image/jpeg")
-        if cfg.evidence_clips:
-            with tempfile.TemporaryDirectory() as tmp:
-                dst = os.path.join(tmp, "clip.mp4")
-                fr.clip(path, dst, max(0.0, e.start_s - 2), e.end_s - e.start_s + 4)
-                with open(dst, "rb") as fh:
-                    keys["clip"] = storage.put_evidence(
-                        f"{seg['point_id']}/{event_id}/clip.mp4",
-                        fh.read(), "video/mp4")
-    except Exception as err:  # доказ — приємний бонус, а не причина впасти
-        log.warn("доказ не зберігся", event=event_id, err=str(err)[:120])
-        errors.capture(err, event=event_id, stage="evidence")
-        if not keys:
-            return
-    db.set_evidence(conn, event_id, keys)
+def upload(conn, seg, res, written, storage, cfg) -> int:
+    """Вирізки проходів і аркуші подій — у extrovert-evidence, ключі — в базу.
+
+    Доказ — приємний бонус, а не причина впасти: подія вже записана, і без
+    картинки вона все одно правдива. Тому кожна помилка тут — лише в лог.
+    """
+    point, base = seg["point_id"], seg["started_at"]
+    scene = cfg.scene_for(point, seg["camera_id"])
+    n = 0
+    for pid, p, _merged, started in written["passages"]:
+        if not p.crops:
+            continue
+        try:
+            t0 = (started - base).total_seconds()
+            data, parts = cr.strip(p.crops, cfg.crop_max_h, t0)
+            key = storage.put_evidence(f"{point}/p/{pid}-{seg['id']}.jpg", data, "image/jpeg")
+            db.set_crops(conn, pid, {"key": key, "h": cfg.crop_max_h, "parts": parts})
+            n += 1
+        except Exception as err:
+            log.warn("вирізки не збереглись", passage=pid, err=str(err)[:120])
+            errors.capture(err, passage=pid, stage="crops")
+    # Доказ — для КОЖНОЇ події, не лише для підходів із чеком (рішення
+    # власника 12.10.2026): перевіряти очима треба саме ті події, до яких
+    # чек не причепився. Зшита подія аркуш уже має з першого сегмента.
+    for event_id, e, stitched in written["events"]:
+        if stitched:
+            continue
+        try:
+            key = storage.put_evidence(f"{point}/{event_id}/sheet.jpg",
+                                       evd.sheet(e, res, scene, base), "image/jpeg")
+            db.set_evidence(conn, event_id, {"sheet": key})
+            n += 1
+        except Exception as err:
+            log.warn("доказ не зберігся", event=event_id, err=str(err)[:120])
+            errors.capture(err, event=event_id, stage="evidence")
+    return n
 
 
-def handle(conn, seg, detector, storage, cfg) -> None:
+def handle(conn, seg, detector, reid, storage, cfg) -> None:
     t0 = time.monotonic()
-    zone = cfg.zone_for(seg["point_id"], seg["camera_id"])
+    scene = cfg.scene_for(seg["point_id"], seg["camera_id"])
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, os.path.basename(seg["r2_key"]))
         size = storage.download(seg["r2_key"], path)
-        res = pipeline.process(path, cfg, detector, zone)
-
-        written = db.write_events(conn, seg, res.events, cfg)
-        matched = db.match_receipts(conn, seg, res.stats.get("duration_s") or 0)
-        # Доказ — для КОЖНОЇ події, не лише для підходів із чеком (рішення
-        # власника 12.10.2026): поки зону й пороги підкручуємо за живим
-        # відео, перевіряти очима треба саме ті події, до яких чек не
-        # причепився. Це знімки людей без покупки, тож коли якість устоїться,
-        # варто повернути обмеження. Зшита подія кадр уже має з першого
-        # сегмента — другий не потрібен.
-        for event_id, e, stitched in written:
-            if not stitched:
-                evidence_for(conn, path, seg, event_id, e, storage, cfg)
-
-    db.finish(conn, seg["id"], "done")
+        res = pipeline.process(path, cfg, detector, scene, reid)
+    # Файл уже не потрібен: аркуші беруться з кадрів, що пройшли детектор.
+    written = db.write_segment(conn, seg, res, cfg)
+    files = upload(conn, seg, res, written, storage, cfg)
     s = res.stats
     log.info(
         "сегмент оброблено",
         id=seg["id"], key=seg["r2_key"], mb=round(size / 1e6, 1),
-        gated=s.get("gated"), frames=s.get("frames"),
-        events=len(res.events), receipts=len(matched),
-        sec=round(time.monotonic() - t0, 1), speed=s.get("speed_x"))
+        again=seg.get("analysis_version") or None,
+        gated=s.get("gated"), frames=s.get("frames"), passages=s.get("passages"),
+        events=len(res.events), receipts=written["receipts"], files=files,
+        sec=round(time.monotonic() - t0, 1), reid=round(s.get("reid_s") or 0, 1),
+        speed=s.get("speed_x"))
+
+
+def background(conn, cfg) -> bool:
+    """Люди й запізнілі чеки. True — лишилась історія, яку варто наздоганяти далі."""
+    behind = False
+    try:
+        for s in people.run(conn, cfg):
+            behind = behind or s["to"] < s["now"] - timedelta(minutes=1)
+        n = db.rematch_receipts(conn, cfg)
+        if n:
+            log.info("чеки наздогнали", receipts=n)
+    except Exception as err:
+        log.error("люди не перерахувались", err=str(err)[:200])
+        errors.capture(err, stage="people")
+    return behind
 
 
 def main() -> None:
@@ -90,18 +116,34 @@ def main() -> None:
     signal.signal(signal.SIGINT, _on_signal)
 
     detector = Detector(cfg.model_path, cfg.conf, cfg.nms_iou)
+    reid = Reid(cfg.reid_dir, cfg.reid_models)
+    if not reid.enabled:
+        log.warn("моделей впізнавання немає — проходи без векторів, людей не буде",
+                 dir=cfg.reid_dir)
     storage = Storage(cfg)
     conn = db.connect(cfg.database_url)
     log.info("воркер піднявся", env=cfg.app_env, model=cfg.model_path,
-             fps=cfg.sample_fps, gate=cfg.motion_gate, glitchtip=reporting)
+             fps=cfg.sample_fps, gate=cfg.motion_gate, reid=",".join(cfg.reid_models) if reid.enabled else None,
+             version=config.ANALYSIS_VERSION, reprocess=cfg.reprocess, glitchtip=reporting)
 
     idle_logged = False
+    last_bg = 0.0
+    behind = False
     while not _stop:
+        if time.monotonic() - last_bg >= cfg.people_every_s:
+            behind = background(conn, cfg)
+            last_bg = time.monotonic()
         seg = db.claim(conn, cfg)
         if not seg:
+            if behind:
+                # Черга порожня, а люди по історії ще не пораховані — крок
+                # за кроком, без сну.
+                behind = background(conn, cfg)
+                last_bg = time.monotonic()
+                continue
             if not idle_logged:
                 q = db.lag(conn)
-                log.info("черга порожня", pending=q["pending"])
+                log.info("черга порожня", pending=q["pending"], old=q["old"])
                 idle_logged = True
             time.sleep(cfg.poll_s)
             continue
@@ -113,7 +155,7 @@ def main() -> None:
             break
         idle_logged = False
         try:
-            handle(conn, seg, detector, storage, cfg)
+            handle(conn, seg, detector, reid, storage, cfg)
         except Missing:
             # Lifecycle зніс сегмент раніше, ніж ми до нього дійшли. Це не
             # помилка воркера, це відставання — і його видно в алерті про
