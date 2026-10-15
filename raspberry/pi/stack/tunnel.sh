@@ -26,7 +26,7 @@ KNOWN="$(dirname "$0")/tunnel_known_hosts"
 STOPPING=0
 SSH=""
 trap 'STOPPING=1; [ -n "$SSH" ] && kill "$SSH" 2>/dev/null' TERM INT
-idle() { _s=$1; while [ "$_s" -gt 0 ] && [ "$STOPPING" = 0 ]; do sleep 1; _s=$((_s - 1)); done; }
+idle() { [ "$STOPPING" = 0 ] && nap "$1"; }   # одним sleep, див. nap у common.sh
 LAST=""
 say() { [ "$1" = "$LAST" ] && return; LAST=$1; log "$1"; }
 json_str() { printf '%s' "$1" | sed -n "s/.*\"$2\":\"\([^\"]*\)\".*/\1/p"; }

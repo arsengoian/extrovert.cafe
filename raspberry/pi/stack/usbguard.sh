@@ -30,7 +30,7 @@ API_HOST="${USBGUARD_API:-https://api.extrovert.cafe/}"
 
 STOPPING=0
 trap 'STOPPING=1' TERM INT
-idle() { _s=$1; while [ "$_s" -gt 0 ] && [ "$STOPPING" = 0 ]; do sleep 1; _s=$((_s - 1)); done; }
+idle() { [ "$STOPPING" = 0 ] && nap "$1"; }   # одним sleep, див. nap у common.sh
 
 has_param() { grep -qw 'dwc_otg.speed=1' "$CMDLINE" 2>/dev/null; }
 has_v4() { ip -4 -o addr show dev "$1" 2>/dev/null | grep -q ' inet '; }

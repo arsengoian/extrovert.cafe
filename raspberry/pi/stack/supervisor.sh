@@ -98,6 +98,18 @@ start_component() { # start_component <імʼя> <exec> <слот> [аргуме
 # запускає його лідером через setsid). `kill -SIG -pid` — саме так, без
 # `--`: вбудований kill у dash інакше групу не приймає (перевірено на
 # kyiv-01 14.10.2026). Якщо групи нема (setsid відсутній) — самому процесу.
+# same_code <старий реліз> <новий реліз> <exec відносно релізу> — чи той
+# самий код у компонента: його скрипт разом із common.sh, який він
+# підключає (15.10.2026). Досі кожен реліз перезапускав усе, і запис щоразу
+# втрачав ~20 с (пошук камери, старт ffmpeg, RTSP), навіть коли в релізі
+# змінилась лише адмінка. Чогось бракує (реліз уже прибраний) — «інший».
+same_code() {
+    [ -n "$1" ] && [ -n "$2" ] || return 1
+    _so="$EXTROVERT_RELEASES/$1"; _sn="$EXTROVERT_RELEASES/$2"
+    [ -f "$_so/$3" ] && [ -f "$_sn/$3" ] && [ -f "$_so/stack/common.sh" ] && [ -f "$_sn/stack/common.sh" ] || return 1
+    [ "$(cat "$_so/$3" "$_so/stack/common.sh" | cksum)" = "$(cat "$_sn/$3" "$_sn/stack/common.sh" | cksum)" ]
+}
+
 signal_group() {
     kill -"$1" -"$2" 2>/dev/null || kill -"$1" "$2" 2>/dev/null || true
 }
@@ -303,6 +315,9 @@ while :; do
     _now=$(current_release)
     if [ "$_now" != "$LAST_RELEASE" ]; then
         log "реліз змінився: $LAST_RELEASE → $_now"
+        # Порівнювати будемо з релізом, з якого компоненти запущені, — тобто
+        # з першим, якщо кілька прийшли поспіль, поки перезапуск чекав.
+        [ "${PENDING_RESTART:-0}" = 1 ] || PREV_RELEASE=$LAST_RELEASE
         LAST_RELEASE=$_now
         PENDING_RESTART=1
     fi
@@ -311,6 +326,10 @@ while :; do
         while read -r _n _x _ov _args; do
             # Кіоск має власний шлях підміни через сусідній шар — не чіпаємо.
             [ "$_n" = "kiosk" ] && continue
+            if same_code "${PREV_RELEASE:-}" "$LAST_RELEASE" "$_x"; then
+                log "$_n: код у новому релізі той самий — не перезапускаю"
+                continue
+            fi
             log "$_n: новий реліз — перезапускаю з новим кодом"
             restart_plain "$_n"
         done < "$WANT"

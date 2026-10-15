@@ -157,13 +157,8 @@ pace() { # pace <файл> — віддає файл у stdout у темпі, я
 
 STOPPING=0
 trap 'STOPPING=1' TERM INT
-# Чекання — посекундно, щоб SIGTERM не чекав хвилинами.
-idle() {
-    _s=$1
-    while [ "$_s" -gt 0 ] && [ "$STOPPING" = 0 ]; do
-        sleep 1; _s=$((_s - 1))
-    done
-}
+# Чекання — одним sleep (nap): SIGTERM однаково перериває його одразу.
+idle() { [ "$STOPPING" = 0 ] && nap "$1"; }   # одним sleep, див. nap у common.sh
 LAST=""
 say() { [ "$1" = "$LAST" ] && return; LAST=$1; log "$1"; }
 

@@ -184,10 +184,32 @@ selftest_release() { # selftest_release <реліз> → 0/1
     return "$_rc"
 }
 
+# Підпис кіоска в релізі: бінарник і все з assets/. Однаковий підпис — кіоск
+# у новому релізі той самий, і перезапускати його нема чого.
+kiosk_sig() { # kiosk_sig <тека релізу>
+    ( cd "$1" 2>/dev/null && find bin/kiosk assets -type f 2>/dev/null | LC_ALL=C sort | xargs cksum 2>/dev/null ) | cksum
+}
+
 # ── Кроки 6-9: підміна з відкатом ────────────────────────────────────────
-switch_to() { # switch_to <реліз> → 0/1
+switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
     _rel=$1
     _prev=$(current_release)
+
+    # Кіоск не змінився (15.10.2026) — лише перемикаємо симлінк, без плашки
+    # «Оновлення» на екрані й без перезапуску. Досі кожен реліз — і правка
+    # адмінки, і рядок у доці — показував клієнтам плашку на 6+ секунд і
+    # заново піднімав кіоск. assets кіоск читає через current/ (ASSETS у
+    # supervisor.sh), тож з новим симлінком бере ті самі файли.
+    if [ "${2:-0}" = 1 ] && [ -n "$_prev" ]; then
+        state_write previous "$_prev"
+        ln -sfn "$EXTROVERT_RELEASES/$_rel" "$EXTROVERT_CURRENT.new" \
+            && mv -Tf "$EXTROVERT_CURRENT.new" "$EXTROVERT_CURRENT" \
+            || { log "не вдалось перемкнути симлінк"; return 1; }
+        log "current → $_rel (кіоск той самий — без плашки й перезапуску)"
+        state_write version "$_rel"
+        state_write last_update_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+        return 0
+    fi
 
     printf 'Оновлення %s\n' "$_rel" > "$UPDATING_FLAG"
     log "плашка «оновлення» піднята, чекаю ${UPDATE_BANNER_LEAD_S:-6}с"
@@ -325,13 +347,26 @@ while :; do
         log "реліз $_rel уже лежить локально — пропускаю завантаження"
     fi
 
-    selftest_release "$_rel" || {
-        log "selftest провалено — стара версія лишається працювати"
-        mark_bad "$_rel"
-        continue
-    }
+    # Кіоск той самий, що вже працює (kiosk_sig), — selftest нічого нового
+    # не перевірить, а на Pi 1 це секунди рендеру на повному процесорі; і
+    # switch_to тоді не покаже плашку й не перезапустить кіоск. Підпис —
+    # ~3 с CPU на реліз, тож рахуємо один раз і передаємо далі.
+    _cur=$(current_release); _same=0
+    if [ -n "$_cur" ] && [ -d "$EXTROVERT_RELEASES/$_cur" ] \
+        && [ "$(kiosk_sig "$EXTROVERT_RELEASES/$_cur")" = "$(kiosk_sig "$EXTROVERT_RELEASES/$_rel")" ]; then
+        _same=1
+    fi
+    if [ "$_same" = 1 ]; then
+        log "кіоск у $_rel той самий, що працює, — selftest пропускаю"
+    else
+        selftest_release "$_rel" || {
+            log "selftest провалено — стара версія лишається працювати"
+            mark_bad "$_rel"
+            continue
+        }
+    fi
 
-    if switch_to "$_rel"; then
+    if switch_to "$_rel" "$_same"; then
         log "оновлення до $_rel завершено"
         # Передаємо керування новій версії себе самого: далі цикл має
         # крутити вже оновлений updater.sh. exec, а не рестарт супервізором:

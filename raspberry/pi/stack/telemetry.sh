@@ -256,9 +256,11 @@ flash_probe() { # → "<video_ok> <usb_ok>"
         </dev/null >/dev/null 2>&1 &
     echo $! > "$_out.pid"
     _i=0
-    while [ "$_i" -lt 150 ]; do
+    # Опитуємо щопів секунди, а не щодесяту: кожен sleep — окремий процес,
+    # а Pi 1 і так зайнятий (15.10.2026). 30 × 0,5 с — ті самі 15 с.
+    while [ "$_i" -lt 30 ]; do
         if [ -s "$_out" ]; then wait "$(cat "$_out.pid")" 2>/dev/null; rm -f "$_out.pid"; cat "$_out"; return; fi
-        sleep 0.1; _i=$((_i + 1))
+        sleep 0.5; _i=$((_i + 1))
     done
     echo "false false"
 }
@@ -524,10 +526,8 @@ while [ "$STOPPING" -eq 0 ]; do
     # Проба довша за період — не крутимось без передиху: мінімум пʼять секунд
     # на те, щоб хоч щось інше на цій платі теж попрацювало.
     [ "$_left" -lt 5 ] && _left=5
-    while [ "$_left" -gt 0 ] && [ "$STOPPING" -eq 0 ]; do
-        sleep 1
-        _left=$((_left - 1))
-    done
+    # Одним sleep (nap, common.sh): SIGTERM перериває його одразу.
+    [ "$STOPPING" -eq 0 ] && nap "$_left"
 done
 
 log "зупиняємось"
