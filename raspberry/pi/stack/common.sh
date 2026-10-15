@@ -53,29 +53,24 @@ json_get_num() { # json_get_num <файл> <ключ>
 }
 
 # ── Телеметрія кіоска ────────────────────────────────────────────────────
-# Читає JSON із UNIX-сокета кіоска (telemetry.c). nc -U є в Stretch;
-# python3 лишається запасним шляхом, бо на іншому образі nc може бути
-# traditional-збіркою без -U.
+# Читає JSON із UNIX-сокета кіоска (telemetry.c) — одним викликом nc -U
+# (netcat-openbsd, він у нашому образі). Не відповів — повертаємо 1, і проба
+# піде без fps: це краще, ніж добивати процесор.
+#
+# До 15.10.2026 тут був запасний шлях через python3 (на випадок nc без -U)
+# і подвійне читання (перевірка, потім те саме ще раз). python3 вмикався
+# саме тоді, коли nc не встигав, тобто коли процесор Pi 1 був на 100 %, — і
+# його старт коштував ще ~1 с CPU зверху; в top він так і маячив.
 telemetry_read() { # telemetry_read <шлях-сокета>
     [ -S "$1" ] || return 1
+    command -v nc >/dev/null 2>&1 || return 1
     # timeout обовʼязковий: кіоск, що завис у кадрі, лишає сокет у listen, і
     # ядро приймає зʼєднання й без нього — nc тоді чекав би відповіді вічно,
-    # а разом із ним і телеметрія (12.10.2026). У python-гілці нижче той
-    # самий таймаут у 3 с.
-    if command -v nc >/dev/null 2>&1 && timeout 3 nc -U "$1" 2>/dev/null | head -n1 | grep -q fps; then
-        timeout 3 nc -U "$1" 2>/dev/null | head -n1
-        return 0
-    fi
-    command -v python3 >/dev/null 2>&1 || return 1
-    python3 -c "
-import socket,sys
-s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
-s.settimeout(3)
-try:
-    s.connect(sys.argv[1]); sys.stdout.write(s.recv(4096).decode())
-except Exception:
-    sys.exit(1)
-" "$1" 2>/dev/null
+    # а разом із ним і телеметрія (12.10.2026). 5 с, а не 3: на зайнятому
+    # процесорі кіоск відповідає й за 1–3 с, і проба без fps була б зайвою.
+    _tr=$(timeout 5 nc -U "$1" 2>/dev/null | head -n1)
+    case "$_tr" in *fps*) printf '%s\n' "$_tr"; return 0 ;; esac
+    return 1
 }
 
 # «Живий» = сокет відповідає і кадри реально йдуть. Перевіряти лише

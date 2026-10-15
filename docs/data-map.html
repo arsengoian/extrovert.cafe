@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 37ff35b</p>
+  <p class="eyebrow">extrovert.cafe · джерело f799803</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -6605,6 +6605,15 @@ graph TB
 (<code>frames_total</code>, fps). JSON збирається <code>printf</code>, летить одним
 <code>curl -X POST</code> з JWT точки; не долетів — і добре, наступний цикл везе
 свіжий знімок, а не чергу застарілих.</p>
+<p><strong>Телеметрія не має заважати точці</strong> (15.10.2026). Вона йде з <code>nice 10</code> і
+<code>ionice -c 3</code>, як запис і заливка, тож кіоск у неї процесора не позичає.
+Сокет кіоска читається одним <code>nc -U</code> із тайм-аутом 5 с; запасний шлях через
+python3 прибрано — він вмикався саме тоді, коли процесор був на 100 %, і
+сам коштував ще ~1 с CPU. Монітор через CEC опитується раз на 5 хв
+(<code>TELEMETRY_MONITOR_PROBE_S</code>), а не щохвилини: кожен <code>cec-client</code> заново
+ініціалізує libcec і на Pi 1 коштує кілька секунд процесора. Між опитами
+проба несе останній результат; будимо лише за свіжим опитом, і після
+побудки наступне коло перевіряє знову.</p>
 <h3 id="raspberry-pi-як-процеси-говорять-між-собою"><a class="anchor" href="#raspberry-pi-як-процеси-говорять-між-собою" aria-hidden="true">#</a>Як процеси говорять між собою</h3>
 <div class="tablewrap"><table>
 <thead>
@@ -14817,7 +14826,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 37ff35b — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел f799803 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

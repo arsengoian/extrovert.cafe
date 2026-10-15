@@ -17,6 +17,13 @@ set -u
 LOG_TAG=telemetry
 . "$(dirname "$0")/common.sh"
 
+# Телеметрія — нагляд, а не робота точки: нижчий пріоритет на процесорі й
+# диску, як у recorder і uploader (15.10.2026). На одноядерному Pi 1 її
+# проби (CEC, ping, vcgencmd, TLS до api) інакше відбирали процесор у
+# кіоска саме тоді, коли його й так бракувало. Діти успадковують.
+renice -n 10 -p $$ >/dev/null 2>&1 || true
+ionice -c 3 -p $$ >/dev/null 2>&1 || true
+
 API="${API_URL:-https://api.extrovert.cafe/api/v1}"
 # Хвилина, а не пʼять: від цього періоду напряму залежить, за скільки ми
 # дізнаємось, що точка впала (overseer бачить мовчання через SILENT_MINUTES).
@@ -124,6 +131,25 @@ monitor_probe() {
 # час у кіоска. Якщо колись знадобиться реакція за секунди, дешевий шлях уже
 # перевірений: тримати cec-client відкритим через fifo — тоді один запит
 # коштує 50–230 мс замість 5,7 с.
+# Опит через CEC — не щохвилини, а раз на MONITOR_PROBE_S (15.10.2026):
+# кожен запуск cec-client заново ініціалізує libcec і на Pi 1 коштує кілька
+# секунд процесора, а монітор міняє стан рідко. Між опитами віддаємо
+# останній результат (state/monitor.last: «<epoch> <on> <src>»). Третє
+# поле відповіді — 1, якщо опит свіжий: будимо монітор лише за свіжим.
+MON_CACHE="$EXTROVERT_STATE/monitor.last"
+MONITOR_PROBE_S="${TELEMETRY_MONITOR_PROBE_S:-300}"
+monitor_cached() { # → "<on> <src> <свіжий 1|0>"
+    _mnow=$(date +%s)
+    # shellcheck disable=SC2046 # три поля через пробіл
+    set -- $(cat "$MON_CACHE" 2>/dev/null)
+    if [ $# -ge 3 ] && [ $((_mnow - $1)) -lt "$MONITOR_PROBE_S" ] && [ $((_mnow - $1)) -ge 0 ]; then
+        echo "$2 $3 0"; return
+    fi
+    set -- $(monitor_probe)
+    printf '%s %s %s\n' "$_mnow" "$1" "$2" > "$MON_CACHE.tmp" && mv "$MON_CACHE.tmp" "$MON_CACHE"
+    echo "$1 $2 1"
+}
+
 monitor_wake() {
     [ "${MONITOR_AUTOWAKE:-1}" = "1" ] || return 1
     command -v cec-client >/dev/null 2>&1 || return 1
@@ -306,15 +332,19 @@ sample_json() {
     set -- $(net_metrics); _ping=$1; _jitter=$2; _loss=$3
     set -- $(kiosk_metrics "/tmp/kiosk-$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0).sock")
     _fps=$1; _frames=$2
-    set -- $(monitor_probe); _monitor=$1; _msrc=$2
+    set -- $(monitor_cached); _monitor=$1; _msrc=$2; _mfresh=$3
     # Побачили сон — одразу пробуємо розбудити, і кажемо про це в пробі:
     # інакше «монітор вимкнено» і «монітор вимкнено, але ми його ввімкнули»
     # виглядали б однаково.
     _woke=false
     # Будимо лише те, що відповідає: якщо на CEC ніхто не озивається
     # (витягнутий кабель), команда «увімкнись» летіла б у порожнечу, а в
-    # пробі стояло б «будили» — неправда, яку потім видно в алерті.
-    if [ "$_monitor" = "false" ] && [ "$_msrc" = "cec" ] && monitor_wake; then _woke=true; fi
+    # пробі стояло б «будили» — неправда, яку потім видно в алерті. Лише за
+    # свіжим опитом; після побудки кеш скидаємо — наступне коло перевірить,
+    # чи прокинувся, а не показуватиме «вимкнено» ще п'ять хвилин.
+    if [ "$_mfresh" = 1 ] && [ "$_monitor" = "false" ] && [ "$_msrc" = "cec" ] && monitor_wake; then
+        _woke=true; rm -f "$MON_CACHE"
+    fi
     set -- $(flash_probe); _video=$1; _usb=$2
     set -- $(uplink_metrics); _uplink=$1; _wdbm=$2
     _rofs=$(root_readonly)
