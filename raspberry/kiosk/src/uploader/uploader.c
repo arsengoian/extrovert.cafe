@@ -14,6 +14,9 @@
  * R2 → реєструємо наявний), ті самі файли стану (state/upload.cap,
  * upload.last, upload.queue) і ті самі рядки в лозі. Налаштування —
  * змінні оточення, які експортує uploader.sh перед exec.
+ *
+ * З 15.10.2026 черг дві: RAM (RECORDER_RAM — туди спершу пише recorder.sh)
+ * і флешка. Готові з RAM ідуть першими, хвіст флешки — у решту часу.
  */
 #define _GNU_SOURCE
 /* 64-бітні stat/readdir на 32-бітному ARM: без цього stat() падає з
@@ -42,7 +45,8 @@
 
 /* ── налаштування ─────────────────────────────────────────────────────── */
 static const char *ROOT, *STATE, *API, *POINT, *TOKEN_FILE, *CAMERA, *PING_HOST;
-static char DIRV[512], REJECT_DIR[600], CAP_FILE[600], MARK[600], QUEUE[600];
+static char DIRV[512], REJECT_DIR[600], CAP_FILE[600], MARK[600], QUEUE[600], CURRENT[600];
+static char RAM_DIR[512];   /* сегменти в RAM (recorder.sh, RECORDER_RAM); порожньо — лише флешка */
 static int MAX_KB, MIN_KB, RTT_SLACK_MS, RTT_QUIET_MS, BACKOFF_PCT, BAD_SAMPLES, MAX_PAUSE_S, BATCH;
 
 static const char *env_or(const char *k, const char *d) {
@@ -285,11 +289,26 @@ static time_t start_epoch(const char *name) {
     return z == 'Z' ? timegm(&tm) : mktime(&tm);
 }
 
+/* Копія файла (для переносу з RAM на флешку, де rename не працює — EXDEV). */
+static int copy_file(const char *src, const char *dst) {
+    FILE *a = fopen(src, "rb"), *b = a ? fopen(dst, "wb") : NULL;
+    char buf[65536]; size_t k; int ok = a && b;
+    while (ok && (k = fread(buf, 1, sizeof buf, a)) > 0) ok = fwrite(buf, 1, k, b) == k;
+    if (ok && ferror(a)) ok = 0;
+    if (a) fclose(a);
+    if (b && fclose(b) != 0) ok = 0;
+    if (!ok) unlink(dst);
+    return ok ? 0 : -1;
+}
+
 static void reject(const char *path, const char *name, const char *why) {
     char dst[1200];
     mkdir(REJECT_DIR, 0755);
     snprintf(dst, sizeof dst, "%s/%s", REJECT_DIR, name);
-    if (rename(path, dst) == 0) logf_("%s: %s — переніс у rejected/, беру наступний", name, why);
+    int ok = rename(path, dst) == 0;
+    /* Сегмент із RAM: rejected/ — на флешці, інша файлова система. */
+    if (!ok && errno == EXDEV && copy_file(path, dst) == 0) { unlink(path); ok = 1; }
+    if (ok) logf_("%s: %s — переніс у rejected/, беру наступний", name, why);
 }
 
 /* Замір для телеметрії — як upload_mark у скрипті: лише коли канал справді
@@ -319,10 +338,12 @@ static int register_segment(const char *key, long long bytes, time_t at, char **
     return api_post("/video/segment", body, out);
 }
 
-/* upload_one → 0 залито, 3 відкладено в rejected/, 1 збій (повторимо). */
-static int upload_one(const char *path, const char *name) {
+/* upload_one → 0 залито, 3 відкладено в rejected/, 1 збій (повторимо),
+ * 4 файла вже немає (recorder переніс його з RAM на флешку чи prune стер) —
+ * не збій, наступний прохід знайде його там, де він тепер. */
+static int upload_one(const char *path, const char *name, int mark) {
     struct stat st;
-    if (stat(path, &st) != 0) return 1;
+    if (stat(path, &st) != 0) return errno == ENOENT ? 4 : 1;
     long long bytes = st.st_size;
     time_t at = start_epoch(name);
     if (!at) { reject(path, name, "не розібрав час з імені"); return 3; }
@@ -344,8 +365,13 @@ static int upload_one(const char *path, const char *name) {
     char *url = strdup(u->valuestring), *key = strdup(k->valuestring);
     cJSON_Delete(j);
 
+    /* mark — сегмент із RAM: позначаємо, що саме його читаємо, щоб recorder
+     * не переніс його на флешку посеред заливки (знімає позначку той, хто
+     * кличе, — уже після того, як локальну копію стерто). Не раніше: поки
+     * api не дав посилання, файл ще не читаємо, і переносити його можна. */
+    if (mark) write_atomic(CURRENT, path);
     FILE *f = fopen(path, "rb");
-    if (!f) { free(url); free(key); return 1; }
+    if (!f) { int gone = errno == ENOENT; free(url); free(key); return gone ? 4 : 1; }
     int start_cap = cap_kb();
     Pace p = { f, bytes, start_cap, 0, 0, 0, -1, 0 };
     /* Базова затримка — поки канал ще вільний від нас. Не відповідає зовсім
@@ -408,12 +434,39 @@ static int upload_one(const char *path, const char *name) {
     return ret;
 }
 
-/* Готові сегменти — ті, які ffmpeg уже не дописує (не мінялись понад
- * хвилину), за абеткою: імена — час запису, тож найстаріші — першими. */
 static int by_name(const struct dirent **a, const struct dirent **b) { return strcmp((*a)->d_name, (*b)->d_name); }
 static int is_segment(const struct dirent *d) {
     size_t n = strlen(d->d_name);
     return (n > 4 && strcmp(d->d_name + n - 4, ".mkv") == 0) || (n > 3 && strcmp(d->d_name + n - 3, ".ts") == 0);
+}
+
+/* collect <тека> <ram> — готові сегменти теки за абеткою (імена — час
+ * запису, тож найстаріші першими): до cap шляхів у кінець q, у відповідь —
+ * скільки їх усього, а *oldest — час найстарішого. Готовий на флешці — той,
+ * що не мінявся понад хвилину (ffmpeg його вже не дописує). У RAM ffmpeg
+ * пише лише в найновіший, тож готові — усі інші, а найновіший — лише коли
+ * не мінявся понад хвилину (ffmpeg стоїть: камера пропала). */
+typedef struct { char path[600]; } Seg;
+static Seg *QUEUE_SEGS;   /* до 2×BATCH: спершу з RAM, далі з флешки */
+static int collect(const char *dir, int ram, Seg *q, int *nq, int cap, time_t now, time_t *oldest) {
+    struct dirent **list = NULL;
+    int m = scandir(dir, &list, is_segment, by_name), ready = 0;
+    for (int i = 0; i < m; i++) {
+        char path[600]; struct stat st;
+        snprintf(path, sizeof path, "%s/%s", dir, list[i]->d_name);
+        if (stat(path, &st) == 0 && S_ISREG(st.st_mode) && (now - st.st_mtime > 60 || (ram && i < m - 1))) {
+            if (!ready) { time_t e = start_epoch(list[i]->d_name); if (e && (!*oldest || e < *oldest)) *oldest = e; }
+            ready++;
+            if (*nq < cap) snprintf(q[(*nq)++].path, sizeof q[0].path, "%s", path);
+        }
+        free(list[i]);
+    }
+    free(list);
+    return ready;
+}
+static int ram_ready(void) {
+    int nq = 0; time_t o = 0;
+    return RAM_DIR[0] ? collect(RAM_DIR, 1, NULL, &nq, 0, time(NULL), &o) : 0;
 }
 
 static int read_token(void) {
@@ -442,6 +495,9 @@ int main(void) {
     snprintf(CAP_FILE, sizeof CAP_FILE, "%s/upload.cap", STATE);
     snprintf(MARK, sizeof MARK, "%s/upload.last", STATE);
     snprintf(QUEUE, sizeof QUEUE, "%s/upload.queue", STATE);
+    snprintf(CURRENT, sizeof CURRENT, "%s/upload.current", STATE);
+    const char *ramd = getenv("RECORDER_RAM"); if (!ramd) ramd = "/dev/shm/extrovert-video";
+    snprintf(RAM_DIR, sizeof RAM_DIR, "%s", ramd);
     MAX_KB = rate_kb(env_or("UPLOAD_RATE", "800k"));
     MIN_KB = env_int("UPLOAD_MIN_KB", 32);
     RTT_SLACK_MS = env_int("UPLOAD_RTT_SLACK_MS", 400);
@@ -450,6 +506,8 @@ int main(void) {
     BAD_SAMPLES = env_int("UPLOAD_BAD_SAMPLES", 2);
     MAX_PAUSE_S = env_int("UPLOAD_MAX_PAUSE_S", 120);
     BATCH = env_int("UPLOAD_BATCH", 20);
+    if (BATCH < 1) BATCH = 1;
+    QUEUE_SEGS = calloc(2 * (size_t)BATCH, sizeof(Seg));
 
     /* Відео — найнижчий пріоритет на процесорі й диску (nice 10, ionice idle). */
     if (setpriority(PRIO_PROCESS, 0, 10) != 0) {}
@@ -462,47 +520,49 @@ int main(void) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
     API_H = curl_easy_init(); R2_H = curl_easy_init();
     mkdir(STATE, 0755);
-    logf_("старт (C), черга %s → %s, темп %d КБ/с (межі %d…%d, пінг до %s)", DIRV, API, cap_kb(), MIN_KB, MAX_KB, PING_HOST);
+    logf_("старт (C), черга %s%s%s → %s, темп %d КБ/с (межі %d…%d, пінг до %s)", RAM_DIR[0] ? RAM_DIR : "", RAM_DIR[0] ? " і " : "",
+          DIRV, API, cap_kb(), MIN_KB, MAX_KB, PING_HOST);
 
     int fails = 0;
     while (!STOPPING) {
         if (read_token() != 0) { say("немає ключа точки %s — вантажити нікуди", TOKEN_FILE); idle(300); continue; }
-        struct dirent **list = NULL;
-        int n = scandir(DIRV, &list, is_segment, by_name), ready = 0;
+        /* Спершу RAM, потім флешка (recorder.sh, «Спершу в RAM»): свіжий
+         * сегмент іде в R2 прямо з памʼяті й на флешку не потрапляє зовсім,
+         * а хвіст на флешці доганяємо в решту часу, найстаріші першими. */
         time_t t = time(NULL), oldest = 0;
-        char path[1200];
+        int nq = 0, ram = 0, ready = 0;
+        if (RAM_DIR[0]) ready = ram = collect(RAM_DIR, 1, QUEUE_SEGS, &nq, BATCH, t, &oldest);
+        if (ram > BATCH) ram = BATCH;
+        ready += collect(DIRV, 0, QUEUE_SEGS, &nq, 2 * BATCH, t, &oldest);
         /* Черга для телеметрії: скільки готових чекає й з якого часу найстаріший. */
-        for (int i = 0; i < n; i++) {
-            struct stat st;
-            snprintf(path, sizeof path, "%s/%s", DIRV, list[i]->d_name);
-            if (stat(path, &st) == 0 && S_ISREG(st.st_mode) && t - st.st_mtime > 60) {
-                if (!ready) oldest = start_epoch(list[i]->d_name);
-                ready++;
-            } else { free(list[i]); list[i] = NULL; }
-        }
-        char q[64]; snprintf(q, sizeof q, "%d %ld\n", ready, (long)(ready ? oldest : 0));
-        write_atomic(QUEUE, q);
-        if (!ready) { for (int i = 0; i < n; i++) free(list[i]); free(list); idle(30); continue; }
+        char qs[64]; snprintf(qs, sizeof qs, "%d %ld\n", ready, (long)(ready ? oldest : 0));
+        write_atomic(QUEUE, qs);
+        if (!ready) { idle(30); continue; }
 
-        int done = 0, tried = 0;
-        for (int i = 0; i < n && !STOPPING; i++) {
-            if (!list[i] || tried >= BATCH) continue;
+        int done = 0, skipped = 0, failed = 0, tried = 0;
+        for (int i = 0; i < nq && tried < BATCH && !STOPPING; i++) {
+            /* Хвіст флешки — лише поки в RAM не готовий новий: інакше за
+             * прохід (до BATCH сегментів, десятки хвилин) recorder переніс би
+             * свіжі на флешку, і користі від RAM не було б. */
+            if (i >= ram && ram_ready() > 0) break;
             tried++;
-            snprintf(path, sizeof path, "%s/%s", DIRV, list[i]->d_name);
-            int r = upload_one(path, list[i]->d_name);
+            const char *path = QUEUE_SEGS[i].path, *name = strrchr(path, '/') + 1;
+            int r = upload_one(path, name, i < ram);
+            if (i < ram) unlink(CURRENT);
             if (r == 0 || r == 3) done++;   /* 3 — відкладено в rejected/: черга йде далі */
+            else if (r == 4) skipped++;     /* файл переїхав — наступний прохід знайде */
             else {
-                fails++;
-                if (fails == 1) logf_("%s: заливка не вдалась — повторю пізніше", list[i]->d_name);
+                fails++; failed = 1;
+                if (fails == 1) logf_("%s: заливка не вдалась — повторю пізніше", name);
                 break;
             }
         }
-        for (int i = 0; i < n; i++) free(list[i]);
-        free(list);
-        if (done > 0) {
-            if (fails > 0) logf_("заливка відновилась після %d невдалих спроб", fails);
-            fails = 0;
-            say("вантажу: залито %d за прохід", done);
+        if (done > 0 || (skipped > 0 && !failed)) {
+            if (done > 0) {
+                if (fails > 0) logf_("заливка відновилась після %d невдалих спроб", fails);
+                fails = 0;
+                say("вантажу: залито %d за прохід", done);
+            }
             continue;
         }
         if (STOPPING) break;
@@ -512,6 +572,7 @@ int main(void) {
         if (w > MAX_PAUSE_S) w = MAX_PAUSE_S;
         idle(w);
     }
+    unlink(CURRENT);
     logf_("зупинено");
     curl_easy_cleanup(API_H); curl_easy_cleanup(R2_H);
     curl_global_cleanup();

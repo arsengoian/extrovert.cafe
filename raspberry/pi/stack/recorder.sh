@@ -10,7 +10,8 @@
 # 07.10.2026: звук зберігаємо). Обрізаний знеструмленням mkv читається до
 # місця обриву, як і TS (перевірено: 60 % файла — 60 % кадрів).
 # Вивантаження в R2 — окремий компонент uploader.sh; він же стирає залите.
-# Флешка — буфер на випадок, коли інтернету чи api немає: місця мало —
+# Флешка — буфер на випадок, коли інтернету чи api немає (з 15.10.2026
+# сегмент спершу лягає в RAM, див. RAM нижче): місця мало —
 # стираємо найстаріше.
 #
 # Камера (Tapo C100) — у config/camera.env, поза релізом: релізи лежать у
@@ -35,6 +36,24 @@ SEGMENT_S="${RECORDER_SEGMENT_S:-60}"
 # 2 ГБ — запас на кілька годин, якщо прибирання раптом зупиниться.
 KEEP_FREE_MB="${RECORDER_KEEP_FREE_MB:-2048}"
 FFLOG=/tmp/recorder-ffmpeg.log
+
+# ── Спершу в RAM, на флешку — лише запас (15.10.2026) ────────────────────
+# Шина Pi 1 одна на все — Ethernet (потік камери), Wi-Fi (заливка) і флешка,
+# — і з 15.10.2026 вона в режимі USB 1.1 (~8–9 Мбіт/с на практиці). Сегмент,
+# записаний на флешку, проходив шиною тричі: з камери, на флешку, з флешки
+# в аплоудер — і ще раз у Wi-Fi. Тому ffmpeg пише в tmpfs, аплоудер бере
+# звідти в першу чергу, і на флешку сегмент потрапляє, лише коли заливка не
+# встигає: у RAM лишаються RAM_KEEP найсвіжіших готових, старші ram_spill
+# переносить на флешку. Знеструмлення забирає те, що лежало в RAM, — у
+# штатному ритмі це поточний сегмент і ще щонайбільше один (аплоудер
+# забирає готовий за хвилину), а коли інтернету немає — RAM_KEEP хвилин.
+# Порожній RECORDER_RAM — пишемо прямо на флешку, як до 15.10.2026.
+RAM="${RECORDER_RAM-/dev/shm/extrovert-video}"
+RAM_KEEP="${RECORDER_RAM_KEEP:-3}"   # скільки готових сегментів тримати в RAM
+# Аварійна межа: стільки готових у RAM — і найстаріші стираються. Буває,
+# лише коли перенос на флешку не встигає чи висить (мертва флешка): без
+# межі tmpfs з'їв би памʼять малини разом із кіоском (~5 МБ на хвилину).
+RAM_MAX="${RECORDER_RAM_MAX:-8}"
 # 1 — пишемо всі доріжки камери (відео й звук), 0 — лише відео. У 0
 # recorder переходить сам, якщо ffmpeg відмовився писати звук у mkv
 # (перевірено на ffmpeg 5.1, а на малині 3.2 — лише після першого запуску),
@@ -128,13 +147,74 @@ prune() {
     done
 }
 
+# Вік найсвіжішого сегмента там, куди зараз пише ffmpeg ($OUT). Найсвіжіший
+# — останній за абеткою (імена — час запису в UTC), тож глоб, а не `ls -t`
+# зі stat кожному з сотень файлів черги.
 newest_age() {
-    _f=$(ls -1t "$DIR"/*.ts "$DIR"/*.mkv 2>/dev/null | head -n 1)
+    _f=""
+    for _g in "$OUT"/*.mkv; do [ -e "$_g" ] && _f=$_g; done
     [ -n "$_f" ] || { echo 999999; return; }
-    echo $(( $(date +%s) - $(stat -c %Y "$_f") ))
+    echo $(( $(date +%s) - $(stat -c %Y "$_f" 2>/dev/null || echo 0) ))
 }
 
-log "старт, буфер $DIR"
+# ram_spill [all] — готові сегменти з RAM на флешку, крім RAM_KEEP
+# найсвіжіших і того, який саме заливає аплоудер (state/upload.current).
+# Найновіший файл у RAM не чіпаємо: у нього ще пише ffmpeg (з «all» —
+# чіпаємо, ffmpeg уже зупинений). Копія йде під тимчасовим іменем, що не
+# закінчується на .mkv, і лише потім стає сегментом: аплоудер не візьме
+# недописаний, а `cp -p` лишає час зміни, за яким prune стирає найстаріше.
+# Переносить фоновий процес по одному за раз: повільна чи зависла флешка
+# (USB 1.1, а 12.10.2026 вона висла в ядрі намертво) не має зупиняти
+# нагляд за ffmpeg і аварійну межу RAM_MAX.
+SPILL_PID=""
+RAM_FULL_LOGGED=0
+ram_spill() {
+    [ -n "$RAM" ] && [ -d "$RAM" ] || return 0
+    _mode=${1:-}
+    set --
+    for _g in "$RAM"/*.mkv; do [ -e "$_g" ] && set -- "$@" "$_g"; done
+    _n=$#
+    [ "$_mode" = all ] || _n=$((_n - 1))   # найновіший — у нього ще пише ffmpeg
+    # Повідомлення про переповнення — раз на епізод: знову можна, коли RAM
+    # повернулась до норми (а не після кожної спроби переносу, що не вдалась).
+    [ "$_n" -le "$RAM_KEEP" ] && RAM_FULL_LOGGED=0
+    [ "$_n" -gt 0 ] || return 0
+    _cur=""; { read -r _cur < "$EXTROVERT_STATE/upload.current"; } 2>/dev/null   # без процесу
+    # Аварійна межа — до переносу і незалежно від нього.
+    if [ "$_n" -gt "$RAM_MAX" ]; then
+        _drop=$((_n - RAM_MAX))
+        for _g in "$@"; do
+            [ "$_drop" -gt 0 ] || break
+            rm -f "$_g"; _drop=$((_drop - 1)); _n=$((_n - 1))
+            shift
+        done
+        if [ "$RAM_FULL_LOGGED" = 0 ]; then
+            RAM_FULL_LOGGED=1
+            log "у RAM понад $RAM_MAX готових сегментів, а на флешку вони не йдуть — стираю найстаріші"
+        fi
+    fi
+    if [ -n "$SPILL_PID" ] && kill -0 "$SPILL_PID" 2>/dev/null; then return 0; fi
+    SPILL_PID=""
+    _keep=$RAM_KEEP; [ "$_mode" = all ] && _keep=0
+    _list=""; _i=0
+    for _g in "$@"; do
+        _i=$((_i + 1))
+        [ "$_i" -le $((_n - _keep)) ] || break
+        [ "$_g" = "$_cur" ] && continue
+        _list="$_list $_g"
+    done
+    [ -n "$_list" ] || return 0
+    # shellcheck disable=SC2086 # імена сегментів — без пробілів
+    ( for _g in $_list; do
+          _b=${_g##*/}
+          cp -p "$_g" "$DIR/.$_b.part" && mv -f "$DIR/.$_b.part" "$DIR/$_b" && rm -f "$_g" \
+              || { rm -f "$DIR/.$_b.part"; exit 1; }
+      done ) </dev/null >/dev/null 2>&1 &
+    SPILL_PID=$!
+}
+
+OUT=$DIR
+log "старт, буфер $DIR${RAM:+, спершу в RAM ($RAM, готових до $RAM_KEEP)}"
 while [ "$STOPPING" = 0 ]; do
     if [ ! -f "$CAM_ENV" ]; then say "немає $CAM_ENV — камера не налаштована, чекаю"; idle 300; continue; fi
     CAM_MAC=""; CAM_USER=""; CAM_PASS=""; CAM_IP=""; CAM_STREAM=""; CAM_URL=""
@@ -146,6 +226,12 @@ while [ "$STOPPING" = 0 ]; do
     # у незмонтовану теку /mnt/buf за годину поклав би всю малину.
     if [ -z "$BUF" ] || ! grep -q " $BUF " /proc/mounts; then say "флешка $BUF не змонтована — без неї не пишу"; idle 120; continue; fi
     mkdir -p "$DIR" || { say "не вдалось створити $DIR"; idle 120; continue; }
+    # Куди пише ffmpeg (RAM, див. угорі). Теки в tmpfs не вийшло — прямо на
+    # флешку, як до 15.10.2026.
+    OUT=$DIR
+    if [ -n "$RAM" ]; then
+        if mkdir -p "$RAM" 2>/dev/null; then OUT=$RAM; else say "не вдалось створити $RAM — пишу прямо на флешку"; fi
+    fi
 
     _url=$CAM_URL
     if [ -z "$_url" ]; then
@@ -173,7 +259,7 @@ while [ "$STOPPING" = 0 ]; do
         -i "$_url" \
         $_map -c copy \
         -f segment -segment_time "$SEGMENT_S" -reset_timestamps 1 -segment_format matroska \
-        -strftime 1 "$DIR/%Y%m%dT%H%M%SZ.mkv" 2> "$FFLOG" &
+        -strftime 1 "$OUT/%Y%m%dT%H%M%SZ.mkv" 2> "$FFLOG" &
     FF=$!
 
     # Нагляд щоп'ять секунд (ffmpeg, що впав одразу, не має чекати пів
@@ -193,6 +279,7 @@ while [ "$STOPPING" = 0 ]; do
         fi
         [ $((_tick % 30)) -eq 0 ] || continue
         prune
+        ram_spill
         if [ $(( $(date +%s) - _started )) -gt $((SEGMENT_S * 3)) ] && [ "$(newest_age)" -gt $((SEGMENT_S * 3)) ]; then
             log "нових сегментів немає вже $((SEGMENT_S * 3)) с — перезапускаю ffmpeg"
             kill "$FF" 2>/dev/null
@@ -231,4 +318,10 @@ while [ "$STOPPING" = 0 ]; do
     [ "$_wait" -gt 60 ] && _wait=60
     idle "$_wait"
 done
+# Зупинка: ffmpeg уже дописав свій сегмент — усе з RAM на флешку, скільки
+# встигнемо до SIGKILL супервізора (STOP_GRACE_S): після ребуту tmpfs порожній,
+# а перезапуск компонента — це часто саме ребут.
+if [ -n "$SPILL_PID" ]; then wait "$SPILL_PID" 2>/dev/null; SPILL_PID=""; fi
+ram_spill all
+[ -n "$SPILL_PID" ] && wait "$SPILL_PID" 2>/dev/null
 log "зупинено"

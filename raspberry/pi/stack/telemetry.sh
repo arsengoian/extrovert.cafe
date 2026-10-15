@@ -195,8 +195,11 @@ video_ok() {
     # й процесорі на 100 % це не влазило в дедлайн flash_probe, і проба
     # приходила «флешка й відео не працюють», хоча обоє жили (15.10.2026:
     # 28 таких проб за три дні — усі парою false false).
-    _new=""
-    for _f in "${RECORDER_BUF-/mnt/buf}/video/"*.mkv; do [ -e "$_f" ] && _new=$_f; done
+    # З 15.10.2026 ffmpeg пише спершу в RAM (recorder.sh, RECORDER_RAM), тож
+    # найсвіжіший — там; на флешці — лише те, що не встигло залитись.
+    _new=""; _ram=${RECORDER_RAM-/dev/shm/extrovert-video}
+    [ -n "$_ram" ] && for _f in "$_ram/"*.mkv; do [ -e "$_f" ] && _new=$_f; done
+    [ -n "$_new" ] || for _f in "${RECORDER_BUF-/mnt/buf}/video/"*.mkv; do [ -e "$_f" ] && _new=$_f; done
     [ -n "$_new" ] || { echo false; return; }
     _age=$(( $(date +%s) - $(stat -c %Y "$_new" 2>/dev/null || echo 0) ))
     [ "$_age" -lt 180 ] && echo true || echo false
