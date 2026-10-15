@@ -83,6 +83,28 @@ MAX_PAUSE_S="${UPLOAD_MAX_PAUSE_S:-120}"     # найдовша пауза пі�
 # черги, а гальмування м'якше.
 CAP_FILE="$EXTROVERT_STATE/upload.cap"
 PING_HOST="${UPLOAD_PING_HOST:-${TELEMETRY_PING_HOST:-api.extrovert.cafe}}"
+
+# ── bin/uploader — те саме одним процесом (15.10.2026) ────────────────────
+# На Pi 1 цей скрипт коштував процесора більше, ніж сама заливка: dd на
+# кожен шматок, sleep щосекунди, ping із sed щодві, а на кожен сегмент — три
+# curl із новим TLS-рукостисканням (~0,95 с CPU кожен). bin/uploader
+# (raspberry/kiosk/src/uploader/uploader.c) робить рівно те саме — ті самі
+# рішення, файли стану й рядки в лозі, — але з'єднання до api й R2 тримає
+# між сегментами, а темп регулює всередині процесу. Налаштування йому —
+# ті самі змінні, що вище, уже з підставленими типовими значеннями.
+#
+# UPLOADER_IMPL=sh у config/env повертає цей скрипт (відкат без релізу:
+# правка config/env + touch state/restart.uploader). Бінарника в релізі
+# немає — теж скрипт.
+UPLOADER_BIN="$(dirname "$0")/../bin/uploader"
+if [ "${UPLOADER_IMPL:-c}" = c ] && [ -x "$UPLOADER_BIN" ]; then
+    export POINT API_URL="$API" WS_TOKEN_FILE="$TOKEN_FILE" RECORDER_BUF="${RECORDER_BUF-/mnt/buf}" \
+        RECORDER_CAMERA="$CAMERA" UPLOAD_RATE="$RATE" UPLOAD_BATCH="$BATCH" UPLOAD_MIN_KB="$MIN_KB" \
+        UPLOAD_RTT_SLACK_MS="$RTT_SLACK_MS" UPLOAD_RTT_QUIET_MS="$RTT_QUIET_MS" UPLOAD_BACKOFF_PCT="$BACKOFF_PCT" \
+        UPLOAD_BAD_SAMPLES="$BAD_SAMPLES" UPLOAD_MAX_PAUSE_S="$MAX_PAUSE_S" UPLOAD_PING_HOST="$PING_HOST"
+    exec "$UPLOADER_BIN"
+fi
+
 cap_kb() {
     _c=$(cat "$CAP_FILE" 2>/dev/null)
     case "$_c" in ''|*[!0-9]*) _c=$MAX_KB ;; esac

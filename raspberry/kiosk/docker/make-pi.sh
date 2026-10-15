@@ -12,7 +12,7 @@
 # свого часу відхилили. Ціна — QEMU: збірка триває хвилини замість секунд,
 # але процесор при цьому чужий, не той, що показує меню.
 #
-#   ./docker/make-pi.sh              # bin/kiosk
+#   ./docker/make-pi.sh              # bin/kiosk і bin/uploader
 #   ./docker/make-pi.sh clean pi     # свої цілі make
 #
 # Образ збереться сам при першому запуску. Потрібен binfmt для armv6:

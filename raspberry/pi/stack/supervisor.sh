@@ -103,11 +103,19 @@ start_component() { # start_component <імʼя> <exec> <слот> [аргуме
 # підключає (15.10.2026). Досі кожен реліз перезапускав усе, і запис щоразу
 # втрачав ~20 с (пошук камери, старт ffmpeg, RTSP), навіть коли в релізі
 # змінилась лише адмінка. Чогось бракує (реліз уже прибраний) — «інший».
-same_code() {
+# Четвертий аргумент — імʼя компонента: якщо в релізі є bin/<імʼя> (як
+# bin/uploader, у який exec-ає uploader.sh), це теж його код — інакше реліз
+# із новим бінарником і тим самим скриптом лишив би працювати старий.
+same_code() { # same_code <старий реліз> <новий реліз> <exec> [<імʼя>]
     [ -n "$1" ] && [ -n "$2" ] || return 1
     _so="$EXTROVERT_RELEASES/$1"; _sn="$EXTROVERT_RELEASES/$2"
-    [ -f "$_so/$3" ] && [ -f "$_sn/$3" ] && [ -f "$_so/stack/common.sh" ] && [ -f "$_sn/stack/common.sh" ] || return 1
-    [ "$(cat "$_so/$3" "$_so/stack/common.sh" | cksum)" = "$(cat "$_sn/$3" "$_sn/stack/common.sh" | cksum)" ]
+    _sf="$3 stack/common.sh"
+    if [ -n "${4:-}" ] && [ "bin/$4" != "$3" ] && { [ -f "$_so/bin/$4" ] || [ -f "$_sn/bin/$4" ]; }; then
+        _sf="$_sf bin/$4"
+    fi
+    for _sx in $_sf; do [ -f "$_so/$_sx" ] && [ -f "$_sn/$_sx" ] || return 1; done
+    # shellcheck disable=SC2086 # $_sf — перелік відносних шляхів без пробілів
+    [ "$(cd "$_so" && cat $_sf | cksum)" = "$(cd "$_sn" && cat $_sf | cksum)" ]
 }
 
 signal_group() {
@@ -326,7 +334,7 @@ while :; do
         while read -r _n _x _ov _args; do
             # Кіоск має власний шлях підміни через сусідній шар — не чіпаємо.
             [ "$_n" = "kiosk" ] && continue
-            if same_code "${PREV_RELEASE:-}" "$LAST_RELEASE" "$_x"; then
+            if same_code "${PREV_RELEASE:-}" "$LAST_RELEASE" "$_x" "$_n"; then
                 log "$_n: код у новому релізі той самий — не перезапускаю"
                 continue
             fi

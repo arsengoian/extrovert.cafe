@@ -47,7 +47,7 @@ API_URL_PI = https://api.extrovert.cafe/api/v1
 
 .PHONY: desktop pi tools clean
 
-desktop: bin/kiosk-desktop
+desktop: bin/kiosk-desktop bin/uploader-desktop
 
 bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 	@mkdir -p bin
@@ -61,7 +61,7 @@ bin/kiosk-desktop: $(SRC_COMMON) src/platform_desktop.c
 # шлях libraspberrypi-dev усередині того самого Raspbian, без sysroot.
 # GL/EGL лінкуються напряму на Broadcom-ові .so (не через pkg-config egl/
 # glesv2 — дивись коментар при PKGS_BASE вище).
-pi: bin/kiosk
+pi: bin/kiosk bin/uploader
 
 bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 	@mkdir -p bin
@@ -75,8 +75,21 @@ bin/kiosk: $(SRC_COMMON) src/platform_dispmanx.c
 		-Wl,-rpath,/opt/vc/lib
 	@echo "== зібрано $@ =="
 
+# Заливка відео в R2 (src/uploader/uploader.c — компонент uploader стеку,
+# 15.10.2026). Окремий процес, а не потік кіоска: заливка живе й падає
+# незалежно від меню, а кіоск не перезапускається, коли міняється лише вона.
+# Потрібні тільки libcurl і cJSON — жодного GL, тож правило одне на обидві
+# цілі: bin/uploader — у Pi-контейнері, bin/uploader-desktop — у десктопному.
+SRC_UPLOADER = src/uploader/uploader.c third_party/cjson/cJSON.c
+
+bin/uploader bin/uploader-desktop: $(SRC_UPLOADER)
+	@mkdir -p bin
+	$(CC) -std=c11 -Wall -Wextra -O2 -Ithird_party/cjson $(shell pkg-config --cflags libcurl) \
+		$(SRC_UPLOADER) -o $@ $(shell pkg-config --libs libcurl)
+	@echo "== зібрано $@ =="
+
 # Службові утиліти для малини — не частина релізу (make-release.sh бере лише
-# bin/kiosk). dispmanx-snap: знімок усього екрана з ПК (tools/dispmanx-snap.c).
+# bin/kiosk і bin/uploader). dispmanx-snap: знімок усього екрана з ПК (tools/dispmanx-snap.c).
 tools: bin/dispmanx-snap
 
 bin/dispmanx-snap: tools/dispmanx-snap.c
