@@ -249,9 +249,11 @@ export default async function routes(app) {
       [from, to]
     );
 
+    // Без подій, замінених переаналізом (superseded_at): інакше переоброблений
+    // сегмент рахувався б двічі — старою версією аналізу й новою.
     const events = await many(
       `select date_trunc('day', started_at) as day, kind, count(*)::int as n
-         from video_events where started_at between $1 and $2
+         from video_events where started_at between $1 and $2 and superseded_at is null
         group by 1, 2 order by 1`,
       [from, to]
     );
@@ -563,26 +565,36 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
     const point = String(req.query.point ?? "");
     const segments = await many(
-      `select s.id, s.point_id, s.camera_id, s.started_at, s.duration_ms, s.bytes, s.status, s.attempts, s.error
+      `select s.id, s.point_id, s.camera_id, s.started_at, s.duration_ms, s.bytes, s.status, s.attempts, s.error,
+              s.source, s.analysis_version
          from video_segments s where ($1 = '' or s.point_id = $1)
         order by s.started_at desc limit 100`,
       [point]
     );
+    // Події без замінених переаналізом; поруч — прохід людини (напрямок, чи
+    // це персонал) і його смужка вирізок.
     const events = await many(
-      `select e.id, e.point_id, e.kind, e.started_at, e.ended_at, e.likely_receipt_id, e.evidence
-         from video_events e where ($1 = '' or e.point_id = $1)
-        order by e.started_at desc limit 100`,
-      [point]
+      `select e.id, e.point_id, e.kind, e.started_at, e.ended_at, e.likely_receipt_id, e.evidence, e.meta,
+              e.passage_id, pa.direction, pa.heading, pa.person_id, pa.receipt_match,
+              jsonb_array_length(coalesce(pa.crops, '[]')) as crops, pe.staff
+         from video_events e
+         left join video_passages pa on pa.id = e.passage_id
+         left join video_people pe on pe.id = pa.person_id
+        where ($1 = '' or e.point_id = $1) and e.superseded_at is null
+          and ($2 = '' or e.kind = $2)
+        order by e.started_at desc limit 200`,
+      [point, String(req.query.kind ?? "")]
     );
     const stats = await one(
       `select (select count(*)::int from video_segments where status = 'pending') as pending,
               (select count(*)::int from video_segments where status = 'failed') as failed,
-              (select coalesce(sum(bytes), 0)::bigint from video_segments) as bytes,
-              (select count(*)::int from video_events) as events`
+              (select count(*)::int from video_segments where status = 'done' and analysis_version < 2) as old,
+              (select coalesce(sum(bytes), 0)::bigint from video_segments where status <> 'expired') as bytes,
+              (select count(*)::int from video_events where superseded_at is null) as events`
     );
     const perDay = await many(
       `select date_trunc('day', started_at) as day, kind, count(*)::int as n
-         from video_events where started_at > now() - interval '30 days'
+         from video_events where started_at > now() - interval '30 days' and superseded_at is null
         group by 1, 2 order by 1`
     );
     return { segments, events, stats, per_day: perDay };

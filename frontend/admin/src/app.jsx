@@ -27,6 +27,7 @@ import { Users } from "./screens/Users.jsx";
 import { User } from "./screens/User.jsx";
 import { Receipts } from "./screens/Receipts.jsx";
 import { Video } from "./screens/Video.jsx";
+import { VideoAnalytics, VideoPurchases } from "./screens/VideoStats.jsx";
 
 const I = {
   health: "M3 12h3l2-5 3 10 2-6 2 3h4",
@@ -74,6 +75,7 @@ const MENU = [
     ["video", "Записи", I.video],
     ["video/events", "Події", I.events],
     ["video/analytics", "Аналітика", I.pie],
+    ["video/purchases", "Покупці", I.cart],
   ]],
 ];
 
@@ -114,7 +116,9 @@ function Screen({ name, arg, counts }) {
     case "orders": return arg ? <Order id={arg} /> : <Orders />;
     case "users": return arg ? <User id={arg} /> : <Users />;
     case "receipts": return <Receipts />;
-    case "video": case "video/events": case "video/analytics": return <Video tab={name.split("/")[1] ?? "segments"} />;
+    case "video": case "video/events": return <Video tab={name.split("/")[1] ?? "segments"} />;
+    case "video/analytics": return <VideoAnalytics />;
+    case "video/purchases": return <VideoPurchases />;
     default: return <Health />;
   }
 }

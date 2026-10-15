@@ -131,6 +131,11 @@ export const api = {
   // Доказ події з приватного extrovert-evidence: name — ключ у video_events.evidence.
   evidence: (id, name, download = false) =>
     request(`/admin/video/events/${id}/evidence/${name}${download ? "?download=1" : ""}`),
+  // Відвідуваність, воронка, покупки з відео (api/src/routes/video-stats.js).
+  videoAnalytics: (p) => request(`/admin/video/analytics${qs(p)}`),
+  videoPurchases: (p) => request(`/admin/video/purchases${qs(p)}`),
+  // Смужка вирізок проходу: i — номер шматка проходу (по одному на сегмент).
+  passageCrops: (id, i = 0) => request(`/admin/video/passages/${id}/crops/${i}`),
   supportThreads: (status) => request(`/admin/support/threads` + qs({ status })),
   supportThread: (id) => request(`/admin/support/threads/${id}`),
   supportReply: (id, text) => request(`/admin/support/threads/${id}/reply`, { method: "POST", body: { text } }),

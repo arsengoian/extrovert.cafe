@@ -8,7 +8,9 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 5174,
-    proxy: { "/api": { target: "http://127.0.0.1:3001", changeOrigin: true } },
+    // API_PROXY — api з іншого робочого дерева на іншому порту, щоб дві
+    // сесії розробки не ділили один api.
+    proxy: { "/api": { target: process.env.API_PROXY ?? "http://127.0.0.1:3001", changeOrigin: true } },
   },
   build: { target: "es2022", sourcemap: true },
   // Коміт збірки — release у GlitchTip (src/errors.js): видно, з якої версії

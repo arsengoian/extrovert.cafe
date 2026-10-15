@@ -1,36 +1,36 @@
-// Відео: записи, події з камер і аналітика (docs/admin_panel.md, група
-// «відео»).
+// Відео: записи й події з камер (docs/admin_panel.md, група «відео»).
+// Аналітика й покупці — у VideoStats.jsx.
 //
 // Записи пише recorder на малині й вантажить uploader у R2 (з 06.10.2026),
-// події шукає worker (backend/worker) і до кожної кладе кадр-доказ у
+// архів картки камери доливається тими самими сегментами (source 'sd'),
+// події шукає worker (backend/worker) і до кожної кладе аркуш-доказ у
 // приватний extrovert-evidence. І запис, і доказ браузер бере прямо з R2 за
 // підписаним посиланням — через наш сервер відео не ходить.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bars } from "../charts.jsx";
 import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 // idle («простій») до 12.10.2026 теж був подією; тепер порожню стійку не пишемо.
-const KIND = { approach: "підійшов", pass: "пройшов повз", queue: "черга" };
-// Що саме на кадрі — щоб не гадати, чому на «простої» порожньо.
-const EVIDENCE_NOTE = {
-  approach: "Кадр, де детектор найвпевненіший; червона рамка — людина, яку він вів.",
-  pass: "Кадр, де детектор найвпевненіший; червона рамка — перехожий, що до кавʼярні не підійшов.",
-  queue: "Кадр, коли біля кавʼярні було найбільше людей одночасно.",
-};
+export const KIND = { approach: "підійшов", machine: "біля автомата", pass: "пройшов повз", queue: "черга" };
+const HEADING = { in: "зайшов у зал", out: "вийшов із залу" };
+// Що саме на аркуші — щоб не гадати, хто з рамок «та сама людина».
+export const SHEET_NOTE = "Три кадри події — початок, найпевніший кадр, кінець; червона рамка — людина " +
+  "події (у черзі — усі, хто стояв), жовті — інші в кадрі, блакитна лінія — межа зони біля кавʼярні. " +
+  "Знизу — вирізки цієї людини з усього проходу.";
+const FRAME_NOTE = "Кадр, де детектор найвпевненіший; червона рамка — людина, яку він вів (доказ до 15.10.2026).";
 const mb = (n) => `${(Number(n ?? 0) / 1024 / 1024).toFixed(1)} МБ`;
 
 const TITLES = {
   segments: ["Записи з камер", "сегменти з камер у R2, по 6 МБ на хвилину"],
-  events: ["Події з камер", "підхід до кавʼярні, перехожий, черга"],
-  analytics: ["Аналітика відео", "події за днями й звʼязок із чеками"],
+  events: ["Події з камер", "підхід до кавʼярні, біля автомата, перехожий, черга"],
 };
+const SOURCE = { pi: "малина", sd: "картка камери" };
 
 const small = { height: 24, padding: "0 8px" };
 
 // Кнопка, яка спершу просить в api підписане посилання (живе 10 хвилин), а
 // тоді віддає його браузеру — на завантаження або в попап.
-function UrlButton({ get, onUrl, children }) {
+export function UrlButton({ get, onUrl, children }) {
   const [busy, setBusy] = useState(false);
   const go = async () => {
     setBusy(true);
@@ -39,13 +39,13 @@ function UrlButton({ get, onUrl, children }) {
   return <button className="btn" style={small} disabled={busy} onClick={go}>{busy ? "…" : children}</button>;
 }
 
-const download = (url, e) => (url ? window.location.assign(url) : alert(`не вдалось: ${e?.message ?? "помилка"}`));
+export const download = (url, e) => (url ? window.location.assign(url) : alert(`не вдалось: ${e?.message ?? "помилка"}`));
 
 // Попап із записом або кадром. mkv (H.264 + звук A-law) Chromium програє сам,
 // разом зі звуком (перевірено 12.10.2026 на сегменті з R2); перші три
 // MPEG-TS від 06.10 — ні, як і Safari. Тоді лишається «завантажити» й VLC,
 // тому помилку плеєра показуємо словами, а не чорним прямокутником.
-function Viewer({ view, onClose }) {
+export function Viewer({ view, onClose }) {
   const [broken, setBroken] = useState(false);
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
@@ -76,21 +76,6 @@ function Viewer({ view, onClose }) {
 
 const STATUS = { pending: "у R2", processing: "обробляється", done: "оброблено", failed: "помилка", expired: "видалено" };
 
-// Конверсія перехожих у підходи — питання, заради якого рахуємо pass
-// (власник, 12.10.2026): з усіх, хто був у кадрі, скільки підійшли.
-function Conversion({ perDay }) {
-  const sum = (kind) => perDay.filter((r) => r.kind === kind).reduce((n, r) => n + r.n, 0);
-  const approach = sum("approach");
-  const people = approach + sum("pass");
-  return (
-    <div className="grid k3" style={{ marginBottom: 12 }}>
-      <Kpi label="Людей у кадрі" value={fmt.int(people)} note="30 днів: підійшли + пройшли повз" />
-      <Kpi label="Підійшли" value={fmt.int(approach)} note="стояли біля кавʼярні від 4 с" />
-      <Kpi label="Підходять" value={people ? `${Math.round((100 * approach) / people)} %` : "—"} note="з тих, хто був у кадрі" />
-    </div>
-  );
-}
-
 export function Video({ tab = "segments" }) {
   const { data, error } = useData(() => api.video());
   const [view, setView] = useState(null);
@@ -113,9 +98,10 @@ export function Video({ tab = "segments" }) {
 
       <div className="grid k4" style={{ marginBottom: 12 }}>
         <Kpi label="Сегментів" value={fmt.int(data.segments.length)} note="останні 100" />
-        <Kpi label="В обробці" value={fmt.int(data.stats.pending)} tone={data.stats.pending > 50 ? "bad" : ""} note="чекають на worker" />
+        <Kpi label="В обробці" value={fmt.int(data.stats.pending)} tone={data.stats.pending > 50 ? "bad" : ""}
+             note={data.stats.old ? `чекають на worker; ще ${fmt.int(data.stats.old)} — на переаналіз` : "чекають на worker"} />
         <Kpi label="Помилок" value={fmt.int(data.stats.failed)} tone={data.stats.failed ? "bad" : "ok"} note="не вдалось обробити" />
-        <Kpi label="Обʼєм" value={mb(data.stats.bytes)} note="усе, що лежить у R2" />
+        <Kpi label="Обʼєм" value={mb(data.stats.bytes)} note="записи, що лежать у R2" />
       </div>
 
       {view && <Viewer key={view.url ?? "error"} view={view} onClose={() => setView(null)} />}
@@ -135,6 +121,7 @@ export function Video({ tab = "segments" }) {
             { key: "started_at", title: "початок", render: (s) => fmt.time(s.started_at) },
             { key: "point_id", title: "точка" },
             { key: "camera_id", title: "камера" },
+            { key: "source", title: "джерело", render: (s) => SOURCE[s.source] ?? s.source },
             { key: "bytes", title: "розмір", num: true, render: (s) => mb(s.bytes) },
             { key: "status", title: "стан", render: (s) => STATUS[s.status] ?? s.status },
             { key: "error", title: "помилка", render: (s) => s.error ?? "" },
@@ -159,42 +146,46 @@ export function Video({ tab = "segments" }) {
             { key: "point_id", title: "точка" },
             { key: "kind", title: "подія", render: (e) => KIND[e.kind] ?? e.kind },
             { key: "len", title: "тривалість", num: true, render: (e) => (e.ended_at ? `${Math.round((new Date(e.ended_at) - new Date(e.started_at)) / 1000)} с` : "—") },
-            { key: "likely_receipt_id", title: "ймовірний чек", render: (e) => e.likely_receipt_id ?? <span className="muted">—</span> },
             {
-              key: "evidence", title: "доказ", render: (e) => (e.evidence?.frame_00 ? (
-                <span className="row" style={{ gap: 4 }}>
-                  <UrlButton get={() => api.evidence(e.id, "frame_00")} onUrl={open(`${KIND[e.kind] ?? e.kind} · ${fmt.time(e.started_at)}`, "image", EVIDENCE_NOTE[e.kind])}>переглянути</UrlButton>
-                  <UrlButton get={() => api.evidence(e.id, "frame_00", true)} onUrl={download}>завантажити</UrlButton>
+              key: "who", title: "хто", render: (e) => (
+                <span className="muted">
+                  {[e.staff ? "персонал" : null, HEADING[e.heading], e.receipt_match === "ambiguous" ? "чек — не однозначно" : null]
+                    .filter(Boolean).join(" · ") || "—"}
                 </span>
-              ) : <span className="muted">—</span>),
+              ),
+            },
+            { key: "likely_receipt_id", title: "чек", render: (e) => e.likely_receipt_id ?? <span className="muted">—</span> },
+            {
+              key: "evidence", title: "доказ", render: (e) => <Evidence e={e} open={open} />,
             },
           ]}
           rows={data.events}
           empty="подій ще немає"
         />
       )}
-
-      {tab === "analytics" && <Conversion perDay={data.per_day} />}
-
-      {tab === "analytics" && (
-        <div className="wrap-cols">
-          <Card title="Події за днями" note="30 днів">
-            <Bars
-              items={Object.entries(
-                data.per_day.reduce((acc, r) => ({ ...acc, [fmt.day(r.day)]: (acc[fmt.day(r.day)] ?? 0) + r.n }), {})
-              ).map(([label, value]) => ({ label, value }))}
-            />
-          </Card>
-          <Card title="За типом" note="усі події">
-            <Bars
-              items={Object.entries(
-                data.per_day.reduce((acc, r) => ({ ...acc, [KIND[r.kind] ?? r.kind]: (acc[KIND[r.kind] ?? r.kind] ?? 0) + r.n }), {})
-              ).map(([label, value]) => ({ label, value }))}
-              color="#4FA8FF"
-            />
-          </Card>
-        </div>
-      )}
     </>
+  );
+}
+
+// Аркуш події (з 15.10.2026) або один кадр (старі події), і смужка вирізок
+// людини, якщо подія — прохід людини.
+export function Evidence({ e, open }) {
+  const name = e.evidence?.sheet ? "sheet" : e.evidence?.frame_00 ? "frame_00" : null;
+  const title = `${KIND[e.kind] ?? e.kind} · ${fmt.time(e.started_at)}`;
+  if (!name && !e.crops) return <span className="muted">—</span>;
+  return (
+    <span className="row" style={{ gap: 4 }}>
+      {name && (
+        <UrlButton get={() => api.evidence(e.id, name)} onUrl={open(title, "image", name === "sheet" ? SHEET_NOTE : FRAME_NOTE)}>
+          переглянути
+        </UrlButton>
+      )}
+      {name && <UrlButton get={() => api.evidence(e.id, name, true)} onUrl={download}>завантажити</UrlButton>}
+      {e.passage_id && e.crops > 0 && (
+        <UrlButton get={() => api.passageCrops(e.passage_id)} onUrl={open(`${title} · вирізки`, "image", "Вирізки людини з проходу, рівно за часом: і спиною, і обличчям.")}>
+          вирізки
+        </UrlButton>
+      )}
+    </span>
   );
 }
