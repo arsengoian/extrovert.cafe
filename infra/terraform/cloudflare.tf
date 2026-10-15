@@ -186,7 +186,7 @@ locals {
     pos      = "extrovert-pos"      # меню точок і релізи кіоска
     uploads  = "extrovert-uploads"  # фото зі скарг гравців
     backups  = "extrovert-backups"  # щоденні дампи Postgres (scheduler)
-    video    = "extrovert-video"    # сирі сегменти з камер, 7 днів
+    video    = "extrovert-video"    # сирі сегменти з камер, місяць (тимчасово; lock — 7 днів)
     evidence = "extrovert-evidence" # кадри й кліпи підтверджених подій
   }
 }
@@ -247,16 +247,20 @@ resource "cloudflare_r2_bucket_lifecycle" "backups" {
   }]
 }
 
-# Відео з камер живе тиждень і за цей тиждень не видаляється нікому —
-# зокрема ключу, який лежить на малині (docs/video.md).
+# Відео з камер живе місяць, і перший тиждень його не видаляє ніхто —
+# зокрема ключ, який лежить на малині (docs/video.md). Місяць — тимчасово
+# (власник, 15.10.2026): поки аналізатор подій не доведений, сирі записи
+# потрібні для перевірки; потім — назад до тижня. Lock лишається 7 днів:
+# він не має бути довшим за lifecycle, а повернення до тижня з місячним
+# lock'ом не змогло б стерти вже залите раніше строку.
 resource "cloudflare_r2_bucket_lifecycle" "video" {
   account_id  = var.cloudflare_account_id
   bucket_name = cloudflare_r2_bucket.this["video"].name
   rules = [{
-    id                        = "expire-7d"
+    id                        = "expire-30d"
     enabled                   = true
     conditions                = { prefix = "" }
-    delete_objects_transition = { condition = { type = "Age", max_age = 7 * 24 * 3600 } }
+    delete_objects_transition = { condition = { type = "Age", max_age = 30 * 24 * 3600 } }
   }]
 }
 
