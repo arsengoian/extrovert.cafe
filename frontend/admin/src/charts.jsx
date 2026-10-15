@@ -129,19 +129,31 @@ function segments(points, gapMs) {
 // 27.09.2026). Без domain вісь, як і раніше, по самих даних.
 // min — нижня межа осі значень. За замовчуванням 0; для величин, що живуть
 // нижче нуля, як сигнал Wi-Fi у дБм (−90…−30), — своя (15.10.2026).
+//
+// Клік на пункт легенди ховає ряд із графіка й робить пункт напівпрозорим,
+// повторний — повертає (власник, 15.10.2026); за замовчуванням видно всі.
+// Шкалу значень рахуємо лише з видимих рядів — ховають зазвичай саме той,
+// що задавив решту, — а вісь часу з усіх, щоб графік не стрибав убік.
 export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, min = 0, legend = true, gapMs = 0, domain = null }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
+  const [hidden, setHidden] = useState(() => new Set());
   useEffect(() => {
     if (!ref.current) return undefined;
     const ro = new ResizeObserver(([e]) => setW(e.contentRect.width));
     ro.observe(ref.current);
     return () => ro.disconnect();
   }, []);
+  const toggle = (name) => setHidden((h) => {
+    const next = new Set(h);
+    if (next.has(name)) next.delete(name); else next.add(name);
+    return next;
+  });
 
+  const shown = series.filter((s) => !hidden.has(s.name));
   const points = series.flatMap((s) => s.points);
   const has = points.length > 0;
-  const max = maxProp ?? Math.max(1, ...points.map((p) => p.y));
+  const max = maxProp ?? Math.max(1, ...shown.flatMap((s) => s.points).map((p) => p.y));
   const xs = [...new Set(points.map((p) => +new Date(p.x)))].sort((a, b) => a - b);
   const padL = 34, padB = 16, padT = 8;
   const innerW = Math.max(40, w - padL - 6);
@@ -153,7 +165,7 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
     ? new Date(t).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })
     : fmt.day(t));
   const y = (v) => padT + innerH - (innerH * (v - min)) / (max - min || 1);
-  const cut = series.map((s) => ({ ...s, runs: segments(s.points, gapMs) }));
+  const cut = shown.map((s) => ({ ...s, runs: segments(s.points, gapMs) }));
 
   return (
     <div ref={ref}>
@@ -200,7 +212,21 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
           </svg>
           {legend && (
             <div className="legend">
-              {series.map((s) => <span key={s.name}><i style={{ background: s.color }} />{s.name}</span>)}
+              {series.map((s) => {
+                const off = hidden.has(s.name);
+                return (
+                  <button
+                    type="button"
+                    key={s.name}
+                    className={off ? "off" : undefined}
+                    aria-pressed={!off}
+                    title={off ? "Показати на графіку" : "Сховати з графіка"}
+                    onClick={() => toggle(s.name)}
+                  >
+                    <i style={{ background: s.color }} />{s.name}
+                  </button>
+                );
+              })}
             </div>
           )}
         </>

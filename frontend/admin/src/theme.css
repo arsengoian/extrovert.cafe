@@ -166,6 +166,11 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
    розпирала колонку сітки ширше за її частку. */
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 10.5px; color: var(--muted); margin-top: 6px }
 .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px }
+/* Пункт легенди — перемикач ряду (charts.jsx, Line): прихований ряд —
+   напівпрозорий пункт. */
+.legend button { display: inline-flex; align-items: center; padding: 0; font-size: inherit; color: inherit }
+.legend button:hover { color: var(--ink) }
+.legend button.off { opacity: .4 }
 /* Підписи під колонками: рівно стільки ж комірок, скільки колонок, тож
    кожен підпис стоїть точно під своєю — навіть якщо він порожній. */
 .col-labels { display: flex; margin-top: 4px }
