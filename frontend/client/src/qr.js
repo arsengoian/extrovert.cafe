@@ -9,14 +9,18 @@
 // виконують. Тож подія `qr` означає саме «людина відкрила застосунок з QR»
 // (власник, 12.10.2026).
 //
-// Точку, що привела людину, кладемо в localStorage один раз — першу, — і
-// після входу api пише її в users.metadata.qr_pos (теж один раз, сервер не
-// перезаписує). Параметр з адреси прибираємо одразу: інакше він розходився б
-// разом із посиланням і кожне пересилання рахувалось би сканом.
+// Точку, що привела людину, і звідки саме (наклейка чи QR бонусу на моніторі
+// кіоска) кладемо в localStorage один раз — першу, — і після входу api пише
+// їх у users.metadata.qr_pos / qr_via (теж один раз, сервер не перезаписує):
+// з них адмінка веде воронку «скан → акаунт → бонус → повернувся» окремо
+// для наклейки й для монітора (власник, 15.10.2026). Параметр з адреси
+// прибираємо одразу: інакше він розходився б разом із посиланням і кожне
+// пересилання рахувалось би сканом.
 import { api } from "./api.js";
 import { trackQr } from "./analytics.js";
 
 const KEY = "qr_pos";
+const VIA = "qr_via";
 const SENT = "qr_pos_sent";
 const POS = /^[A-Za-z0-9_-]{1,16}$/;
 
@@ -27,7 +31,10 @@ export function takeQrPos() {
   if (!pos || !POS.test(pos)) return null;
   const via = url.pathname.startsWith("/b/") ? "bonus" : "sticker";
   try {
-    if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, pos);
+    if (!localStorage.getItem(KEY)) {
+      localStorage.setItem(KEY, pos);
+      localStorage.setItem(VIA, via);
+    }
   } catch { /* приватний режим — скан однаково рахуємо */ }
   trackQr(pos, via);
   url.searchParams.delete("p");
@@ -37,13 +44,14 @@ export function takeQrPos() {
 
 /** Після входу — віддати точку в акаунт, один раз на браузер. */
 export async function reportQrPos() {
-  let pos;
+  let pos, via;
   try {
     pos = localStorage.getItem(KEY);
+    via = localStorage.getItem(VIA) ?? undefined;
     if (!pos || localStorage.getItem(SENT) === pos) return;
   } catch { return; }
   try {
-    await api.post("/me/qr", { pos });
+    await api.post("/me/qr", { pos, via });
     localStorage.setItem(SENT, pos);
   } catch { /* наступний вхід спробує ще раз */ }
 }

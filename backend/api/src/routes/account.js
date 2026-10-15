@@ -79,7 +79,7 @@ export default async function routes(app) {
                 deleted_nickname = nickname,
                 nickname = $2,
                 email = null,
-                metadata = metadata - 'qr_pos' || jsonb_build_object('deleted', true)
+                metadata = metadata - 'qr_pos' - 'qr_via' || jsonb_build_object('deleted', true)
           where id = $1`,
         [user.id, newNickname]
       );

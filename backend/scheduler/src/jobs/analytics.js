@@ -153,6 +153,23 @@ async function sliceMetrics(pool, from, to) {
   }
   const [qrSign] = await q("select count(*) as n from users where created_at >= $1 and created_at < $2 and not stats_excluded and metadata ? 'qr_pos'");
   put("qr_signups", "", qrSign.n);
+  // Воронка QR за джерелом (власник, 15.10.2026): акаунти, що прийшли з QR
+  // у цьому проміжку, — скільки з них забрали бонус за чек і скільки
+  // повернулись по другий. Джерело — users.metadata.qr_via: sticker
+  // (наклейка), bonus (QR на моніторі кіоска); до 15.10.2026 не писалось —
+  // такі акаунти йдуть з порожнім dim.
+  for (const r of await q(`
+    select coalesce(u.metadata->>'qr_via', '') as dim, count(*) as accounts,
+           count(*) filter (where b.n >= 1) as bonus, count(*) filter (where b.n >= 2) as again
+      from users u
+      left join lateral (select count(*) as n from bonus_grants g
+                          where g.redeemed_by = u.id and g.status = 'redeemed') b on true
+     where u.created_at >= $1 and u.created_at < $2 and not u.stats_excluded and u.metadata ? 'qr_pos'
+     group by 1`)) {
+    put("qr_accounts", r.dim, r.accounts);
+    put("qr_bonus", r.dim, r.bonus);
+    put("qr_repeat", r.dim, r.again);
+  }
 
   // Сесії
   const [ses] = await q(`with ${SESSIONS}

@@ -205,16 +205,20 @@ export async function nicknameRoutes(app) {
 
   // Точка з QR, що привела гравця (docs/urls.md, «Куди дівається p»): у
   // приховану users.metadata.qr_pos, один раз — першу — і не перезаписуємо.
-  // Застосунок шле її після входу з localStorage (client/src/qr.js).
+  // Поруч qr_via — звідки скан: sticker (наклейка на автоматі) чи bonus (QR
+  // бонусу на моніторі кіоска); з 15.10.2026, старі застосунки його не шлють.
+  // Застосунок шле їх після входу з localStorage (client/src/qr.js).
   app.post("/me/qr", async (req, reply) => {
     const user = requireUser(req, reply);
     if (!user) return;
     const pos = String(req.body?.pos ?? "");
     if (!QR_POS.test(pos)) return reply.code(400).send({ error: "bad_pos" });
+    const via = ["sticker", "bonus"].includes(req.body?.via) ? req.body.via : null;
     const res = await query(
-      `update users set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('qr_pos', $2::text)
+      `update users set metadata = coalesce(metadata, '{}'::jsonb)
+                                  || jsonb_strip_nulls(jsonb_build_object('qr_pos', $2::text, 'qr_via', $3::text))
         where id = $1 and not coalesce(metadata ? 'qr_pos', false)`,
-      [user.id, pos]
+      [user.id, pos, via]
     );
     return { saved: res.rowCount > 0 };
   });

@@ -176,14 +176,37 @@ export function Analytics() {
              note={`людей: ${fmt.int(w.qr_people?.sticker ?? 0)} · qr.extrovert.cafe на автоматі`} />
         <Kpi label="Нових акаунтів з наклейки" value={fmt.int(one("qr_signups"))}
              note={`з ${fmt.int(one("signups"))} нових за період · точка пишеться в акаунт після входу`} />
-        <Kpi label="Відкрили з бонусу на кіоску" value={fmt.int(w.qr_scans?.bonus ?? 0)}
-             note={`людей: ${fmt.int(w.qr_people?.bonus ?? 0)} · QR бонусу за чек на екрані`} />
+        <Kpi label="Відкрили з QR на моніторі" value={fmt.int(w.qr_scans?.bonus ?? 0)}
+             note={`людей: ${fmt.int(w.qr_people?.bonus ?? 0)} · QR бонусу за чек на екрані кіоска`} />
+      </div>
+      {/* Воронка за джерелом (власник, 15.10.2026): починається зі скану —
+          наклейки на автоматі чи QR бонусу на моніторі кіоска. Акаунти,
+          бонуси й повернення — тих, хто прийшов з QR у цьому проміжку
+          (users.metadata.qr_via пишеться з 15.10.2026; раніше — «невідомо»). */}
+      <div style={{ marginTop: 12 }}>
+        <Table
+          columns={[
+            { key: "label", title: "звідки скан" },
+            { key: "scans", title: "відкрили", num: true, render: (r) => fmt.int(r.scans) },
+            { key: "people", title: "людей", num: true, render: (r) => fmt.int(r.people) },
+            { key: "accounts", title: "акаунтів", num: true, render: (r) => `${fmt.int(r.accounts)} · ${pct(r.accounts, r.people)}` },
+            { key: "bonus", title: "забрали бонус", num: true, render: (r) => `${fmt.int(r.bonus)} · ${pct(r.bonus, r.accounts)}` },
+            { key: "repeat", title: "повернулись по другий", num: true, render: (r) => `${fmt.int(r.repeat)} · ${pct(r.repeat, r.bonus)}` },
+          ]}
+          rows={[["sticker", "наклейка на автоматі"], ["bonus", "QR на моніторі (бонус за чек)"], ["", "невідомо (до 15.10)"]]
+            .map(([dim, label]) => ({
+              id: dim || "none", label,
+              scans: w.qr_scans?.[dim] ?? 0, people: w.qr_people?.[dim] ?? 0,
+              accounts: w.qr_accounts?.[dim] ?? 0, bonus: w.qr_bonus?.[dim] ?? 0, repeat: w.qr_repeat?.[dim] ?? 0,
+            }))
+            .filter((r) => r.id !== "none" || r.accounts > 0)}
+        />
       </div>
       <div className="grid k2" style={{ marginTop: 12 }}>
         <Card title="Відкриття з QR по днях" note={`останні ${Math.max(days, 14)} днів`}>
           <Line series={[
             series(daily, trendDays, "qr_scans", "наклейка", "#FE810B", "sticker"),
-            series(daily, trendDays, "qr_scans", "бонус на кіоску", "#5AA9FF", "bonus"),
+            series(daily, trendDays, "qr_scans", "QR на моніторі", "#5AA9FF", "bonus"),
           ]} />
         </Card>
         <Card title="Нові акаунти з наклейки по днях" note={`останні ${Math.max(days, 14)} днів`}>
