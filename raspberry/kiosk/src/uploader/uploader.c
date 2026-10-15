@@ -235,6 +235,30 @@ static int xfer_abort(void *ud, curl_off_t a, curl_off_t b, curl_off_t c, curl_o
     return STOPPING ? 1 : 0;
 }
 
+/* Пауза на час перезапуску кіоска (15.10.2026): апдейтер тримає свіжим
+ * state/pause.uploader, поки нова копія кіоска малює перше меню поруч зі
+ * старою (updater.sh). Файл, старший за 2 хв, — від апдейтера, що помер
+ * посеред оновлення: на нього не зважаємо. */
+static char PAUSE_FILE[600];
+static int paused(void) {
+    struct stat st;
+    return stat(PAUSE_FILE, &st) == 0 && time(NULL) - st.st_mtime < 120;
+}
+/* Колбек прогресу заливки в R2: ще й рве її, щойно з'явилась пауза
+ * (перевіряємо раз на секунду — колбек кличуть частіше). */
+static long long PAUSE_CHECKED = 0;
+static int PAUSE_ABORT = 0;
+static int xfer_r2(void *ud, curl_off_t a, curl_off_t b, curl_off_t c, curl_off_t d) {
+    (void)ud; (void)a; (void)b; (void)c; (void)d;
+    if (STOPPING) return 1;
+    long long t = now_ms();
+    if (t - PAUSE_CHECKED >= 1000) {
+        PAUSE_CHECKED = t;
+        if (paused()) { PAUSE_ABORT = 1; return 1; }
+    }
+    return 0;
+}
+
 /* ── HTTP ─────────────────────────────────────────────────────────────── */
 static CURL *API_H, *R2_H;   /* живуть увесь час: з'єднання й TLS-сесії — у їхніх кешах */
 static char TOKEN[1024];
@@ -402,7 +426,7 @@ static int upload_one(const char *path, const char *name, int mark) {
     Buf sink = {0};
     curl_easy_setopt(R2_H, CURLOPT_WRITEDATA, &sink);
     curl_easy_setopt(R2_H, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(R2_H, CURLOPT_XFERINFOFUNCTION, xfer_abort);
+    curl_easy_setopt(R2_H, CURLOPT_XFERINFOFUNCTION, xfer_r2);
     CURLcode rc = curl_easy_perform(R2_H);
     long code = 0; double up = 0, secs = 0;
     curl_easy_getinfo(R2_H, CURLINFO_RESPONSE_CODE, &code);
@@ -413,6 +437,13 @@ static int upload_one(const char *path, const char *name, int mark) {
 #endif
     curl_easy_getinfo(R2_H, CURLINFO_TOTAL_TIME, &secs);
     curl_slist_free_all(h); free(sink.p); fclose(f);
+    if (PAUSE_ABORT) {
+        /* Обірвали самі через паузу — не збій і не замір каналу. */
+        PAUSE_ABORT = 0;
+        logf_("%s: пауза (перезапуск кіоска) — заллю, коли зніметься", name);
+        free(url); free(key);
+        return 4;
+    }
     /* HTTP-помилка — як у curl -f: код 22. */
     int crc = rc != CURLE_OK ? (int)rc : (code >= 400 ? 22 : 0);
     long fresh = 0; curl_easy_getinfo(R2_H, CURLINFO_NUM_CONNECTS, &fresh);
@@ -496,6 +527,7 @@ int main(void) {
     snprintf(MARK, sizeof MARK, "%s/upload.last", STATE);
     snprintf(QUEUE, sizeof QUEUE, "%s/upload.queue", STATE);
     snprintf(CURRENT, sizeof CURRENT, "%s/upload.current", STATE);
+    snprintf(PAUSE_FILE, sizeof PAUSE_FILE, "%s/pause.uploader", STATE);
     const char *ramd = getenv("RECORDER_RAM"); if (!ramd) ramd = "/dev/shm/extrovert-video";
     snprintf(RAM_DIR, sizeof RAM_DIR, "%s", ramd);
     MAX_KB = rate_kb(env_or("UPLOAD_RATE", "800k"));
@@ -526,6 +558,7 @@ int main(void) {
     int fails = 0;
     while (!STOPPING) {
         if (read_token() != 0) { say("немає ключа точки %s — вантажити нікуди", TOKEN_FILE); idle(300); continue; }
+        if (paused()) { say("пауза: %s — кіоск перезапускається, заливка чекає", PAUSE_FILE); nap_ms(2000); continue; }
         /* Спершу RAM, потім флешка (recorder.sh, «Спершу в RAM»): свіжий
          * сегмент іде в R2 прямо з памʼяті й на флешку не потрапляє зовсім,
          * а хвіст на флешці доганяємо в решту часу, найстаріші першими. */
@@ -545,6 +578,7 @@ int main(void) {
              * прохід (до BATCH сегментів, десятки хвилин) recorder переніс би
              * свіжі на флешку, і користі від RAM не було б. */
             if (i >= ram && ram_ready() > 0) break;
+            if (paused()) break;   /* пауза — прохід закінчено, чекаємо вгорі циклу */
             tried++;
             const char *path = QUEUE_SEGS[i].path, *name = strrchr(path, '/') + 1;
             int r = upload_one(path, name, i < ram);

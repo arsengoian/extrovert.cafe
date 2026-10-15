@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 964e949</p>
+  <p class="eyebrow">extrovert.cafe · джерело d76cae5</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -8118,6 +8118,12 @@ QR і плашку <strong>в памʼять, без дисплея</strong> —
 довше чекання нічого не коштує. На Pi 1 перше меню нової копії — ~8 с
 чистого CPU, тож усе вирішує, скільки процесора їй лишають сусіди.
 Правка діє з наступного старту юніта.</p>
+<p>Тому на час перезапуску кіоска апдейтер ставить <strong>заливку відео на паузу</strong>:
+тримає свіжим <code>state/pause.uploader</code>, поки чекає на нову копію, а
+<code>bin/uploader</code> тим часом не вантажить (поточну заливку в R2 рве за секунду,
+і це не рахується збоєм). Заливка — це TLS і USB, на які <code>nice</code> не діє.
+Файл, старший за 2 хв, аплоудер ігнорує: помре апдейтер посеред
+оновлення — заливка відновиться сама.</p>
 <p>Ґречність виходу теж не декларативна: <code>SIGTERM</code> → кіоск закриває GL і
 <strong>звільняє шар</strong>; <code>SIGKILL</code> тільки якщо не вклався у <code>STOP_GRACE_S</code>. Це не
 формальність — VideoCore уміє лишати шар за мертвим процесом (споріднена
@@ -14943,7 +14949,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 964e949 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел d76cae5 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

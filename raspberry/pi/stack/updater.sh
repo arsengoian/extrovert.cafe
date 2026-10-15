@@ -236,6 +236,15 @@ switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
         || { log "не вдалось перемкнути симлінк"; rm -f "$UPDATING_FLAG"; return 1; }
     log "current → $_rel"
 
+    # Заливку відео — на паузу, поки кіоск перезапускається (15.10.2026):
+    # нова копія малює перше меню поруч зі старою, і 15.10.2026 під
+    # заливкою з RAM (~300 КБ/с TLS і USB, на які nice не діє) вона за 84 с
+    # так і не встигла — супервізор перейшов на послідовний перезапуск, ~35 с
+    # чорного екрана. bin/uploader не вантажить, поки файл свіжий; оновлюємо
+    # його щокола, тож якщо апдейтер помре, заливка відновиться за 2 хв сама.
+    PAUSE_UPLOAD="$EXTROVERT_STATE/pause.uploader"
+    : > "$PAUSE_UPLOAD"
+
     # Просимо супервізора перезапустити кіоск через сусідній шар.
     _req_at=$(date +%s)
     state_write restart.kiosk "overlap"
@@ -249,15 +258,17 @@ switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
     _el=0
     while [ "$_el" -lt "${UPDATE_HEALTH_S:-300}" ]; do
         sleep 3
+        : > "$PAUSE_UPLOAD"
         _el=$(( $(date +%s) - _req_at ))
         if kiosk_fresh "$_el"; then
             log "нова версія жива (кадри йдуть) за ${_el}с"
-            rm -f "$UPDATING_FLAG"
+            rm -f "$UPDATING_FLAG" "$PAUSE_UPLOAD"
             state_write version "$_rel"
             state_write last_update_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             return 0
         fi
     done
+    rm -f "$PAUSE_UPLOAD"
 
     log "нова версія не ожила за ${_el}с — ВІДКОТ на $_prev"
     mark_bad "$_rel"
