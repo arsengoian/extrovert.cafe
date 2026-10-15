@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 2572b91</p>
+  <p class="eyebrow">extrovert.cafe · джерело ba4eaba</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -8077,16 +8077,27 @@ selftest апдейтер порівнює <code>kiosk_sig</code> поточно
 наступного релізу (апдейтер перезапускає себе з нового).</p>
 <p>Кроки 5 і 9 перевіряють різне, і обидва потрібні:</p>
 <ul>
-<li><strong><code>--selftest</code></strong> (<code>raspberry/kiosk/src/selftest.h</code>) малює меню, рекламу, попап,
+<li><p><strong><code>--selftest</code></strong> (<code>raspberry/kiosk/src/selftest.h</code>) малює меню, рекламу, попап,
 QR і плашку <strong>в памʼять, без дисплея</strong> — бо dispmanx-шар зараз належить
 старій версії, і «просто запустити нову й подивитись» фізично неможливо.
 Ловить неповний архів (нема шрифту чи шаблону), битий SVG, незлінковану
 бібліотеку. Перевірено: прибраний <code>Extro700.ttf</code> і зіпсований <code>menu.svg</code>
-дають код виходу 1 і оновлення не відбувається.</li>
-<li><strong>health</strong> ловить те, що видно лише на живому екрані: GL, dispmanx,
+дають код виходу 1 і оновлення не відбувається.</p>
+</li>
+<li><p><strong>health</strong> ловить те, що видно лише на живому екрані: GL, dispmanx,
 нестача GPU-памʼяті. Питає телеметрію про <strong>кадри</strong>, а не про наявність
 процесу — постмортем 18.08.2026 був саме про це: процес живий, логи
-чисті, на екрані білий фон.</li>
+чисті, на екрані білий фон.</p>
+<p>І питає саме <strong>нову</strong> копію (з 15.10.2026, <code>kiosk_fresh</code> в <code>updater.sh</code>).
+Досі апдейтер брав слот зі <code>state/slot.kiosk</code>, а під час overlap там ще
+слот старої копії: 15.10.2026 вона й відповіла «кадри йдуть» за 3 с, хоча
+нова так і не намалювала, — тобто зламана нова версія відкату не отримала
+б ніколи (діра з 21.09.2026). Тепер живою вважається копія з кадрами,
+молодша за запит на перезапуск (її власний <code>uptime_s</code>), на будь-якому
+слоті: послідовна заміна кладе нову назад на старий. Межа —
+<code>UPDATE_HEALTH_S</code>, 300 справжніх секунд: супервізор чекає overlap до
+180 с і лише тоді запускає послідовно.</p>
+</li>
 </ul>
 <h3 id="raspberry-pi-stack-чому-підміна-не-дає-чорного-екрана"><a class="anchor" href="#raspberry-pi-stack-чому-підміна-не-дає-чорного-екрана" aria-hidden="true">#</a>Чому підміна не дає чорного екрана</h3>
 <p>Кіоск бере номер dispmanx-шару зі змінної <code>DISPMANX_LAYER</code>. Нова версія
@@ -14923,7 +14934,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 2572b91 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел ba4eaba — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

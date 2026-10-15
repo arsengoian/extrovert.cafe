@@ -190,6 +190,21 @@ kiosk_sig() { # kiosk_sig <тека релізу>
     ( cd "$1" 2>/dev/null && find bin/kiosk assets -type f 2>/dev/null | LC_ALL=C sort | xargs cksum 2>/dev/null ) | cksum
 }
 
+# kiosk_fresh <секунд від запиту> — чи малює кіоск, запущений уже після
+# запиту на перезапуск. Дивимось обидва слоти: overlap кладе нову копію на
+# сусідній, а послідовний перезапуск (коли overlap не встиг) — назад на
+# старий. Нову від старої відрізняє uptime_s із її ж телеметрії (telemetry.c):
+# процес, молодший за запит, — це вже код нового релізу.
+kiosk_fresh() {
+    for _ks in 0 1; do
+        _kt=$(telemetry_read "/tmp/kiosk-$_ks.sock") || continue
+        _kf=$(printf '%s' "$_kt" | sed -n 's/.*"frames_total":\([0-9]*\).*/\1/p')
+        _ku=$(printf '%s' "$_kt" | sed -n 's/.*"uptime_s":\([0-9]*\).*/\1/p')
+        [ -n "$_kf" ] && [ "$_kf" -gt 0 ] && [ -n "$_ku" ] && [ "$_ku" -le $(($1 + 5)) ] && return 0
+    done
+    return 1
+}
+
 # ── Кроки 6-9: підміна з відкатом ────────────────────────────────────────
 switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
     _rel=$1
@@ -222,14 +237,21 @@ switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
     log "current → $_rel"
 
     # Просимо супервізора перезапустити кіоск через сусідній шар.
+    _req_at=$(date +%s)
     state_write restart.kiosk "overlap"
 
-    _w=0
-    while [ "$_w" -lt "${UPDATE_HEALTH_S:-90}" ]; do
-        sleep 3; _w=$((_w + 3))
-        _slot=$(cat "$EXTROVERT_STATE/slot.kiosk" 2>/dev/null || echo 0)
-        if telemetry_healthy "/tmp/kiosk-$_slot.sock"; then
-            log "нова версія жива (кадри йдуть) за ${_w}с"
+    # Живий — той кіоск, що запущений ПІСЛЯ запиту й уже малює (kiosk_fresh).
+    # Досі тут питали сокет зі state/slot.kiosk, а під час overlap там ще слот
+    # старої копії: вона й відповідала «кадри йдуть» за 3 с (15.10.2026), тож
+    # зламана нова версія відкату не отримала б ніколи. Секунди — справжні:
+    # одне опитування сокета саме може тривати до 5 с. Межа 300 с, а не 90:
+    # супервізор чекає overlap до 180 с і лише тоді запускає послідовно.
+    _el=0
+    while [ "$_el" -lt "${UPDATE_HEALTH_S:-300}" ]; do
+        sleep 3
+        _el=$(( $(date +%s) - _req_at ))
+        if kiosk_fresh "$_el"; then
+            log "нова версія жива (кадри йдуть) за ${_el}с"
             rm -f "$UPDATING_FLAG"
             state_write version "$_rel"
             state_write last_update_at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
@@ -237,7 +259,7 @@ switch_to() { # switch_to <реліз> [кіоск той самий: 1] → 0/1
         fi
     done
 
-    log "нова версія не ожила за ${UPDATE_HEALTH_S:-90}с — ВІДКОТ на $_prev"
+    log "нова версія не ожила за ${_el}с — ВІДКОТ на $_prev"
     mark_bad "$_rel"
     if [ -n "$_prev" ] && [ -d "$EXTROVERT_RELEASES/$_prev" ]; then
         ln -sfn "$EXTROVERT_RELEASES/$_prev" "$EXTROVERT_CURRENT.new"
