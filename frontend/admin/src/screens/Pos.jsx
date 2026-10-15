@@ -235,6 +235,10 @@ export function Pos({ id }) {
 
   const ping = series("ping_ms");
   const jitter = series("jitter_ms");
+  const loss = series("loss_pct");
+  // Сигнал Wi-Fi (stack/wifi.sh, telemetry uplink_metrics): нижче −90 дБм
+  // зв'язку однаково немає — притискаємо до низу осі, а не за край графіка.
+  const wifi = series("wifi_dbm").map((p) => ({ ...p, y: Math.max(-90, p.y) }));
   // Заливка вгору (stack/uploader.sh). Телеметрія щохвилини повторює
   // ОСТАННІЙ замір, навіть коли заливки не було, тож точка — одна на
   // заливку, за її власним часом (upload_at), а не на кожну пробу: інакше
@@ -354,6 +358,31 @@ export function Pos({ id }) {
                 <Empty>малина ще не слала мережевих метрик</Empty>
               )}
             </div>
+            {/* Втрати пінгу (власник, 15.10.2026): окремою віссю 0–100 %, бо з
+                мілісекундами вони не живуть. Пакетів у пробі п'ять, тож
+                значення сходинками: один загублений — 16–17 %, два — 28 %.
+                Сіра лінія — поріг червоного (LOSS_BAD_PCT, ui.jsx). */}
+            <div>
+              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>втрати пінгу до сервера, % — 5 пакетів щохвилини, червоне від двох загублених</div>
+              {loss.length ? (
+                <Line domain={domain} max={100} format={(v) => v.toFixed(0)} series={[
+                  { name: "втрати, %", color: "#FF6B7A", points: loss },
+                  { name: `поріг ${LOSS_BAD_PCT} %`, color: "#8B94A3", points: [{ x: domain[0], y: LOSS_BAD_PCT }, { x: domain[1], y: LOSS_BAD_PCT }] },
+                ]} />
+              ) : (
+                <Empty>малина ще не слала втрат</Empty>
+              )}
+            </div>
+            {/* Сигнал Wi-Fi (власник, 15.10.2026) — лише на точці, де Wi-Fi
+                є (wifi_dbm шле telemetry.sh). Вісь −90…−30 дБм: ближче до
+                нуля — краще. */}
+            {wifi.length > 0 && (
+              <div>
+                <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>сигнал Wi-Fi, дБм — ближче до нуля краще: −50 відмінно, −70 на межі, −80 погано</div>
+                <Line domain={domain} min={-90} max={-30} legend={false} format={(v) => v.toFixed(0)}
+                      series={[{ name: "сигнал Wi-Fi, дБм", color: "#5AA9FF", points: wifi }]} />
+              </div>
+            )}
             <div>
               <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>заливка відео вгору, КБ/с — точка на кожну заливку</div>
               {upload.length ? (

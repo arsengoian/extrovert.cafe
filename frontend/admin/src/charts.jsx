@@ -127,7 +127,9 @@ function segments(points, gapMs) {
 // першої до останньої проби. Інакше три дні даних у «місяці» розтягувались
 // на всю ширину, і не було видно, що решту часу точка мовчала (власник,
 // 27.09.2026). Без domain вісь, як і раніше, по самих даних.
-export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, legend = true, gapMs = 0, domain = null }) {
+// min — нижня межа осі значень. За замовчуванням 0; для величин, що живуть
+// нижче нуля, як сигнал Wi-Fi у дБм (−90…−30), — своя (15.10.2026).
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, min = 0, legend = true, gapMs = 0, domain = null }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   useEffect(() => {
@@ -150,7 +152,7 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
   const tick = (t) => (x1 - x0 <= 36 * 3600_000
     ? new Date(t).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })
     : fmt.day(t));
-  const y = (v) => padT + innerH - (innerH * v) / max;
+  const y = (v) => padT + innerH - (innerH * (v - min)) / (max - min || 1);
   const cut = series.map((s) => ({ ...s, runs: segments(s.points, gapMs) }));
 
   return (
@@ -162,8 +164,8 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
           <svg className="chart" viewBox={`0 0 ${w} ${height}`} height={height}>
             {[0, 0.5, 1].map((k) => (
               <g key={k}>
-                <line className="grid-line" x1={padL} x2={w - 6} y1={y(max * k)} y2={y(max * k)} />
-                <text className="axis" x={0} y={y(max * k) + 3}>{format(max * k)}</text>
+                <line className="grid-line" x1={padL} x2={w - 6} y1={y(min + (max - min) * k)} y2={y(min + (max - min) * k)} />
+                <text className="axis" x={0} y={y(min + (max - min) * k) + 3}>{format(min + (max - min) * k)}</text>
               </g>
             ))}
             {area && cut.flatMap((s) => s.runs.map((run, n) => (
@@ -172,7 +174,7 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
                 fill={s.color}
                 fillOpacity="0.2"
                 stroke="none"
-                d={`M${run.map((p) => `${x(p.x)},${y(p.y)}`).join("L")}L${x(run.at(-1).x)},${y(0)}L${x(run[0].x)},${y(0)}Z`}
+                d={`M${run.map((p) => `${x(p.x)},${y(p.y)}`).join("L")}L${x(run.at(-1).x)},${y(min)}L${x(run[0].x)},${y(min)}Z`}
               />
             )))}
             {cut.flatMap((s) => s.runs.map((run, n) => (
