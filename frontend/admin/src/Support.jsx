@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api.js";
 import { go } from "./app.jsx";
 import { connectEvents } from "./ws.js";
+import { Pager, usePage } from "./ui.jsx";
 
 const time = (iso) => (iso ? new Date(iso).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
 const who = (t) => t.nickname || (t.telegram_username ? `@${t.telegram_username}` : `чат ${t.telegram_chat_id ?? t.id}`);
@@ -116,7 +117,8 @@ export function Support({ id = null }) {
   // шукати тред заново.
   const open = id ? Number(id) : null;
 
-  const load = useCallback(() => api.supportThreads(status).then(setList).catch((e) => setError(e.message)), [status]);
+  const [page, setPage] = usePage(status);
+  const load = useCallback(() => api.supportThreads(status, page).then(setList).catch((e) => setError(e.message)), [status, page]);
   useEffect(() => { load(); }, [load]);
 
   // Нове повідомлення в підтримку приходить подією, а не опитуванням:
@@ -165,6 +167,9 @@ export function Support({ id = null }) {
               </button>
             </li>
           ))}
+          {list?.page?.total > list?.page?.per && (
+            <li className="threads-pager"><Pager info={list.page} onPage={setPage} /></li>
+          )}
         </ul>
         {open ? <Thread key={`${open}:${beat}`} id={open} onChanged={load} /> : <p className="muted">Оберіть розмову зліва.</p>}
       </div>

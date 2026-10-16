@@ -12,6 +12,7 @@ import { redisClient } from "@extrovert/lib/redis.js";
 import { many, one, query, tx } from "../db.js";
 import { requireAdmin, userFromRequest } from "../auth.js";
 import { fail } from "../errors.js";
+import { pageInfo, pageOf } from "../paging.js";
 import { enqueue } from "@extrovert/lib/outbox.js";
 import { TelegramError, bot, download, sendMessage } from "../support/telegram.js";
 
@@ -153,6 +154,7 @@ export default async function routes(app) {
   app.get("/admin/support/threads", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const status = ["open", "closed"].includes(req.query?.status) ? req.query.status : null;
+    const pg = pageOf(req.query, { per: 30 });
     const rows = await many(
       `select t.id, t.status, t.telegram_username, t.last_user_at, t.last_admin_at, t.created_at,
               u.nickname,
@@ -167,11 +169,12 @@ export default async function routes(app) {
          ) m on true
         where ($1::text is null or t.status = $1)
         order by (t.status = 'open' and t.last_user_at > coalesce(t.last_admin_at, 'epoch')) desc,
-                 coalesce(m.created_at, t.created_at) desc
-        limit 100`,
-      [status]
+                 coalesce(m.created_at, t.created_at) desc, t.id desc
+        limit $2 offset $3`,
+      [status, pg.per, pg.offset]
     );
-    return { threads: rows, connected: Boolean(bot().token) };
+    const total = await one("select count(*)::int as n from support_threads t where ($1::text is null or t.status = $1)", [status]);
+    return { threads: rows, connected: Boolean(bot().token), page: pageInfo(pg, total.n) };
   });
 
   app.get("/admin/support/threads/:id", async (req, reply) => {

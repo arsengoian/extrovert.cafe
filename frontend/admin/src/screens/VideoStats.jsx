@@ -1,5 +1,5 @@
 // Відео → «Аналітика» і «Покупці» (власник, 15.10.2026): скільки людей
-// буває в клубі, скільки з них доходить до автомата й купує, скільки сидять,
+// буває в закладі, скільки з них доходить до автомата й купує, скільки сидять,
 // коли камера чи кавомашина не працювали — і кожна покупка з трьома митями
 // й тим, хто стояв біля автомата. Рахує worker (проходи, люди, візити —
 // backend/worker/worker/people.py), віддає api/src/routes/video-stats.js.
@@ -10,7 +10,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Bars, Columns, Line } from "../charts.jsx";
-import { Badge, Card, DateRange, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Card, DateRange, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 import { Evidence, Viewer } from "./Video.jsx";
 
 const DAY = 86400_000;
@@ -113,7 +113,7 @@ export function VideoAnalytics() {
              note={`${fmt.int(f.at_machine)} з ${fmt.int(f.visitors)} людей стояли впритул до автомата`} />
         <Kpi label="Купують" value={pct(f.buyers, f.at_machine)}
              note={`${fmt.int(f.buyers)} покупців з тих, хто дійшов до автомата`} />
-        <Kpi label="Сидять у клубі" value={minutes(dw.median_min)}
+        <Kpi label="Сидять у закладі" value={minutes(dw.median_min)}
              note={`медіана з ${fmt.int(dw.closed)} візитів, де видно і вхід, і вихід; середнє ${minutes(dw.mean_min)}`} />
       </div>
 
@@ -132,7 +132,7 @@ export function VideoAnalytics() {
       </div>
 
       <div className="grid k2" style={{ marginBottom: 12 }}>
-        <Card title="У клубі по годинах" note="середнє за доби, коли ця година була записана">
+        <Card title="У закладі по годинах" note="середнє за доби, коли ця година була записана">
           <Columns items={Array.from({ length: 24 }, (_, h) => ({
             label: String(h).padStart(2, "0"),
             value: data.hourly.find((r) => r.hour === h)?.present ?? 0,
@@ -196,7 +196,13 @@ const UPLINK = { wifi: "Wi-Fi", lte: "LTE" };
 export function VideoPurchases() {
   const [dates, setDates] = useDates();
   const [view, setView] = useState(null);
-  const { data, error } = useData(() => api.videoPurchases(params(dates)), [dates.from, dates.to]);
+  // Дві таблиці — дві незалежні сторінки; обидві скидаються зі зміною дат.
+  const [pPage, setPPage] = usePage(dates.from, dates.to);
+  const [aPage, setAPage] = usePage(dates.from, dates.to);
+  const { data, error, loading } = useData(
+    () => api.videoPurchases({ ...params(dates), p_page: pPage, a_page: aPage }),
+    [dates.from, dates.to, pPage, aPage]
+  );
   const open = (title, type, note) => (url, err) => setView({ title, type, url, error: err, note });
   const head = (
     <div className="head">
@@ -210,8 +216,8 @@ export function VideoPurchases() {
   if (error) return <>{head}<Empty>не вдалось прочитати: {error.message}</Empty></>;
   if (!data) return <>{head}<Empty>вантажимо…</Empty></>;
 
-  const real = data.purchases.filter((p) => p.in_stats);
-  const seen = real.filter((p) => p.passage_id);
+  // KPI — з усього періоду (api рахує окремо), а не з видимої сторінки.
+  const kpi = data.kpi ?? { real: 0, seen: 0, attempts_guests: 0 };
   // Зсув від оплати зі знаком: вибір — мінус секунди до оплати, готово — плюс.
   const offset = (t, paid) => {
     if (!t) return "—";
@@ -224,10 +230,10 @@ export function VideoPurchases() {
       {head}
       {view && <Viewer key={view.url ?? "error"} view={view} onClose={() => setView(null)} />}
       <div className="grid k3" style={{ marginBottom: 12 }}>
-        <Kpi label="Чеків" value={fmt.int(real.length)} note="без тестових і власника (receipt_in_stats)" />
-        <Kpi label="Покупця видно" value={pct(seen.length, real.length)}
-             note={`${fmt.int(seen.length)} чеків прив'язані до людини біля автомата`} />
-        <Kpi label="Невдалих спроб" value={fmt.int(data.attempts.filter((a) => !a.staff).length)}
+        <Kpi label="Чеків" value={fmt.int(kpi.real)} note="без тестових і власника (receipt_in_stats)" />
+        <Kpi label="Покупця видно" value={pct(kpi.seen, kpi.real)}
+             note={`${fmt.int(kpi.seen)} чеків прив'язані до людини біля автомата`} />
+        <Kpi label="Невдалих спроб" value={fmt.int(kpi.attempts_guests)}
              note="стояли біля автомата від 20 с, а чека немає; без персоналу" />
       </div>
 
@@ -260,13 +266,14 @@ export function VideoPurchases() {
         ]}
         rows={data.purchases}
         empty="чеків за цей період немає"
+        foot={<Pager info={data.purchases_page} onPage={setPPage} busy={loading} note="разом із тестовими" />}
       />
 
       <h2 className="section-title">Невдалі спроби</h2>
       <p className="muted" style={{ margin: "0 0 8px" }}>
         Людина простояла біля автомата від 20 секунд, а чека поруч немає. Поруч — звʼязок малини з сервером у ці
-        хвилини: термінал оплати ходить через той самий 4G-роутер і запасного каналу не має (14.10 о 23:36 платіж
-        не пройшов саме так).
+        хвилини: якщо термінал оплати на точці ходить тим самим каналом, поганий звʼязок пояснює, чому платіж
+        не пройшов.
       </p>
       <Table
         columns={[
@@ -286,6 +293,7 @@ export function VideoPurchases() {
         ]}
         rows={data.attempts}
         empty="невдалих спроб не було"
+        foot={<Pager info={data.attempts_page} onPage={setAPage} busy={loading} note="разом із персоналом" />}
       />
     </>
   );

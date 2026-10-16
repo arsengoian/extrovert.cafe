@@ -107,5 +107,7 @@ export function AdPreview({ kind, head1, head2, sub, fine, sprite }) {
     box.current.innerHTML = tpl.replace(/\{\{(\w+)\}\}/g, (m, k) => vals[k] ?? m);
   }, [tpl, ready, kind, head1, head2, sub, fine, sprite]);
 
-  return <div className="ad-preview" ref={box} />;
+  // Обгортка гортається вбік, якщо вікно вужче за 470 px (телефон): прев'ю
+  // лишається 1:1, а сторінка не розʼїжджається.
+  return <div className="ad-preview-wrap"><div className="ad-preview" ref={box} /></div>;
 }

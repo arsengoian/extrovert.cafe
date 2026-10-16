@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Badge, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 export const ORDER_STATUS = {
   new: ["bad", "нове"], printing: ["warn", "друкуємо"], packing: ["warn", "пакуємо"],
@@ -26,7 +26,8 @@ export const statusesFor = (product) =>
 
 export function Orders() {
   const [status, setStatus] = useState("");
-  const { data, error, reload } = useData(() => api.orders({ status }), [status]);
+  const [page, setPage] = usePage(status);
+  const { data, error, reload, loading } = useData(() => api.orders({ status, page }), [status, page]);
 
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
@@ -69,6 +70,7 @@ export function Orders() {
         ]}
         rows={data.orders}
         empty="замовлень ще не було"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
       />
     </>
   );

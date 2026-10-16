@@ -2,7 +2,7 @@
 // в одній стрічці (docs/admin_panel.md, «Квізи»).
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Badge, Empty, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Empty, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 const answers = (a) =>
   Object.entries(a ?? {})
@@ -10,7 +10,8 @@ const answers = (a) =>
     .join("; ");
 
 export function QuizResponses() {
-  const { data, error, reload } = useData(() => api.quizResponses());
+  const [page, setPage] = usePage();
+  const { data, error, reload, loading } = useData(() => api.quizResponses({ page }), [page]);
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
 
@@ -19,7 +20,7 @@ export function QuizResponses() {
       <div className="head">
         <div>
           <h1>Відповіді на опитування</h1>
-          <p>останні 200 – анкета профілю й відгуки про напої</p>
+          <p>анкета профілю й відгуки про напої, свіжі зверху</p>
         </div>
         <div className="right"><button className="btn" onClick={reload}>Оновити</button></div>
       </div>
@@ -42,6 +43,7 @@ export function QuizResponses() {
         ]}
         rows={data.responses}
         empty="відповідей ще немає"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
       />
     </>
   );

@@ -45,7 +45,7 @@ export const METRIC_LABELS = {
   monitor_src: "чим перевірено монітор", monitor_woke: "будили монітор",
   root_ro: "картка read-only", usb_ok: "флешка",
   kiosk_frames: "кадрів усього",
-  // Якою дорогою малина зараз в інтернеті: Wi-Fi клубу чи LTE (14.10.2026).
+  // Якою дорогою малина зараз в інтернеті: Wi-Fi закладу чи LTE (14.10.2026).
   uplink: "канал в інтернет", wifi_dbm: "сигнал Wi-Fi, дБм",
   // Канал угору за останньою заливкою відео (stack/uploader.sh, 12.10.2026).
   // Стеля — та, з якою йшла заливка: швидкість, що з нею зрівнялась, означає
@@ -73,7 +73,9 @@ export const METRIC_LABELS = {
 // 14.10.2026). Тепер погано — від двох загублених (28 %).
 export const LOSS_BAD_PCT = 20;
 
-export const UPLINK = { wifi: "Wi-Fi клубу", lte: "LTE (запасний)" };
+// Без назви закладу: точка не обовʼязково стоїть у клубі, а Wi-Fi — той, до
+// якого її підключили там, де вона стоїть (власник, 16.10.2026).
+export const UPLINK = { wifi: "Wi-Fi закладу", lte: "LTE (запасний)" };
 
 export const metricValue = (key, value) => {
   if (key === "uplink") return UPLINK[value] ?? (value ?? "—");
@@ -171,26 +173,84 @@ export function useData(load, deps = []) {
   return { ...state, reload };
 }
 
+// Номер сторінки списку (власник, 16.10.2026: n-на сторінка, а не
+// підвантаження). Скидається на першу, щойно змінився будь-який фільтр із
+// resetOn: інакше «сторінка 7» нового фільтра могла б виявитись порожньою.
+// Скидаємо просто під час рендеру (так React радить для похідного стану):
+// запит із фільтром і старою сторінкою не встигає піти.
+export function usePage(...resetOn) {
+  const [page, setPage] = useState(1);
+  const key = JSON.stringify(resetOn);
+  const seen = useRef(key);
+  if (seen.current !== key) {
+    seen.current = key;
+    if (page !== 1) setPage(1);
+  }
+  return [page, setPage];
+}
+
+// Перемикач сторінок під таблицею: «51–100 з 734» і кнопки. info — те, що
+// віддає api (paging.js: page, per, total). Після переходу повертаємо екран
+// до початку таблиці, якщо він уже під верхнім краєм: інакше нова сторінка
+// відкривалась би з кінця, там, де стояв перемикач.
+export function Pager({ info, onPage, busy = false, note = null }) {
+  const ref = useRef(null);
+  if (!info) return note;
+  const pages = Math.max(1, Math.ceil(info.total / info.per));
+  const from = info.total ? (info.page - 1) * info.per + 1 : 0;
+  const to = Math.min(info.total, info.page * info.per);
+  const goTo = (n) => {
+    onPage(Math.min(pages, Math.max(1, n)));
+    const top = ref.current?.closest(".table-card, .threads, .card");
+    if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView({ block: "start" });
+  };
+  return (
+    <div className="pager" ref={ref}>
+      <span className="pager-info">
+        {info.total ? `${fmt.int(from)}–${fmt.int(to)} з ${fmt.int(info.total)}` : "нічого"}
+        {note && <span className="muted"> · {note}</span>}
+      </span>
+      {pages > 1 && (
+        <span className="pager-btns">
+          <button className="btn small" disabled={busy || info.page <= 1} onClick={() => goTo(1)} aria-label="перша сторінка">«</button>
+          <button className="btn small" disabled={busy || info.page <= 1} onClick={() => goTo(info.page - 1)}>‹ назад</button>
+          <span className="pager-at">{busy ? "…" : `${info.page} / ${pages}`}</span>
+          <button className="btn small" disabled={busy || info.page >= pages} onClick={() => goTo(info.page + 1)}>далі ›</button>
+          <button className="btn small" disabled={busy || info.page >= pages} onClick={() => goTo(pages)} aria-label="остання сторінка">»</button>
+        </span>
+      )}
+    </div>
+  );
+}
+
 // foot — рядок під таблицею, у тій самій картці: там живуть підказки про
-// незбережений стан, які мусять бути притулені до рядків, а не висіти
-// окремим блоком десь поруч.
+// незбережений стан і перемикач сторінок, які мусять бути притулені до
+// рядків, а не висіти окремим блоком десь поруч.
 // scroll — таблиця ширша за картку (кожна метрика — своя колонка): гортати
-// вбік усередині картки, а не розсувати сторінку.
+// вбік усередині картки, а не розсувати сторінку. На телефоні звичайна
+// таблиця стає стосом карток «підпис — значення» (theme.css, data-label), а
+// scroll лишається таблицею: двадцять метрик у картці — це екран прокрутки.
 export const Table = ({ columns, rows, onRow, empty = "порожньо", foot = null, scroll = false }) => (
-  <div className={`table-card${scroll ? " scroll" : ""}`}>
+  <div className={`table-card${scroll ? " wide" : ""}`}>
+    <div className="table-scroll">
     <table>
       <thead>
         <tr>{columns.map((c) => <th key={c.key} className={c.num ? "num" : ""} style={c.width ? { width: c.width } : undefined}>{c.title}</th>)}</tr>
       </thead>
       <tbody>
-        {rows.length === 0 && <tr><td colSpan={columns.length}><div className="empty">{empty}</div></td></tr>}
+        {rows.length === 0 && <tr className="empty-row"><td colSpan={columns.length}><div className="empty">{empty}</div></td></tr>}
         {rows.map((r, i) => (
           <tr key={r.id ?? i} data-click={onRow ? "1" : undefined} onClick={onRow ? () => onRow(r) : undefined}>
-            {columns.map((c) => <td key={c.key} className={c.num ? "num" : ""}>{c.render ? c.render(r) : r[c.key]}</td>)}
+            {columns.map((c) => (
+              <td key={c.key} className={c.num ? "num" : ""} data-label={typeof c.title === "string" ? c.title : ""}>
+                {c.render ? c.render(r) : r[c.key]}
+              </td>
+            ))}
           </tr>
         ))}
       </tbody>
     </table>
+    </div>
     {foot && <div className="table-foot">{foot}</div>}
   </div>
 );

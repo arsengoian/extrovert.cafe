@@ -1,14 +1,21 @@
 // Користувачі: пошук за нікнеймом чи поштою, баланси, остання поява
 // (docs/admin_panel.md, «Користувачі»).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Badge, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 export function Users() {
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
-  const { data, error } = useData(() => api.users({ q: query }), [query]);
+  // Шукаємо, поки людина друкує, — з паузою 300 мс, щоб не слати запит на
+  // кожну літеру (16.10.2026; досі треба було тиснути «Знайти»).
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(q.trim()), 300);
+    return () => clearTimeout(t);
+  }, [q]);
+  const [page, setPage] = usePage(query);
+  const { data, error, loading } = useData(() => api.users({ q: query, page }), [query, page]);
 
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
@@ -18,13 +25,12 @@ export function Users() {
       <div className="head">
         <div>
           <h1>Користувачі</h1>
-          <p>{fmt.int(data.counts.total)} акаунтів у статистиці – показуємо перші 200 за останньою появою, разом зі своїми й тестовими</p>
+          <p>{fmt.int(data.counts.total)} акаунтів у статистиці – список за останньою появою, разом зі своїми й тестовими</p>
         </div>
         <div className="right">
           <form className="field" style={{ width: 240 }} onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
-            <input placeholder="нікнейм або пошта" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input type="search" placeholder="нікнейм або пошта" value={q} onChange={(e) => setQ(e.target.value)} />
           </form>
-          <button className="btn" onClick={() => setQuery(q.trim())}>Знайти</button>
         </div>
       </div>
 
@@ -48,6 +54,7 @@ export function Users() {
         ]}
         rows={data.users}
         empty="нікого не знайшли"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
       />
     </>
   );

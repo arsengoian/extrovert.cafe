@@ -8,7 +8,7 @@
 // підписаним посиланням — через наш сервер відео не ходить.
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Card, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Card, DateRange, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 // idle («простій») до 12.10.2026 теж був подією; тепер порожню стійку не пишемо.
 export const KIND = { approach: "підійшов", machine: "біля автомата", pass: "пройшов повз", queue: "черга" };
@@ -76,8 +76,26 @@ export function Viewer({ view, onClose }) {
 
 const STATUS = { pending: "у R2", processing: "обробляється", done: "оброблено", failed: "помилка", expired: "видалено" };
 
+// Фільтр стану записів: кнопки над таблицею (16.10.2026) — щоб знайти ті,
+// що впали чи ще чекають, а не гортати тисячі оброблених.
+const SEG_FILTER = [["", "усі"], ["failed", "помилки"], ["pending", "у R2, чекають"], ["processing", "обробляються"], ["done", "оброблені"], ["expired", "видалені"]];
+
 export function Video({ tab = "segments" }) {
-  const { data, error } = useData(() => api.video());
+  const events = tab === "events";
+  const [status, setStatus] = useState("");
+  const [kind, setKind] = useState("");
+  const [guests, setGuests] = useState(false);
+  const [dates, setDates] = useState({});
+  const [page, setPage] = usePage(tab, status, kind, guests, dates.from, dates.to);
+  const { data: got, error, loading } = useData(
+    () => api.video(events
+      ? { list: "events", page, kind, staff: guests ? "hide" : "", from: dates.from, to: dates.to }
+      : { list: "segments", page, status }),
+    [tab, page, status, kind, guests, dates.from, dates.to]
+  );
+  // Відповідь іншого табу (перехід між «Записами» й «Подіями») не малюємо:
+  // поки новий список їде, показуємо «вантажимо», а не чужі колонки.
+  const data = got?.list === (events ? "events" : "segments") ? got : null;
   const [view, setView] = useState(null);
   const [title, note] = TITLES[tab] ?? TITLES.segments;
   const open = (title, type, note) => (url, error) => setView({ title, type, url, error, note });
@@ -85,19 +103,21 @@ export function Video({ tab = "segments" }) {
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
 
-  const empty = data.stats.events === 0 && data.segments.length === 0;
+  const empty = data.stats.events === 0 && data.stats.segments === 0;
+  const kindCount = (k) => (k ? data.kinds?.find((x) => x.kind === k)?.n ?? 0 : (data.kinds ?? []).reduce((s, x) => s + x.n, 0));
 
   return (
     <>
       <div className="head">
         <div>
           <h1>{title}</h1>
-          <p>{note}</p>
+          <p>{events && data.from ? `${fmt.dayFull(data.from)} — ${fmt.dayFull(data.to)}: ${note}` : note}</p>
         </div>
+        {events && <div className="right"><DateRange value={dates} onChange={setDates} /></div>}
       </div>
 
       <div className="grid k4" style={{ marginBottom: 12 }}>
-        <Kpi label="Сегментів" value={fmt.int(data.segments.length)} note="останні 100" />
+        <Kpi label="Сегментів" value={fmt.int(data.stats.segments)} note="усього в базі, з видаленими з R2" />
         <Kpi label="В обробці" value={fmt.int(data.stats.pending)} tone={data.stats.pending > 50 ? "bad" : ""}
              note={data.stats.old ? `чекають на worker; ще ${fmt.int(data.stats.old)} — на переаналіз` : "чекають на worker"} />
         <Kpi label="Помилок" value={fmt.int(data.stats.failed)} tone={data.stats.failed ? "bad" : "ok"} note="не вдалось обробити" />
@@ -115,7 +135,33 @@ export function Video({ tab = "segments" }) {
         </Card>
       )}
 
-      {tab === "segments" && (
+      {!events && (
+        <div className="chips filters">
+          {SEG_FILTER.map(([k, label]) => {
+            const n = k === "" ? data.stats.segments : k === "failed" ? data.stats.failed : k === "pending" ? data.stats.pending : null;
+            return (
+              <button key={k} className={`pill${status === k ? " on" : ""}`} onClick={() => setStatus(k)}>
+                {label}{n !== null && <span className="pill-n">{fmt.int(n)}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {events && (
+        <div className="chips filters">
+          {[["", "усі"], ...Object.entries(KIND)].map(([k, label]) => (
+            <button key={k} className={`pill${kind === k ? " on" : ""}`} onClick={() => setKind(k)}>
+              {label}<span className="pill-n">{fmt.int(kindCount(k))}</span>
+            </button>
+          ))}
+          <label className="pill check">
+            <input type="checkbox" checked={guests} onChange={(e) => setGuests(e.target.checked)} />без персоналу
+          </label>
+        </div>
+      )}
+
+      {!events && (
         <Table
           columns={[
             { key: "started_at", title: "початок", render: (s) => fmt.time(s.started_at) },
@@ -134,12 +180,13 @@ export function Video({ tab = "segments" }) {
               )),
             },
           ]}
-          rows={data.segments}
-          empty="записів ще немає"
+          rows={data.rows}
+          empty={status ? "записів у такому стані немає" : "записів ще немає"}
+          foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
         />
       )}
 
-      {tab === "events" && (
+      {events && (
         <Table
           columns={[
             { key: "started_at", title: "коли", render: (e) => fmt.time(e.started_at) },
@@ -159,8 +206,9 @@ export function Video({ tab = "segments" }) {
               key: "evidence", title: "доказ", render: (e) => <Evidence e={e} open={open} />,
             },
           ]}
-          rows={data.events}
-          empty="подій ще немає"
+          rows={data.rows}
+          empty={kind || guests ? "за цими фільтрами подій немає" : "подій за цей період немає"}
+          foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
         />
       )}
     </>

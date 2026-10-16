@@ -7,8 +7,8 @@ import { useState } from "react";
 
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Beat, BeatScale, Line } from "../charts.jsx";
-import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, RangePicker, Table, UPLINK, fmt, metricValue as human, rangeLabel, useData, useRange } from "../ui.jsx";
+import { Beat, Line, TimeScale } from "../charts.jsx";
+import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, Pager, RangePicker, Table, UPLINK, fmt, metricValue as human, rangeLabel, useData, usePage, useRange } from "../ui.jsx";
 
 // Булеві показники, для яких малюємо тижневу смужку. `pick` повертає
 // true/false або null — «проби не було й судити нема з чого».
@@ -20,29 +20,29 @@ import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, RangePicker, T
 // наскільки погано (більше — гірше): з кількох поганих проб відра в тултіп
 // іде найгірша. Досі там стояло просто «падало» (власник, 14.10.2026).
 const SIGNALS = [
-  { key: "monitor", name: "монітор", note: "CEC: увімкнений",
+  { key: "monitor", name: "монітор", note: "за CEC",
     pick: (m) => (m.monitor_on === undefined ? null : m.monitor_on),
     why: (m) => `${m.monitor_src === "cec" ? "монітор у режимі очікування (CEC)" : `монітор не відповідає (${m.monitor_src ?? "?"})`}${m.monitor_woke ? ", будили" : ""}` },
-  { key: "kiosk", name: "кіоск малює", note: "fps > 0",
+  { key: "kiosk", name: "кіоск малює", note: null,
     pick: (m) => (m.kiosk_fps === undefined || m.kiosk_fps === null ? null : Number(m.kiosk_fps) > 0),
     why: (m) => `кіоск не малює: fps ${m.kiosk_fps}` },
-  { key: "card", name: "картка пишеться", note: "не read-only",
+  { key: "card", name: "картка пишеться", note: null,
     pick: (m) => (m.root_ro === undefined || m.root_ro === null ? null : m.root_ro === false),
     why: () => "картка стала read-only" },
-  { key: "usb", name: "флешка", note: "змонтована й пишеться",
+  { key: "usb", name: "флешка", note: "змонтована, пишеться",
     pick: (m) => (m.usb_ok === undefined ? null : m.usb_ok),
     why: () => "флешка не змонтована або не пишеться" },
   // Поріг і чому саме такий — LOSS_BAD_PCT в ui.jsx (14.10.2026).
-  { key: "net", name: "пінг до сервера", note: "губиться ≤ 1 пакета з 5",
+  { key: "net", name: "пінг до сервера", note: "червоне — 2 з 5 загублено",
     pick: (m) => (m.loss_pct === undefined || m.loss_pct === null ? null : Number(m.loss_pct) < LOSS_BAD_PCT),
     why: (m) => (Number(m.loss_pct) >= 100 ? "сервер недосяжний: усі пінги загубились"
       : `втрати ${m.loss_pct} %${m.ping_ms != null ? `, пінг ${m.ping_ms} мс` : ""}`)
       + (m.uplink ? ` (через ${UPLINK[m.uplink] ?? m.uplink})` : ""),
     rank: (m) => Number(m.loss_pct) },
-  { key: "video", name: "відеопотік", note: "камера відповідає",
+  { key: "video", name: "відеопотік", note: "свіжі сегменти з камери",
     pick: (m) => (m.video_ok === undefined ? null : m.video_ok),
     why: () => "запис не йде: свіжих сегментів із камери немає" },
-  { key: "temp", name: "температура", note: "нижче 80 °C",
+  { key: "temp", name: "температура", note: "червоне від 80 °C",
     pick: (m) => (m.temp_c === undefined || m.temp_c === null ? null : Number(m.temp_c) < 80),
     why: (m) => `${m.temp_c} °C`, rank: (m) => Number(m.temp_c) },
 ];
@@ -52,24 +52,24 @@ const SIGNALS = [
 // суцільною, без «?» між пробами. Відповідає на те саме питання, що й
 // смужки малини: не «як зараз», а «коли саме стало погано».
 const JET_SIGNALS = [
-  { key: "jet_session", name: "сесія порталу", note: "вхід живий",
+  { key: "jet_session", name: "сесія порталу", note: "вхід на портал Jetinno",
     pick: (m) => (m.session === undefined ? null : Boolean(m.session)),
     why: () => "вхід на портал Jetinno злетів" },
   { key: "jet_online", name: "машина на звʼязку", note: "портал її бачить",
     pick: (m) => (m.online === undefined ? null : Boolean(m.online)),
     why: (m) => `портал не бачить машину${m.last_login ? `, востаннє ${fmt.time(m.last_login)}` : ""}` },
-  { key: "jet_faults", name: "без несправностей", note: "активних немає",
+  { key: "jet_faults", name: "без несправностей", note: null,
     pick: (m) => (m.fault_codes !== undefined ? !m.fault_codes.length
       : m.faults === undefined ? null : !Number(m.faults)),
     why: (m) => (m.fault_codes?.length ? m.fault_codes.join("; ") : `лічильник несправностей: ${m.faults}`),
     rank: (m) => m.fault_codes?.length ?? Number(m.faults) },
-  { key: "jet_warnings", name: "без попереджень", note: "лічильник нуль",
+  { key: "jet_warnings", name: "без попереджень", note: null,
     pick: (m) => (m.warnings === undefined ? null : !Number(m.warnings)),
     why: (m) => `попереджень: ${m.warnings}`, rank: (m) => Number(m.warnings) },
-  { key: "jet_supply", name: "інгредієнти", note: "дефіциту немає",
+  { key: "jet_supply", name: "інгредієнти", note: "без дефіциту",
     pick: (m) => (m.supply_short === undefined ? null : !Number(m.supply_short)),
     why: (m) => `дефіцит інгредієнтів: ${m.supply_short}`, rank: (m) => Number(m.supply_short) },
-  { key: "jet_reconcile", name: "замовлення ↔ чеки", note: "сходяться",
+  { key: "jet_reconcile", name: "замовлення ↔ чеки", note: "за добу, мають сходитись",
     pick: (m) => (m.reconcile_ok === undefined ? null : Boolean(m.reconcile_ok)),
     why: (m) => `замовлень карткою ${m.orders_card_24h ?? "?"}, готівкою ${m.orders_cash_24h ?? "?"}, чеків ${m.receipts_24h ?? "?"} (за добу)` },
 ];
@@ -80,10 +80,10 @@ const JET_SIGNALS = [
 // Pi 1 саме він першим каже, що кіоск чимось задавлений.
 const HARDWARE = [
   { key: "cpu", name: "CPU, %", color: "#FF6B7A", format: (v) => v.toFixed(0) },
-  { key: "mem_used_mb", name: "памʼять, МБ", color: "#5AA9FF" },
-  { key: "kiosk_fps", name: "fps кіоска", color: "#B07CFF" },
+  { key: "mem_used_mb", name: "памʼять, МБ", color: "#5AA9FF", format: (v) => Math.round(v).toLocaleString("uk-UA") },
+  { key: "kiosk_fps", name: "fps кіоска", color: "#B07CFF", format: (v) => v.toFixed(0) },
   { key: "temp_c", name: "температура, °C", color: "#FFB020", format: (v) => v.toFixed(0) },
-  { key: "disk_free_mb", name: "диск вільно, МБ", color: "#3FBF6F" },
+  { key: "disk_free_mb", name: "диск вільно, МБ", color: "#3FBF6F", format: (v) => Math.round(v).toLocaleString("uk-UA") },
 ];
 
 // Проби телеметрії → та сама структура, яку малює Beat (charts.jsx): рядок
@@ -181,9 +181,48 @@ function JetRow({ label, ok, value, sub }) {
   );
 }
 
+// Рядок спільної шкали часу (власник, 16.10.2026): ліворуч назва й, де
+// значення неочевидне, сірий підпис під нею; праворуч полотно — смужка чи
+// графік. Колонка назви однієї ширини в усіх картках (--tl-name, theme.css),
+// тож полотна починаються й закінчуються на одних вертикалях, а з тим самим
+// domain — це й однакові години: червоне відро над стрибком пінгу видно
+// одразу, без звіряння дат.
+const TlRow = ({ name, note = null, chart = false, children }) => (
+  <div className={`tl-row${chart ? " tl-chart" : ""}`}>
+    <span className="tl-name">{name}{note && <small>{note}</small>}</span>
+    <div className="tl-body">{children}</div>
+  </div>
+);
+const TlEmpty = ({ children }) => <div className="tl-empty">{children}</div>;
+
+// Сирі проби одного джерела — сторінками з api (admin-ops.js, /samples).
+// Колонки — ключі, що прийшли на цій сторінці, у порядку карток точки.
+function Samples({ id, range, source, span }) {
+  const [page, setPage] = usePage(id, range, source);
+  const { data, loading } = useData(() => api.pointSamples(id, { source, range, page }), [id, range, source, page]);
+  const rows = data?.rows ?? [];
+  const keys = [...new Set(rows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
+  return (
+    <Table
+      scroll
+      columns={[
+        { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
+        ...keys.map((k) => ({
+          key: `m:${k}`, title: LABELS[k] ?? k,
+          render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
+        })),
+      ]}
+      rows={rows}
+      empty={!data ? "вантажимо…" : source === "jetinno" ? `проб з порталу ${span} немає` : `телеметрії ${span} немає`}
+      foot={<Pager info={data?.page} onPage={setPage} busy={loading}
+                   note={source === "jetinno" ? "з порталу Jetinno, раз на пів години" : "як їх надіслала точка, свіжі зверху"} />}
+    />
+  );
+}
+
 export function Pos({ id }) {
   const [range, setRange] = useRange();
-  // Таб таблиці показників — хук мусить стояти тут, над ранніми return:
+  // Таб таблиці проб — хук мусить стояти тут, над ранніми return:
   // інакше на «вантажимо…» він не викликається, а після приходу даних
   // викликається, і React падає на зміні кількості хуків (11.10.2026).
   const [tab, setTab] = useState("pi");
@@ -192,20 +231,15 @@ export function Pos({ id }) {
   if (loading && !data) return <Empty>вантажимо…</Empty>;
   if (error) return <Empty>{error.status === 404 ? "немає такої точки" : `не вдалось прочитати: ${error.message}`}</Empty>;
 
-  const { point, latest, history, recent = [], health, uptime, receipts } = data;
+  const { point, latest, history, health, uptime, receipts } = data;
   const win = data.window ?? { hours: 168, step: 30 * 60_000 };
   const span = `за ${rangeLabel(range) === "доба" ? "добу" : rangeLabel(range)}`;
   const stepText = (ms) => (ms >= 3600_000 ? `${ms / 3600_000} год` : `${ms / 60_000} хв`);
-  const stepLabel = stepText(win.step);
-  // Історія проб колонками: кожна метрика — своя, у тому ж порядку, що й
-  // картки «Компоненти точки». Раніше всі метрики йшли одним рядком тексту
-  // через «·», і знайти в ньому, скажімо, температуру вчорашнього вечора
-  // було неможливо (власник, 27.09.2026).
-  // Таби замість однієї спільної таблиці: у малини й кавомашини різні набори
-  // ключів, і в спільній таблиці половина кожного рядка була прочерками
-  // (власник, 11.10.2026). Колонки рахуємо вже по відфільтрованих пробах,
-  // тож у кожному табі лишаються тільки його метрики.
-  const tabRows = recent.filter((r) => (tab === "jetinno" ? isJet(r) : !isJet(r)));
+  // Кавомашина є не на кожній точці: без неї й без її проб блоки Jetinno —
+  // лише порожні рядки «проб немає» (16.10.2026).
+  const hasJet = Boolean(point.has_jetinno) || latest.some(isJet);
+  const source = hasJet ? tab : "pi";
+
   // Історія приходить спільною для всіх джерел, тож смужки рахуємо кожна за
   // своїм: інакше проби кавомашини потрапляли б у відра малини й навпаки.
   // Проріджування на місяці групує по джерелах (api/admin-ops.js, thin), тож
@@ -213,12 +247,7 @@ export function Pos({ id }) {
   const piHistory = history.filter((h) => !isJet(h));
   const jetHistory = history.filter(isJet);
   // Відра машини — завширшки з її справжній інтервал опитування, а не з крок
-  // вікна. На «добі» крок 10 хв, а машину питаємо раз на 30 хв: пробу мало
-  // лише кожне третє відро, і смужка виглядала так, ніби дві третини даних
-  // загублено (власник, 12.10.2026). Інтервал беремо з самих проб — медіана
-  // проміжків, округлена до кроку вікна, — а не константою: зміниться
-  // JETINNO_TELEMETRY_MIN у scheduler, і відра підлаштуються самі. Ширших за
-  // вікно не буває: на місяці історія вже зведена у відра цього кроку.
+  // вікна (власник, 12.10.2026): медіана проміжків, округлена до кроку вікна.
   const jetWin = (() => {
     const ts = jetHistory.map((h) => new Date(h.measured_at).getTime()).sort((a, b) => a - b);
     const gaps = ts.slice(1).map((t, i) => t - ts[i]).filter((g) => g > 0).sort((a, b) => a - b);
@@ -226,24 +255,24 @@ export function Pos({ id }) {
     return { ...win, step: Math.max(win.step, Math.round(median / win.step) * win.step) };
   })();
   const jetSeries = JET_SIGNALS.map((sig) => ({ sig, series: boolSeries(jetHistory, sig, jetWin) }));
-  const metricKeys = [...new Set(tabRows.flatMap((r) => Object.keys(r.metrics ?? {})))].sort(byOrder);
   const pi = latest.find((l) => l.source === "pi");
   const jet = latest.find((l) => l.source === "jetinno");
   const series = (key) => history
-    .filter((h) => h.metrics && h.metrics[key] !== undefined && h.metrics[key] !== null)
+    .filter((h) => !isJet(h) && h.metrics && h.metrics[key] !== undefined && h.metrics[key] !== null)
     .map((h) => ({ x: h.measured_at, y: Number(h.metrics[key]) }));
+
+  // Спільне вікно смужок і графіків — рівно відра boolSeries: від першого
+  // відра до кінця поточного. Смужки й лінії малюються в ньому за часом.
+  const last = Math.floor(Date.now() / win.step) * win.step;
+  const domain = [last - win.hours * 3600_000, last + win.step];
 
   const ping = series("ping_ms");
   const jitter = series("jitter_ms");
   const loss = series("loss_pct");
-  // Сигнал Wi-Fi (stack/wifi.sh, telemetry uplink_metrics): нижче −90 дБм
-  // зв'язку однаково немає — притискаємо до низу осі, а не за край графіка.
+  // Сигнал Wi-Fi: нижче −90 дБм зв'язку однаково немає — притискаємо до низу.
   const wifi = series("wifi_dbm").map((p) => ({ ...p, y: Math.max(-90, p.y) }));
-  // Заливка вгору (stack/uploader.sh). Телеметрія щохвилини повторює
-  // ОСТАННІЙ замір, навіть коли заливки не було, тож точка — одна на
-  // заливку, за її власним часом (upload_at), а не на кожну пробу: інакше
-  // старе значення малювалось би пласкою сходинкою, ніби канал його й досі
-  // дає. Стеля поруч — щоб «400 при стелі 400» читалось як «щонайменше».
+  // Заливка вгору: точка — одна на заливку, за її власним часом (upload_at),
+  // бо телеметрія щохвилини повторює ОСТАННІЙ замір (stack/uploader.sh).
   const uploads = [...new Map(history
     .filter((h) => h.metrics?.upload_at && h.metrics.upload_kb_s !== undefined && h.metrics.upload_kb_s !== null)
     .map((h) => [h.metrics.upload_at, h.metrics])).values()]
@@ -251,9 +280,6 @@ export function Pos({ id }) {
   const upload = uploads.map((m) => ({ x: m.upload_at, y: Number(m.upload_kb_s) }));
   const uploadCap = uploads.filter((m) => m.upload_limit_kb_s != null)
     .map((m) => ({ x: m.upload_at, y: Number(m.upload_limit_kb_s) }));
-  // Вісь графіків — увесь обраний період: години без проб лишаються
-  // порожнім місцем, а не зникають.
-  const domain = [Date.now() - (data.window?.hours ?? 168) * 3600_000, Date.now()];
 
   return (
     <>
@@ -286,250 +312,187 @@ export function Pos({ id }) {
              note={pi ? "остання проба з малини" : "малина ще нічого не слала"} />
       </div>
 
+      {/* Компоненти — ліворуч і в одну колонку, а праворуч — усе, що має
+          історію, на спільній шкалі часу на всю ширину (власник, 16.10.2026). */}
+      <div className="pos-layout">
+        <div className="pos-main">
+          {/* Історія булевих показників — тут, а не на дашборді здоровʼя: там
+              потрібна одна відповідь «усе гаразд / ні», а «коли саме гасився
+              екран минулої середи» дивляться вже прицільно, на точці
+              (прохання власника 24.09.2026). У відрі досить однієї поганої
+              проби, щоб воно стало червоним, — поломку так не проґавиш. */}
+          <Card title="Raspberry" note={`${span}, відра по ${stepText(win.step)}`}>
+            <TlRow name="точка на звʼязку" note="проби overseer"><Beat history={health} domain={domain} /></TlRow>
+            {SIGNALS.map((s) => {
+              const sr = boolSeries(piHistory, s, win);
+              return (
+                <TlRow key={s.key} name={s.name} note={sr.seen ? s.note : "проб немає"}>
+                  <Beat history={sr} domain={domain} />
+                </TlRow>
+              );
+            })}
+            <TimeScale domain={domain} />
+          </Card>
 
-
-      {/* Те саме, що смужки малини нижче, тільки з відер кавомашини
-          (прохання власника 11.10.2026): коли саме вона відвалювалась, коли
-          висіла несправність, коли розʼїхались замовлення з чеками. */}
-      <Card title="Показники Jetinno" note={`${span}, відра по ${stepText(jetWin.step)}`}>
-        {jetSeries.map(({ sig, series }) => {
-          return (
-            <div className="beat-row" key={sig.key}>
-              <span className="name">{sig.name}</span>
-              <Beat history={series} />
-              <span className="ms" />
-              <span className="value">{series.seen ? sig.note : "проб немає"}</span>
-            </div>
-          );
-        })}
-        <BeatScale history={jetSeries[0]?.series} />
-      </Card>
-
-      {/* Історія всіх булевих показників — тут, а не на дашборді здоровʼя:
-          там потрібна одна відповідь «усе гаразд / ні», а «коли саме
-          гасився екран минулої середи» дивляться вже прицільно, на точці
-          (прохання власника 24.09.2026).
-          Відра півгодинні, як у overseer: у відрі досить однієї поганої
-          проби, щоб воно стало червоним, — поломку так не проґавиш. */}
-      <Card title="Показники Raspberry" note={`${span}, відра по ${stepLabel}`}>
-        <div className="beat-row">
-          <span className="name">точка на звʼязку</span>
-          <Beat history={health} />
-          <span className="ms" />
-          <span className="value">проби overseer</span>
-        </div>
-        {SIGNALS.map((s) => {
-          const series = boolSeries(piHistory, s, win);
-          return (
-            <div className="beat-row" key={s.key}>
-              <span className="name">{s.name}</span>
-              <Beat history={series} />
-              <span className="ms" />
-              <span className="value">{series.seen ? s.note : "проб немає"}</span>
-            </div>
-          );
-        })}
-        <BeatScale history={health} />
-      </Card>
-
-      <div className="wrap-cols" style={{ marginTop: 12 }}>
-        <div className="stack">
-        {/* Мережа точки (власник, 12.10.2026): пінг каже, чи є інтернет,
-            а заливка — скільки він тягне вгору. Окремими графіками, бо
-            мілісекунди й КБ/с на одній осі не живуть. */}
-        <Card title="Мережа точки" note={`${span}, за часом виміру`}>
-          <div className="stack" style={{ gap: 10 }}>
-            {/* Дві дороги в інтернет з 14.10.2026: Wi-Fi клубу й запасний LTE
-                (stack/wifi.sh). Остання проба каже, якою малина ходить зараз. */}
-            {pi?.metrics?.uplink && (
-              <div style={{ fontSize: 12.5 }}>
-                зараз через <b>{UPLINK[pi.metrics.uplink] ?? pi.metrics.uplink}</b>
-                {Number.isFinite(pi.metrics.wifi_dbm) && <span className="muted"> · сигнал Wi-Fi {pi.metrics.wifi_dbm} дБм</span>}
-              </div>
-            )}
-            <div>
-              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>пінг до сервера (api.extrovert.cafe) і jitter, мс</div>
+          {/* Мережа точки (власник, 12.10.2026): пінг каже, чи є інтернет,
+              а заливка — скільки він тягне вгору. Окремими графіками, бо
+              мілісекунди, відсотки й КБ/с на одній осі не живуть. */}
+          <Card title="Мережа" note={pi?.metrics?.uplink
+            ? `зараз через ${UPLINK[pi.metrics.uplink] ?? pi.metrics.uplink}${Number.isFinite(pi.metrics.wifi_dbm) ? `, сигнал ${pi.metrics.wifi_dbm} дБм` : ""}`
+            : span}>
+            <TlRow chart name="пінг і jitter, мс" note="до api.extrovert.cafe">
               {ping.length || jitter.length ? (
-                <Line domain={domain} series={[
+                <Line flush domain={domain} height={96} format={(v) => v.toFixed(0)} series={[
                   ...(ping.length ? [{ name: "пінг, мс", color: "#FE810B", points: ping }] : []),
                   ...(jitter.length ? [{ name: "jitter, мс", color: "#3FBF6F", points: jitter }] : []),
                 ]} />
-              ) : (
-                <Empty>малина ще не слала мережевих метрик</Empty>
-              )}
-            </div>
-            {/* Втрати пінгу (власник, 15.10.2026): окремою віссю 0–100 %, бо з
-                мілісекундами вони не живуть. Пакетів у пробі п'ять, тож
-                значення сходинками: один загублений — 16–17 %, два — 28 %.
-                Сіра лінія — поріг червоного (LOSS_BAD_PCT, ui.jsx). */}
-            <div>
-              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>втрати пінгу до сервера, % — 5 пакетів щохвилини, червоне від двох загублених</div>
+              ) : <TlEmpty>малина ще не слала мережевих метрик</TlEmpty>}
+            </TlRow>
+            {/* Пакетів у пробі п'ять, тож значення сходинками: один загублений —
+                16–17 %, два — 28 %. Сіра лінія — поріг червоного (LOSS_BAD_PCT). */}
+            <TlRow chart name="втрати пінгу, %" note="5 пакетів щохвилини">
               {loss.length ? (
-                <Line domain={domain} max={100} format={(v) => v.toFixed(0)} series={[
+                <Line flush domain={domain} height={80} max={100} format={(v) => v.toFixed(0)} series={[
                   { name: "втрати, %", color: "#FF6B7A", points: loss },
                   { name: `поріг ${LOSS_BAD_PCT} %`, color: "#8B94A3", points: [{ x: domain[0], y: LOSS_BAD_PCT }, { x: domain[1], y: LOSS_BAD_PCT }] },
                 ]} />
-              ) : (
-                <Empty>малина ще не слала втрат</Empty>
-              )}
-            </div>
-            {/* Сигнал Wi-Fi (власник, 15.10.2026) — лише на точці, де Wi-Fi
-                є (wifi_dbm шле telemetry.sh). Вісь −90…−30 дБм: ближче до
-                нуля — краще. */}
+              ) : <TlEmpty>малина ще не слала втрат</TlEmpty>}
+            </TlRow>
+            {/* Сигнал Wi-Fi — лише там, де малина ходить через Wi-Fi. */}
             {wifi.length > 0 && (
-              <div>
-                <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>сигнал Wi-Fi, дБм — ближче до нуля краще: −50 відмінно, −70 на межі, −80 погано</div>
-                <Line domain={domain} min={-90} max={-30} legend={false} format={(v) => v.toFixed(0)}
+              <TlRow chart name="сигнал Wi-Fi, дБм" note="−50 добре, −70 межа, −80 погано">
+                <Line flush domain={domain} height={80} min={-90} max={-30} legend={false} format={(v) => v.toFixed(0)}
                       series={[{ name: "сигнал Wi-Fi, дБм", color: "#5AA9FF", points: wifi }]} />
-              </div>
+              </TlRow>
             )}
-            <div>
-              <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>заливка відео вгору, КБ/с — точка на кожну заливку</div>
+            <TlRow chart name="заливка відео, КБ/с"
+                   note={Number.isFinite(pi?.metrics?.upload_queue)
+                     ? (pi.metrics.upload_queue ? `у черзі ${fmt.int(pi.metrics.upload_queue)} сегм.` : "черга порожня")
+                     : "точка на кожну заливку"}>
               {upload.length ? (
-                <Line domain={domain} format={(v) => v.toFixed(0)} series={[
+                <Line flush domain={domain} height={96} format={(v) => v.toFixed(0)} series={[
                   { name: "швидкість, КБ/с", color: "#5AA9FF", points: upload },
                   ...(uploadCap.length ? [{ name: "стеля, КБ/с", color: "#8B94A3", points: uploadCap }] : []),
                 ]} />
-              ) : (
-                <Empty>замірів заливки ще не було</Empty>
-              )}
-              {/* Хвіст на флешці (14.10.2026): графік показує, як ішли
-                  заливки, а не скільки ще чекає. Без цього рядка застрягла
-                  черга виглядала просто як «замірів давно не було». */}
-              {Number.isFinite(pi?.metrics?.upload_queue) && (
-                <div className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>
-                  {pi.metrics.upload_queue
-                    ? <>у черзі <b>{fmt.int(pi.metrics.upload_queue)}</b> сегм.{pi.metrics.upload_oldest && <>, найстаріший записаний {fmt.time(pi.metrics.upload_oldest)}</>}</>
-                    : "черга порожня — усе записане вже в R2"}
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
+              ) : <TlEmpty>замірів заливки ще не було</TlEmpty>}
+            </TlRow>
+            <TimeScale domain={domain} />
+          </Card>
 
-        {/* Кожен показник — своя вісь і своя лінія на всю ширину колонки:
-            памʼять міряється сотнями МБ, диск — тисячами, fps — десятками,
-            температура — півсотнею градусів. На спільній шкалі диск
-            притиснув би решту до нуля, і перегрів на 82 °C виглядав би так
-            само, як 48 °C. */}
-        <Card title="Залізо точки" note={`${span}, за часом виміру`}>
-          <div className="stack" style={{ gap: 10 }}>
+          {/* Кожен показник — своя вісь: памʼять міряється сотнями МБ, диск —
+              тисячами, fps — десятками; на спільній шкалі диск притиснув би
+              решту до нуля, і перегрів виглядав би як норма. */}
+          <Card title="Залізо" note={`${span}, за часом виміру`}>
             {HARDWARE.map((h) => {
               const points = series(h.key);
               return (
-                <div key={h.key}>
-                  <div className="muted" style={{ fontSize: 10.5, marginBottom: 2 }}>{h.name}</div>
+                <TlRow chart key={h.key} name={h.name}>
                   {points.length
-                    ? <Line domain={domain} series={[{ name: h.name, color: h.color, points }]} height={110} format={h.format} legend={false} />
-                    : <Empty>проб немає</Empty>}
-                </div>
+                    ? <Line flush domain={domain} height={72} legend={false} format={h.format}
+                            series={[{ name: h.name, color: h.color, points }]} />
+                    : <TlEmpty>проб немає</TlEmpty>}
+                </TlRow>
               );
             })}
-          </div>
-        </Card>
+            <TimeScale domain={domain} />
+          </Card>
+
+          {/* Те саме, що смужки малини, з проб кавомашини (11.10.2026): коли
+              вона відвалювалась, коли висіла несправність, коли розʼїхались
+              замовлення з чеками. Відра — її власного кроку, на тій самій осі. */}
+          {hasJet && (
+            <Card title="Кавомашина (Jetinno)" note={`${span}, відра по ${stepText(jetWin.step)}`}>
+              {jetSeries.map(({ sig, series: sr }) => (
+                <TlRow key={sig.key} name={sig.name} note={sr.seen ? sig.note : "проб немає"}>
+                  <Beat history={sr} domain={domain} />
+                </TlRow>
+              ))}
+              <TimeScale domain={domain} />
+            </Card>
+          )}
         </div>
 
-        <Card title="Компоненти точки" note="остання проба">
+        <Card title="Компоненти точки" note="остання проба" className="pos-side">
           {latest.length === 0 ? (
             <Empty>телеметрії ще не було</Empty>
           ) : (
-            <>
-            {latest.filter((l) => !isJet(l)).map((l) => (
-              <div key={l.source} style={{ marginBottom: 10 }}>
-                <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
-                  <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : "Камера"}</b>
-                  <span className="muted" style={{ fontSize: 10.5 }}>{fmt.ago(l.measured_at)}</span>
+            <div className="stack" style={{ gap: 14 }}>
+              {latest.filter((l) => !isJet(l)).map((l) => (
+                <div key={l.source}>
+                  <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+                    <b style={{ fontSize: 12 }}>{l.source === "pi" ? "Raspberry Pi" : "Камера"}</b>
+                    <span className="muted" style={{ fontSize: 10.5 }}>{fmt.ago(l.measured_at)}</span>
+                  </div>
+                  {/* Усі метрики, а не перші дванадцять: 24.09.2026 обрізання
+                      сховало саме monitor_on — те, заради чого сюди й заходять. */}
+                  <div className="metric-list">
+                    {Object.entries(l.metrics ?? {})
+                      .sort(([a], [b]) => byOrder(a, b))
+                      .map(([k, v]) => (
+                        <div key={k} className="metric">
+                          <span className="row muted" style={{ gap: 6 }}><Dot ok={piOk(k, l.metrics)} />{LABELS[k] ?? k}</span>
+                          <b>{human(k, v)}</b>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-                {/* Усі метрики, а не перші дванадцять. Обрізання підвело
-                    24.09.2026: проба виросла до вісімнадцяти полів, і саме
-                    monitor_on з monitor_woke — те, заради чого сюди й
-                    заходять, — не влізло, бо порядок ключів у jsonb свій.
-                    Знайомі підписи йдуть першими, решта — як прийшли. */}
-                <div className="grid k2" style={{ gap: 6 }}>
-                  {Object.entries(l.metrics ?? {})
-                    .sort(([a], [b]) => byOrder(a, b))
-                    .map(([k, v]) => (
-                    <div key={k} className="row" style={{ justifyContent: "space-between", fontSize: 11.5, gap: 8 }}>
-                      <span className="row muted" style={{ gap: 6 }}><Dot ok={piOk(k, l.metrics)} />{LABELS[k] ?? k}</span>
-                      <b>{human(k, v)}</b>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
 
-            {/* Кавомашина — такий самий компонент точки, як малина й камера
-                (прохання власника 11.10.2026). Знімається не з пристрою, а з
-                порталу раз на пів години, тож показуємо не сирі метрики, а
-                підсумок: онлайн, поломки, звірка з чеками. Несправності
-                беремо зі списку, а не з лічильника get_device: 11.10.2026 він
-                показував 0, коли на машині були й відчинені дверцята, і
-                повний піддон. */}
-            <div>
-              <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
-                <b style={{ fontSize: 12 }}>Кавомашина (Jetinno)</b>
-                <span className="muted" style={{ fontSize: 10.5 }}>{jet ? fmt.ago(jet.measured_at) : "проб не було"}</span>
-              </div>
-              {!jet ? (
-                <Empty>телеметрії з порталу ще не було</Empty>
-              ) : jet.metrics?.session === false ? (
-                <JetRow label="сесія порталу" ok={false} value="злетіла — потрібен вхід" />
-              ) : (
-                <div className="stack" style={{ gap: 6 }}>
-                  <JetRow label="машина" ok={jet.metrics.online} value={jet.metrics.online ? "онлайн" : "офлайн"}
-                          sub={jet.metrics.last_login ? `востаннє ${fmt.ago(jet.metrics.last_login)}` : null} />
-                  <JetRow label="несправності" ok={!jet.metrics.fault_codes?.length}
-                          value={jet.metrics.fault_codes?.length ? jet.metrics.fault_codes.join("; ") : "немає"} />
-                  <JetRow label="попередження" ok={!jet.metrics.warnings}
-                          value={jet.metrics.warnings ? String(jet.metrics.warnings) : "немає"} />
-                  <JetRow label="дефіцит інгредієнтів" ok={!jet.metrics.supply_short}
-                          value={jet.metrics.supply_short ? String(jet.metrics.supply_short) : "немає"} />
-                  {jet.metrics.faults_recent_24h?.length ? (
-                    <JetRow label="події за добу" ok={false} sub="уже скинуті"
-                            value={jet.metrics.faults_recent_24h.join("; ")} />
-                  ) : null}
-                  <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
-                          value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
-                          sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
-                  <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
-                          sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
+              {/* Кавомашина — підсумком з порталу: онлайн, поломки, звірка з
+                  чеками. Несправності — зі списку, а не з лічильника get_device:
+                  11.10.2026 він показував 0 при відчинених дверцятах. */}
+              {hasJet && (
+                <div>
+                  <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+                    <b style={{ fontSize: 12 }}>Кавомашина (Jetinno)</b>
+                    <span className="muted" style={{ fontSize: 10.5 }}>{jet ? fmt.ago(jet.measured_at) : "проб не було"}</span>
+                  </div>
+                  {!jet ? (
+                    <Empty>телеметрії з порталу ще не було</Empty>
+                  ) : jet.metrics?.session === false ? (
+                    <JetRow label="сесія порталу" ok={false} value="злетіла — потрібен вхід" />
+                  ) : (
+                    <div className="stack" style={{ gap: 6 }}>
+                      <JetRow label="машина" ok={jet.metrics.online} value={jet.metrics.online ? "онлайн" : "офлайн"}
+                              sub={jet.metrics.last_login ? `востаннє ${fmt.ago(jet.metrics.last_login)}` : null} />
+                      <JetRow label="несправності" ok={!jet.metrics.fault_codes?.length}
+                              value={jet.metrics.fault_codes?.length ? jet.metrics.fault_codes.join("; ") : "немає"} />
+                      <JetRow label="попередження" ok={!jet.metrics.warnings}
+                              value={jet.metrics.warnings ? String(jet.metrics.warnings) : "немає"} />
+                      <JetRow label="дефіцит інгредієнтів" ok={!jet.metrics.supply_short}
+                              value={jet.metrics.supply_short ? String(jet.metrics.supply_short) : "немає"} />
+                      {jet.metrics.faults_recent_24h?.length ? (
+                        <JetRow label="події за добу" ok={false} sub="уже скинуті"
+                                value={jet.metrics.faults_recent_24h.join("; ")} />
+                      ) : null}
+                      <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
+                              value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
+                              sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
+                      <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
+                              sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-            </>
           )}
         </Card>
       </div>
 
-
-
-      {/* Сирі проби — як і було, у підвалі сторінки. Але табами, а не однією
-          таблицею: набори ключів у малини й кавомашини різні, тож колонки
-          рахуються вже по відфільтрованих пробах — без половини прочерків
-          (власник, 11.10.2026). */}
-      <div style={{ marginBottom: 12 }}>
+      {/* Сирі проби — у підвалі сторінки, табами (набори ключів у малини й
+          кавомашини різні, 11.10.2026), і в кожного джерела — своя сторінка:
+          досі спільні «останні 50» майже цілком складались із проб малини. */}
+      <div className="samples">
         <div className="row" style={{ justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-          <b style={{ fontSize: 12.5 }}>{tab === "jetinno" ? "Показники Jetinno" : "Показники Raspberry"}</b>
-          <span className="chips">
-            <button className={`pill${tab === "pi" ? " on" : ""}`} onClick={() => setTab("pi")}>Raspberry</button>
-            <button className={`pill${tab === "jetinno" ? " on" : ""}`} onClick={() => setTab("jetinno")}>Jetinno</button>
-          </span>
+          <b style={{ fontSize: 12.5 }}>Сирі проби {source === "jetinno" ? "Jetinno" : "Raspberry"} {span}</b>
+          {hasJet && (
+            <span className="chips">
+              <button className={`pill${source === "pi" ? " on" : ""}`} onClick={() => setTab("pi")}>Raspberry</button>
+              <button className={`pill${source === "jetinno" ? " on" : ""}`} onClick={() => setTab("jetinno")}>Jetinno</button>
+            </span>
+          )}
         </div>
-        <Table
-          scroll
-          columns={[
-            { key: "measured_at", title: "коли", render: (r) => fmt.time(r.measured_at) },
-            ...metricKeys.map((k) => ({
-              key: `m:${k}`, title: LABELS[k] ?? k,
-              render: (r) => (r.metrics?.[k] === undefined || r.metrics?.[k] === null ? <span className="muted">—</span> : human(k, r.metrics[k])),
-            })),
-          ]}
-          rows={tabRows}
-          empty={tab === "jetinno" ? `проб з порталу ${span} немає` : `телеметрії ${span} немає`}
-          foot={tabRows.length
-            ? (tab === "jetinno" ? "проби з порталу Jetinno, раз на пів години" : "останні проби, як їх надіслала точка")
-            : null}
-        />
+        <Samples key={source} id={id} range={range} source={source} span={span} />
       </div>
     </>
   );

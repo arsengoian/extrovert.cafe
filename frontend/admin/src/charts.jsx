@@ -17,25 +17,53 @@ import { Dot, Empty, fmt } from "./ui.jsx";
 // із груп і прогалин, якого в даних немає, — власник резонно спитав, що він
 // означає. Тепер ширина відра — дробова одиниця viewBox, і всі вони рівні
 // за визначенням, як би не змінювалась ширина екрана.
-export function Beat({ history, title }) {
+//
+// domain — [від, до] у мс: тоді відра стоять за своїм справжнім часом у цьому
+// вікні, а не рівними клітинками від краю до краю. Так смужки з різним
+// кроком (малина — 10 хв, кавомашина — 30) і лінійні графіки під ними
+// (Line з тим самим domain і flush) лягають на одну вертикаль: на сторінці
+// точки по ній звіряють час (власник, 16.10.2026). Одиниця viewBox — хвилина:
+// мілісекунди тижня (6·10⁸) — зайва точність для координат.
+export function Beat({ history, title, domain = null }) {
   const line = history?.line ?? "";
   const step = history?.step ?? 1800_000;
   const from = history?.from ?? 0;
   const fails = new Map((history?.fails ?? []).map((f) => [f.t, f.detail]));
-  if (!line.length) return <svg className="beat" viewBox="0 0 1 1" preserveAspectRatio="none" />;
+  const [d0, d1] = domain ?? [from, from + line.length * step];
+  const unit = domain ? 60_000 : step;
+  const width = Math.max(1e-6, (d1 - d0) / unit);
+  if (!line.length) return <svg className="beat" viewBox={`0 0 ${domain ? width : 1} 1`} preserveAspectRatio="none" />;
   return (
-    <svg className="beat" viewBox={`0 0 ${line.length} 1`} preserveAspectRatio="none" aria-label={title}>
+    <svg className="beat" viewBox={`0 0 ${width} 1`} preserveAspectRatio="none" aria-label={title}>
       {[...line].map((c, i) => {
         const t = from + i * step;
+        if (t + step <= d0 || t >= d1) return null;
         const detail = fails.get(t);
         const when = new Date(t).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+        const w = step / unit;
         return (
-          <rect key={i} data-s={c} x={i + 0.1} width={0.8} y={0} height={1}>
+          <rect key={i} data-s={c} x={(t - d0) / unit + 0.1 * w} width={0.8 * w} y={0} height={1}>
             <title>{c === "?" ? `${when}: проб не було` : c === "1" ? `${when}: усе гаразд` : `${when}: ${detail ?? "погано, подробиць немає"}`}</title>
           </rect>
         );
       })}
     </svg>
+  );
+}
+
+// Підписи часу під смужками й графіками зі спільним domain (сторінка точки):
+// початок вікна, середина й «зараз» — рівно під краями й серединою полотна.
+export function TimeScale({ domain }) {
+  const [d0, d1] = domain;
+  const short = d1 - d0 <= 36 * 3600_000;
+  const at = (t) => (short
+    ? new Date(t).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })
+    : new Date(t).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" }));
+  return (
+    <div className="tl-row tl-scale">
+      <span />
+      <span className="tl-scale-labels"><span>{at(d0)}</span><span>{at((d0 + d1) / 2)}</span><span>зараз</span></span>
+    </div>
   );
 }
 
@@ -134,7 +162,12 @@ function segments(points, gapMs) {
 // повторний — повертає (власник, 15.10.2026); за замовчуванням видно всі.
 // Шкалу значень рахуємо лише з видимих рядів — ховають зазвичай саме той,
 // що задавив решту, — а вісь часу з усіх, щоб графік не стрибав убік.
-export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, min = 0, legend = true, gapMs = 0, domain = null }) {
+//
+// flush — полотно без власних полів (16.10.2026): лінія від лівого краю до
+// правого, позначки шкали значень — усередині, над лініями сітки, а підписів
+// часу немає зовсім — їх дає спільна TimeScale. Так графік із тим самим
+// domain стоїть рівно під смужками Beat і звіряється з ними по вертикалі.
+export function Line({ series, height = 150, format = fmt.int, area = false, max: maxProp = null, min = 0, legend = true, gapMs = 0, domain = null, flush = false }) {
   const ref = useRef(null);
   const [w, setW] = useState(600);
   const [hidden, setHidden] = useState(() => new Set());
@@ -155,8 +188,8 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
   const has = points.length > 0;
   const max = maxProp ?? Math.max(1, ...shown.flatMap((s) => s.points).map((p) => p.y));
   const xs = [...new Set(points.map((p) => +new Date(p.x)))].sort((a, b) => a - b);
-  const padL = 34, padB = 16, padT = 8;
-  const innerW = Math.max(40, w - padL - 6);
+  const padL = flush ? 0 : 34, padR = flush ? 0 : 6, padB = flush ? 3 : 16, padT = flush ? 11 : 8;
+  const innerW = Math.max(40, w - padL - padR);
   const innerH = height - padB - padT;
   const [x0, x1] = domain ?? [xs[0], xs.at(-1)];
   const x = (t) => padL + (domain || xs.length > 1 ? (innerW * (+new Date(t) - x0)) / (x1 - x0 || 1) : innerW / 2);
@@ -176,8 +209,8 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
           <svg className="chart" viewBox={`0 0 ${w} ${height}`} height={height}>
             {[0, 0.5, 1].map((k) => (
               <g key={k}>
-                <line className="grid-line" x1={padL} x2={w - 6} y1={y(min + (max - min) * k)} y2={y(min + (max - min) * k)} />
-                <text className="axis" x={0} y={y(min + (max - min) * k) + 3}>{format(min + (max - min) * k)}</text>
+                <line className="grid-line" x1={padL} x2={w - padR} y1={y(min + (max - min) * k)} y2={y(min + (max - min) * k)} />
+                <text className="axis" x={flush ? 2 : 0} y={y(min + (max - min) * k) + (flush ? -2 : 3)}>{format(min + (max - min) * k)}</text>
               </g>
             ))}
             {area && cut.flatMap((s) => s.runs.map((run, n) => (
@@ -206,8 +239,8 @@ export function Line({ series, height = 150, format = fmt.int, area = false, max
                 />
               )
             )))}
-            {(domain || xs.length > 1) && [x0, x1].map((t, i) => (
-              <text key={i} className="axis" x={i ? w - 6 : padL} y={height - 3} textAnchor={i ? "end" : "start"}>{domain && i ? "зараз" : tick(t)}</text>
+            {!flush && (domain || xs.length > 1) && [x0, x1].map((t, i) => (
+              <text key={i} className="axis" x={i ? w - padR : padL} y={height - 3} textAnchor={i ? "end" : "start"}>{domain && i ? "зараз" : tick(t)}</text>
             ))}
           </svg>
           {legend && (

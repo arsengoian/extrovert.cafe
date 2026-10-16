@@ -2,7 +2,7 @@
 // (docs/admin_panel.md). Статуси: нове → прочитане → закрите.
 import { useState } from "react";
 import { api } from "../api.js";
-import { Badge, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 import { go } from "../app.jsx";
 
 // Ті самі ключі, що шле застосунок (backend/api/src/routes/problems.js).
@@ -23,7 +23,8 @@ async function photo(id, n, download) {
 
 export function Problems() {
   const [status, setStatus] = useState("");
-  const { data, error, reload } = useData(() => api.problems({ status }), [status]);
+  const [page, setPage] = usePage(status);
+  const { data, error, reload, loading } = useData(() => api.problems({ status, page }), [status, page]);
   const [busy, setBusy] = useState(null);
 
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
@@ -117,6 +118,7 @@ export function Problems() {
         ]}
         rows={data.problems}
         empty="скарг немає — і це добра новина"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
       />
     </>
   );

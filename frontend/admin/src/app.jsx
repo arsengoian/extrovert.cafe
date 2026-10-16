@@ -128,12 +128,15 @@ export function App() {
   const [booting, setBooting] = useState(true);
   const [counts, setCounts] = useState({});
   const [at, setAt] = useState(route());
+  // Меню на телефоні — шухляда (theme.css, .menu-open); на десктопі стан
+  // нічого не змінює.
+  const [menu, setMenu] = useState(false);
   // Для GlitchTip: хто й на якому екрані був, коли щось упало (errors.js).
   useEffect(() => { setErrorUser(admin?.id); }, [admin?.id]);
   useEffect(() => { setErrorScope({ screen: at.name }); breadcrumb("navigation", at.name); }, [at.name]);
 
   useEffect(() => {
-    const onHash = () => { setAt(route()); window.scrollTo(0, 0); };
+    const onHash = () => { setAt(route()); setMenu(false); window.scrollTo(0, 0); };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
@@ -167,9 +170,19 @@ export function App() {
   if (!admin) return <Login onIn={setAdmin} />;
 
   const initials = (admin.email ?? "?").slice(0, 2).toUpperCase();
+  const current = MENU.flatMap(([, items]) => items).find(([name]) => name === at.name)?.[1]
+    ?? (at.name === "pos" ? "Точка" : "extrovert.cafe");
 
   return (
-    <div className="shell">
+    <div className={`shell${menu ? " menu-open" : ""}`}>
+      <header className="topbar">
+        <button className="menu-btn" onClick={() => setMenu(true)} aria-label="меню" aria-expanded={menu}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+        </button>
+        <span className="brand-mark" />
+        <b>{current}</b>
+      </header>
+      <div className="side-back" onClick={() => setMenu(false)} />
       <aside className="side">
         <div className="brand">
           <span className="brand-mark" />
@@ -184,7 +197,7 @@ export function App() {
                 key={name}
                 className="side-item"
                 aria-current={at.name === name ? "page" : undefined}
-                onClick={() => go(name)}
+                onClick={() => { setMenu(false); go(name); }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={icon} /></svg>
                 {title}

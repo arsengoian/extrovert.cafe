@@ -1,7 +1,8 @@
 /* Оформлення адмінки — за макетом design/admin («Admin Screens»), токени ті
-   самі, що в застосунку гравця: одна гра, один бренд. Десктоп 1440×900;
-   вужче вікно просто стискає контент, мобільної версії адмінка не має
-   (docs/admin_panel.md). */
+   самі, що в застосунку гравця: одна гра, один бренд. Десктоп 1440×900; з
+   16.10.2026 є й телефонна версія (кінець файла): меню — шухлядою, KPI —
+   по два в ряд, таблиці — стосом карток «підпис — значення», щоб не гортати
+   їх убік (власник: «особливо в розділі "покупки"»). */
 @font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro400.ttf') format('truetype'); font-weight: 400; font-display: swap }
 @font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro700.ttf') format('truetype'); font-weight: 700; font-display: swap }
 @font-face { font-family: 'Extro'; src: url('/assets/fonts/Extro900.ttf') format('truetype'); font-weight: 900; font-display: swap }
@@ -23,6 +24,9 @@
   --amber: #FFB020; --ok: #3FBF6F; --warn: #FEBC2E; --bad: #FF5F57; --unknown: #2A2F36;
   --radius: 14px; --radius-sm: 10px; --pill: 999px;
   --side: 215px;
+  /* Колонка назв на спільній шкалі часу сторінки точки (Pos.jsx, TlRow):
+     одна на всі картки, тож полотна стоять на одних вертикалях. */
+  --tl-name: 168px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0 }
@@ -59,10 +63,14 @@ table { border-collapse: collapse; width: 100% }
 .side-item[aria-current="page"] svg { opacity: 1 }
 .side-item .count { margin-left: auto; font-size: 11px; font-weight: 800; color: var(--muted) }
 .side-item[aria-current="page"] .count { color: var(--accent-ink) }
-.side-foot { display: flex; align-items: center; gap: 9px; padding: 6px 4px; color: var(--muted) }
-.side-foot .who { width: 26px; height: 26px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 900; color: var(--ink) }
-.side-foot b { font-size: 11px; font-weight: 700; color: var(--ink) }
-.side-foot button { font-size: 10px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px }
+/* Пошта й «вийти» — стовпчиком: в один рядок кнопка липла впритул до
+   адреси (inline <b> і <button> без пробілу), а знизу не лишалось повітря
+   до краю бокової панелі (власник, 16.10.2026). */
+.side-foot { display: flex; align-items: center; gap: 9px; padding: 6px 4px 10px; color: var(--muted) }
+.side-foot .who { width: 26px; height: 26px; border-radius: 8px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; font-size: 10px; font-weight: 900; color: var(--ink); flex: none }
+.side-foot > span { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0 }
+.side-foot b { font-size: 11px; font-weight: 700; color: var(--ink); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.side-foot button { font-size: 10px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; padding: 2px 0 }
 
 /* ── шапка екрана ───────────────────────────────────────────────────── */
 .head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 14px }
@@ -125,8 +133,12 @@ table { border-collapse: collapse; width: 100% }
 .table-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden }
 .table-card .card-head { padding: 13px 14px 0 }
 .table-foot { padding: 9px 14px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted) }
-.table-card.scroll { overflow-x: auto }
-.table-card.scroll th, .table-card.scroll td { white-space: nowrap }
+/* Широка таблиця гортається вбік усередині обгортки, а не вся картка: так
+   рядок під нею (перемикач сторінок) лишається на місці. Клас wide, а не
+   scroll: загальне .scroll ще й обмежувало висоту до 420 px, і перемикач
+   ховався під внутрішньою прокруткою. */
+.table-card.wide .table-scroll { overflow-x: auto }
+.table-card.wide th, .table-card.wide td { white-space: nowrap }
 /* Стрілки порядку: вузькі, щоб колонка «№» не відбирала місце в назви. */
 .sort-btn { height: 22px; min-width: 22px; padding: 0 5px; font-size: 12px; line-height: 1 }
 .sort-btn:disabled { opacity: .3 }
@@ -226,6 +238,7 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
    вписуємо в колонку: сенс саме в масштабі 1:1, інакше «влізе чи ні» вже не
    перевіриш. Вужче вікно прокручує картку, а не стискає прев'ю. */
 .ad-preview { width: 470px; height: 390px; flex: none }
+.ad-preview-wrap { max-width: 100%; overflow-x: auto }
 .ad-preview svg { display: block }
 .promo-preview-note { font-size: 11.5px; color: var(--muted); margin-top: 8px; max-width: 470px }
 
@@ -266,3 +279,129 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 /* ── попап із записом або кадром-доказом (screens/Video.jsx) ─────────── */
 .confirm.viewer { width: min(1000px, calc(100vw - 32px)) }
 .viewer video, .viewer img { width: 100%; max-height: 75vh; object-fit: contain; background: #000; border-radius: 8px }
+
+/* ── сторінки списків (ui.jsx, Pager) ───────────────────────────────── */
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap }
+.pager-info { font-variant-numeric: tabular-nums }
+.pager-btns { display: flex; align-items: center; gap: 4px }
+.pager-at { min-width: 54px; text-align: center; font-size: 11px; color: var(--ink); font-variant-numeric: tabular-nums }
+.threads-pager { padding: 8px 4px 2px; font-size: 11px; color: var(--muted) }
+.threads-pager .pager { flex-direction: column; align-items: stretch }
+
+/* Фільтри над таблицею (Відео): ліворуч, з кількістю на кнопці. */
+.chips.filters { justify-content: flex-start; margin-bottom: 10px }
+.pill-n { margin-left: 6px; opacity: .65; font-variant-numeric: tabular-nums }
+.pill.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer }
+.pill.check input { accent-color: var(--accent); margin: 0 }
+
+/* ── спільна шкала часу сторінки точки (Pos.jsx) ────────────────────── */
+/* Назва — ліворуч, полотно — праворуч; ширина колонки назв одна на всі
+   картки, тож смужки й графіки (Beat і Line із domain) стоять рівно одне під
+   одним і звіряються по вертикалі (власник, 16.10.2026). */
+.tl-row { display: grid; grid-template-columns: var(--tl-name) minmax(0, 1fr); gap: 10px; align-items: center; padding: 4px 0 }
+.tl-row.tl-chart { align-items: start; padding: 7px 0 }
+.tl-name { min-width: 0; font-size: 11.5px; font-weight: 700; line-height: 1.25 }
+.tl-name small { display: block; margin-top: 2px; font-size: 10px; font-weight: 400; color: var(--muted) }
+.tl-body { min-width: 0 }
+.tl-empty { padding: 6px 0; font-size: 10.5px; color: var(--muted) }
+.tl-scale { padding: 2px 0 0 }
+.tl-scale-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums }
+
+/* Компоненти — ліворуч, вузькою колонкою й липнуть при гортанні графіків. */
+.pos-layout { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 12px; align-items: start }
+.pos-main { display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.pos-side { order: -1; position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow: auto }
+.metric-list { display: flex; flex-direction: column; gap: 5px }
+.metric { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px }
+.metric b { text-align: right; min-width: 0; overflow-wrap: anywhere }
+.samples { margin: 12px 0 }
+/* Вужче за ~1240 px двом колонкам тісно: полотну лишалось ~200 px. Тоді
+   компоненти — над шкалою на всю ширину, а метрики в кілька стовпчиків. */
+@media (max-width: 1240px) {
+  .pos-layout { grid-template-columns: minmax(0, 1fr) }
+  /* На телефоні компоненти — після графіків: 28 метрик інакше відсували
+     шкалу на кілька екранів униз, а підсумок і так дають KPI зверху. */
+  .pos-side { position: static; max-height: none; order: 1 }
+  .pos-side .metric-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); column-gap: 18px }
+}
+
+/* ── телефон ─────────────────────────────────────────────────────────── */
+/* Верхня смуга з кнопкою меню є лише на вузькому екрані. */
+.topbar { display: none }
+.side-back { display: none }
+
+@media (max-width: 900px) {
+  body { font-size: 12px }
+  .shell { display: block; padding: 0 12px 24px }
+  .topbar {
+    display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 40;
+    margin: 0 -12px 12px; padding: 10px 12px; background: rgba(12, 14, 17, .92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar .menu-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; flex: none }
+  .topbar b { font-size: 13px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+  .topbar .brand-mark { width: 22px; height: 22px; border-radius: 7px }
+  /* Меню — шухлядою зліва поверх сторінки. */
+  .side {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 61; width: min(280px, 86vw); max-height: none;
+    padding: 14px 10px; background: var(--bg); border-right: 1px solid var(--line);
+    transform: translateX(-105%); transition: transform .18s ease-out;
+  }
+  .shell.menu-open .side { transform: none }
+  .shell.menu-open .side-back { display: block; position: fixed; inset: 0; z-index: 60; background: rgba(6, 8, 10, .55) }
+
+  .head { flex-wrap: wrap; gap: 10px }
+  .head .right { margin-left: 0; width: 100%; flex-wrap: wrap; gap: 8px }
+  .head .right .field { flex: 1 1 160px }
+  .head h1 { font-size: 16px }
+  .grid.k4, .grid.k3 { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  /* Третя з трьох — на всю ширину, а не поруч із порожньою клітинкою. */
+  .grid.k3 > :last-child:nth-child(odd) { grid-column: 1 / -1 }
+  .grid.k2, .wrap-cols, .support, .pos-layout { grid-template-columns: minmax(0, 1fr) }
+  .grid { gap: 8px }
+  .cols { flex-direction: column }
+  .card { padding: 11px 12px }
+  .kpi-value { font-size: 19px; margin: 4px 0 2px }
+  .kpi-note { font-size: 10px }
+  .row { flex-wrap: wrap }
+  /* На телефоні компоненти — після графіків: 28 метрик інакше відсували
+     шкалу на кілька екранів униз, а підсумок і так дають KPI зверху. */
+  .pos-side { position: static; max-height: none; order: 1 }
+  .threads { max-height: 300px }
+
+  /* Смужки дашборда здоровʼя: вужча назва, підпис праворуч ховаємо —
+     смужка важливіша; шкала під нею повторює ці межі. */
+  .beat-row > .name { width: 118px }
+  .beat-row > .value { display: none }
+  .beat-row > .ms { width: 46px }
+  .beat-scale { padding: 2px 55px 0 127px }
+  :root { --tl-name: 96px }
+}
+
+/* Таблиці на телефоні — стос карток: рядок — картка, комірка — «підпис —
+   значення» (підпис із data-label, ui.jsx Table). Широкі таблиці метрик
+   (scroll) лишаються таблицями з гортанням: двадцять метрик у картці — це
+   екран прокрутки на кожну пробу. */
+@media (max-width: 720px) {
+  .table-card:not(.wide) thead { display: none }
+  .table-card:not(.wide) table, .table-card:not(.wide) tbody { display: block }
+  .table-card:not(.wide) tbody tr { display: block; padding: 8px 12px; border-bottom: 1px solid rgba(242, 239, 230, .07) }
+  .table-card:not(.wide) tbody tr:last-child { border-bottom: 0 }
+  .table-card:not(.wide) td {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    padding: 1px 0; border: 0; text-align: right; font-size: 11px; min-width: 0;
+  }
+  .table-card:not(.wide) td::before {
+    content: attr(data-label); flex: none; max-width: 40%; text-align: left;
+    font-size: 8.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 2px;
+  }
+  .table-card:not(.wide) td[data-label=""]::before { content: none }
+  .table-card:not(.wide) td[data-label=""] { justify-content: flex-end }
+  .table-card:not(.wide) td > * { min-width: 0; overflow-wrap: anywhere }
+  .table-card:not(.wide) td .row { justify-content: flex-end }
+  .table-card:not(.wide) tr.empty-row td { display: block; text-align: center }
+  .table-card:not(.wide) tr.empty-row td::before { content: none }
+  .table-card.wide th, .table-card.wide td { padding: 7px 10px; font-size: 11px }
+  .table-foot { padding: 8px 12px }
+  .pager-btns .btn.small { padding: 0 7px }
+}

@@ -15,6 +15,7 @@ import { orderNotice } from "@extrovert/lib/orders.js";
 import { notifyPlant } from "../notify.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { SERVER_LIMITS } from "@extrovert/lib/server-limits.js";
+import { pageInfo, pageOf } from "../paging.js";
 
 const redis = redisClient();
 
@@ -281,7 +282,7 @@ export default async function routes(app) {
     const range = rangeOf(req.query?.range);
     const point = await one(
       `select id, name, address, short_address, status, last_seen_at, checkbox_branch_id,
-              key_hash is not null as has_key, key_revoked_at
+              key_hash is not null as has_key, key_revoked_at, jetinno_vmc is not null as has_jetinno
          from points where id = $1`,
       [req.params.id]
     );
@@ -301,8 +302,6 @@ export default async function routes(app) {
     );
     // До тижня — самі проби, як і раніше; місяць — зведений у відра.
     const history = range.hours > 168 ? thin(raw, range.stepMin * 60_000) : raw;
-    // Таблиця під графіками — останні проби як є, не зведені.
-    const recent = raw.slice(-50).reverse();
     const health = await many(
       `select bucket_start, ok, detail from health_samples
         where target = $1 and bucket_start > now() - make_interval(hours => $2) order by bucket_start`,
@@ -321,11 +320,29 @@ export default async function routes(app) {
       point,
       latest,
       history,
-      recent,
       health: series(health, range),
       uptime,
       receipts,
     };
+  });
+
+  // Сирі проби точки за період — таблиця під графіками, окремо для кожного
+  // джерела й зі своєю сторінкою (власник, 16.10.2026). Досі сторінка точки
+  // брала останні 50 проб усіх джерел разом, а малина шле пробу щохвилини,
+  // кавомашина — раз на пів години: у ті 50 Jetinno потрапляла хіба одна.
+  app.get("/admin/points/:id/samples", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const range = rangeOf(req.query?.range);
+    const pg = pageOf(req.query, { per: 20, max: 100 });
+    const p = [req.params.id, String(req.query.source ?? "pi"), range.hours];
+    const where = "point_id = $1 and source = $2 and measured_at > now() - make_interval(hours => $3)";
+    const rows = await many(
+      `select measured_at, metrics from device_telemetry where ${where}
+        order by measured_at desc limit $4 offset $5`,
+      [...p, pg.per, pg.offset]
+    );
+    const total = await one(`select count(*)::int as n from device_telemetry where ${where}`, p);
+    return { rows, page: pageInfo(pg, total.n) };
   });
 
   // ── Ціни ────────────────────────────────────────────────────────────
@@ -507,6 +524,7 @@ export default async function routes(app) {
 
   app.get("/admin/deployments", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const pg = pageOf(req.query);
     const rows = await many(
       `select d.id, d.status, d.created_at, d.finished_at, d.scheduled_at,
               a.email as created_by,
@@ -516,15 +534,18 @@ export default async function routes(app) {
                 where t.deployment_id = d.id) as targets
          from menu_deployments d
          left join admin_users a on a.id = d.created_by
-        order by d.id desc limit 50`
+        order by d.id desc limit $1 offset $2`,
+      [pg.per, pg.offset]
     );
-    return { deployments: rows };
+    const total = await one("select count(*)::int as n from menu_deployments");
+    return { deployments: rows, page: pageInfo(pg, total.n) };
   });
 
   // ── Проблеми («щось не працює») ─────────────────────────────────────
   app.get("/admin/problems", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const status = String(req.query.status ?? "");
+    const pg = pageOf(req.query);
     const rows = await many(
       `select r.id, r.categories, r.body, cardinality(r.image_r2_keys)::int as photos, r.status, r.created_at,
               r.point_id, p.name as point_name, u.nickname, u.id as user_id
@@ -532,16 +553,17 @@ export default async function routes(app) {
          left join points p on p.id = r.point_id
          left join users u on u.id = r.user_id
         where ($1 = '' or r.status = $1)
-        order by r.created_at desc limit 200`,
-      [status]
+        order by r.created_at desc, r.id desc limit $2 offset $3`,
+      [status, pg.per, pg.offset]
     );
+    const listed = await one("select count(*)::int as n from problem_reports r where ($1 = '' or r.status = $1)", [status]);
     const counts = await one(
       `select count(*) filter (where status = 'new')::int as new,
               count(*) filter (where status = 'read')::int as read,
               count(*) filter (where status = 'closed')::int as closed
          from problem_reports`
     );
-    return { problems: rows, counts };
+    return { problems: rows, counts, page: pageInfo(pg, listed.n) };
   });
 
   // Фото зі скарги лежить у приватному бакеті, тож адмінці потрібне
@@ -581,13 +603,16 @@ export default async function routes(app) {
   // отримують нічого. Одна транзакція: або дійшло всім, або нікому.
   app.get("/admin/broadcasts", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const pg = pageOf(req.query, { per: 20 });
     const rows = await many(
       `select b.id, b.title, b.body, b.sent_at, b.recipients, a.email as author
          from news_broadcasts b left join admin_users a on a.id = b.created_by
-        order by b.id desc limit 50`
+        order by b.id desc limit $1 offset $2`,
+      [pg.per, pg.offset]
     );
+    const total = await one("select count(*)::int as n from news_broadcasts");
     const audience = await one("select count(*)::int as n from users where deleted_at is null");
-    return { broadcasts: rows, audience: audience.n };
+    return { broadcasts: rows, audience: audience.n, page: pageInfo(pg, total.n) };
   });
 
   app.post("/admin/broadcasts", async (req, reply) => {
@@ -626,6 +651,7 @@ ${body}`;
   app.get("/admin/orders", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const status = String(req.query.status ?? "");
+    const pg = pageOf(req.query);
     const rows = await many(
       `select r.id, r.product, r.options, r.status, r.created_at, r.np_ttn, r.np_status_code,
               r.recipient_name, r.np_address_snapshot, r.cost_uah_actual,
@@ -635,7 +661,15 @@ ${body}`;
          join users u on u.id = r.user_id
          join ledger_entries l on l.id = r.ledger_entry_id
         where ($1 = '' or r.status = $1)
-        order by r.created_at desc limit 200`,
+        order by r.created_at desc, r.id desc limit $2 offset $3`,
+      [status, pg.per, pg.offset]
+    );
+    // Ті самі join, що в списку: замовлення без гравця чи проводки в списку
+    // не видно — не рахуємо його й у сторінках.
+    const listed = await one(
+      `select count(*)::int as n from redemptions r
+         join users u on u.id = r.user_id join ledger_entries l on l.id = r.ledger_entry_id
+        where ($1 = '' or r.status = $1)`,
       [status]
     );
     const counts = await one(
@@ -645,7 +679,7 @@ ${body}`;
               count(*)::int as total
          from redemptions`
     );
-    return { orders: rows, counts };
+    return { orders: rows, counts, page: pageInfo(pg, listed.n) };
   });
 
   app.get("/admin/orders/:id", async (req, reply) => {

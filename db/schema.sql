@@ -3567,6 +3567,13 @@ CREATE INDEX video_events_segment_id_idx1 ON public.video_events USING btree (se
 
 
 --
+-- Name: video_events_started_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX video_events_started_at_idx ON public.video_events USING btree (started_at DESC) WHERE (superseded_at IS NULL);
+
+
+--
 -- Name: video_passages_person_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4352,4 +4359,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261009100200'),
     ('20261012100000'),
     ('20261012110000'),
-    ('20261015180000');
+    ('20261015180000'),
+    ('20261016100000');

@@ -4,10 +4,11 @@
 // незворотна, тож перед нею — підтвердження з кількістю отримувачів.
 import { useState } from "react";
 import { api } from "../api.js";
-import { Card, Empty, Table, fmt, useData } from "../ui.jsx";
+import { Card, Empty, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 export function Broadcasts() {
-  const { data, error, reload } = useData(() => api.broadcasts(), []);
+  const [page, setPage] = usePage();
+  const { data, error, reload, loading } = useData(() => api.broadcasts({ page }), [page]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
@@ -68,14 +69,14 @@ export function Broadcasts() {
           </div>
         </Card>
 
-        <Card title="Надіслані" note="останні 50">
+        <Card title="Надіслані">
           {error ? <Empty>{error.message}</Empty> : (
             <Table rows={data?.broadcasts ?? []} empty="розсилок ще не було" columns={[
               { key: "sent_at", title: "Коли", render: (r) => (r.sent_at ? fmt.time(r.sent_at) : "—") },
               { key: "title", title: "Заголовок", render: (r) => <span title={r.body}>{r.title}</span> },
               { key: "recipients", title: "Отримали", num: true, render: (r) => fmt.int(r.recipients ?? 0) },
               { key: "author", title: "Хто", render: (r) => r.author ?? "—" },
-            ]} />
+            ]} foot={data?.page?.total > data?.page?.per ? <Pager info={data.page} onPage={setPage} busy={loading} /> : null} />
           )}
         </Card>
       </div>

@@ -1,7 +1,7 @@
 // Історія деплойментів цін: що, коли й куди поїхало (docs/admin_panel.md).
 import { useState } from "react";
 import { api } from "../api.js";
-import { Badge, Empty, Table, fmt, useData } from "../ui.jsx";
+import { Badge, Empty, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 const STATUS = {
   queued: ["", "у черзі"], deploying: ["warn", "котиться"], done: ["ok", "готово"],
@@ -10,7 +10,8 @@ const STATUS = {
 const badge = (s) => { const [tone, text] = STATUS[s] ?? ["", s]; return <Badge tone={tone}>{text}</Badge>; };
 
 export function Deployments() {
-  const { data, error, reload } = useData(() => api.deployments());
+  const [page, setPage] = usePage();
+  const { data, error, reload, loading } = useData(() => api.deployments({ page }), [page]);
   const { data: prices } = useData(() => api.prices());
   const [note, setNote] = useState(null);
   const [drink, setDrink] = useState("");
@@ -40,7 +41,7 @@ export function Deployments() {
       <div className="head">
         <div>
           <h1>Історія деплойментів</h1>
-          <p>останні 50 – ціни їдуть у публічний бакет, звідки їх бере точка</p>
+          <p>ціни їдуть у публічний бакет, звідки їх бере точка; причину збою цілі видно, якщо навести на неї</p>
         </div>
         <div className="right">
           {note && <span className="muted">{note}</span>}
@@ -74,6 +75,7 @@ export function Deployments() {
         ]}
         rows={data.deployments}
         empty="деплойментів ще не було"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} />}
       />
     </>
   );

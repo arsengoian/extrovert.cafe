@@ -14,6 +14,7 @@ import { presign } from "@extrovert/lib/r2.js";
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
+import { pageInfo, pageOf } from "../paging.js";
 
 const TZ = "Europe/Kyiv";
 
@@ -229,6 +230,9 @@ export default async function routes(app) {
     const { from, to } = range(req.query);
     const point = String(req.query.point ?? "");
     const p = [from, to, point];
+    // Дві таблиці на екрані — дві незалежні сторінки (p_page, a_page).
+    const pp = pageOf(req.query, { per: 25 }, "p_");
+    const ap = pageOf(req.query, { per: 25 }, "a_");
     const purchases = await many(
       `select r.id, r.point_id, r.fiscal_date as paid, r.total_sum::float as total, receipt_in_stats(r.id) as in_stats,
               o.purchased_at as done, o.product_id, d.name as drink,
@@ -256,7 +260,18 @@ export default async function routes(app) {
             where e.likely_receipt_id = r.id and e.superseded_at is null
             order by e.kind = 'machine' desc limit 1) e on true
         where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)
-        order by r.fiscal_date desc limit 200`,
+        order by r.fiscal_date desc, r.id desc limit $4 offset $5`,
+      [...p, pp.per, pp.offset]
+    );
+    // KPI — з усього періоду, а не з видимої сторінки: досі «Чеків» і
+    // «Покупця видно» рахувались по обрізаному до 200 списку (16.10.2026).
+    const kpi = await one(
+      `select count(*)::int as receipts,
+              count(*) filter (where receipt_in_stats(r.id))::int as real,
+              count(*) filter (where receipt_in_stats(r.id)
+                                 and exists (select 1 from video_passages pa where pa.receipt_id = r.id))::int as seen
+         from receipts r
+        where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)`,
       p
     );
 
@@ -264,6 +279,19 @@ export default async function routes(app) {
     // немає. Поруч — стан мережі малини (втрати й затримка на 4G) і чи
     // кавомашина була на звʼязку: 14.10 о 23:36 саме так платіж не пройшов —
     // LTE губив 16–28 % пакетів, а термінал іншого каналу не має.
+    const attemptsFrom = `from video_events e
+         left join video_passages pa on pa.id = e.passage_id
+         left join video_people pe on pe.id = pa.person_id
+        where e.kind = 'machine' and e.superseded_at is null
+          and e.ended_at - e.started_at >= interval '20 seconds'
+          and e.started_at between $1 and $2 and ($3 = '' or e.point_id = $3)
+          and not exists (select 1 from receipts r
+                           where r.point_id = e.point_id
+                             and r.fiscal_date between e.started_at - interval '30 seconds' and e.ended_at + interval '60 seconds')`;
+    const attemptCount = await one(
+      `select count(*)::int as total, count(*) filter (where not coalesce(pe.staff, false))::int as guests ${attemptsFrom}`,
+      p
+    );
     const attempts = await many(
       `select e.id, e.point_id, e.started_at, e.ended_at, e.evidence, e.passage_id,
               extract(epoch from e.ended_at - e.started_at)::int as secs,
@@ -279,19 +307,16 @@ export default async function routes(app) {
               (select t.metrics->>'online' from device_telemetry t
                 where t.point_id = e.point_id and t.source = 'jetinno' and t.measured_at <= e.ended_at
                 order by t.measured_at desc limit 1) as machine_online
-         from video_events e
-         left join video_passages pa on pa.id = e.passage_id
-         left join video_people pe on pe.id = pa.person_id
-        where e.kind = 'machine' and e.superseded_at is null
-          and e.ended_at - e.started_at >= interval '20 seconds'
-          and e.started_at between $1 and $2 and ($3 = '' or e.point_id = $3)
-          and not exists (select 1 from receipts r
-                           where r.point_id = e.point_id
-                             and r.fiscal_date between e.started_at - interval '30 seconds' and e.ended_at + interval '60 seconds')
-        order by e.started_at desc limit 200`,
-      p
+         ${attemptsFrom}
+        order by e.started_at desc, e.id desc limit $4 offset $5`,
+      [...p, ap.per, ap.offset]
     );
-    return { from, to, purchases, attempts };
+    return {
+      from, to, purchases, attempts,
+      kpi: { ...kpi, attempts_guests: attemptCount.guests },
+      purchases_page: pageInfo(pp, kpi.receipts),
+      attempts_page: pageInfo(ap, attemptCount.total),
+    };
   });
 
   // Вирізки проходу (смужка в extrovert-evidence, worker/crops.py). Ключ —

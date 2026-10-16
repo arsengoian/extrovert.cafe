@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
-import { Badge, DateRange, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
+import { Badge, DateRange, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
 
 const BONUS = {
   pending: ["warn", "чекає"], claimed: ["accent", "показаний"], redeemed: ["ok", "зарахований"],
@@ -12,7 +12,8 @@ const BONUS = {
 
 export function Receipts() {
   const [range, setRange] = useState({});
-  const { data, error } = useData(() => api.receipts(range), [range.from, range.to]);
+  const [page, setPage] = usePage(range.from, range.to);
+  const { data, error, loading } = useData(() => api.receipts({ ...range, page }), [range.from, range.to, page]);
 
   if (error) return <Empty>не вдалось прочитати: {error.message}</Empty>;
   if (!data) return <Empty>вантажимо…</Empty>;
@@ -69,6 +70,7 @@ export function Receipts() {
         ]}
         rows={data.receipts}
         empty="чеків за цей період немає"
+        foot={<Pager info={data.page} onPage={setPage} busy={loading} note="разом із тестовими — KPI вище без них" />}
       />
     </>
   );

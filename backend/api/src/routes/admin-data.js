@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
+import { pageInfo, pageOf } from "../paging.js";
 import { earnedCredits, skippedScales } from "./quiz.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 
@@ -404,6 +405,7 @@ export default async function routes(app) {
   // Стрічка відповідей: те саме, але поштучно й зі словами.
   app.get("/admin/quiz-responses", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
+    const pg = pageOf(req.query);
     const rows = await many(
       // Обидві гілки union мають віддавати ті самі колонки: коли в гілку
       // напою додали sprite (шкали, про які не питали), без null тут запит
@@ -418,19 +420,30 @@ export default async function routes(app) {
           join users u on u.id = q.user_id
           join receipt_items i on i.id = q.receipt_item_id
           left join drinks d on d.slot = i.slot)
-       order by created_at desc limit 200`
+       order by created_at desc limit $1 offset $2`,
+      [pg.per, pg.offset]
     );
     for (const r of rows) {
       const skip = skippedScales(r.sprite);
       if (skip.length && r.answers) r.answers = Object.fromEntries(Object.entries(r.answers).filter(([k]) => !skip.includes(k)));
     }
-    return { responses: rows };
+    // Ті самі join, що й у гілках union: відповідь без гравця чи позиції чека
+    // до списку не потрапляє — не має потрапляти й до лічильника.
+    const total = await one(
+      `select (select count(*) from quiz_profile_responses q join users u on u.id = q.user_id)
+            + (select count(*) from quiz_drink_responses q
+                 join users u on u.id = q.user_id
+                 join receipt_items i on i.id = q.receipt_item_id) as n`
+    );
+    return { responses: rows, page: pageInfo(pg, total.n) };
   });
 
   // ── Користувачі ─────────────────────────────────────────────────────
   app.get("/admin/users", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const q = String(req.query.q ?? "").trim();
+    const pg = pageOf(req.query);
+    const where = "($1 = '' or u.nickname ilike '%' || $1 || '%' or u.email ilike '%' || $1 || '%')";
     const users = await many(
       `select u.id, u.nickname, u.email, u.coins_yellow, u.coins_silver, u.beans,
               u.last_seen_at, u.created_at, u.deleted_at, u.stats_excluded,
@@ -438,18 +451,19 @@ export default async function routes(app) {
               (select count(*)::int from user_items i where i.user_id = u.id) as items,
               (select max(growth_stage) from plants p where p.owner_id = u.id) as top_stage
          from users u
-        where ($1 = '' or u.nickname ilike '%' || $1 || '%' or u.email ilike '%' || $1 || '%')
-        order by u.last_seen_at desc nulls last, u.created_at desc
-        limit 200`,
-      [q]
+        where ${where}
+        order by u.last_seen_at desc nulls last, u.created_at desc, u.id
+        limit $2 offset $3`,
+      [q, pg.per, pg.offset]
     );
+    const found = await one(`select count(*)::int as n from users u where ${where}`, [q]);
     const counts = await one(
       `select count(*) filter (where deleted_at is null)::int as total,
               count(*) filter (where last_seen_at > now() - interval '7 days')::int as week,
               count(*) filter (where created_at > now() - interval '7 days')::int as fresh
          from users where not stats_excluded`
     );
-    return { users, counts };
+    return { users, counts, page: pageInfo(pg, found.n) };
   });
 
   app.get("/admin/users/:id", async (req, reply) => {
@@ -533,6 +547,7 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
     const { from, to } = range(req.query);
     const point = String(req.query.point ?? "");
+    const pg = pageOf(req.query);
     const rows = await many(
       `select r.id, r.point_id, p.name as point_name, r.fiscal_date, r.total_sum, r.source, r.tax_url,
               r.checkbox_receipt_id,
@@ -545,58 +560,85 @@ export default async function routes(app) {
          left join bonus_grants b on b.receipt_id = r.id
          left join users u on u.id = b.redeemed_by
         where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)
-        order by r.fiscal_date desc limit 200`,
-      [from, to, point]
+        order by r.fiscal_date desc, r.id desc limit $4 offset $5`,
+      [from, to, point, pg.per, pg.offset]
     );
+    // KPI — з усього періоду й без тестових (receipt_in_stats); список під
+    // ними — усі чеки, разом із тестовими, тож і лічильник сторінок свій.
     const totals = await one(
       `select count(*)::int as receipts, coalesce(sum(total_sum), 0)::float as sum_uah,
               count(*) filter (where exists (select 1 from bonus_grants b where b.receipt_id = r.id and b.status = 'redeemed'))::int as redeemed
          from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3) and receipt_in_stats(r.id)`,
       [from, to, point]
     );
-    return { from, to, receipts: rows, totals };
+    const listed = await one(
+      "select count(*)::int as n from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)",
+      [from, to, point]
+    );
+    return { from, to, receipts: rows, totals, page: pageInfo(pg, listed.n) };
   });
 
   // ── Відео ───────────────────────────────────────────────────────────
   // Сегменти пише recorder на малині, події — worker (backend/worker). Ключі
   // доказів у `evidence` віддаємо як є: підписує їх окремий маршрут у
   // routes/video.js, бо бакет приватний.
+  // Один запит — один список (?list=segments|events) зі своєю сторінкою:
+  // досі обидва їхали разом, обрізані до 100 і 200, а KPI «Сегментів» був
+  // довжиною того обрізаного списку — рівно 100 за будь-якого архіву
+  // (власник, 16.10.2026). KPI тепер з усієї таблиці.
   app.get("/admin/video", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const point = String(req.query.point ?? "");
-    const segments = await many(
-      `select s.id, s.point_id, s.camera_id, s.started_at, s.duration_ms, s.bytes, s.status, s.attempts, s.error,
-              s.source, s.analysis_version
-         from video_segments s where ($1 = '' or s.point_id = $1)
-        order by s.started_at desc limit 100`,
-      [point]
-    );
-    // Події без замінених переаналізом; поруч — прохід людини (напрямок, чи
-    // це персонал) і його смужка вирізок.
-    const events = await many(
-      `select e.id, e.point_id, e.kind, e.started_at, e.ended_at, e.likely_receipt_id, e.evidence, e.meta,
-              e.passage_id, pa.direction, pa.heading, pa.person_id, pa.receipt_match,
-              jsonb_array_length(coalesce(pa.crops, '[]')) as crops, pe.staff
-         from video_events e
-         left join video_passages pa on pa.id = e.passage_id
-         left join video_people pe on pe.id = pa.person_id
-        where ($1 = '' or e.point_id = $1) and e.superseded_at is null
-          and ($2 = '' or e.kind = $2)
-        order by e.started_at desc limit 200`,
-      [point, String(req.query.kind ?? "")]
-    );
+    const pg = pageOf(req.query);
     const stats = await one(
-      `select (select count(*)::int from video_segments where status = 'pending') as pending,
+      `select (select count(*)::int from video_segments) as segments,
+              (select count(*)::int from video_segments where status = 'pending') as pending,
               (select count(*)::int from video_segments where status = 'failed') as failed,
               (select count(*)::int from video_segments where status = 'done' and analysis_version < 2) as old,
               (select coalesce(sum(bytes), 0)::bigint from video_segments where status <> 'expired') as bytes,
               (select count(*)::int from video_events where superseded_at is null) as events`
     );
-    const perDay = await many(
-      `select date_trunc('day', started_at) as day, kind, count(*)::int as n
-         from video_events where started_at > now() - interval '30 days' and superseded_at is null
-        group by 1, 2 order by 1`
+
+    if (req.query.list !== "events") {
+      // Фільтр стану — щоб знайти, скажімо, лише ті, що впали, а не гортати
+      // тисячі оброблених.
+      const status = String(req.query.status ?? "");
+      const where = "($1 = '' or s.point_id = $1) and ($2 = '' or s.status = $2)";
+      const rows = await many(
+        `select s.id, s.point_id, s.camera_id, s.started_at, s.duration_ms, s.bytes, s.status, s.attempts, s.error,
+                s.source, s.analysis_version
+           from video_segments s where ${where}
+          order by s.started_at desc, s.id desc limit $3 offset $4`,
+        [point, status, pg.per, pg.offset]
+      );
+      const total = await one(`select count(*)::int as n from video_segments s where ${where}`, [point, status]);
+      return { list: "segments", rows, page: pageInfo(pg, total.n), stats };
+    }
+
+    // Події за період (типово 30 діб), без замінених переаналізом; поруч —
+    // прохід людини (напрямок, чи це персонал) і його смужка вирізок.
+    // Фільтри: тип події й «без персоналу» (власник, 16.10.2026). Лічильники
+    // типів — з тими самими фільтрами, крім самого типу: так на кнопці видно,
+    // скільки буде, якщо її натиснути.
+    const { from, to } = range(req.query);
+    const kind = String(req.query.kind ?? "");
+    const guests = req.query.staff === "hide";
+    const base = `from video_events e
+         left join video_passages pa on pa.id = e.passage_id
+         left join video_people pe on pe.id = pa.person_id
+        where e.superseded_at is null and e.started_at between $1 and $2 and ($3 = '' or e.point_id = $3)
+          and (not $4::boolean or coalesce(pe.staff, false) = false)`;
+    const p = [from, to, point, guests];
+    const rows = await many(
+      `select e.id, e.point_id, e.kind, e.started_at, e.ended_at, e.likely_receipt_id, e.evidence, e.meta,
+              e.passage_id, pa.direction, pa.heading, pa.person_id, pa.receipt_match,
+              jsonb_array_length(coalesce(pa.crops, '[]')) as crops, pe.staff
+         ${base} and ($5 = '' or e.kind = $5)
+        order by e.started_at desc, e.id desc limit $6 offset $7`,
+      [...p, kind, pg.per, pg.offset]
     );
-    return { segments, events, stats, per_day: perDay };
+    const kinds = await many(`select e.kind, count(*)::int as n ${base} group by e.kind`, p);
+    const total = kinds.filter((k) => !kind || k.kind === kind).reduce((s, k) => s + k.n, 0);
+    return { list: "events", rows, page: pageInfo(pg, total), stats, kinds, from, to };
   });
 }
