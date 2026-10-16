@@ -316,6 +316,21 @@ export function Pos({ id }) {
           історію, на спільній шкалі часу на всю ширину (власник, 16.10.2026). */}
       <div className="pos-layout">
         <div className="pos-main">
+          {/* Те саме, що смужки малини, з проб кавомашини (11.10.2026): коли
+              вона відвалювалась, коли висіла несправність, коли розʼїхались
+              замовлення з чеками. Відра — її власного кроку, на тій самій осі.
+              Стоїть першою, над Raspberry (власник, 16.10.2026). */}
+          {hasJet && (
+            <Card title="Кавомашина (Jetinno)" note={`${span}, відра по ${stepText(jetWin.step)}`}>
+              {jetSeries.map(({ sig, series: sr }) => (
+                <TlRow key={sig.key} name={sig.name} note={sr.seen ? sig.note : "проб немає"}>
+                  <Beat history={sr} domain={domain} />
+                </TlRow>
+              ))}
+              <TimeScale domain={domain} />
+            </Card>
+          )}
+
           {/* Історія булевих показників — тут, а не на дашборді здоровʼя: там
               потрібна одна відповідь «усе гаразд / ні», а «коли саме гасився
               екран минулої середи» дивляться вже прицільно, на точці
@@ -396,20 +411,6 @@ export function Pos({ id }) {
             })}
             <TimeScale domain={domain} />
           </Card>
-
-          {/* Те саме, що смужки малини, з проб кавомашини (11.10.2026): коли
-              вона відвалювалась, коли висіла несправність, коли розʼїхались
-              замовлення з чеками. Відра — її власного кроку, на тій самій осі. */}
-          {hasJet && (
-            <Card title="Кавомашина (Jetinno)" note={`${span}, відра по ${stepText(jetWin.step)}`}>
-              {jetSeries.map(({ sig, series: sr }) => (
-                <TlRow key={sig.key} name={sig.name} note={sr.seen ? sig.note : "проб немає"}>
-                  <Beat history={sr} domain={domain} />
-                </TlRow>
-              ))}
-              <TimeScale domain={domain} />
-            </Card>
-          )}
         </div>
 
         <Card title="Компоненти точки" note="остання проба" className="pos-side">
