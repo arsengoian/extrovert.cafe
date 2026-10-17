@@ -76,19 +76,62 @@ async function syncOrders(client, portal, point, vmc) {
 // Звірка за добу: карткові замовлення машини проти чеків Checkbox. Готівкові
 // теж мали б фіскалізуватись (власник, 09.10.2026), тож рахуємо і їх — як
 // сигнал, не як норму.
+//
+// Кожне замовлення шукає свій чек поруч у часі, а не порівнюються два
+// лічильники за добу (17.10.2026). Чек пробивається в момент оплати, а
+// замовлення машина пише, коли допила напій, — на 30–55 с пізніше. Тож
+// через добу чек випадав з вікна раніше за своє замовлення, і проба, що
+// влучала в ці секунди, показувала «4 замовлення / 3 чеки» без жодної
+// розбіжності (17.10 о 10:32). Тепер обидва списки беруться із запасом
+// MATCH_S за межею доби, і пара, яку межа розрізала, однаково сходиться.
+//
+// Червоне — лише справжнє: карткове замовлення без чека, старше за
+// ORDER_GRACE_S (чек приходить раніше за замовлення), або чек без
+// замовлення, старший за RECEIPT_GRACE_S (замовлення доходять із порталу,
+// який ми опитуємо раз на пів години: затримка до ~30 хв).
+const MATCH_S = 10 * 60;
+const ORDER_GRACE_S = 10 * 60;
+const RECEIPT_GRACE_S = 45 * 60;
 async function reconcile(client, point) {
-  const { rows } = await client.query(
-    `select
-       (select count(*) from machine_orders
-         where point_id = $1 and pay_type = 'mdb_cashless' and purchased_at > now() - interval '24 hours')::int as card,
-       (select count(*) from machine_orders
-         where point_id = $1 and pay_type = 'mdb_cash' and purchased_at > now() - interval '24 hours')::int as cash,
-       (select count(*) from receipts
-         where point_id = $1 and fiscal_date > now() - interval '24 hours')::int as receipts`,
-    [point]
+  const { rows: orders } = await client.query(
+    `select pay_type, extract(epoch from purchased_at)::float8 as t from machine_orders
+      where point_id = $1 and pay_type in ('mdb_cashless', 'mdb_cash')
+        and purchased_at > now() - interval '24 hours' - make_interval(secs => $2)
+      order by purchased_at`,
+    [point, MATCH_S]
   );
-  const { card, cash, receipts } = rows[0];
-  return { orders_card_24h: card, orders_cash_24h: cash, receipts_24h: receipts, reconcile_ok: card === receipts };
+  const { rows: receipts } = await client.query(
+    `select extract(epoch from fiscal_date)::float8 as t from receipts
+      where point_id = $1 and fiscal_date > now() - interval '24 hours' - make_interval(secs => $2)
+      order by fiscal_date`,
+    [point, MATCH_S]
+  );
+  // Кожному замовленню — найближчий ще вільний чек у межах MATCH_S. Готівкові
+  // теж беруть чек: пробитий за готівку чек — не «чек без замовлення».
+  const taken = new Set();
+  const paired = orders.map((o) => {
+    let best = -1;
+    receipts.forEach((r, i) => {
+      const d = Math.abs(r.t - o.t);
+      if (!taken.has(i) && d <= MATCH_S && (best < 0 || d < Math.abs(receipts[best].t - o.t))) best = i;
+    });
+    if (best >= 0) taken.add(best);
+    return best >= 0;
+  });
+  const now = Date.now() / 1000;
+  const inDay = (t) => t > now - 86400;
+  const card = orders.filter((o) => o.pay_type === "mdb_cashless" && inDay(o.t));
+  const noReceipt = orders.filter((o, i) =>
+    o.pay_type === "mdb_cashless" && inDay(o.t) && !paired[i] && now - o.t > ORDER_GRACE_S).length;
+  const noOrder = receipts.filter((r, i) => inDay(r.t) && !taken.has(i) && now - r.t > RECEIPT_GRACE_S).length;
+  return {
+    orders_card_24h: card.length,
+    orders_cash_24h: orders.filter((o) => o.pay_type === "mdb_cash" && inDay(o.t)).length,
+    receipts_24h: receipts.filter((r) => inDay(r.t)).length,
+    card_no_receipt_24h: noReceipt,
+    receipts_no_order_24h: noOrder,
+    reconcile_ok: noReceipt === 0 && noOrder === 0,
+  };
 }
 
 async function pollPoint(client, redis, point, vmc, log) {

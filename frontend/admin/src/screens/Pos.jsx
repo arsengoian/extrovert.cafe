@@ -51,6 +51,17 @@ const SIGNALS = [
 // малини), тож у півгодинному відрі зазвичай рівно одна — смужка виходить
 // суцільною, без «?» між пробами. Відповідає на те саме питання, що й
 // смужки малини: не «як зараз», а «коли саме стало погано».
+// Що саме не зійшлось — із пар замовлення↔чек (jobs/jetinno.js, 17.10.2026).
+// Старі проби цих полів не мають — тоді null, і показуємо самі лічильники.
+const mismatch = (m) => {
+  if (m.card_no_receipt_24h === undefined) return null;
+  const parts = [
+    m.card_no_receipt_24h ? `${m.card_no_receipt_24h} карткових без чека` : null,
+    m.receipts_no_order_24h ? `${m.receipts_no_order_24h} чеків без замовлення` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+};
+
 const JET_SIGNALS = [
   { key: "jet_session", name: "сесія порталу", note: "вхід на портал Jetinno",
     pick: (m) => (m.session === undefined ? null : Boolean(m.session)),
@@ -71,7 +82,7 @@ const JET_SIGNALS = [
     why: (m) => `дефіцит інгредієнтів: ${m.supply_short}`, rank: (m) => Number(m.supply_short) },
   { key: "jet_reconcile", name: "замовлення ↔ чеки", note: "за добу, мають сходитись",
     pick: (m) => (m.reconcile_ok === undefined ? null : Boolean(m.reconcile_ok)),
-    why: (m) => `замовлень карткою ${m.orders_card_24h ?? "?"}, готівкою ${m.orders_cash_24h ?? "?"}, чеків ${m.receipts_24h ?? "?"} (за добу)` },
+    why: (m) => mismatch(m) ?? `замовлень карткою ${m.orders_card_24h ?? "?"}, готівкою ${m.orders_cash_24h ?? "?"}, чеків ${m.receipts_24h ?? "?"} (за добу)` },
 ];
 
 // Що малюємо лініями під мережею: три показники, по яких видно, що точці
@@ -525,7 +536,7 @@ export function Pos({ id }) {
                       ) : null}
                       <JetRow label="замовлення ↔ чеки за добу" ok={jet.metrics.reconcile_ok}
                               value={`${jet.metrics.orders_card_24h ?? "?"} карткою / ${jet.metrics.receipts_24h ?? "?"} чеків`}
-                              sub={jet.metrics.reconcile_ok ? "сходяться" : "розходяться — перевір"} />
+                              sub={jet.metrics.reconcile_ok ? "сходяться" : mismatch(jet.metrics) ?? "розходяться — перевір"} />
                       <JetRow label="готівкою за добу" ok={null} value={String(jet.metrics.orders_cash_24h ?? 0)}
                               sub={jet.metrics.orders_cash_24h ? "готівка теж має фіскалізуватись" : null} />
                     </div>

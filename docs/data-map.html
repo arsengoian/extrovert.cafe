@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело b7e4b4a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 9c7775a</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 22 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -5117,7 +5117,15 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <li><strong>залишки інгредієнтів</strong> — чи є дефіцит (<code>supply_count</code>, <code>/supply</code>);</li>
 <li><strong>звірка замовлень за вікно</strong> (крок 4): скільки карткових замовлень у
 машині, скільки чеків у нас (<code>receipts</code>), чи сходяться; розбіжність —
-окреме поле.</li>
+окреме поле. З 17.10.2026 кожне замовлення шукає свій чек у межах 10 хв,
+а не порівнюються два лічильники за добу: чек пробивається при оплаті, а
+замовлення машина пише, коли допила напій, на 30–55 с пізніше, тож через
+добу чек випадав з вікна раніше і проба в ці секунди показувала «4 / 3»
+без жодної розбіжності (17.10 о 10:32; повтор на даних з 10.10 — 15 таких
+хвилин у старої звірки, жодної в нової). Червоне — карткове замовлення без
+чека, старше за 10 хв (<code>card_no_receipt_24h</code>), або чек без замовлення,
+старший за 45 хв (<code>receipts_no_order_24h</code>; замовлення доходять із порталу
+із затримкою до пів години).</li>
 <li><strong>платіжний термінал (непрямо)</strong>: прямого «термінал онлайн» портал не дає.
 Надійний сигнал — <strong>свіжий картковий продаж</strong> (<code>mdb_cashless</code>, EVA-DTS
 сегмент <code>DA</code>): був недавно → термінал живий. Несправність MDB — лише
@@ -15370,7 +15378,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел b7e4b4a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 9c7775a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
