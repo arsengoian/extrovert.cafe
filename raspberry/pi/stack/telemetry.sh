@@ -376,7 +376,9 @@ sample_json() {
     set -- $(queue_metrics); _qn=$1; _qold=$2
     [ "$_upat" = null ] || _upat="\"$_upat\""
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"root_ro":%s,"usb_ok":%s,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"upload_queue":%s,"upload_oldest":%s,"uplink":%s,"wifi_dbm":%s,"release":"%s"}}' \
+    # kernel_errors рахує лише bin/telemetry (потік над /dev/kmsg,
+    # pitelemetry.c, 17.10.2026); тут — завжди null.
+    printf '{"source":"pi","measured_at":"%s","idem_key":"pi:%s","metrics":{"cpu":%s,"temp_c":%s,"mem_used_mb":%s,"mem_total_mb":%s,"uptime_s":%s,"disk_free_mb":%s,"ping_ms":%s,"jitter_ms":%s,"loss_pct":%s,"kiosk_fps":%s,"kiosk_frames":%s,"monitor_on":%s,"monitor_src":"%s","monitor_woke":%s,"video_ok":%s,"root_ro":%s,"usb_ok":%s,"kernel_errors":null,"upload_kb_s":%s,"upload_ok":%s,"upload_at":%s,"upload_limit_kb_s":%s,"upload_queue":%s,"upload_oldest":%s,"uplink":%s,"wifi_dbm":%s,"release":"%s"}}' \
         "$_now" "$_now" "${_cpu:-null}" "${_temp:-null}" "${_mem:-null}" "${_memt:-null}" "${_up:-null}" "${_disk:-null}" \
         "${_ping:-null}" "${_jitter:-null}" "${_loss:-null}" "${_fps:-null}" "${_frames:-null}" \
         "${_monitor:-null}" "${_msrc:-none}" "${_woke:-false}" "${_video:-null}" \

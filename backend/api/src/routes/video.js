@@ -51,6 +51,11 @@ export default async function routes(app) {
     if (!NAME.test(name)) fail(400, "bad_name");
     if (!CAMERA.test(camera)) fail(400, "bad_camera");
     if (!Number.isInteger(bytes) || bytes <= 0 || bytes > MAX_BYTES) fail(400, "bad_bytes");
+    // Пауза з адмінки (points.video_upload_paused_at, 17.10.2026). Саме 423, а
+    // не 400: на 400 малина відкладає сегмент у rejected/ як битий, а на
+    // будь-що інше лишає його в черзі й перепитує пізніше (uploader.c).
+    const paused = await one("select video_upload_paused_at from points where id = $1", [point]);
+    if (paused?.video_upload_paused_at) fail(423, "upload_paused");
     const key = keyFor(point, camera, name, startedAt(req.body?.started_at));
     const { url } = presign({ method: "PUT", purpose: "video", key, contentType: typeOf(name), expiresIn: 3600 });
     return { key, url };

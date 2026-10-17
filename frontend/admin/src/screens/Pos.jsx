@@ -8,7 +8,7 @@ import { useState } from "react";
 import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { Beat, Line, TimeScale } from "../charts.jsx";
-import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, Pager, RangePicker, Table, UPLINK, fmt, metricValue as human, rangeLabel, useData, usePage, useRange } from "../ui.jsx";
+import { Badge, Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS as LABELS, Pager, RangePicker, Table, UPLINK, fmt, metricValue as human, rangeLabel, useData, usePage, useRange } from "../ui.jsx";
 
 // Булеві показники, для яких малюємо тижневу смужку. `pick` повертає
 // true/false або null — «проби не було й судити нема з чого».
@@ -130,7 +130,7 @@ function boolSeries(history, sig, { hours, step }) {
 const ORDER = [
   "monitor_on", "monitor_src", "monitor_woke", "video_ok", "kiosk_fps", "release",
   "uplink", "wifi_dbm", "ping_ms", "jitter_ms", "loss_pct", "upload_kb_s", "upload_limit_kb_s", "upload_ok", "upload_at", "upload_queue", "upload_oldest", "temp_c", "cpu",
-  "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "uptime_s", "kiosk_frames",
+  "mem_used_mb", "mem_total_mb", "disk_free_mb", "root_ro", "usb_ok", "kernel_errors", "uptime_s", "kiosk_frames",
 ];
 
 // Спільний порядок ключів: спершу знайомі (ORDER), далі за абеткою.
@@ -163,6 +163,8 @@ const PI_EXTRA = {
   disk_free_mb: (m) => (Number.isFinite(m.disk_free_mb) ? m.disk_free_mb >= 300 : null),
   mem_used_mb: (m) => (Number.isFinite(m.mem_used_mb) && m.mem_total_mb > 0
     ? m.mem_used_mb / m.mem_total_mb <= 0.92 : null),
+  // Будь-яка помилка ядра з увімкнення — уже привід глянути список нижче.
+  kernel_errors: (m) => (Number.isFinite(m.kernel_errors) ? m.kernel_errors === 0 : null),
 };
 function piOk(key, metrics) {
   const sig = SIGNALS.find((x) => x.key === PI_SIGNAL[key]);
@@ -195,6 +197,40 @@ const TlRow = ({ name, note = null, chart = false, children }) => (
 );
 const TlEmpty = ({ children }) => <div className="tl-empty">{children}</div>;
 
+// Помилки ядра малини (pitelemetry.c, 17.10.2026): кожна пачка — рядки, що
+// прийшли однією пробою, щойно ядро їх написало, — тобто й тоді, коли далі
+// малина вже не змогла нічого. Червоні — рівень err і вище. count — з
+// останньої проби малини: undefined — реліз ще без цього, null — лог ядра
+// малині не читається.
+const upFor = (s) => (s < 3600 ? `${Math.max(1, Math.round(s / 60))} хв` : human("uptime_s", s));
+function KernelErrors({ events, count, span }) {
+  const say = (text) => <span className="muted" style={{ fontSize: 11.5 }}>{text}</span>;
+  return (
+    <div>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+        <b style={{ fontSize: 12 }}>Помилки ядра</b>
+        {Number.isFinite(count) && <span className="muted" style={{ fontSize: 10.5 }}>з увімкнення: {fmt.int(count)}</span>}
+      </div>
+      {events.length ? (
+        <div className="kernel-list">
+          {events.map((e) => (
+            <div key={`${e.measured_at}:${e.metrics?.lines?.[0]?.seq}`} className="kernel-batch">
+              <span className="muted">
+                {fmt.time(e.measured_at)}
+                {Number.isFinite(e.metrics?.uptime_s) ? `, на ${upFor(e.metrics.uptime_s)} роботи` : ""}
+                {e.metrics?.dropped ? `, ще ${e.metrics.dropped} не влізло` : ""}
+              </span>
+              {(e.metrics?.lines ?? []).map((l) => <code key={l.seq} className={l.lvl <= 3 ? "bad" : ""}>{l.msg}</code>)}
+            </div>
+          ))}
+        </div>
+      ) : count === undefined ? say("реліз малини ще не стежить за ядром")
+        : count === null ? say("малині не читається лог ядра (/dev/kmsg)")
+        : say(`${span} не було`)}
+    </div>
+  );
+}
+
 // Сирі проби одного джерела — сторінками з api (admin-ops.js, /samples).
 // Колонки — ключі, що прийшли на цій сторінці, у порядку карток точки.
 function Samples({ id, range, source, span }) {
@@ -226,12 +262,26 @@ export function Pos({ id }) {
   // інакше на «вантажимо…» він не викликається, а після приходу даних
   // викликається, і React падає на зміні кількості хуків (11.10.2026).
   const [tab, setTab] = useState("pi");
-  const { data, error, loading } = useData(() => api.point(id, range), [id, range]);
+  const [pausing, setPausing] = useState(false);
+  const { data, error, loading, reload } = useData(() => api.point(id, range), [id, range]);
 
   if (loading && !data) return <Empty>вантажимо…</Empty>;
   if (error) return <Empty>{error.status === 404 ? "немає такої точки" : `не вдалось прочитати: ${error.message}`}</Empty>;
 
   const { point, latest, history, health, uptime, receipts } = data;
+  const kernel = data.kernel ?? [];
+  // Пауза заливки відео (власник, 17.10.2026): запис на точці йде далі,
+  // сегменти чекають на флешці, а знята пауза — малина доганяє сама.
+  const paused = point.video_upload_paused_at;
+  const togglePause = async () => {
+    setPausing(true);
+    try {
+      await api.pointVideoUpload(point.id, !paused);
+      await reload();
+    } finally {
+      setPausing(false);
+    }
+  };
   const win = data.window ?? { hours: 168, step: 30 * 60_000 };
   const span = `за ${rangeLabel(range) === "доба" ? "добу" : rangeLabel(range)}`;
   const stepText = (ms) => (ms >= 3600_000 ? `${ms / 3600_000} год` : `${ms / 60_000} хв`);
@@ -293,6 +343,10 @@ export function Pos({ id }) {
         </div>
         <div className="right">
           <RangePicker value={range} onChange={setRange} />
+          <button className="btn" disabled={pausing} onClick={togglePause}
+                  title={paused ? "заливка відео стоїть — відновити" : "зупинити заливку відео, запис іде далі"}>
+            {paused ? "▶ відновити заливку" : "⏸ пауза заливки"}
+          </button>
           <button className="btn" onClick={() => go("health")}>← до здоровʼя</button>
           <span className="env"><i style={{ background: point.last_seen_at ? "var(--ok)" : "var(--bad)" }} />{point.status}</span>
         </div>
@@ -381,7 +435,8 @@ export function Pos({ id }) {
               </TlRow>
             )}
             <TlRow chart name="заливка відео, КБ/с"
-                   note={Number.isFinite(pi?.metrics?.upload_queue)
+                   note={paused ? <Badge tone="warn">на паузі з {fmt.time(paused)}</Badge>
+                     : Number.isFinite(pi?.metrics?.upload_queue)
                      ? (pi.metrics.upload_queue ? `у черзі ${fmt.int(pi.metrics.upload_queue)} сегм.` : "черга порожня")
                      : "точка на кожну заливку"}>
               {upload.length ? (
@@ -438,6 +493,8 @@ export function Pos({ id }) {
                   </div>
                 </div>
               ))}
+
+              <KernelErrors events={kernel} count={pi?.metrics?.kernel_errors} span={span} />
 
               {/* Кавомашина — підсумком з порталу: онлайн, поломки, звірка з
                   чеками. Несправності — зі списку, а не з лічильника get_device:

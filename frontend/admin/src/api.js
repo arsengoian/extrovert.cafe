@@ -97,6 +97,7 @@ export const api = {
   point: (id, range) => request(`/admin/points/${encodeURIComponent(id)}${qs({ range })}`),
   // Сирі проби точки окремо по джерелу й сторінками (admin-ops.js, 16.10.2026).
   pointSamples: (id, p) => request(`/admin/points/${encodeURIComponent(id)}/samples${qs(p)}`),
+  pointVideoUpload: (id, paused) => request(`/admin/points/${encodeURIComponent(id)}/video-upload`, { method: "POST", body: { paused } }),
   stats: (p) => request(`/admin/stats${qs(p)}`),
   analytics: (days) => request(`/admin/analytics${qs({ days })}`),
   broadcasts: (p) => request(`/admin/broadcasts${qs(p)}`),

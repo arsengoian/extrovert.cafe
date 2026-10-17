@@ -164,7 +164,7 @@ export default async function routes(app) {
       ? await many(
           `select distinct on (point_id, source) point_id, source, measured_at, metrics
              from device_telemetry
-            where point_id = any($1::text[])
+            where point_id = any($1::text[]) and source <> 'kernel'
               and measured_at > now() - interval '2 days'
             order by point_id, source, measured_at desc`,
           [points.map((p) => p.id)]
@@ -282,22 +282,34 @@ export default async function routes(app) {
     const range = rangeOf(req.query?.range);
     const point = await one(
       `select id, name, address, short_address, status, last_seen_at, checkbox_branch_id,
-              key_hash is not null as has_key, key_revoked_at, jetinno_vmc is not null as has_jetinno
+              key_hash is not null as has_key, key_revoked_at, jetinno_vmc is not null as has_jetinno,
+              video_upload_paused_at
          from points where id = $1`,
       [req.params.id]
     );
     if (!point) fail(404, "no_such_point");
 
+    // Проби kernel — події, а не стан (routes/points.js): у «останню пробу»
+    // й у ряди графіків не йдуть, а мають свій список нижче.
     const latest = await many(
       `select distinct on (source) source, measured_at, metrics
-         from device_telemetry where point_id = $1
+         from device_telemetry where point_id = $1 and source <> 'kernel'
         order by source, measured_at desc`,
       [point.id]
     );
     const raw = await many(
       `select source, measured_at, metrics from device_telemetry
-        where point_id = $1 and measured_at > now() - make_interval(hours => $2)
+        where point_id = $1 and source <> 'kernel' and measured_at > now() - make_interval(hours => $2)
         order by measured_at`,
+      [point.id, range.hours]
+    );
+    // Помилки ядра малини за період, свіжі зверху (pitelemetry.c). Кожна
+    // проба — пачка рядків, що прийшли разом; 30 пачок — це вже лавина, далі
+    // — у сирих пробах.
+    const kernel = await many(
+      `select measured_at, metrics from device_telemetry
+        where point_id = $1 and source = 'kernel' and measured_at > now() - make_interval(hours => $2)
+        order by measured_at desc limit 30`,
       [point.id, range.hours]
     );
     // До тижня — самі проби, як і раніше; місяць — зведений у відра.
@@ -320,10 +332,28 @@ export default async function routes(app) {
       point,
       latest,
       history,
+      kernel,
       health: series(health, range),
       uptime,
       receipts,
     };
+  });
+
+  // Пауза заливки відео точки (власник, 17.10.2026; міграція
+  // 20261017100000). Запис на точці йде далі, сегменти чекають на флешці;
+  // знята пауза — малина доганяє чергу сама, за дві хвилини після зняття.
+  app.post("/admin/points/:id/video-upload", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    if (typeof req.body?.paused !== "boolean") fail(400, "bad_paused");
+    const row = await one(
+      `update points
+          set video_upload_paused_at = case when $2::boolean then coalesce(video_upload_paused_at, now()) end
+        where id = $1
+        returning video_upload_paused_at`,
+      [req.params.id, req.body.paused]
+    );
+    if (!row) fail(404, "no_such_point");
+    return row;
   });
 
   // Сирі проби точки за період — таблиця під графіками, окремо для кожного

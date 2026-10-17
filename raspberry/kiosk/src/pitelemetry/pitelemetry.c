@@ -12,11 +12,16 @@
  * проби, та сама черга state/telemetry.queue (і перештампування часу після
  * стрибка годинника), ті самі рядки в лозі, той самий пульс для супервізора.
  * Коментарі «чому» — у telemetry.sh: тут лише те, що відрізняється.
+ *
+ * Чого в скрипті немає зовсім — помилок ядра (17.10.2026): їх читає окремий
+ * потік і шле, щойно вони з'явились (розділ «ядро» нижче). У пробі скрипта
+ * kernel_errors завжди null.
  */
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 #include <curl/curl.h>
 #include <dirent.h>
+#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
@@ -24,6 +29,7 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -39,6 +45,8 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "../ssl_locks.h"
 
 /* ── налаштування ─────────────────────────────────────────────────────── */
 static const char *ROOT, *STATE, *API, *POINT, *TOKEN_FILE, *PING_HOST, *BUF, *RAMD;
@@ -442,10 +450,16 @@ static void queue_metrics(char *qn, char *old, size_t n) {
     if (c > 0 && e > 0) { char iso[32]; iso_utc((time_t)e, iso, sizeof iso); snprintf(old, n, "\"%s\"", iso); }
 }
 
+/* Стан потоку ядра, який бачить і головне коло (розділ «ядро» нижче). */
+static pthread_mutex_t K_MU = PTHREAD_MUTEX_INITIALIZER;
+static long K_COUNT = -1;               /* помилок від старту ядра; -1 — kmsg не читається */
+static unsigned long long K_SENT;       /* найбільший seq, що дійшов до api */
+static char K_LAST[200], K_TOKEN[1024];
+
 static int sample_json(char *out, size_t n) {
     enum { M = 48 };   /* кожне значення метрики — до M байтів */
     char cpu[M], temp[M], mem[M], memt[M], up[M], disk[M], ping[M], jit[M], loss[M], fps[M], frames[M];
-    char mon[M], msrc[M], video[M], usb[M], ul[M], dbm[M], rofs[M], kb[M], ok[M], at[M], lim[M], qn[M], qold[M];
+    char mon[M], msrc[M], video[M], usb[M], ul[M], dbm[M], rofs[M], kb[M], ok[M], at[M], lim[M], qn[M], qold[M], kerr[M];
     cpu_percent(cpu, sizeof cpu); temp_c(temp, sizeof temp); mem_mb(mem, memt, sizeof mem);
     snprintf(up, sizeof up, "%.0f", uptime_now()); disk_free_mb(disk, sizeof disk);
     net_metrics(ping, jit, loss, sizeof ping);
@@ -460,10 +474,12 @@ static int sample_json(char *out, size_t n) {
     if (realpath(CURRENT_LINK, real)) { char *b = strrchr(real, '/'); snprintf(rel, sizeof rel, "%s", b ? b + 1 : real); }
     upload_metrics(kb, ok, at, lim, sizeof kb);
     queue_metrics(qn, qold, sizeof qn);
+    pthread_mutex_lock(&K_MU); long kc = K_COUNT; pthread_mutex_unlock(&K_MU);
+    if (kc < 0) snprintf(kerr, sizeof kerr, "null"); else snprintf(kerr, sizeof kerr, "%ld", kc);
     char now[32]; iso_utc(time(NULL), now, sizeof now);
     return snprintf(out, n,
-        "{\"source\":\"pi\",\"measured_at\":\"%s\",\"idem_key\":\"pi:%s\",\"metrics\":{\"cpu\":%s,\"temp_c\":%s,\"mem_used_mb\":%s,\"mem_total_mb\":%s,\"uptime_s\":%s,\"disk_free_mb\":%s,\"ping_ms\":%s,\"jitter_ms\":%s,\"loss_pct\":%s,\"kiosk_fps\":%s,\"kiosk_frames\":%s,\"monitor_on\":%s,\"monitor_src\":\"%s\",\"monitor_woke\":%s,\"video_ok\":%s,\"root_ro\":%s,\"usb_ok\":%s,\"upload_kb_s\":%s,\"upload_ok\":%s,\"upload_at\":%s,\"upload_limit_kb_s\":%s,\"upload_queue\":%s,\"upload_oldest\":%s,\"uplink\":%s,\"wifi_dbm\":%s,\"release\":\"%s\"}}",
-        now, now, cpu, temp, mem, memt, up, disk, ping, jit, loss, fps, frames, mon, msrc, woke, video, rofs, usb,
+        "{\"source\":\"pi\",\"measured_at\":\"%s\",\"idem_key\":\"pi:%s\",\"metrics\":{\"cpu\":%s,\"temp_c\":%s,\"mem_used_mb\":%s,\"mem_total_mb\":%s,\"uptime_s\":%s,\"disk_free_mb\":%s,\"ping_ms\":%s,\"jitter_ms\":%s,\"loss_pct\":%s,\"kiosk_fps\":%s,\"kiosk_frames\":%s,\"monitor_on\":%s,\"monitor_src\":\"%s\",\"monitor_woke\":%s,\"video_ok\":%s,\"root_ro\":%s,\"usb_ok\":%s,\"kernel_errors\":%s,\"upload_kb_s\":%s,\"upload_ok\":%s,\"upload_at\":%s,\"upload_limit_kb_s\":%s,\"upload_queue\":%s,\"upload_oldest\":%s,\"uplink\":%s,\"wifi_dbm\":%s,\"release\":\"%s\"}}",
+        now, now, cpu, temp, mem, memt, up, disk, ping, jit, loss, fps, frames, mon, msrc, woke, video, rofs, usb, kerr,
         kb, ok, at, lim, qn, qold, ul, dbm, rel);
 }
 
@@ -593,6 +609,320 @@ static int send_queue(void) {
     return ret;
 }
 
+/* ── ядро: помилки з /dev/kmsg — окремим потоком (17.10.2026) ─────────────
+ * 13.10 і 16.10.2026 малина вмирала однаково: за пів хвилини після
+ * останньої доброї проби сама закривала тунель, і далі — тиша до
+ * блекауту. 13.10 лог ядра спіймали наживо (`mmcblk0: timed out sending
+ * r/w cmd` — SD-картка перестала відповідати), 16.10 — ні: ядро живе й
+ * годує watchdog, журнал — у RAM, а прочитати його не було кому
+ * (raspberry-pi.md, «Помилки ядра в телеметрії»).
+ *
+ * Тому потік читає /dev/kmsg і помилку, щойно вона з'явилась, шле в api
+ * окремою пробою (source "kernel"), не чекаючи хвилинного кола. Окремим
+ * потоком, бо головне коло саме ходить на картку (пульс, черга) і на мертвій
+ * картці стає першим. Потік картки не торкається: /dev/kmsg — це ядро,
+ * адреса api й кореневі сертифікати — у памʼяті з самого старту (інакше curl
+ * читав би /etc на кожне нове з'єднання), невідправлене чекає в памʼяті, а
+ * не в черзі на картці. Лог і state/ пише лише головне коло (kernel_tick).
+ *
+ * Помилка — це ядерне повідомлення рівня err і вище, попередження зі
+ * словами з K_WARN і звичайне повідомлення зі словами з K_NOTE: так ядро
+ * пише про біду з SD, з USB (на Pi 1 на ній і Ethernet, і Wi-Fi, і флешка)
+ * і з памʼяттю. Шум, якщо з'явиться, — відсіювати тут, побачивши справжні
+ * рядки в адмінці. */
+static const char *const K_WARN[] = {
+    "mmc", "I/O error", "EXT4-fs", "usb", "USB", "dwc_otg", "smsc95xx", "rt2800",
+    "voltage", "blocked for more than", "Out of memory", "Killed process", NULL };
+static const char *const K_NOTE[] = { "USB disconnect", "reset full-speed", "reset high-speed", "timed out", NULL };
+static int k_has(const char *msg, const char *const words[]) {
+    for (int i = 0; words[i]; i++) if (strstr(msg, words[i])) return 1;
+    return 0;
+}
+static int k_wanted(int fac, int lvl, const char *msg) {
+    if (fac != 0) return 0;   /* лише саме ядро, а не те, що пишуть у kmsg процеси */
+    if (lvl <= 3) return 1;
+    if (lvl == 4) return k_has(msg, K_WARN);
+    if (lvl <= 6) return k_has(msg, K_NOTE);
+    return 0;
+}
+
+#define K_LINES_MAX 40
+typedef struct { unsigned long long seq, ts_us; int lvl; char msg[200]; } KLine;
+static KLine K_PEND[K_LINES_MAX];   /* ще не дійшли до api — їх чіпає лише потік */
+static int K_PEND_N;
+static long K_DROPPED;
+static unsigned long long K_SKIP;   /* seq, що дійшов до api ще до цього запуску */
+static char K_BOOT[40], KSENT_FILE[600];
+static int KMSG_FD = -1, KMSG_FILE = 0;
+static CURL *K_H;
+
+/* Адреса api — заздалегідь: getaddrinfo на кожен запит читає /etc/hosts.
+ * Не вийшло (мережі ще немає) — потік ходить зі звичайним DNS. */
+static char API_HOST[256];
+static int API_PORT;
+static struct curl_slist *K_RESOLVE;
+static void k_resolve(void) {
+    struct addrinfo hints = {0}, *res = NULL;
+    hints.ai_family = AF_INET; hints.ai_socktype = SOCK_STREAM;
+    if (!API_HOST[0] || getaddrinfo(API_HOST, NULL, &hints, &res) != 0 || !res) return;
+    char ip[INET_ADDRSTRLEN], entry[400];
+    inet_ntop(AF_INET, &((struct sockaddr_in *)res->ai_addr)->sin_addr, ip, sizeof ip);
+    freeaddrinfo(res);
+    snprintf(entry, sizeof entry, "%s:%d:%s", API_HOST, API_PORT, ip);
+    curl_slist_free_all(K_RESOLVE);
+    K_RESOLVE = curl_slist_append(NULL, entry);
+}
+
+/* Кореневі сертифікати — теж у памʼять один раз. Функції OpenSSL беремо з
+ * уже завантаженої libcurl-ом бібліотеки за soname, як ssl_locks.c:
+ * заголовків OpenSSL у збиральному контейнері немає. Не вийшло — потік
+ * ходить зі звичайними налаштуваннями curl, як і головне коло. */
+typedef void *(*bio_mem_fn)(const void *, int);
+typedef void *(*pem_x509_fn)(void *, void *, void *, void *);
+typedef int (*bio_free_fn)(void *);
+typedef void *(*ctx_store_fn)(void *);
+typedef int (*store_add_fn)(void *, void *);
+typedef void (*err_clear_fn)(void);
+static ctx_store_fn CTX_STORE;
+static store_add_fn STORE_ADD;
+static err_clear_fn ERR_CLEAR;
+static void **CA;
+static int CA_N;
+static void *k_lib(const char *const names[]) {
+    for (int i = 0; names[i]; i++) { void *h = dlopen(names[i], RTLD_NOW | RTLD_NOLOAD); if (h) return h; }
+    return NULL;
+}
+static void ca_load(const char *path) {
+    static const char *const CRYPTO[] = { "libcrypto.so.1.0.2", "libcrypto.so.1.1", "libcrypto.so.3", NULL };
+    static const char *const SSLLIB[] = { "libssl.so.1.0.2", "libssl.so.1.1", "libssl.so.3", NULL };
+    void *c = k_lib(CRYPTO), *s = k_lib(SSLLIB);
+    if (!c || !s) return;
+    bio_mem_fn bio_mem = (bio_mem_fn)dlsym(c, "BIO_new_mem_buf");
+    pem_x509_fn pem = (pem_x509_fn)dlsym(c, "PEM_read_bio_X509");
+    bio_free_fn bio_free = (bio_free_fn)dlsym(c, "BIO_free");
+    STORE_ADD = (store_add_fn)dlsym(c, "X509_STORE_add_cert");
+    ERR_CLEAR = (err_clear_fn)dlsym(c, "ERR_clear_error");
+    CTX_STORE = (ctx_store_fn)dlsym(s, "SSL_CTX_get_cert_store");
+    if (!bio_mem || !pem || !bio_free || !STORE_ADD || !ERR_CLEAR || !CTX_STORE) return;
+    struct stat st;
+    if (stat(path, &st) != 0 || st.st_size <= 0 || st.st_size > (4 << 20)) return;
+    char *text = malloc((size_t)st.st_size + 1);
+    if (!text) return;
+    int got = read_file(path, text, (size_t)st.st_size + 1);
+    void *bio = got > 0 ? bio_mem(text, got) : NULL;
+    int cap = 0; void *x;
+    while (bio && (x = pem(bio, NULL, NULL, NULL))) {
+        if (CA_N == cap) {
+            void **more = realloc(CA, sizeof(void *) * (size_t)(cap ? cap * 2 : 128));
+            if (!more) break;
+            CA = more; cap = cap ? cap * 2 : 128;
+        }
+        CA[CA_N++] = x;
+    }
+    if (bio) bio_free(bio);
+    free(text);
+    ERR_CLEAR();   /* кінець PEM лишає в черзі помилок OpenSSL «no start line» */
+}
+static CURLcode ca_ctx(CURL *h, void *ctx, void *u) {
+    (void)h; (void)u;
+    void *store = CTX_STORE(ctx);
+    for (int i = 0; i < CA_N; i++) STORE_ADD(store, CA[i]);
+    ERR_CLEAR();
+    return CURLE_OK;
+}
+
+/* Один запис kmsg: «prio,seq,ts_us,flags[,…];текст»; рядки « KEY=value»
+ * після нього (словник пристрою) пропускаємо. → 1, якщо нова помилка. */
+static int k_line(char *line) {
+    if (!line[0] || line[0] == ' ') return 0;
+    char *semi = strchr(line, ';');
+    if (!semi) return 0;
+    *semi = 0;
+    unsigned long prio; unsigned long long seq, ts;
+    if (sscanf(line, "%lu,%llu,%llu", &prio, &seq, &ts) != 3) return 0;
+    const char *msg = semi + 1;
+    if (!k_wanted((int)(prio >> 3), (int)(prio & 7), msg)) return 0;
+    pthread_mutex_lock(&K_MU);
+    K_COUNT++;
+    snprintf(K_LAST, sizeof K_LAST, "%s", msg);
+    pthread_mutex_unlock(&K_MU);
+    if (seq <= K_SKIP) return 0;
+    if (K_PEND_N < K_LINES_MAX) {
+        KLine *k = &K_PEND[K_PEND_N++];
+        k->seq = seq; k->ts_us = ts; k->lvl = (int)(prio & 7);
+        snprintf(k->msg, sizeof k->msg, "%s", msg);
+    } else K_DROPPED++;   /* перші найцінніші: з них видно, з чого почалось */
+    return 1;
+}
+
+/* Усе, що ядро вже має. З /dev/kmsg один read — рівно один запис; зі
+ * звичайного файла (перевірка на ПК, TELEMETRY_KMSG) — скільки влізло, тож
+ * хвіст без \n чекає наступного read. → скільки нових помилок. */
+static char K_BUF[16384];
+static size_t K_HELD;
+static int k_drain(void) {
+    int fresh = 0;
+    for (;;) {
+        ssize_t k = read(KMSG_FD, K_BUF + K_HELD, sizeof K_BUF - 1 - K_HELD);
+        /* EPIPE — найстаріші записи вже затерто; наступний read дасть живі. */
+        if (k < 0 && (errno == EINTR || errno == EPIPE)) continue;
+        if (k <= 0) break;
+        K_HELD += (size_t)k; K_BUF[K_HELD] = 0;
+        char *p = K_BUF, *nl;
+        while ((nl = strchr(p, '\n'))) { *nl = 0; fresh += k_line(p); p = nl + 1; }
+        K_HELD = strlen(p);
+        memmove(K_BUF, p, K_HELD);
+        if (K_HELD >= sizeof K_BUF - 1) K_HELD = 0;   /* рядок довший за буфер — геть */
+    }
+    return fresh;
+}
+
+static void json_str(char *out, size_t n, const char *s) {   /* рядок для JSON, без лапок */
+    size_t o = 0;
+    for (; *s && o + 7 < n; s++) {
+        unsigned char c = (unsigned char)*s;
+        if (c == '"' || c == '\\') { out[o++] = '\\'; out[o++] = (char)c; }
+        else if (c < 0x20) o += (size_t)snprintf(out + o, n - o, "\\u%04x", c);
+        else out[o++] = (char)c;
+    }
+    out[o] = 0;
+}
+
+/* Невідправлені рядки — однією пробою. → 0, якщо їх більше слати не треба. */
+static int k_send(void) {
+    char tok[sizeof K_TOKEN];
+    pthread_mutex_lock(&K_MU);
+    snprintf(tok, sizeof tok, "%s", K_TOKEN);
+    long count = K_COUNT;
+    pthread_mutex_unlock(&K_MU);
+    if (!tok[0]) return -1;
+    static char body[K_LINES_MAX * 512 + 1024];
+    char now[32]; iso_utc(time(NULL), now, sizeof now);
+    size_t o = (size_t)snprintf(body, sizeof body,
+        "{\"samples\":[{\"source\":\"kernel\",\"measured_at\":\"%s\",\"idem_key\":\"kernel:%.8s:%llu\","
+        "\"metrics\":{\"uptime_s\":%.0f,\"boot_id\":\"%s\",\"errors_since_boot\":%ld,\"dropped\":%ld,\"lines\":[",
+        now, K_BOOT, K_PEND[0].seq, uptime_now(), K_BOOT, count, K_DROPPED);
+    for (int i = 0; i < K_PEND_N && o < sizeof body - 600; i++) {
+        char esc[420]; json_str(esc, sizeof esc, K_PEND[i].msg);
+        o += (size_t)snprintf(body + o, sizeof body - o, "%s{\"t\":%.3f,\"lvl\":%d,\"seq\":%llu,\"msg\":\"%s\"}",
+                              i ? "," : "", K_PEND[i].ts_us / 1e6, K_PEND[i].lvl, K_PEND[i].seq, esc);
+    }
+    snprintf(body + o, sizeof body - o, "]}}]}");
+
+    char url[1024], auth[1200];
+    snprintf(url, sizeof url, "%s/points/%s/telemetry", API, POINT);
+    snprintf(auth, sizeof auth, "authorization: Bearer %s", tok);
+    struct curl_slist *h = curl_slist_append(NULL, auth);
+    h = curl_slist_append(h, "content-type: application/json");
+    curl_easy_reset(K_H);
+    curl_easy_setopt(K_H, CURLOPT_URL, url);
+    curl_easy_setopt(K_H, CURLOPT_HTTPHEADER, h);
+    curl_easy_setopt(K_H, CURLOPT_POSTFIELDS, body);
+    curl_easy_setopt(K_H, CURLOPT_TIMEOUT, 20L);
+    curl_easy_setopt(K_H, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(K_H, CURLOPT_WRITEFUNCTION, sink);
+    if (K_RESOLVE) curl_easy_setopt(K_H, CURLOPT_RESOLVE, K_RESOLVE);
+    if (CA_N) {
+        curl_easy_setopt(K_H, CURLOPT_CAINFO, NULL);
+        curl_easy_setopt(K_H, CURLOPT_CAPATH, NULL);
+        curl_easy_setopt(K_H, CURLOPT_SSL_CTX_FUNCTION, ca_ctx);
+    }
+    CURLcode rc = curl_easy_perform(K_H);
+    long code = 0; curl_easy_getinfo(K_H, CURLINFO_RESPONSE_CODE, &code);
+    curl_slist_free_all(h);
+    if (rc == CURLE_COULDNT_CONNECT) k_resolve();   /* раптом api переїхав на іншу адресу */
+    if (rc != CURLE_OK) return -1;
+    if (code >= 200 && code < 300) {
+        pthread_mutex_lock(&K_MU); K_SENT = K_PEND[K_PEND_N - 1].seq; pthread_mutex_unlock(&K_MU);
+        return 0;
+    }
+    return code == 400 ? 0 : -1;   /* 400 — api цю пробу не візьме, повтор не допоможе */
+}
+
+static long long mono_ms(void) {
+    struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t);
+    return t.tv_sec * 1000LL + t.tv_nsec / 1000000;
+}
+static void *k_main(void *arg) {
+    (void)arg;
+    long long due = 0, last = -100000;
+    for (;;) {
+        int fresh = k_drain();
+        long long now = mono_ms();
+        /* Нова помилка — шлемо за секунду (за нею часто йде ціла низка),
+         * але не частіше ніж раз на 5 с; не вийшло — повтор за 30 с. */
+        if (fresh && K_PEND_N) {
+            long long t = now + 1000;
+            if (t < last + 5000) t = last + 5000;
+            if (!due || t < due) due = t;
+        }
+        if (due && now >= due) {
+            last = now;
+            if (k_send() == 0) { K_PEND_N = 0; K_DROPPED = 0; due = 0; }
+            else due = now + 30000;
+            continue;
+        }
+        if (KMSG_FILE) { struct timespec ts = { 0, 200000000L }; nanosleep(&ts, NULL); continue; }   /* poll на файлі завжди «готовий» */
+        struct pollfd p = { KMSG_FD, POLLIN, 0 };
+        poll(&p, 1, due ? (int)(due - now) : 60000);
+    }
+    return NULL;
+}
+
+static void kernel_start(void) {
+    const char *path = env_or("TELEMETRY_KMSG", "/dev/kmsg");
+    snprintf(KSENT_FILE, sizeof KSENT_FILE, "%s/kmsg.sent", STATE);
+    KMSG_FD = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    if (KMSG_FD < 0) { logf_("ядро: %s не читається (%s) — помилок ядра в пробах не буде", path, strerror(errno)); return; }
+    struct stat st;
+    KMSG_FILE = fstat(KMSG_FD, &st) == 0 && S_ISREG(st.st_mode);
+    if (read_file("/proc/sys/kernel/random/boot_id", K_BOOT, sizeof K_BOOT) > 0) K_BOOT[strcspn(K_BOOT, "\r\n")] = 0;
+    /* Що вже дійшло до api в цьому ж завантаженні (перезапуск компонента з
+     * релізом) — вдруге не шлемо, хоч у kmsg воно й лишилось. */
+    char b[128], boot[40]; unsigned long long seq;
+    if (read_file(KSENT_FILE, b, sizeof b) > 0 && sscanf(b, "%39s %llu", boot, &seq) == 2 && !strcmp(boot, K_BOOT))
+        K_SKIP = K_SENT = seq;
+    const char *p = strstr(API, "://"); p = p ? p + 3 : API;
+    size_t l = strcspn(p, ":/");
+    snprintf(API_HOST, sizeof API_HOST, "%.*s", (int)l, p);
+    API_PORT = p[l] == ':' ? atoi(p + l + 1) : !strncmp(API, "https", 5) ? 443 : 80;
+    k_resolve();
+    if (!strncmp(API, "https", 5)) ca_load(env_or("TELEMETRY_CA_FILE", "/etc/ssl/certs/ca-certificates.crt"));
+    K_H = curl_easy_init();
+    if (read_token() == 0) snprintf(K_TOKEN, sizeof K_TOKEN, "%s", TOKEN);
+    K_COUNT = 0;
+    /* SIGTERM — головному колу: інакше сигнал міг би дістатись потоку, і
+     * головне коло спало б далі, поки супервізор не добʼє його SIGKILL. */
+    sigset_t term, old; sigemptyset(&term); sigaddset(&term, SIGTERM); sigaddset(&term, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &term, &old);
+    pthread_t t; pthread_attr_t a;
+    pthread_attr_init(&a); pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
+    int rc = pthread_create(&t, &a, k_main, NULL);
+    pthread_attr_destroy(&a);
+    pthread_sigmask(SIG_SETMASK, &old, NULL);
+    if (rc != 0) { K_COUNT = -1; logf_("ядро: потік не стартував — помилок ядра в пробах не буде"); return; }
+    logf_("ядро: стежу за %s, %s", path, CA_N ? "адреса й сертифікати api — у памʼяті" : "сертифікати api — звичайні, з /etc");
+}
+
+/* Головне коло — за потік: свіжий ключ точки йому, позначка «що вже дійшло»
+ * на картку й рядок у лог. Потік сам на картку не ходить. */
+static void kernel_tick(void) {
+    static unsigned long long written;
+    static long logged;
+    if (KMSG_FD < 0) return;
+    char last[sizeof K_LAST];
+    pthread_mutex_lock(&K_MU);
+    if (TOKEN[0]) snprintf(K_TOKEN, sizeof K_TOKEN, "%s", TOKEN);
+    unsigned long long sent = K_SENT; long count = K_COUNT;
+    snprintf(last, sizeof last, "%s", K_LAST);
+    pthread_mutex_unlock(&K_MU);
+    if (sent && sent != written) {
+        char b[96]; snprintf(b, sizeof b, "%s %llu\n", K_BOOT, sent);
+        write_atomic(KSENT_FILE, b); written = sent;
+    }
+    if (count > logged) { logf_("ядро: помилок від старту %ld (+%ld), остання: %s", count, count - logged, last); logged = count; }
+}
+
 /* NTP-синхронізація — те саме, що «NTP synchronized: yes» у timedatectl
  * (systemd бере його з adjtimex), без D-Bus і без процесу. */
 static int clock_ntp_ok(void) {
@@ -629,9 +959,12 @@ int main(void) {
     signal(SIGPIPE, SIG_IGN);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    /* До потоку ядра: у TLS тепер ходять двоє (ssl_locks.c). */
+    if (ssl_locks_init() < 0) logf_("OpenSSL 1.0.2 є, а замки поставити не вдалось");
     API_H = curl_easy_init();
     mkdir(STATE, 0755);
     logf_("телеметрія піднялась (C): кожні %dс у %s", PERIOD, API);
+    kernel_start();
 
     int queued_this_boot = 0;
     time_t prev_epoch = time(NULL); double prev_up = uptime_now();
@@ -654,12 +987,14 @@ int main(void) {
             if (queue_push(sample) == 0 && !clock_ntp_ok()) queued_this_boot++;
             send_queue();
         } else logf_("немає %s — пропускаємо прохід", TOKEN_FILE);
+        kernel_tick();
 
         long left = PERIOD - (long)(time(NULL) - started);
         if (left < 5) left = 5;
         if (!STOPPING) nap_ms(left * 1000);
     }
     logf_("зупиняємось");
+    kernel_tick();   /* позначка «що вже дійшло» — щоб наступний запуск не слав його вдруге */
     curl_easy_cleanup(API_H);
     curl_global_cleanup();
     return 0;

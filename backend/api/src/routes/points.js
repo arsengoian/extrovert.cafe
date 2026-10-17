@@ -155,7 +155,10 @@ export default async function routes(app) {
     let written = 0;
     for (const sample of batch) {
       const source = String(sample?.source ?? "pi");
-      if (!["pi", "jetinno", "camera"].includes(source)) fail(400, "bad_source");
+      // kernel — помилки з лога ядра малини, окремою пробою, щойно сталися
+      // (pitelemetry.c, 17.10.2026): не стан, а подія, тож «останньою
+      // пробою точки» вона не вважається (admin-ops.js).
+      if (!["pi", "jetinno", "camera", "kernel"].includes(source)) fail(400, "bad_source");
       const measured = sample?.measured_at ? new Date(sample.measured_at) : new Date();
       if (Number.isNaN(+measured)) fail(400, "bad_measured_at");
       const idem = String(sample?.idem_key ?? `${source}:${measured.toISOString()}`).slice(0, 120);

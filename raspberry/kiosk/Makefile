@@ -91,10 +91,12 @@ bin/uploader bin/uploader-desktop: $(SRC_UPLOADER)
 # Проби точки в api (src/pitelemetry/pitelemetry.c — компонент telemetry
 # стеку, 15.10.2026; telemetry.sh exec-ає його). Ім'я бінарника — як у
 # компонента: супервізор порівнює bin/<компонент> між релізами (same_code).
-bin/telemetry bin/telemetry-desktop: src/pitelemetry/pitelemetry.c
+# Потік помилок ядра ходить у TLS поруч із головним колом — звідси ssl_locks.c,
+# -pthread і -ldl (17.10.2026).
+bin/telemetry bin/telemetry-desktop: src/pitelemetry/pitelemetry.c src/ssl_locks.c
 	@mkdir -p bin
-	$(CC) -std=c11 -Wall -Wextra -O2 $(shell pkg-config --cflags libcurl) \
-		$< -o $@ $(shell pkg-config --libs libcurl)
+	$(CC) -std=c11 -Wall -Wextra -O2 -pthread $(shell pkg-config --cflags libcurl) \
+		$^ -o $@ $(shell pkg-config --libs libcurl) -ldl
 	@echo "== зібрано $@ =="
 
 # Службові утиліти для малини — не частина релізу (make-release.sh бере лише

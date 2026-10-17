@@ -314,6 +314,11 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
 .metric-list { display: flex; flex-direction: column; gap: 5px }
 .metric { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px }
 .metric b { text-align: right; min-width: 0; overflow-wrap: anywhere }
+/* Помилки ядра малини (Pos.jsx, 17.10.2026): рядки лога як є, моноширинно. */
+.kernel-list { display: flex; flex-direction: column; gap: 9px; max-height: 340px; overflow-y: auto }
+.kernel-batch { display: flex; flex-direction: column; gap: 3px; font-size: 10.5px }
+.kernel-batch code { font-family: ui-monospace, Consolas, Menlo, monospace; font-size: 10.5px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere }
+.kernel-batch code.bad { color: var(--bad) }
 .samples { margin: 12px 0 }
 /* Вужче за ~1240 px двом колонкам тісно: полотну лишалось ~200 px. Тоді
    компоненти — над шкалою на всю ширину, а метрики в кілька стовпчиків. */

@@ -44,6 +44,8 @@ export const METRIC_LABELS = {
   monitor_on: "монітор", video_ok: "відеопотік",
   monitor_src: "чим перевірено монітор", monitor_woke: "будили монітор",
   root_ro: "картка read-only", usb_ok: "флешка",
+  // Рядки лога ядра про біду з SD, USB і памʼяттю (pitelemetry.c, 17.10.2026).
+  kernel_errors: "помилок ядра з увімкнення",
   kiosk_frames: "кадрів усього",
   // Якою дорогою малина зараз в інтернеті: Wi-Fi закладу чи LTE (14.10.2026).
   uplink: "канал в інтернет", wifi_dbm: "сигнал Wi-Fi, дБм",

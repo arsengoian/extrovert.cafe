@@ -392,7 +392,7 @@ CREATE TABLE public.device_telemetry (
     measured_at timestamp with time zone NOT NULL,
     metrics jsonb NOT NULL,
     received_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT device_telemetry_source_check CHECK ((source = ANY (ARRAY['pi'::text, 'jetinno'::text, 'camera'::text])))
+    CONSTRAINT device_telemetry_source_check CHECK ((source = ANY (ARRAY['pi'::text, 'jetinno'::text, 'camera'::text, 'kernel'::text])))
 );
 
 
@@ -1193,6 +1193,7 @@ CREATE TABLE public.points (
     tunnel_pubkey text,
     tunnel_key_at timestamp with time zone,
     jetinno_vmc text,
+    video_upload_paused_at timestamp with time zone,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
     CONSTRAINT points_machine_letter_check CHECK ((machine_letter ~ '^[a-z]$'::text)),
     CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text]))),
@@ -4360,4 +4361,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261012100000'),
     ('20261012110000'),
     ('20261015180000'),
-    ('20261016100000');
+    ('20261016100000'),
+    ('20261017100000'),
+    ('20261017100100');
