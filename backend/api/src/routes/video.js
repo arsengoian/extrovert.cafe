@@ -116,15 +116,14 @@ export default async function routes(app) {
     return { url };
   });
 
-  // Скільки сегментів за останню добу — щоб адмінка бачила дірки в архіві.
-  app.get("/admin/video/coverage", async (req, reply) => {
+  // Вирізки проходу (смужка в extrovert-evidence, worker/crops.py). Ключ —
+  // з бази, не з запиту: інакше адмінка підписала б будь-який обʼєкт бакета.
+  app.get("/admin/video/passages/:id/crops/:i", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
-    return {
-      hours: await many(
-        `select date_trunc('hour', started_at) as hour, point_id, count(*)::int as segments, sum(bytes)::bigint as bytes
-           from video_segments where started_at > now() - interval '24 hours'
-          group by 1, 2 order by 1`
-      ),
-    };
+    const row = await one("select crops from video_passages where id = $1", [req.params.id]);
+    const key = row?.crops?.[Number(req.params.i)]?.key;
+    if (typeof key !== "string") fail(404, "no_such_crops");
+    const { url } = presign({ method: "GET", purpose: "evidence", key, expiresIn: 600 });
+    return { url };
   });
 }

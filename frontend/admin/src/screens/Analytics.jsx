@@ -6,8 +6,10 @@
 //   Аудиторія   — скільки людей, чи повертаються, як довго сидять;
 //   Навігація   — куди ходять, звідки заходять, де кидають;
 //   Дії й воронки — що роблять і на якому кроці відвалюються;
-//   Час і пристрої — коли й з чого;
-//   Технічне    — які запити повільні чи падають, як їх бачить гравець.
+//   Час і пристрої — коли й з чого.
+//
+// «Технічне» — які запити повільні чи падають — з 18.10.2026 на «Здоровʼї»
+// (ApiTech нижче): це про стан сервісу, а не про поведінку гравців.
 import { useState } from "react";
 import { api } from "../api.js";
 import { Bars, Columns, Donut, Line } from "../charts.jsx";
@@ -106,27 +108,6 @@ export function Analytics() {
   const actions = Object.keys(w.action_count ?? {})
     .map((label) => ({ label, count: w.action_count[label], people: w.action_people?.[label] ?? 0 }))
     .sort((a, b) => b.count - a.count);
-
-  const routes = Object.keys(w.route_requests ?? {}).map((route) => ({
-    route,
-    n: w.route_requests[route],
-    p50: w.route_p50_ms?.[route] ?? 0,
-    p95: w.route_p95_ms?.[route] ?? 0,
-    e4: w.route_4xx?.[route] ?? 0,
-    e5: w.route_5xx?.[route] ?? 0,
-  }));
-  const byCount = [...routes].sort((a, b) => b.n - a.n).slice(0, 20);
-  // Повільні — лише серед маршрутів, що викликались хоч кілька разів:
-  // один холодний запит не робить маршрут «повільним».
-  const slow = routes.filter((r) => r.n >= 5).sort((a, b) => b.p95 - a.p95).slice(0, 10);
-  const routeCols = [
-    { key: "route", title: "Запит", render: (r) => <code style={{ fontSize: 11 }}>{r.route}</code> },
-    { key: "n", title: "Разів", num: true, render: (r) => fmt.int(r.n) },
-    { key: "p50", title: "p50", num: true, render: (r) => ms(r.p50) },
-    { key: "p95", title: "p95", num: true, render: (r) => ms(r.p95) },
-    { key: "e4", title: "4xx", num: true, render: (r) => (r.e4 ? `${fmt.int(r.e4)} · ${pct(r.e4, r.n)}` : "—") },
-    { key: "e5", title: "5xx", num: true, render: (r) => (r.e5 ? <b style={{ color: "#FF6B7A" }}>{fmt.int(r.e5)}</b> : "—") },
-  ];
 
   const daily = data.daily;
   const trendDays = dayList(Math.max(days, 14));
@@ -275,23 +256,70 @@ export function Analytics() {
           <Donut items={top(w.platform_people, 4, (k) => PLATFORM[k] ?? k)} colors={["#FE810B", "#3FBF6F", "#5AA9FF", "#8B94A3"]} />
         </Card>
       </div>
+    </>
+  );
+}
 
-      <h2 className="section-title">Технічне</h2>
-      <div className="grid k4">
-        <Kpi label="Запитів до api" value={fmt.int(one("api_requests"))} note="від застосунку гравця" />
-        <Kpi label="Помилки сервера" value={pct(one("api_5xx"), one("api_requests"))} tone={one("api_5xx") ? "bad" : undefined}
-             note={`${fmt.int(one("api_5xx"))} відповідей 5xx`} />
-        <Kpi label="Відмови 4xx" value={pct(one("api_4xx"), one("api_requests"))} note="401 перед оновленням токена — норма" />
-        <Kpi label="Швидкість" value={ms(one("api_p95_ms"))} note={`p95 · медіана ${ms(one("api_p50_ms"))}`} />
+// Запити застосунку гравця до api: скільки, які падають, які повільні —
+// розділ «Здоровʼя» (18.10.2026; до того — «Технічне» в кінці аналітики).
+// Свій вибір вікна, бо смужки «Здоровʼя» міряються годинами, а ці зрізи
+// scheduler рахує лише за добу, тиждень і місяць.
+export function ApiTech() {
+  const [days, setDays] = useState(1);
+  const { data, error } = useData(() => api.analytics(days, "tech"), [days]);
+  const w = data?.window ?? {};
+  const one = (m) => w[m]?.[""] ?? 0;
+  const routes = Object.keys(w.route_requests ?? {}).map((route) => ({
+    route,
+    n: w.route_requests[route],
+    p50: w.route_p50_ms?.[route] ?? 0,
+    p95: w.route_p95_ms?.[route] ?? 0,
+    e4: w.route_4xx?.[route] ?? 0,
+    e5: w.route_5xx?.[route] ?? 0,
+  }));
+  const byCount = [...routes].sort((a, b) => b.n - a.n).slice(0, 20);
+  // Повільні — лише серед маршрутів, що викликались хоч кілька разів:
+  // один холодний запит не робить маршрут «повільним».
+  const slow = routes.filter((r) => r.n >= 5).sort((a, b) => b.p95 - a.p95).slice(0, 10);
+  const routeCols = [
+    { key: "route", title: "Запит", render: (r) => <code style={{ fontSize: 11 }}>{r.route}</code> },
+    { key: "n", title: "Разів", num: true, render: (r) => fmt.int(r.n) },
+    { key: "p50", title: "p50", num: true, render: (r) => ms(r.p50) },
+    { key: "p95", title: "p95", num: true, render: (r) => ms(r.p95) },
+    { key: "e4", title: "4xx", num: true, render: (r) => (r.e4 ? `${fmt.int(r.e4)} · ${pct(r.e4, r.n)}` : "—") },
+    { key: "e5", title: "5xx", num: true, render: (r) => (r.e5 ? <b style={{ color: "#FF6B7A" }}>{fmt.int(r.e5)}</b> : "—") },
+  ];
+
+  return (
+    <>
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "center", margin: "22px 0 10px" }}>
+        <h2 className="section-title" style={{ margin: 0 }}>API застосунку гравця</h2>
+        <div className="chips">
+          {WINDOWS.map(([d, label]) => (
+            <button key={d} className={`pill${days === d ? " on" : ""}`} onClick={() => setDays(d)}>{label}</button>
+          ))}
+        </div>
       </div>
-      <div className="grid k2" style={{ marginTop: 12 }}>
-        <Card title="Найчастіші запити">
-          <Table rows={byCount} columns={routeCols} scroll />
-        </Card>
-        <Card title="Найповільніші" note="p95, від 5 викликів">
-          <Table rows={slow} columns={routeCols} scroll />
-        </Card>
-      </div>
+      {error ? <Empty>не вдалось прочитати: {error.message}</Empty> : !data ? <Empty>вантажимо…</Empty> : (
+        <>
+          <div className="grid k4">
+            <Kpi label="Запитів до api" value={fmt.int(one("api_requests"))}
+                 note={`від застосунку гравця${data.computed_at ? ` · пораховано ${fmt.ago(data.computed_at)}` : ""}`} />
+            <Kpi label="Помилки сервера" value={pct(one("api_5xx"), one("api_requests"))} tone={one("api_5xx") ? "bad" : undefined}
+                 note={`${fmt.int(one("api_5xx"))} відповідей 5xx`} />
+            <Kpi label="Відмови 4xx" value={pct(one("api_4xx"), one("api_requests"))} note="401 перед оновленням токена — норма" />
+            <Kpi label="Швидкість" value={ms(one("api_p95_ms"))} note={`p95 · медіана ${ms(one("api_p50_ms"))}`} />
+          </div>
+          <div className="grid k2" style={{ marginTop: 12 }}>
+            <Card title="Найчастіші запити">
+              <Table rows={byCount} columns={routeCols} scroll empty="запитів за цей період немає" />
+            </Card>
+            <Card title="Найповільніші" note="p95, від 5 викликів">
+              <Table rows={slow} columns={routeCols} scroll empty="замало викликів, щоб судити" />
+            </Card>
+          </div>
+        </>
+      )}
     </>
   );
 }

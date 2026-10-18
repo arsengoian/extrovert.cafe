@@ -1,27 +1,35 @@
-// Аналітика відео для адмінки: відвідуваність, воронка до покупки, покупки
-// з трьома митями й невдалі спроби (власник, 15.10.2026; заміри й пороги —
-// аналіз архіву картки 09–14.10, docs/video.md «Люди й візити»).
+// Продажі для адмінки: дашборд «Продажі» (відвідуваність, воронка до
+// покупки, покупки по днях, що пʼють), список «Покупки» — кожен чек із
+// бонусом, трьома митями й тим, хто стояв біля автомата, — невдалі спроби й
+// дашборд «Фінанси» (docs/admin_panel.md).
 //
-// Усе рахується з того, що пише worker (backend/worker): проходи коридором
-// (video_passages), люди й візити (video_people, video_visits — їх worker
-// переписує за останню добу щоразу заново, тож тут лише читаємо) і події
-// (video_events, без замінених переаналізом — superseded_at).
+// До 18.10.2026 це було два екрани відео («Аналітика», «Покупці») і два
+// поза ним («Статистика», «Покупки»), і той самий чек показували чотири
+// місця з різними підрахунками. Тепер кожен показник має одне місце.
 //
-// Доба — київська, і для відвідувачів це «люди, яких камера бачила цього
+// Відео рахує worker (backend/worker): проходи коридором (video_passages),
+// люди й візити (video_people, video_visits — їх worker переписує за останню
+// добу щоразу заново, тож тут лише читаємо) і події (video_events, без
+// замінених переаналізом — superseded_at). Пороги й заміри — docs/video.md,
+// «Люди й візити».
+//
+// Доба — київська. Для відвідувачів це «люди, яких камера бачила цього
 // дня»: клуб цілодобовий, і нічний гість, що прийшов о 23:00 і пішов о 03:00,
 // — відвідувач обох діб, а візит у нього один (video_visits).
-import { presign } from "@extrovert/lib/r2.js";
 import { many, one } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 import { pageInfo, pageOf } from "../paging.js";
 
 const TZ = "Europe/Kyiv";
+const DAY = 86400_000;
 
-function range(query) {
+// Проміжок дат: from/to з екрана або останні `days` діб. Відеоаналітика
+// рахує погодинні ряди, тож її стеля — 92 доби; списки й гроші — без стелі.
+function range(query, days, maxDays = Infinity) {
   const to = query.to ? new Date(query.to) : new Date();
-  const from = query.from ? new Date(query.from) : new Date(to.getTime() - 7 * 86400_000);
-  if (Number.isNaN(+from) || Number.isNaN(+to) || to - from > 92 * 86400_000) fail(400, "bad_range");
+  const from = query.from ? new Date(query.from) : new Date(to.getTime() - days * DAY);
+  if (Number.isNaN(+from) || Number.isNaN(+to) || to - from > maxDays * DAY) fail(400, "bad_range");
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
@@ -52,10 +60,45 @@ const COVER = `
      group by h.h
   )`;
 
+// Невдалі спроби: людина простояла біля автомата від 20 с, а чека поруч
+// немає. Спільне для списку спроб і KPI над чеками.
+const ATTEMPTS_FROM = `from video_events e
+         left join video_passages pa on pa.id = e.passage_id
+         left join video_people pe on pe.id = pa.person_id
+        where e.kind = 'machine' and e.superseded_at is null
+          and e.ended_at - e.started_at >= interval '20 seconds'
+          and e.started_at between $1 and $2 and ($3 = '' or e.point_id = $3)
+          and not exists (select 1 from receipts r
+                           where r.point_id = e.point_id
+                             and r.fiscal_date between e.started_at - interval '30 seconds' and e.ended_at + interval '60 seconds')`;
+
+// KPI над «Покупками» — з усього періоду, а не з видимої сторінки: досі
+// «Чеків» і «Покупця видно» рахувались по обрізаному до 200 списку
+// (16.10.2026). Без тестових і власника (receipt_in_stats).
+async function purchaseKpi(p) {
+  const kpi = await one(
+    `select count(*)::int as receipts,
+            count(*) filter (where receipt_in_stats(r.id))::int as real,
+            count(*) filter (where receipt_in_stats(r.id) and exists
+              (select 1 from bonus_grants b where b.receipt_id = r.id and b.status = 'redeemed'))::int as redeemed,
+            count(*) filter (where receipt_in_stats(r.id) and exists
+              (select 1 from video_passages pa where pa.receipt_id = r.id))::int as seen
+       from receipts r
+      where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)`,
+    p
+  );
+  const attempts = await one(
+    `select count(*)::int as total, count(*) filter (where not coalesce(pe.staff, false))::int as guests ${ATTEMPTS_FROM}`,
+    p
+  );
+  return { ...kpi, attempts: attempts.total, attempts_guests: attempts.guests };
+}
+
 export default async function routes(app) {
-  app.get("/admin/video/analytics", async (req, reply) => {
+  // ── Дашборд «Продажі» ───────────────────────────────────────────────
+  app.get("/admin/sales", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
-    const { from, to } = range(req.query);
+    const { from, to } = range(req.query, 7, 92);
     const point = String(req.query.point ?? "");
     const p = [from, to, point];
 
@@ -76,10 +119,15 @@ export default async function routes(app) {
         group by 1 order by 1`,
       p
     );
+    // Покупки за київську добу — по точках (графік «Покупки за добу», до
+    // 18.10.2026 жив на «Статистиці» в UTC-добах). Сума по точках — це й
+    // стовпчик «чеків» у таблиці днів.
     const receiptsByDay = await many(
-      `select to_char(fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, count(*)::int as receipts
-         from receipts where fiscal_date between $1 and $2 and ($3 = '' or point_id = $3) and receipt_in_stats(id)
-        group by 1`,
+      `select to_char(r.fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, r.point_id,
+              coalesce(pt.name, r.point_id) as point_name, count(*)::int as receipts
+         from receipts r left join points pt on pt.id = r.point_id
+        where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3) and receipt_in_stats(r.id)
+        group by 1, 2, 3 order by 1`,
       p
     );
     const funnel = await one(
@@ -220,33 +268,40 @@ export default async function routes(app) {
     };
   });
 
-  // Покупки з відео: кожен чек — три миті (вибір напою, оплата, напій
-  // готовий), хто стояв біля автомата в мить оплати і наскільки впевнено, і
-  // аркуш-доказ події. Вибір — час у номері замовлення машини
+  // ── «Покупки»: кожен чек ────────────────────────────────────────────
+  // Позиції, бонус і хто його забрав (Checkbox), три миті покупки — вибір
+  // напою, оплата, напій готовий — і хто стояв біля автомата в мить оплати
+  // з аркушем-доказом події (відео). Вибір — час у номері замовлення машини
   // (2026101016171720… → 16:17:17 за Києвом), готовий — purchased_at
   // замовлення; замовлення шукаємо за ціною в межах трьох хвилин від чека.
-  app.get("/admin/video/purchases", async (req, reply) => {
+  // Список — усі чеки, разом із тестовими (їх видно позначкою); KPI — без них.
+  app.get("/admin/receipts", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
-    const { from, to } = range(req.query);
+    const { from, to } = range(req.query, 30);
     const point = String(req.query.point ?? "");
     const p = [from, to, point];
-    // Дві таблиці на екрані — дві незалежні сторінки (p_page, a_page).
-    const pp = pageOf(req.query, { per: 25 }, "p_");
-    const ap = pageOf(req.query, { per: 25 }, "a_");
-    const purchases = await many(
-      `select r.id, r.point_id, r.fiscal_date as paid, r.total_sum::float as total, receipt_in_stats(r.id) as in_stats,
+    const pg = pageOf(req.query, { per: 25 });
+    const receipts = await many(
+      `select r.id, r.point_id, coalesce(pt.name, r.point_id) as point_name, r.fiscal_date, r.total_sum::float as total_sum,
+              r.source, r.tax_url, receipt_in_stats(r.id) as in_stats,
+              (select json_agg(json_build_object('name', i.name, 'qty', i.qty, 'sum', i.sum_uah, 'bonus', i.is_bonus_drink) order by i.id)
+                 from receipt_items i where i.receipt_id = r.id) as items,
+              b.status as bonus_status, b.coins_yellow as bonus_coins, b.redeemed_at,
+              u.id as redeemed_by, u.nickname as redeemed_nickname, u.stats_excluded as redeemed_excluded,
               o.purchased_at as done, o.product_id, d.name as drink,
               case when ltrim(o.order_no, '\`') ~ '^\\d{14}'
                    then (to_timestamp(left(ltrim(o.order_no, '\`'), 14), 'YYYYMMDDHH24MISS')
                          at time zone current_setting('TimeZone')) at time zone '${TZ}' end as selected,
-              pa.id as passage_id, pa.receipt_match, pa.person_id, pa.crops, pa.direction,
-              pe.staff, pe.passages as person_passages, pe.first_seen, pe.last_seen,
+              pa.id as passage_id, pa.receipt_match, pa.person_id, pa.crops, pe.staff,
               e.id as event_id, e.kind as event_kind, e.evidence,
               (select count(*)::int from video_segments s
                 where s.point_id = r.point_id and s.status = 'done'
                   and r.fiscal_date between s.started_at and s.started_at + coalesce(s.duration_ms, 60000) * interval '1 millisecond')
                 as on_video
          from receipts r
+         left join points pt on pt.id = r.point_id
+         left join bonus_grants b on b.receipt_id = r.id
+         left join users u on u.id = b.redeemed_by
          left join lateral (
            select * from machine_orders o
             where o.point_id = r.point_id and o.price_uah = r.total_sum
@@ -261,37 +316,22 @@ export default async function routes(app) {
             order by e.kind = 'machine' desc limit 1) e on true
         where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)
         order by r.fiscal_date desc, r.id desc limit $4 offset $5`,
-      [...p, pp.per, pp.offset]
+      [...p, pg.per, pg.offset]
     );
-    // KPI — з усього періоду, а не з видимої сторінки: досі «Чеків» і
-    // «Покупця видно» рахувались по обрізаному до 200 списку (16.10.2026).
-    const kpi = await one(
-      `select count(*)::int as receipts,
-              count(*) filter (where receipt_in_stats(r.id))::int as real,
-              count(*) filter (where receipt_in_stats(r.id)
-                                 and exists (select 1 from video_passages pa where pa.receipt_id = r.id))::int as seen
-         from receipts r
-        where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)`,
-      p
-    );
+    const kpi = await purchaseKpi(p);
+    return { from, to, receipts, kpi, page: pageInfo(pg, kpi.receipts) };
+  });
 
-    // Невдалі спроби: людина простояла біля автомата від 20 с, а чека поруч
-    // немає. Поруч — стан мережі малини (втрати й затримка на 4G) і чи
-    // кавомашина була на звʼязку: 14.10 о 23:36 саме так платіж не пройшов —
-    // LTE губив 16–28 % пакетів, а термінал іншого каналу не має.
-    const attemptsFrom = `from video_events e
-         left join video_passages pa on pa.id = e.passage_id
-         left join video_people pe on pe.id = pa.person_id
-        where e.kind = 'machine' and e.superseded_at is null
-          and e.ended_at - e.started_at >= interval '20 seconds'
-          and e.started_at between $1 and $2 and ($3 = '' or e.point_id = $3)
-          and not exists (select 1 from receipts r
-                           where r.point_id = e.point_id
-                             and r.fiscal_date between e.started_at - interval '30 seconds' and e.ended_at + interval '60 seconds')`;
-    const attemptCount = await one(
-      `select count(*)::int as total, count(*) filter (where not coalesce(pe.staff, false))::int as guests ${attemptsFrom}`,
-      p
-    );
+  // Невдалі спроби — окремою вкладкою «Покупок». Поруч — стан мережі
+  // малини (втрати й затримка) і чи кавомашина була на звʼязку: 14.10 о
+  // 23:36 саме так платіж не пройшов — LTE губив 16–28 % пакетів, а термінал
+  // іншого каналу не має.
+  app.get("/admin/receipts/attempts", async (req, reply) => {
+    if (!requireAdmin(req, reply)) return;
+    const { from, to } = range(req.query, 30);
+    const point = String(req.query.point ?? "");
+    const p = [from, to, point];
+    const pg = pageOf(req.query, { per: 25 });
     const attempts = await many(
       `select e.id, e.point_id, e.started_at, e.ended_at, e.evidence, e.passage_id,
               extract(epoch from e.ended_at - e.started_at)::int as secs,
@@ -307,26 +347,53 @@ export default async function routes(app) {
               (select t.metrics->>'online' from device_telemetry t
                 where t.point_id = e.point_id and t.source = 'jetinno' and t.measured_at <= e.ended_at
                 order by t.measured_at desc limit 1) as machine_online
-         ${attemptsFrom}
+         ${ATTEMPTS_FROM}
         order by e.started_at desc, e.id desc limit $4 offset $5`,
-      [...p, ap.per, ap.offset]
+      [...p, pg.per, pg.offset]
     );
-    return {
-      from, to, purchases, attempts,
-      kpi: { ...kpi, attempts_guests: attemptCount.guests },
-      purchases_page: pageInfo(pp, kpi.receipts),
-      attempts_page: pageInfo(ap, attemptCount.total),
-    };
+    const kpi = await purchaseKpi(p);
+    return { from, to, attempts, kpi, page: pageInfo(pg, kpi.attempts) };
   });
 
-  // Вирізки проходу (смужка в extrovert-evidence, worker/crops.py). Ключ —
-  // з бази, не з запиту: інакше адмінка підписала б будь-який обʼєкт бакета.
-  app.get("/admin/video/passages/:id/crops/:i", async (req, reply) => {
+  // ── Дашборд «Фінанси» ───────────────────────────────────────────────
+  // Виручка — сума чеків Checkbox без тестових і власника
+  // (receipt_in_stats), по київських добах і точках, за годиною дня й днем
+  // тижня. До 18.10.2026 ці графіки жили на «Статистиці» й рахували добу в
+  // UTC: покупка о 01:30 за Києвом потрапляла в учорашній день.
+  app.get("/admin/finance", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
-    const row = await one("select crops from video_passages where id = $1", [req.params.id]);
-    const key = row?.crops?.[Number(req.params.i)]?.key;
-    if (typeof key !== "string") fail(404, "no_such_crops");
-    const { url } = presign({ method: "GET", purpose: "evidence", key, expiresIn: 600 });
-    return { url };
+    const { from, to } = range(req.query, 30);
+    const p = [from, to];
+    const revenue = await many(
+      `select to_char(r.fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, r.point_id,
+              coalesce(pt.name, r.point_id) as point_name,
+              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
+         from receipts r left join points pt on pt.id = r.point_id
+        where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+        group by 1, 2, 3 order by 1`,
+      p
+    );
+    // Дохід за годиною дня й за днем тижня — два зрізи того самого чека.
+    // Київський час: «о восьмій ранку» має означати восьму в залі.
+    const byHour = await many(
+      `select extract(hour from r.fiscal_date at time zone '${TZ}')::int as hour,
+              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
+         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+        group by 1 order by 1`,
+      p
+    );
+    const byWeekday = await many(
+      `select extract(isodow from r.fiscal_date at time zone '${TZ}')::int as weekday,
+              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
+         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+        group by 1 order by 1`,
+      p
+    );
+    const totals = await one(
+      `select coalesce(sum(total_sum), 0)::float as revenue, count(*)::int as receipts
+         from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)`,
+      p
+    );
+    return { from, to, totals, revenue, by_hour: byHour, by_weekday: byWeekday };
   });
 }

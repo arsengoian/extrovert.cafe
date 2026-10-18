@@ -65,22 +65,9 @@ export default async function routes(app) {
 
   // Викочування меню. Адмінка лише ставить у чергу — котить scheduler
   // (backend/scheduler/src/jobs/menu.js), бо ключі до прод-бакета мають
-  // бути там, де прод, а не на чиємусь ноутбуці.
-  app.get("/admin/menu/deployments", async (req, reply) => {
-    if (!requireAdmin(req, reply)) return;
-    const { rows } = await pool.query(
-      `select d.id, d.status, d.payload, d.created_at, d.finished_at,
-              count(t.id)::int as targets,
-              count(*) filter (where t.status = 'done')::int as done
-         from menu_deployments d
-         left join menu_deployment_targets t on t.deployment_id = d.id
-        group by d.id
-        order by d.id desc
-        limit 10`
-    );
-    return { deployments: rows };
-  });
-
+  // бути там, де прод, а не на чиємусь ноутбуці. Історію деплойментів
+  // віддає /admin/deployments (admin-ops.js); тутешній GET-двійник без
+  // жодного виклику прибрано 18.10.2026.
   app.post("/admin/menu/deployments", async (req, reply) => {
     const admin = requireAdmin(req, reply);
     if (!admin) return;

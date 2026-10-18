@@ -30,7 +30,7 @@ const redis = redisClient();
 // Версія в ключі — щоб зміна складу відповіді не чекала 04:00: старий
 // кеш просто перестає читатись (23.09.2026 так і сталось із розрізом
 // ринку по виду товару).
-const CACHE_KEY = "stats:v3:default";
+const CACHE_KEY = "stats:v4:default";
 const nextFourAm = () => {
   const now = new Date();
   const four = new Date(now);
@@ -173,12 +173,21 @@ export default async function routes(app) {
   // (jobs/analytics.js) раз на десять хвилин; тут лише читання й групування
   // у { метрика: { розріз: значення } }. Тренд — щонайменше за 14 днів:
   // на «добі» одна точка графіка нічого не показує.
+  //
+  // part=tech — лише запити до api (api_*, route_*): їх показує «Здоровʼя»,
+  // і решту зрізів йому тягнути нема чого (18.10.2026).
   app.get("/admin/analytics", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const days = [1, 7, 30].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
-    const rows = await many("select metric, dim, value, computed_at from analytics_window where days = $1", [days]);
+    const tech = req.query.part === "tech";
+    const rows = await many(
+      `select metric, dim, value, computed_at from analytics_window
+        where days = $1 and (not $2::boolean or metric like 'api\\_%' or metric like 'route\\_%')`,
+      [days, tech]
+    );
     const window = {};
     for (const r of rows) (window[r.metric] ??= {})[r.dim] = Number(r.value);
+    if (tech) return { days, computed_at: rows[0]?.computed_at ?? null, window, daily: [] };
     const daily = await many(
       `select day::text as day, metric, dim, value from analytics_daily
         where day > (now() at time zone 'Europe/Kyiv')::date - $1::int order by day`,
@@ -192,7 +201,9 @@ export default async function routes(app) {
     };
   });
 
-  // ── Дашборд статистики ──────────────────────────────────────────────
+  // ── «Гравці» → економіка гри: бонуси, монети, зерна, ринок ─────────
+  // Виручка й години продажів — routes/admin-sales.js («Фінанси»), події
+  // камери — «Продажі», нові й активні гравці — «Застосунок» (18.10.2026).
   app.get("/admin/stats", async (req, reply) => {
     if (!requireAdmin(req, reply)) return;
     const { from, to } = range(req.query);
@@ -203,17 +214,11 @@ export default async function routes(app) {
       if (cached) return JSON.parse(cached);
     }
 
-    const revenue = await many(
-      `select date_trunc('day', r.fiscal_date) as day, r.point_id, p.name as point_name,
-              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r left join points p on p.id = r.point_id
-        where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
-        group by 1, 2, 3 order by 1`,
-      [from, to]
-    );
-
+    // Бонуси за чек — за датою ЧЕКА, і в KPI, і на графіку: досі KPI рахував
+    // за датою, коли бонус забрали, а кругова діаграма поруч — за датою чека,
+    // і екран показував два різні числа про те саме (18.10.2026).
     const bonuses = await many(
-      `select date_trunc('day', r.fiscal_date) as day,
+      `select date_trunc('day', r.fiscal_date at time zone 'Europe/Kyiv') as day,
               count(*)::int as granted,
               count(*) filter (where b.status = 'redeemed')::int as redeemed,
               coalesce(sum(b.coins_yellow) filter (where b.status = 'redeemed'), 0)::int as coins
@@ -226,7 +231,7 @@ export default async function routes(app) {
     // Монети й боби: окремо зароблене й витрачене, бо «чистий приріст»
     // ховає і те, і те.
     const coins = await many(
-      `select date_trunc('day', created_at) as day,
+      `select date_trunc('day', created_at at time zone 'Europe/Kyiv') as day,
               sum(delta_yellow) filter (where delta_yellow > 0)::int as yellow_in,
               -sum(delta_yellow) filter (where delta_yellow < 0)::int as yellow_out,
               sum(delta_silver) filter (where delta_silver > 0)::int as silver_in,
@@ -242,39 +247,11 @@ export default async function routes(app) {
     // одяг (кадр «P2P оборот»). Валюта поруч, бо жовті монети й боби в
     // одну суму не складаються.
     const market = await many(
-      `select date_trunc('day', t.created_at) as day, l.kind, t.currency,
+      `select date_trunc('day', t.created_at at time zone 'Europe/Kyiv') as day, l.kind, t.currency,
               count(*)::int as trades, sum(t.gross)::int as gross, sum(t.commission)::int as commission
          from market_trades t join market_listings l on l.id = t.listing_id
         where t.created_at between $1 and $2 and in_stats(t.buyer_id) and in_stats(t.seller_id)
         group by 1, 2, 3 order by 1`,
-      [from, to]
-    );
-
-    // Без подій, замінених переаналізом (superseded_at): інакше переоброблений
-    // сегмент рахувався б двічі — старою версією аналізу й новою.
-    const events = await many(
-      `select date_trunc('day', started_at) as day, kind, count(*)::int as n
-         from video_events where started_at between $1 and $2 and superseded_at is null
-        group by 1, 2 order by 1`,
-      [from, to]
-    );
-
-    // Дохід за годиною дня й за днем тижня — два зрізи того самого чека
-    // (кадри «Дохід за годиною дня» / «Дохід за днями тижня»). Рахуємо в
-    // київському часі: «о восьмій ранку» має означати восьму в залі, а не
-    // в UTC.
-    const byHour = await many(
-      `select extract(hour from r.fiscal_date at time zone 'Europe/Kyiv')::int as hour,
-              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
-        group by 1 order by 1`,
-      [from, to]
-    );
-    const byWeekday = await many(
-      `select extract(isodow from r.fiscal_date at time zone 'Europe/Kyiv')::int as weekday,
-              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
-        group by 1 order by 1`,
       [from, to]
     );
 
@@ -288,20 +265,17 @@ export default async function routes(app) {
       [from, to]
     );
 
+    // Ринок — усі валюти разом (у KPI це «скільки монет перейшло з рук у
+    // руки»), комісія й кількість угод — підписом під ним.
     const totals = await one(
-      `select (select coalesce(sum(total_sum), 0)::float from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)) as revenue,
-              (select count(*)::int from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)) as receipts,
-              (select count(*)::int from users where created_at between $1 and $2 and deleted_at is null and not stats_excluded) as new_users,
-              (select count(*)::int from users where last_seen_at between $1 and $2 and not stats_excluded) as active_users,
-              (select count(*)::int from bonus_grants where redeemed_at between $1 and $2 and in_stats(redeemed_by)) as redeemed,
-              (select coalesce(sum(gross), 0)::int from market_trades
-                where created_at between $1 and $2 and in_stats(buyer_id) and in_stats(seller_id)) as market_gross`,
+      `select coalesce(sum(gross), 0)::int as market_gross, coalesce(sum(commission), 0)::int as market_commission,
+              count(*)::int as market_trades
+         from market_trades where created_at between $1 and $2 and in_stats(buyer_id) and in_stats(seller_id)`,
       [from, to]
     );
 
     const payload = {
-      from, to, totals, revenue, bonuses, coins, market, events,
-      by_hour: byHour, by_weekday: byWeekday, bonus_split: bonusSplit,
+      from, to, totals, bonuses, coins, market, bonus_split: bonusSplit,
       cached_at: new Date().toISOString(),
     };
     if (isDefault) await redis.set(CACHE_KEY, JSON.stringify(payload), "EX", nextFourAm()).catch(() => {});
@@ -542,41 +516,7 @@ export default async function routes(app) {
     return { ok: true, stats_excluded: row.stats_excluded };
   });
 
-  // ── Покупки з Checkbox ──────────────────────────────────────────────
-  app.get("/admin/receipts", async (req, reply) => {
-    if (!requireAdmin(req, reply)) return;
-    const { from, to } = range(req.query);
-    const point = String(req.query.point ?? "");
-    const pg = pageOf(req.query);
-    const rows = await many(
-      `select r.id, r.point_id, p.name as point_name, r.fiscal_date, r.total_sum, r.source, r.tax_url,
-              r.checkbox_receipt_id,
-              (select json_agg(json_build_object('name', i.name, 'qty', i.qty, 'sum', i.sum_uah, 'bonus', i.is_bonus_drink) order by i.id)
-                 from receipt_items i where i.receipt_id = r.id) as items,
-              b.status as bonus_status, b.coins_yellow as bonus_coins, b.show_until, b.redeemed_at,
-              u.id as redeemed_by, u.nickname as redeemed_nickname, u.stats_excluded as redeemed_excluded
-         from receipts r
-         left join points p on p.id = r.point_id
-         left join bonus_grants b on b.receipt_id = r.id
-         left join users u on u.id = b.redeemed_by
-        where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)
-        order by r.fiscal_date desc, r.id desc limit $4 offset $5`,
-      [from, to, point, pg.per, pg.offset]
-    );
-    // KPI — з усього періоду й без тестових (receipt_in_stats); список під
-    // ними — усі чеки, разом із тестовими, тож і лічильник сторінок свій.
-    const totals = await one(
-      `select count(*)::int as receipts, coalesce(sum(total_sum), 0)::float as sum_uah,
-              count(*) filter (where exists (select 1 from bonus_grants b where b.receipt_id = r.id and b.status = 'redeemed'))::int as redeemed
-         from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3) and receipt_in_stats(r.id)`,
-      [from, to, point]
-    );
-    const listed = await one(
-      "select count(*)::int as n from receipts r where r.fiscal_date between $1 and $2 and ($3 = '' or r.point_id = $3)",
-      [from, to, point]
-    );
-    return { from, to, receipts: rows, totals, page: pageInfo(pg, listed.n) };
-  });
+  // Покупки (чеки з бонусом і відео) — routes/admin-sales.js.
 
   // ── Відео ───────────────────────────────────────────────────────────
   // Сегменти пише recorder на малині, події — worker (backend/worker). Ключі

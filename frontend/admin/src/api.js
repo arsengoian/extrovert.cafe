@@ -99,7 +99,7 @@ export const api = {
   pointSamples: (id, p) => request(`/admin/points/${encodeURIComponent(id)}/samples${qs(p)}`),
   pointVideoUpload: (id, paused) => request(`/admin/points/${encodeURIComponent(id)}/video-upload`, { method: "POST", body: { paused } }),
   stats: (p) => request(`/admin/stats${qs(p)}`),
-  analytics: (days) => request(`/admin/analytics${qs({ days })}`),
+  analytics: (days, part) => request(`/admin/analytics${qs({ days, part })}`),
   broadcasts: (p) => request(`/admin/broadcasts${qs(p)}`),
   broadcastSend: (body) => request("/admin/broadcasts", { method: "POST", body }),
   quizzes: (p) => request(`/admin/quizzes${qs(p)}`),
@@ -125,7 +125,12 @@ export const api = {
   users: (p) => request(`/admin/users${qs(p)}`),
   user: (id) => request(`/admin/users/${id}`),
   userStats: (id, excluded) => request(`/admin/users/${id}/stats`, { method: "POST", body: { excluded } }),
+  // Покупки: кожен чек із бонусом і відео, невдалі спроби, продажі й гроші
+  // (api/src/routes/admin-sales.js, 18.10.2026).
   receipts: (p) => request(`/admin/receipts${qs(p)}`),
+  receiptAttempts: (p) => request(`/admin/receipts/attempts${qs(p)}`),
+  sales: (p) => request(`/admin/sales${qs(p)}`),
+  finance: (p) => request(`/admin/finance${qs(p)}`),
   video: (p) => request(`/admin/video${qs(p)}`),
   // Сегмент лежить у приватному бакеті: беремо підписане посилання на 10 хв.
   videoDownload: (id) => request(`/admin/video/segments/${id}/download`),
@@ -134,9 +139,6 @@ export const api = {
   // Доказ події з приватного extrovert-evidence: name — ключ у video_events.evidence.
   evidence: (id, name, download = false) =>
     request(`/admin/video/events/${id}/evidence/${name}${download ? "?download=1" : ""}`),
-  // Відвідуваність, воронка, покупки з відео (api/src/routes/video-stats.js).
-  videoAnalytics: (p) => request(`/admin/video/analytics${qs(p)}`),
-  videoPurchases: (p) => request(`/admin/video/purchases${qs(p)}`),
   // Смужка вирізок проходу: i — номер шматка проходу (по одному на сегмент).
   passageCrops: (id, i = 0) => request(`/admin/video/passages/${id}/crops/${i}`),
   supportThreads: (status, page) => request(`/admin/support/threads` + qs({ status, page })),

@@ -1,8 +1,9 @@
-// Відео → «Аналітика» і «Покупці» (власник, 15.10.2026): скільки людей
-// буває в закладі, скільки з них доходить до автомата й купує, скільки сидять,
-// коли камера чи кавомашина не працювали — і кожна покупка з трьома митями
-// й тим, хто стояв біля автомата. Рахує worker (проходи, люди, візити —
-// backend/worker/worker/people.py), віддає api/src/routes/video-stats.js.
+// «Продажі» (огляд): скільки людей буває в закладі, скільки з них доходить
+// до автомата й купує, скільки покупок за добу й що пʼють, коли камера чи
+// кавомашина не працювали. До 18.10.2026 — «Аналітика» в групі відео плюс
+// графік покупок зі «Статистики»; гроші тепер у «Фінансах», кожен чек — у
+// «Покупках». Рахує worker (проходи, люди, візити —
+// backend/worker/worker/people.py), віддає api/src/routes/admin-sales.js.
 //
 // Відвідувач — людина, яку впізнавання склало з проходів коридором за
 // одягом, без персоналу (12+ проходів за добу). Це оцінка, а не лічильник
@@ -10,8 +11,7 @@
 import { useState } from "react";
 import { api } from "../api.js";
 import { Bars, Columns, Line } from "../charts.jsx";
-import { Badge, Card, DateRange, Empty, Kpi, Pager, Table, fmt, useData, usePage } from "../ui.jsx";
-import { Evidence, Viewer } from "./Video.jsx";
+import { Card, DateRange, Empty, Kpi, Table, fmt, useData } from "../ui.jsx";
 
 const DAY = 86400_000;
 const KYIV = new Intl.DateTimeFormat("uk-UA", { timeZone: "Europe/Kyiv", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" });
@@ -20,9 +20,10 @@ const kyiv = (t) => {
   const p = Object.fromEntries(KYIV.formatToParts(new Date(t)).map((x) => [x.type, x.value]));
   return { day: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour) };
 };
-const hhmmss = (t) => (t ? new Date(t).toLocaleTimeString("uk-UA", { timeZone: "Europe/Kyiv" }) : "—");
 const minutes = (m) => (m == null ? "—" : m < 60 ? `${Math.round(m)} хв` : `${Math.floor(m / 60)} год ${Math.round(m % 60)} хв`);
 const pct = (a, b) => (b ? `${Math.round((100 * a) / b)} %` : "—");
+// Кольори точок — як у «Фінансах»: помаранчевий, синій, фіолетовий і далі.
+const COLORS = ["#FE810B", "#5AA9FF", "#B07CFF", "#3FBF6F", "#FFB020", "#FF2D6F"];
 
 function useDates() {
   const to = new Date();
@@ -74,14 +75,14 @@ function Coverage({ rows }) {
   );
 }
 
-export function VideoAnalytics() {
+export function Sales() {
   const [dates, setDates] = useDates();
-  const { data, error } = useData(() => api.videoAnalytics(params(dates)), [dates.from, dates.to]);
+  const { data, error } = useData(() => api.sales(params(dates)), [dates.from, dates.to]);
   const head = (
     <div className="head">
       <div>
-        <h1>Аналітика відео</h1>
-        <p>відвідувачі, воронка до покупки, години, скільки сидять</p>
+        <h1>Продажі</h1>
+        <p>відвідувачі й воронка до покупки, покупки по днях, що пʼють, години, скільки сидять</p>
       </div>
       <DateRange value={dates} onChange={setDates} />
     </div>
@@ -99,9 +100,17 @@ export function VideoAnalytics() {
   const days = data.days.filter((d) => d.visitors > 0 && (covered.get(d.day) ?? 0) >= 12 * 3600);
   const avg = days.length ? days.reduce((n, d) => n + d.visitors, 0) / days.length : 0;
   const f = data.funnel;
-  const receipts = new Map(data.receipts_by_day.map((r) => [r.day, r.receipts]));
+  const receipts = new Map();
+  for (const r of data.receipts_by_day) receipts.set(r.day, (receipts.get(r.day) ?? 0) + r.receipts);
   const buckets = [...new Set(data.events3h.map((r) => r.bucket))].sort();
   const dw = data.dwell;
+  // Покупки за добу — кожна точка своїм рядом.
+  const points = [...new Set(data.receipts_by_day.map((r) => r.point_id))];
+  const purchaseSeries = points.map((id, i) => ({
+    name: data.receipts_by_day.find((r) => r.point_id === id)?.point_name ?? id,
+    color: COLORS[i % COLORS.length],
+    points: data.receipts_by_day.filter((r) => r.point_id === id).map((r) => ({ x: `${r.day}T12:00:00`, y: r.receipts })),
+  }));
 
   return (
     <>
@@ -132,6 +141,15 @@ export function VideoAnalytics() {
       </div>
 
       <div className="grid k2" style={{ marginBottom: 12 }}>
+        <Card title="Покупки за добу" note="чеки за київську добу, без тестових">
+          <Line series={purchaseSeries} area />
+        </Card>
+        <Card title="Що пʼють" note="позиції чеків за період">
+          <Bars items={data.drinks.map((d) => ({ label: d.name, value: d.qty }))} label={170} />
+        </Card>
+      </div>
+
+      <div className="grid k2" style={{ marginBottom: 12 }}>
         <Card title="У закладі по годинах" note="середнє за доби, коли ця година була записана">
           <Columns items={Array.from({ length: 24 }, (_, h) => ({
             label: String(h).padStart(2, "0"),
@@ -158,19 +176,14 @@ export function VideoAnalytics() {
         <Coverage rows={data.coverage} />
       </Card>
 
-      <div className="grid k2" style={{ marginBottom: 12 }}>
-        <Card title="Що пʼють" note="позиції чеків за період">
-          <Bars items={data.drinks.map((d) => ({ label: d.name, value: d.qty }))} label={170} />
-        </Card>
-        <Card title="Втрачені вікна" note="люди в коридорі, а кавомашина не на звʼязку">
-          {data.lost.length === 0 ? <Empty>таких годин не було</Empty> : (
-            <Table columns={[
-              { key: "hour", title: "година", render: (r) => fmt.time(r.hour) },
-              { key: "people", title: "людей", num: true },
-            ]} rows={data.lost} />
-          )}
-        </Card>
-      </div>
+      <Card title="Втрачені вікна" note="люди в коридорі, а кавомашина не на звʼязку" style={{ marginBottom: 12 }}>
+        {data.lost.length === 0 ? <Empty>таких годин не було</Empty> : (
+          <Table columns={[
+            { key: "hour", title: "година", render: (r) => fmt.time(r.hour) },
+            { key: "people", title: "людей", num: true },
+          ]} rows={data.lost} />
+        )}
+      </Card>
 
       <Table
         columns={[
@@ -185,115 +198,6 @@ export function VideoAnalytics() {
         ]}
         rows={data.days}
         empty="за цей період проходів немає"
-      />
-    </>
-  );
-}
-
-const MATCH = { alone: ["біля автомата сам", "ok"], ambiguous: ["кілька людей поруч", "warn"] };
-const UPLINK = { wifi: "Wi-Fi", lte: "LTE" };
-
-export function VideoPurchases() {
-  const [dates, setDates] = useDates();
-  const [view, setView] = useState(null);
-  // Дві таблиці — дві незалежні сторінки; обидві скидаються зі зміною дат.
-  const [pPage, setPPage] = usePage(dates.from, dates.to);
-  const [aPage, setAPage] = usePage(dates.from, dates.to);
-  const { data, error, loading } = useData(
-    () => api.videoPurchases({ ...params(dates), p_page: pPage, a_page: aPage }),
-    [dates.from, dates.to, pPage, aPage]
-  );
-  const open = (title, type, note) => (url, err) => setView({ title, type, url, error: err, note });
-  const head = (
-    <div className="head">
-      <div>
-        <h1>Покупці на відео</h1>
-        <p>кожен чек — вибір напою, оплата, готовий напій і хто стояв біля автомата</p>
-      </div>
-      <DateRange value={dates} onChange={setDates} />
-    </div>
-  );
-  if (error) return <>{head}<Empty>не вдалось прочитати: {error.message}</Empty></>;
-  if (!data) return <>{head}<Empty>вантажимо…</Empty></>;
-
-  // KPI — з усього періоду (api рахує окремо), а не з видимої сторінки.
-  const kpi = data.kpi ?? { real: 0, seen: 0, attempts_guests: 0 };
-  // Зсув від оплати зі знаком: вибір — мінус секунди до оплати, готово — плюс.
-  const offset = (t, paid) => {
-    if (!t) return "—";
-    const s = Math.round((new Date(t) - new Date(paid)) / 1000);
-    return `${s > 0 ? "+" : s < 0 ? "−" : ""}${Math.abs(s)} с`;
-  };
-
-  return (
-    <>
-      {head}
-      {view && <Viewer key={view.url ?? "error"} view={view} onClose={() => setView(null)} />}
-      <div className="grid k3" style={{ marginBottom: 12 }}>
-        <Kpi label="Чеків" value={fmt.int(kpi.real)} note="без тестових і власника (receipt_in_stats)" />
-        <Kpi label="Покупця видно" value={pct(kpi.seen, kpi.real)}
-             note={`${fmt.int(kpi.seen)} чеків прив'язані до людини біля автомата`} />
-        <Kpi label="Невдалих спроб" value={fmt.int(kpi.attempts_guests)}
-             note="стояли біля автомата від 20 с, а чека немає; без персоналу" />
-      </div>
-
-      <h2 className="section-title">Покупки</h2>
-      <Table
-        columns={[
-          { key: "paid", title: "оплата", render: (p) => fmt.time(p.paid) },
-          { key: "drink", title: "напій", render: (p) => p.drink ?? <span className="muted">—</span> },
-          { key: "total", title: "сума", num: true, render: (p) => fmt.uah(p.total) },
-          {
-            key: "moments", title: "вибір → оплата → готово", render: (p) => (
-              <span title={`вибір ${hhmmss(p.selected)} · оплата ${hhmmss(p.paid)} · готово ${hhmmss(p.done)}`}>
-                {offset(p.selected, p.paid)} · {hhmmss(p.paid)} · {offset(p.done, p.paid)}
-              </span>
-            ),
-          },
-          {
-            key: "who", title: "покупець", render: (p) => {
-              if (!p.in_stats) return <Badge>тест / власник</Badge>;
-              if (!p.passage_id) return <span className="muted">{p.on_video ? "у кадрі біля автомата нікого" : "камера не писала"}</span>;
-              const [label, tone] = MATCH[p.receipt_match] ?? ["?", ""];
-              return <span className="row" style={{ gap: 4 }}><Badge tone={tone}>{label}</Badge>{p.staff && <Badge tone="warn">персонал</Badge>}</span>;
-            },
-          },
-          {
-            key: "evidence", title: "доказ", render: (p) => (p.event_id
-              ? <Evidence e={{ id: p.event_id, kind: p.event_kind, started_at: p.paid, evidence: p.evidence, passage_id: p.passage_id, crops: p.crops?.length ?? 0 }} open={open} />
-              : <span className="muted">—</span>),
-          },
-        ]}
-        rows={data.purchases}
-        empty="чеків за цей період немає"
-        foot={<Pager info={data.purchases_page} onPage={setPPage} busy={loading} note="разом із тестовими" />}
-      />
-
-      <h2 className="section-title">Невдалі спроби</h2>
-      <p className="muted" style={{ margin: "0 0 8px" }}>
-        Людина простояла біля автомата від 20 секунд, а чека поруч немає. Поруч — звʼязок малини з сервером у ці
-        хвилини: якщо термінал оплати на точці ходить тим самим каналом, поганий звʼязок пояснює, чому платіж
-        не пройшов.
-      </p>
-      <Table
-        columns={[
-          { key: "started_at", title: "коли", render: (a) => fmt.time(a.started_at) },
-          { key: "secs", title: "стояли", num: true, render: (a) => `${a.secs} с` },
-          { key: "staff", title: "хто", render: (a) => (a.staff ? <Badge tone="warn">персонал</Badge> : <span className="muted">гість</span>) },
-          {
-            key: "net", title: "звʼязок", render: (a) => (a.net?.samples ? (
-              <span style={a.net.loss_max >= 10 ? { color: "var(--bad)" } : undefined}>
-                втрати до {Math.round(a.net.loss_max ?? 0)} %, пінг до {Math.round(a.net.ping_max ?? 0)} мс
-                {a.net.uplinks?.length ? ` · ${a.net.uplinks.map((u) => UPLINK[u] ?? u).join(" → ")}` : ""}
-              </span>
-            ) : <span className="muted">телеметрії немає</span>),
-          },
-          { key: "machine_online", title: "кавомашина", render: (a) => (a.machine_online == null ? "—" : a.machine_online === "true" ? "на звʼязку" : <span style={{ color: "var(--bad)" }}>не на звʼязку</span>) },
-          { key: "evidence", title: "доказ", render: (a) => <Evidence e={{ ...a, kind: "machine" }} open={open} /> },
-        ]}
-        rows={data.attempts}
-        empty="невдалих спроб не було"
-        foot={<Pager info={data.attempts_page} onPage={setAPage} busy={loading} note="разом із персоналом" />}
       />
     </>
   );

@@ -8,7 +8,8 @@ import { api } from "../api.js";
 import { go } from "../app.jsx";
 import { BeatRow, BeatScale } from "../charts.jsx";
 import { ServerSection } from "./Server.jsx";
-import { Card, Empty, Kpi, LOSS_BAD_PCT, METRIC_LABELS, RangePicker, UPLINK, fmt, metricValue, rangeLabel, useData, useRange } from "../ui.jsx";
+import { ApiTech } from "./Analytics.jsx";
+import { Card, Empty, Kpi, LOSS_BAD_PCT, RangePicker, UPLINK, fmt, rangeLabel, useData, useRange } from "../ui.jsx";
 
 // Підсумок по точці: зелена крапка лише тоді, коли зелене все, що ми вміємо
 // перевірити. Дивитись доводилось у пʼять рядків одразу — тепер відповідь
@@ -63,6 +64,23 @@ const DataRow = ({ label, ok, value, at, note }) => (
     </span>
   </BeatRow>
 );
+
+// Кавомашина: на звʼязку, без несправностей і дефіциту, замовлення
+// сходяться з чеками. Сесія порталу злетіла — судити нема з чого (null).
+function jetOk(jet) {
+  const m = jet?.metrics;
+  if (!m || m.session === false) return null;
+  return Boolean(m.online) && !m.fault_codes?.length && !Number(m.supply_short) && m.reconcile_ok !== false;
+}
+function jetSummary(m) {
+  if (m.session === false) return "сесія порталу злетіла — потрібен вхід";
+  return bits(
+    m.online ? "онлайн" : "офлайн",
+    m.fault_codes?.length ? `несправності: ${m.fault_codes.join("; ")}` : "без несправностей",
+    Number(m.supply_short) ? `дефіцит інгредієнтів: ${m.supply_short}` : null,
+    m.reconcile_ok === false ? "замовлення не сходяться з чеками" : null
+  );
+}
 
 function PointTelemetry({ point }) {
   const pi = point.telemetry?.pi;
@@ -127,17 +145,15 @@ function PointTelemetry({ point }) {
         at={at}
         value={bits(fps !== null && `${fps} fps`, m.release && `реліз ${m.release}`)}
       />
+      {/* Підсумок кавомашини — тими самими правилами, що й блок Jetinno на
+          сторінці точки (Pos.jsx): досі рядок був зеленим за будь-якої проби
+          й показував перші шість сирих ключів (18.10.2026). */}
       <DataRow
         label="автомат"
-        note="Jetinno"
-        ok={jet ? true : null}
+        note="Jetinno, з порталу раз на пів години"
+        ok={jetOk(jet)}
         at={jet?.measured_at ?? null}
-        // Ключів автомата ми ще не бачили жодного разу — показуємо як є,
-        // а підписи зʼявляться в METRIC_LABELS, коли стане видно, що він шле.
-        value={jet
-          ? Object.entries(jet.metrics ?? {}).slice(0, 6)
-              .map(([k, v]) => `${METRIC_LABELS[k] ?? k}: ${metricValue(k, v)}`).join(", ")
-          : "телеметрії ще немає"}
+        value={jet ? jetSummary(jet.metrics ?? {}) : "телеметрії ще немає"}
       />
     </>
   );
@@ -234,6 +250,10 @@ export function Health() {
           смужки вище відповідають «живе / ні», а тут — чи не впирається
           воно в стелю. */}
       <ServerSection range={range} span={span} />
+
+      {/* Запити застосунку до api — теж стан сервісу, тож тут, а не в
+          аналітиці гравців (18.10.2026). */}
+      <ApiTech />
     </>
   );
 }

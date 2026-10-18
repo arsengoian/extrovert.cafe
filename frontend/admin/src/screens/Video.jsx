@@ -1,5 +1,6 @@
 // Відео: записи й події з камер (docs/admin_panel.md, група «відео»).
-// Аналітика й покупці — у VideoStats.jsx.
+// Відвідуваність і воронка — у «Продажах» (Sales.jsx), кожен чек із
+// покупцем на відео — у «Покупках» (Purchases.jsx).
 //
 // Записи пише recorder на малині й вантажить uploader у R2 (з 06.10.2026),
 // архів картки камери доливається тими самими сегментами (source 'sd'),
@@ -116,13 +117,24 @@ export function Video({ tab = "segments" }) {
         {events && <div className="right"><DateRange value={dates} onChange={setDates} /></div>}
       </div>
 
-      <div className="grid k4" style={{ marginBottom: 12 }}>
-        <Kpi label="Сегментів" value={fmt.int(data.stats.segments)} note="усього в базі, з видаленими з R2" />
-        <Kpi label="В обробці" value={fmt.int(data.stats.pending)} tone={data.stats.pending > 50 ? "bad" : ""}
-             note={data.stats.old ? `чекають на worker; ще ${fmt.int(data.stats.old)} — на переаналіз` : "чекають на worker"} />
-        <Kpi label="Помилок" value={fmt.int(data.stats.failed)} tone={data.stats.failed ? "bad" : "ok"} note="не вдалось обробити" />
-        <Kpi label="Обʼєм" value={mb(data.stats.bytes)} note="записи, що лежать у R2" />
-      </div>
+      {/* На «Подіях» — лічильники подій за обраний період, на «Записах» —
+          стан архіву: досі «Події» показували KPI сегментів (18.10.2026). */}
+      {events ? (
+        <div className="grid k4" style={{ marginBottom: 12 }}>
+          <Kpi label="Подій" value={fmt.int(kindCount())} note="за період, усіх видів" />
+          <Kpi label="Біля автомата" value={fmt.int(kindCount("machine"))} note="стояли впритул до кавомашини" />
+          <Kpi label="Підійшли" value={fmt.int(kindCount("approach"))} note="зупинились біля кавʼярні" />
+          <Kpi label="Черга" value={fmt.int(kindCount("queue"))} note="кілька людей одночасно" />
+        </div>
+      ) : (
+        <div className="grid k4" style={{ marginBottom: 12 }}>
+          <Kpi label="Сегментів" value={fmt.int(data.stats.segments)} note="усього в базі, з видаленими з R2" />
+          <Kpi label="В обробці" value={fmt.int(data.stats.pending)} tone={data.stats.pending > 50 ? "bad" : ""}
+               note={data.stats.old ? `чекають на worker; ще ${fmt.int(data.stats.old)} — на переаналіз` : "чекають на worker"} />
+          <Kpi label="Помилок" value={fmt.int(data.stats.failed)} tone={data.stats.failed ? "bad" : "ok"} note="не вдалось обробити" />
+          <Kpi label="Обʼєм" value={mb(data.stats.bytes)} note="записи, що лежать у R2" />
+        </div>
+      )}
 
       {view && <Viewer key={view.url ?? "error"} view={view} onClose={() => setView(null)} />}
 
