@@ -629,11 +629,20 @@ static int send_queue(void) {
  * словами з K_WARN і звичайне повідомлення зі словами з K_NOTE: так ядро
  * пише про біду з SD, з USB (на Pi 1 на ній і Ethernet, і Wi-Fi, і флешка)
  * і з памʼяттю. Шум, якщо з'явиться, — відсіювати тут, побачивши справжні
- * рядки в адмінці. */
+ * рядки в адмінці.
+ *
+ * «mmc» у K_NOTE — з 18.10.2026: того дня картка відпала на 8-й хвилині, і
+ * між помилками EXT4 ядро знову ініціалізувало її («host does not support
+ * reading read-only switch» — рядок старту картки), а рядки про те, що
+ * картку втрачено й знайдено наново («card … removed», «new … card»,
+ * «mmcblk…»), — рівня info, і фільтр їх з'їв. Саме вони відрізняють
+ * «картка відпала з шини» від CRC-помилок 13.10. «WARNING:» — заголовок
+ * ядерного попередження зі стеком: без нього з усього стеку доходив лише
+ * «Modules linked in» (і то через «rt2800» у списку модулів). */
 static const char *const K_WARN[] = {
     "mmc", "I/O error", "EXT4-fs", "usb", "USB", "dwc_otg", "smsc95xx", "rt2800",
-    "voltage", "blocked for more than", "Out of memory", "Killed process", NULL };
-static const char *const K_NOTE[] = { "USB disconnect", "reset full-speed", "reset high-speed", "timed out", NULL };
+    "voltage", "blocked for more than", "Out of memory", "Killed process", "WARNING:", NULL };
+static const char *const K_NOTE[] = { "USB disconnect", "reset full-speed", "reset high-speed", "timed out", "mmc", NULL };
 static int k_has(const char *msg, const char *const words[]) {
     for (int i = 0; words[i]; i++) if (strstr(msg, words[i])) return 1;
     return 0;
