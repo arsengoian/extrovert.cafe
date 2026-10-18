@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело a3eeb16</p>
+  <p class="eyebrow">extrovert.cafe · джерело bee788f</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 23 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -3956,7 +3956,9 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 <h3 id="deploy-як-їде-нова-версія"><a class="anchor" href="#deploy-як-їде-нова-версія" aria-hidden="true">#</a>Як їде нова версія</h3>
 <p>Пуш у <code>main</code> запускає <code>.github/workflows/deploy.yml</code>:</p>
 <ol>
-<li><strong>lint</strong> — ESLint і перевірка, що WebP-копії спрайтів актуальні;</li>
+<li><strong>lint</strong> — ESLint і перевірка, що WebP-копії спрайтів актуальні. Нічого не
+блокує (з 18.10.2026): упалий лінт робить прогін червоним, але бекенд і
+фронтенди однаково котяться — інакше новий api жив би зі старою адмінкою;</li>
 <li><strong>knowledge</strong> — база знань чату (ембеддинги), коли змінились її джерела;</li>
 <li><strong>build</strong> — матриця з семи образів, кеш шарів у GitHub Actions; образ без
 змін у джерелах не перезбирається, а лише перетеговується;</li>
@@ -3966,7 +3968,8 @@ migrate 96, scheduler 89, caddy 63 — це в розпакованому виг
 <li><strong>deploy</strong> — копіює <code>docker-compose.prod.yml</code>, ставить симлінк, логінить
 сервер у ghcr і віддає <code>docker/rollout.sh</code> <strong>через stdin</strong>: скрипт на
 сервері не лишається, щоб не розійтися з репозиторієм;</li>
-<li><strong>frontends</strong> — воркери застосунку й адмінки (<code>scripts/deploy-front.mjs</code>);</li>
+<li><strong>frontends</strong> — воркери застосунку й адмінки (<code>scripts/deploy-front.mjs</code>),
+після deploy;</li>
 <li><strong>cleanup</strong> — прибирає старі версії пакетів (лишає п&#39;ять).</li>
 </ol>
 <p><code>rollout.sh</code> робить перемикання без розриву — це головне, заради чого
@@ -15845,7 +15848,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел a3eeb16 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел bee788f — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
