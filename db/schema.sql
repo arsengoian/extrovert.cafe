@@ -924,6 +924,83 @@ CREATE TABLE public.np_warehouses (
 
 
 --
+-- Name: opex_rates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.opex_rates (
+    kind text NOT NULL,
+    valid_from date NOT NULL,
+    rate numeric(6,5) NOT NULL,
+    note text,
+    CONSTRAINT opex_rates_kind_check CHECK ((kind = ANY (ARRAY['tax'::text, 'acquiring'::text]))),
+    CONSTRAINT opex_rates_rate_check CHECK (((rate >= (0)::numeric) AND (rate < (1)::numeric)))
+);
+
+
+--
+-- Name: receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.receipts (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    checkbox_receipt_id uuid NOT NULL,
+    checkbox_shift_id uuid,
+    fiscal_code text,
+    fiscal_date timestamp with time zone NOT NULL,
+    total_sum numeric(12,2) NOT NULL,
+    payments jsonb,
+    tax_url text,
+    source text NOT NULL,
+    raw jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT receipts_source_check CHECK ((source = ANY (ARRAY['webhook'::text, 'poll'::text])))
+);
+
+
+--
+-- Name: opex_auto; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.opex_auto AS
+ WITH r AS (
+         SELECT r.point_id,
+            ((r.fiscal_date AT TIME ZONE 'Europe/Kyiv'::text))::date AS day,
+            r.total_sum AS total,
+            COALESCE(( SELECT (sum(((p.value ->> 'value'::text))::numeric) / (100)::numeric)
+                   FROM jsonb_array_elements(COALESCE(r.payments, '[]'::jsonb)) p(value)
+                  WHERE ((p.value ->> 'type'::text) = 'CASHLESS'::text)), (0)::numeric) AS cashless
+           FROM public.receipts r
+        ), base AS (
+         SELECT r.day,
+            r.point_id,
+            'tax'::text AS kind,
+            r.total AS base
+           FROM r
+        UNION ALL
+         SELECT r.day,
+            r.point_id,
+            'acquiring'::text,
+            r.cashless
+           FROM r
+          WHERE (r.cashless > (0)::numeric)
+        )
+ SELECT b.day,
+    b.point_id,
+    b.kind,
+    x.rate,
+    (sum(b.base))::numeric(14,2) AS base_uah,
+    round((sum(b.base) * x.rate), 2) AS cost_uah
+   FROM (base b
+     JOIN LATERAL ( SELECT o.rate
+           FROM public.opex_rates o
+          WHERE ((o.kind = b.kind) AND (o.valid_from <= b.day))
+          ORDER BY o.valid_from DESC
+         LIMIT 1) x ON (true))
+  GROUP BY b.day, b.point_id, b.kind, x.rate;
+
+
+--
 -- Name: outbox; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1402,27 +1479,6 @@ CREATE SEQUENCE public.receipt_items_id_seq
 --
 
 ALTER SEQUENCE public.receipt_items_id_seq OWNED BY public.receipt_items.id;
-
-
---
--- Name: receipts; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.receipts (
-    id bigint NOT NULL,
-    point_id text NOT NULL,
-    checkbox_receipt_id uuid NOT NULL,
-    checkbox_shift_id uuid,
-    fiscal_code text,
-    fiscal_date timestamp with time zone NOT NULL,
-    total_sum numeric(12,2) NOT NULL,
-    payments jsonb,
-    tax_url text,
-    source text NOT NULL,
-    raw jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT receipts_source_check CHECK ((source = ANY (ARRAY['webhook'::text, 'poll'::text])))
-);
 
 
 --
@@ -2987,6 +3043,14 @@ ALTER TABLE ONLY public.np_cities
 
 ALTER TABLE ONLY public.np_warehouses
     ADD CONSTRAINT np_warehouses_pkey PRIMARY KEY (ref);
+
+
+--
+-- Name: opex_rates opex_rates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.opex_rates
+    ADD CONSTRAINT opex_rates_pkey PRIMARY KEY (kind, valid_from);
 
 
 --
@@ -4854,4 +4918,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261016100000'),
     ('20261017100000'),
     ('20261017100100'),
-    ('20261018100000');
+    ('20261018100000'),
+    ('20261018200000');

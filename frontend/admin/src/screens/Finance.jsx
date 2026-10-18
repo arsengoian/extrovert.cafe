@@ -57,9 +57,13 @@ export function Finance() {
     name, color, points: pnlDays.map((d) => ({ x: `${d}T12:00:00`, y: value ? value(byDay.get(d)) : byDay.get(d)[key] })),
   });
   const spendSeries = (key, name, color) => ({ name, color, points: (data.spend ?? []).map((r) => ({ x: `${r.day}T12:00:00`, y: r[key] })) });
+  const feeSeries = { name: "податок і еквайринг", color: "#FF4D5E", points: (data.fees ?? []).map((r) => ({ x: `${r.day}T12:00:00`, y: r.tax + r.acquiring })) };
+  // OPEX на екрані — разом із податком і еквайрингом, що рахуються з чеків.
+  const fees = (totals.tax ?? 0) + (totals.acquiring ?? 0);
+  const rate = (k) => (data.rates?.[k] != null ? `${String(+(data.rates[k] * 100).toFixed(2)).replace(".", ",")} %` : "");
   // Окупність: що вже повернуло вкладене в CAPEX — валовий прибуток мінус OPEX
-  // з самого початку продажів.
-  const returned = ever ? ever.revenue - ever.cogs - ever.opex : 0;
+  // (з податком і еквайрингом) з самого початку продажів.
+  const returned = ever ? ever.revenue - ever.cogs - ever.opex - (ever.fees ?? 0) : 0;
   // Виручка по точках: кожна точка — свій ряд, як у макеті.
   const points = [...new Set(data.revenue.map((r) => r.point_id))];
   const revenueSeries = points.map((id, i) => ({
@@ -78,19 +82,24 @@ export function Finance() {
         <div className="right"><DateRange value={range} onChange={setRange} /></div>
       </div>
 
-      <div className="grid k4" style={{ marginBottom: 12 }}>
+      <div className="grid k3" style={{ marginBottom: 12 }}>
         <Kpi label="Виручка" value={fmt.uah(totals.revenue)}
              note={`${fmt.int(totals.receipts)} чеків, середній ${totals.receipts ? fmt.uah(totals.revenue / totals.receipts) : "—"}, за добу ${fmt.uah(totals.revenue / days)}`} />
         <Kpi label="Собівартість" value={fmt.uah(totals.cogs)} note={`${pct(totals.cogs, totals.revenue)} виручки; матеріали за рецептами × середня ціна закупки`} />
         <Kpi label="Валовий прибуток" value={fmt.uah(totals.gross)} tone={totals.gross < 0 ? "bad" : ""} note={`маржа ${pct(totals.gross, totals.revenue)}`} />
-        <Kpi label="Запаси на складі" value={totals.stock_value === null ? "—" : fmt.uah(totals.stock_value)} note="на кінець періоду, за журналом залишків" />
       </div>
-      <div className="grid k4" style={{ marginBottom: 12 }}>
-        <Kpi label="Закупки матеріалів" value={fmt.uah(totals.material)} note="за період, за днем отримання" />
-        <Kpi label="OPEX" value={fmt.uah(totals.opex)} note="поточні витрати, крім матеріалів" />
-        <Kpi label="CAPEX" value={fmt.uah(totals.capex)} note="обладнання й запуск, за період" />
+      <div className="grid k3" style={{ marginBottom: 12 }}>
+        <Kpi label="OPEX" value={fmt.uah(totals.opex + fees)}
+             note={`оренда, сервіси, відсотки ${fmt.uah(totals.opex)}; податок ${rate("tax")} ${fmt.uah(totals.tax ?? 0)}; еквайринг ${rate("acquiring")} ${fmt.uah(totals.acquiring ?? 0)}`} />
+        <Kpi label="Операційний прибуток" value={fmt.uah(totals.operating ?? totals.gross - totals.opex)} tone={(totals.operating ?? 0) < 0 ? "bad" : ""}
+             note={`валовий мінус OPEX; ${pct(totals.operating ?? 0, totals.revenue)} виручки`} />
         <Kpi label="Окупність" value={ever?.capex ? pct(returned, ever.capex) : "—"} tone={returned >= (ever?.capex ?? Infinity) ? "ok" : ""}
              note={ever?.capex ? `повернуто ${fmt.uah(returned)} з ${fmt.uah(ever.capex)} CAPEX — валовий прибуток мінус OPEX від початку продажів` : "CAPEX не внесено"} />
+      </div>
+      <div className="grid k3" style={{ marginBottom: 12 }}>
+        <Kpi label="Закупки матеріалів" value={fmt.uah(totals.material)} note="за період, за днем отримання" />
+        <Kpi label="CAPEX" value={fmt.uah(totals.capex)} note="обладнання й запуск, за період" />
+        <Kpi label="Запаси на складі" value={totals.stock_value === null ? "—" : fmt.uah(totals.stock_value)} note="на кінець періоду, за журналом залишків" />
       </div>
 
       <div className="grid k2" style={{ marginBottom: 12 }}>
@@ -114,10 +123,26 @@ export function Finance() {
           <Line format={(v) => `${Math.round(v)}`} series={[
             spendSeries("material", "матеріали", "#5AA9FF"),
             spendSeries("opex", "OPEX", "#FFB020"),
+            feeSeries,
             spendSeries("capex", "CAPEX", "#B07CFF"),
           ]} />
         </Card>
       </div>
+
+      {data.upcoming?.length > 0 && (
+        <Card title="Заплановані платежі" note="закупки з датою в майбутньому — у витрати йдуть у свій день" style={{ marginBottom: 12 }}>
+          <Table
+            columns={[
+              { key: "received_at", title: "дата", render: (r) => fmt.dayFull(r.received_at) },
+              { key: "supplier", title: "кому", render: (r) => r.supplier ?? "—" },
+              { key: "description", title: "що" },
+              { key: "kind", title: "тип", render: (r) => r.kind.toUpperCase() },
+              { key: "cost_uah", title: "сума", num: true, render: (r) => fmt.uah(r.cost_uah) },
+            ]}
+            rows={data.upcoming}
+          />
+        </Card>
+      )}
 
       <div className="grid k2" style={{ marginBottom: 12 }}>
         <Card title="Дохід за годиною дня" note="₴, середнє за добу">

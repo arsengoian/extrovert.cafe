@@ -424,6 +424,30 @@ export default async function routes(app) {
         group by 1 order by 1`,
       p
     );
+    // Податок 5 % + 1 % і еквайринг — OPEX, що рахується сам із кожного чека
+    // (подання opex_auto, ставки з датою в opex_rates): як сплачені одразу.
+    const fees = await many(
+      `select day::text as day,
+              coalesce(sum(cost_uah) filter (where kind = 'tax'), 0)::float as tax,
+              coalesce(sum(cost_uah) filter (where kind = 'acquiring'), 0)::float as acquiring
+         from opex_auto
+        where day between ($1::timestamptz at time zone '${TZ}')::date and ($2::timestamptz at time zone '${TZ}')::date
+        group by 1 order by 1`,
+      p
+    );
+    const rates = Object.fromEntries((await many(
+      `select distinct on (kind) kind, rate::float as rate from opex_rates
+        where valid_from <= current_date order by kind, valid_from desc`
+    )).map((r) => [r.kind, r.rate]));
+    // Заплановані платежі — закупки з датою в майбутньому (відсотки за
+    // розстрочкою): у витрати вони потрапляють у свій день, а до того видно,
+    // що попереду.
+    const upcoming = await many(
+      `select p.id, p.received_at, p.supplier, l.kind, l.category, l.description, l.cost_uah::float as cost_uah
+         from stock_purchases p join stock_purchase_lines l on l.purchase_id = p.id
+        where p.received_at > now()
+        order by p.received_at, l.id`
+    );
     // Вартість запасів на кінець кожної доби — з журналу залишків.
     const stockValue = await many(
       `with ${COST}
@@ -434,28 +458,35 @@ export default async function routes(app) {
       p
     );
     // Окупність — з самого початку, а не за обраний період: скільки
-    // валового прибутку мінус OPEX уже повернуло вкладене в CAPEX.
+    // валового прибутку мінус OPEX (і податку з еквайрингом) уже повернуло
+    // вкладене в CAPEX. Закупки з датою в майбутньому — ще не витрата.
+    const LINES = `stock_purchase_lines l join stock_purchases p on p.id = l.purchase_id`;
     const ever = await one(
       `with ${COST}
        select (select coalesce(sum(total_sum), 0) from receipts where receipt_in_stats(id))::float as revenue,
               (select coalesce(sum(u.qty * c.unit), 0) from stock_usage u join cost c on c.item_id = u.item_id)::float as cogs,
-              (select coalesce(sum(cost_uah), 0) from stock_purchase_lines where kind = 'capex')::float as capex,
-              (select coalesce(sum(cost_uah), 0) from stock_purchase_lines where kind = 'opex')::float as opex,
+              (select coalesce(sum(l.cost_uah), 0) from ${LINES} where l.kind = 'capex' and p.received_at <= now())::float as capex,
+              (select coalesce(sum(l.cost_uah), 0) from ${LINES} where l.kind = 'opex' and p.received_at <= now())::float as opex,
+              (select coalesce(sum(cost_uah), 0) from opex_auto)::float as fees,
               (select min(fiscal_date) from receipts) as since`
     );
     const days = Math.max(1, Math.round((new Date(to) - new Date(from)) / DAY));
     const cogsSum = cogs.reduce((s, r) => s + r.cogs, 0) + daily.uah * days;
     const spendSum = (k) => spend.reduce((s, r) => s + r[k], 0);
+    const feeSum = (k) => fees.reduce((s, r) => s + r[k], 0);
+    const opex = spendSum("opex"), tax = feeSum("tax"), acquiring = feeSum("acquiring");
     return {
       from, to, totals: {
         ...totals,
         cogs: cogsSum,
         gross: totals.revenue - cogsSum,
-        material: spendSum("material"), capex: spendSum("capex"), opex: spendSum("opex"),
+        material: spendSum("material"), capex: spendSum("capex"), opex, tax, acquiring,
+        // Операційний прибуток: валовий мінус OPEX, податок і еквайринг.
+        operating: totals.revenue - cogsSum - opex - tax - acquiring,
         stock_value: stockValue.at(-1)?.value ?? null,
         daily_cost: daily.uah,
       },
-      revenue, by_hour: byHour, by_weekday: byWeekday, cogs, spend, stock_value: stockValue, ever,
+      revenue, by_hour: byHour, by_weekday: byWeekday, cogs, spend, fees, rates, upcoming, stock_value: stockValue, ever,
     };
   });
 }

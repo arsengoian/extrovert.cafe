@@ -1093,6 +1093,9 @@ ER-діаграму не винесені: звʼязків немає свід�
 
 Матеріали, закупки, інвентаризації й рецепти версіями; витрата — за кожним
 замовленням машини, журнал — по доби. Як рахується й чому так — `stock.md`.
+Закупка з датою в майбутньому — запланований платіж (комісія за розстрочку):
+у витрати йде у свій день. Податок і еквайринг закупками не вносяться — їх
+рахує подання `opex_auto` з чеків за ставками `opex_rates` (з 18.10.2026).
 
 ```mermaid
 erDiagram
@@ -1107,6 +1110,8 @@ erDiagram
     MACHINE_ORDERS ||--o{ STOCK_USAGE : "витрата замовлення"
     RECIPE_VERSIONS ||--o{ STOCK_USAGE : "за версією"
     STOCK_ITEMS ||--o{ STOCK_DAILY : "журнал"
+    RECEIPTS ||--o{ OPEX_AUTO : "податок і еквайринг"
+    OPEX_RATES ||--o{ OPEX_AUTO : "ставка на день"
 
     STOCK_ITEMS {
         text id PK "coffee, milk, cup_l"
@@ -1184,6 +1189,18 @@ erDiagram
         jsonb forecast "сукупні середнє й дисперсія на 30 діб"
         numeric cover_days
         numeric cover_days_p90
+    }
+    OPEX_RATES {
+        text kind PK "tax|acquiring"
+        date valid_from PK "з якої доби діє"
+        numeric rate "0.06 і 0.013"
+    }
+    OPEX_AUTO {
+        date day "VIEW: київська доба"
+        text point_id
+        text kind "tax|acquiring"
+        numeric base_uah "сума чеків; для еквайрингу — лише картка"
+        numeric cost_uah "база × ставка"
     }
 ```
 
