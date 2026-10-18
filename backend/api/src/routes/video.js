@@ -9,7 +9,7 @@
 // вивантаження чекає. Але флешка тримає дні запису, тож коротке падіння
 // нічого не губить, а ключа від бакета на пристрої в коридорі немає зовсім.
 import { presign } from "@extrovert/lib/r2.js";
-import { many, one, query } from "../db.js";
+import { one, query } from "../db.js";
 import { requireAdmin } from "../auth.js";
 import { fail } from "../errors.js";
 import { pointFromRequest } from "./points.js";
