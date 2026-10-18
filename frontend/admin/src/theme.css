@@ -346,9 +346,14 @@ td small { display: block; font-size: 10.5px; color: var(--muted) }
   .topbar .menu-btn { width: 34px; height: 34px; border-radius: 10px; background: var(--panel2); border: 1px solid var(--line); display: grid; place-items: center; flex: none }
   .topbar b { font-size: 13px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
   .topbar .brand-mark { width: 22px; height: 22px; border-radius: 7px }
-  /* Меню — шухлядою зліва поверх сторінки. */
+  /* Меню — шухлядою зліва поверх сторінки. align-self: stretch — обовʼязково:
+     базове `start` (липка колонка на десктопі) Chrome застосовує й до fixed,
+     і тоді шухляда бралась за висотою вмісту, а не екрана, — вища за екран і
+     без прокрутки, «Відео» внизу не досягнути (18.10.2026). overscroll —
+     щоб докручена до кінця шухляда не тягла за собою сторінку під нею. */
   .side {
     position: fixed; top: 0; left: 0; bottom: 0; z-index: 61; width: min(280px, 86vw); max-height: none;
+    align-self: stretch; overflow-y: auto; overscroll-behavior: contain;
     padding: 14px 10px; background: var(--bg); border-right: 1px solid var(--line);
     transform: translateX(-105%); transition: transform .18s ease-out;
   }
