@@ -20,6 +20,7 @@ import { runDiscounts } from "./jobs/discounts.js";
 import { backupDatabase } from "./jobs/backup.js";
 import { aggregateAnalytics, flushAnalytics } from "./jobs/analytics.js";
 import { pollJetinno } from "./jobs/jetinno.js";
+import { runStock } from "./jobs/stock.js";
 
 const log = makeLog("scheduler");
 initErrors("scheduler", { log });
@@ -54,6 +55,10 @@ const JOBS = [
   // малину, бо портал чужий і темп низький. Типово раз на 30 хв.
   { name: "jetinno-poll", every: (Number(process.env.JETINNO_TELEMETRY_MIN) || 30) * MINUTE, ttl: 5 * MINUTE,
     run: () => pollJetinno({ pool, redis, log }) },
+  // Облік залишків (jobs/stock.js): витрата за замовленнями машини й
+  // щоденний журнал із прогнозом. Замовлення доходять раз на пів години,
+  // тож частіше за десять хвилин тут нічого не зміниться.
+  { name: "stock", every: 10 * MINUTE, ttl: 9 * MINUTE, run: () => runStock({ pool, log }) },
 ];
 
 // Порту в scheduler немає — про те, що він живий, каже позначка в Redis.

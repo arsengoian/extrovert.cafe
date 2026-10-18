@@ -1445,6 +1445,57 @@ ALTER SEQUENCE public.receipts_id_seq OWNED BY public.receipts.id;
 
 
 --
+-- Name: recipe_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recipe_lines (
+    version_id bigint NOT NULL,
+    product_id integer NOT NULL,
+    item_id text NOT NULL,
+    qty numeric(12,3) NOT NULL,
+    take_rate numeric(5,4) DEFAULT 1 NOT NULL,
+    CONSTRAINT recipe_lines_product_id_check CHECK ((product_id >= 0)),
+    CONSTRAINT recipe_lines_qty_check CHECK ((qty > (0)::numeric)),
+    CONSTRAINT recipe_lines_take_rate_check CHECK (((take_rate > (0)::numeric) AND (take_rate <= (1)::numeric)))
+);
+
+
+--
+-- Name: recipe_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.recipe_versions (
+    id bigint NOT NULL,
+    valid_from timestamp with time zone NOT NULL,
+    source text NOT NULL,
+    note text,
+    products jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT recipe_versions_source_check CHECK ((source = ANY (ARRAY['machine'::text, 'admin'::text])))
+);
+
+
+--
+-- Name: recipe_versions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.recipe_versions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: recipe_versions_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.recipe_versions_id_seq OWNED BY public.recipe_versions.id;
+
+
+--
 -- Name: redemption_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1590,6 +1641,197 @@ CREATE TABLE public.server_samples (
     databases jsonb DEFAULT '{}'::jsonb NOT NULL,
     redis_bytes bigint,
     containers jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+
+
+--
+-- Name: stock_count_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_count_lines (
+    count_id bigint NOT NULL,
+    item_id text NOT NULL,
+    location_id text NOT NULL,
+    qty numeric(14,3) NOT NULL,
+    CONSTRAINT stock_count_lines_qty_check CHECK ((qty >= (0)::numeric))
+);
+
+
+--
+-- Name: stock_counts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_counts (
+    id bigint NOT NULL,
+    counted_at timestamp with time zone NOT NULL,
+    note text,
+    created_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone
+);
+
+
+--
+-- Name: stock_counts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stock_counts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stock_counts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stock_counts_id_seq OWNED BY public.stock_counts.id;
+
+
+--
+-- Name: stock_daily; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_daily (
+    day date NOT NULL,
+    item_id text NOT NULL,
+    as_of timestamp with time zone NOT NULL,
+    book_qty numeric(14,3),
+    used_qty numeric(14,3) DEFAULT 0 NOT NULL,
+    used_var numeric(16,6) DEFAULT 0 NOT NULL,
+    forecast jsonb,
+    cover_days numeric(8,1),
+    cover_days_p90 numeric(8,1),
+    computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: stock_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_items (
+    id text NOT NULL,
+    name text NOT NULL,
+    unit text NOT NULL,
+    pack_size numeric(12,3),
+    pack_name text,
+    kind text NOT NULL,
+    per_day numeric(12,3) DEFAULT 0 NOT NULL,
+    canister integer,
+    sort_order integer DEFAULT 0 NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT stock_items_id_check CHECK ((id ~ '^[a-z0-9_]{2,40}$'::text)),
+    CONSTRAINT stock_items_kind_check CHECK ((kind = ANY (ARRAY['ingredient'::text, 'packaging'::text, 'consumable'::text]))),
+    CONSTRAINT stock_items_pack_size_check CHECK ((pack_size > (0)::numeric)),
+    CONSTRAINT stock_items_per_day_check CHECK ((per_day >= (0)::numeric)),
+    CONSTRAINT stock_items_unit_check CHECK ((unit = ANY (ARRAY['g'::text, 'ml'::text, 'pcs'::text])))
+);
+
+
+--
+-- Name: stock_locations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_locations (
+    id text NOT NULL,
+    name text NOT NULL,
+    point_id text,
+    kind text NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    CONSTRAINT stock_locations_kind_check CHECK ((kind = ANY (ARRAY['warehouse'::text, 'shelf'::text, 'machine'::text])))
+);
+
+
+--
+-- Name: stock_purchase_lines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_purchase_lines (
+    id bigint NOT NULL,
+    purchase_id bigint NOT NULL,
+    kind text NOT NULL,
+    item_id text,
+    category text,
+    description text NOT NULL,
+    qty numeric(14,3),
+    cost_uah numeric(12,2) NOT NULL,
+    CONSTRAINT stock_purchase_lines_check CHECK (((kind = 'material'::text) = (item_id IS NOT NULL))),
+    CONSTRAINT stock_purchase_lines_check1 CHECK (((kind <> 'material'::text) OR (qty IS NOT NULL))),
+    CONSTRAINT stock_purchase_lines_cost_uah_check CHECK ((cost_uah >= (0)::numeric)),
+    CONSTRAINT stock_purchase_lines_kind_check CHECK ((kind = ANY (ARRAY['material'::text, 'capex'::text, 'opex'::text]))),
+    CONSTRAINT stock_purchase_lines_qty_check CHECK ((qty > (0)::numeric))
+);
+
+
+--
+-- Name: stock_purchase_lines_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stock_purchase_lines_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stock_purchase_lines_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stock_purchase_lines_id_seq OWNED BY public.stock_purchase_lines.id;
+
+
+--
+-- Name: stock_purchases; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_purchases (
+    id bigint NOT NULL,
+    received_at timestamp with time zone NOT NULL,
+    supplier text,
+    doc text,
+    note text,
+    created_by text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: stock_purchases_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.stock_purchases_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: stock_purchases_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.stock_purchases_id_seq OWNED BY public.stock_purchases.id;
+
+
+--
+-- Name: stock_usage; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.stock_usage (
+    machine_order_id bigint NOT NULL,
+    item_id text NOT NULL,
+    recipe_version_id bigint NOT NULL,
+    used_at timestamp with time zone NOT NULL,
+    qty numeric(14,4) NOT NULL,
+    var numeric(16,6) DEFAULT 0 NOT NULL
 );
 
 
@@ -2335,6 +2577,13 @@ ALTER TABLE ONLY public.receipts ALTER COLUMN id SET DEFAULT nextval('public.rec
 
 
 --
+-- Name: recipe_versions id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_versions ALTER COLUMN id SET DEFAULT nextval('public.recipe_versions_id_seq'::regclass);
+
+
+--
 -- Name: redemption_events id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2353,6 +2602,27 @@ ALTER TABLE ONLY public.redemptions ALTER COLUMN id SET DEFAULT nextval('public.
 --
 
 ALTER TABLE ONLY public.repost_verifications ALTER COLUMN id SET DEFAULT nextval('public.repost_verifications_id_seq'::regclass);
+
+
+--
+-- Name: stock_counts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_counts ALTER COLUMN id SET DEFAULT nextval('public.stock_counts_id_seq'::regclass);
+
+
+--
+-- Name: stock_purchase_lines id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchase_lines ALTER COLUMN id SET DEFAULT nextval('public.stock_purchase_lines_id_seq'::regclass);
+
+
+--
+-- Name: stock_purchases id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchases ALTER COLUMN id SET DEFAULT nextval('public.stock_purchases_id_seq'::regclass);
 
 
 --
@@ -2864,6 +3134,30 @@ ALTER TABLE ONLY public.receipts
 
 
 --
+-- Name: recipe_lines recipe_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_lines
+    ADD CONSTRAINT recipe_lines_pkey PRIMARY KEY (version_id, product_id, item_id);
+
+
+--
+-- Name: recipe_versions recipe_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_versions
+    ADD CONSTRAINT recipe_versions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: recipe_versions recipe_versions_valid_from_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_versions
+    ADD CONSTRAINT recipe_versions_valid_from_key UNIQUE (valid_from);
+
+
+--
 -- Name: redemption_events redemption_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2917,6 +3211,78 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.server_samples
     ADD CONSTRAINT server_samples_pkey PRIMARY KEY (taken_at);
+
+
+--
+-- Name: stock_count_lines stock_count_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_count_lines
+    ADD CONSTRAINT stock_count_lines_pkey PRIMARY KEY (count_id, item_id, location_id);
+
+
+--
+-- Name: stock_counts stock_counts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_counts
+    ADD CONSTRAINT stock_counts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_daily stock_daily_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_daily
+    ADD CONSTRAINT stock_daily_pkey PRIMARY KEY (day, item_id);
+
+
+--
+-- Name: stock_items stock_items_canister_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_items
+    ADD CONSTRAINT stock_items_canister_key UNIQUE (canister);
+
+
+--
+-- Name: stock_items stock_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_items
+    ADD CONSTRAINT stock_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_locations stock_locations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_locations
+    ADD CONSTRAINT stock_locations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_purchase_lines stock_purchase_lines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchase_lines
+    ADD CONSTRAINT stock_purchase_lines_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_purchases stock_purchases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchases
+    ADD CONSTRAINT stock_purchases_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: stock_usage stock_usage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_usage
+    ADD CONSTRAINT stock_usage_pkey PRIMARY KEY (machine_order_id, item_id);
 
 
 --
@@ -3477,6 +3843,34 @@ CREATE INDEX repost_verifications_user_id_verified_at_idx ON public.repost_verif
 
 
 --
+-- Name: stock_count_lines_item_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_count_lines_item_idx ON public.stock_count_lines USING btree (item_id);
+
+
+--
+-- Name: stock_purchase_lines_item_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_purchase_lines_item_idx ON public.stock_purchase_lines USING btree (item_id);
+
+
+--
+-- Name: stock_purchase_lines_purchase_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_purchase_lines_purchase_idx ON public.stock_purchase_lines USING btree (purchase_id);
+
+
+--
+-- Name: stock_usage_item_used_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX stock_usage_item_used_idx ON public.stock_usage USING btree (item_id, used_at);
+
+
+--
 -- Name: support_messages_thread_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4017,6 +4411,22 @@ ALTER TABLE ONLY public.receipts
 
 
 --
+-- Name: recipe_lines recipe_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_lines
+    ADD CONSTRAINT recipe_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.stock_items(id);
+
+
+--
+-- Name: recipe_lines recipe_lines_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.recipe_lines
+    ADD CONSTRAINT recipe_lines_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.recipe_versions(id) ON DELETE CASCADE;
+
+
+--
 -- Name: redemption_events redemption_events_redemption_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4070,6 +4480,86 @@ ALTER TABLE ONLY public.redemptions
 
 ALTER TABLE ONLY public.repost_verifications
     ADD CONSTRAINT repost_verifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_count_lines stock_count_lines_count_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_count_lines
+    ADD CONSTRAINT stock_count_lines_count_id_fkey FOREIGN KEY (count_id) REFERENCES public.stock_counts(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_count_lines stock_count_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_count_lines
+    ADD CONSTRAINT stock_count_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.stock_items(id);
+
+
+--
+-- Name: stock_count_lines stock_count_lines_location_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_count_lines
+    ADD CONSTRAINT stock_count_lines_location_id_fkey FOREIGN KEY (location_id) REFERENCES public.stock_locations(id);
+
+
+--
+-- Name: stock_daily stock_daily_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_daily
+    ADD CONSTRAINT stock_daily_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.stock_items(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_locations stock_locations_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_locations
+    ADD CONSTRAINT stock_locations_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
+-- Name: stock_purchase_lines stock_purchase_lines_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchase_lines
+    ADD CONSTRAINT stock_purchase_lines_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.stock_items(id);
+
+
+--
+-- Name: stock_purchase_lines stock_purchase_lines_purchase_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_purchase_lines
+    ADD CONSTRAINT stock_purchase_lines_purchase_id_fkey FOREIGN KEY (purchase_id) REFERENCES public.stock_purchases(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_usage stock_usage_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_usage
+    ADD CONSTRAINT stock_usage_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.stock_items(id);
+
+
+--
+-- Name: stock_usage stock_usage_machine_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_usage
+    ADD CONSTRAINT stock_usage_machine_order_id_fkey FOREIGN KEY (machine_order_id) REFERENCES public.machine_orders(id) ON DELETE CASCADE;
+
+
+--
+-- Name: stock_usage stock_usage_recipe_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.stock_usage
+    ADD CONSTRAINT stock_usage_recipe_version_id_fkey FOREIGN KEY (recipe_version_id) REFERENCES public.recipe_versions(id) ON DELETE CASCADE;
 
 
 --
@@ -4363,4 +4853,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261015180000'),
     ('20261016100000'),
     ('20261017100000'),
-    ('20261017100100');
+    ('20261017100100'),
+    ('20261018100000');

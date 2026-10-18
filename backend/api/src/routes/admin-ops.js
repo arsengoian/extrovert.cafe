@@ -16,6 +16,7 @@ import { notifyPlant } from "../notify.js";
 import { redisClient } from "@extrovert/lib/redis.js";
 import { SERVER_LIMITS } from "@extrovert/lib/server-limits.js";
 import { pageInfo, pageOf } from "../paging.js";
+import { STOCK } from "@extrovert/lib/stock.js";
 
 const redis = redisClient();
 
@@ -39,6 +40,7 @@ const TARGETS = [
   ["outbox", "components", "публікатор подій", "черга outbox не стоїть"],
   ["menu-deploy", "components", "деплой меню", "ціни доїжджають на точки"],
   ["backup", "components", "бекап бази", "дамп у R2 за добу"],
+  ["stock", "components", "запаси", `вистачить на ${STOCK.coverDays} днів (90 %)`],
 ];
 
 // Періоди графіків в адмінці: 6 годин, доба, 3 дні, тиждень, місяць

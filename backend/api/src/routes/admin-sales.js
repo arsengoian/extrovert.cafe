@@ -394,6 +394,68 @@ export default async function routes(app) {
          from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)`,
       p
     );
-    return { from, to, totals, revenue, by_hour: byHour, by_weekday: byWeekday };
+
+    // Собівартість (docs/stock.md): розрахункова витрата матеріалів за
+    // кожним замовленням машини (stock_usage) × середня ціна закупки, плюс
+    // щодобова витрата. Сюди йдуть і тестові чашки, і напої власника — це
+    // справжні гроші, хоч виручки з них немає.
+    const COST = `cost as (select item_id, sum(cost_uah) / nullif(sum(qty), 0) as unit
+                             from stock_purchase_lines where kind = 'material' group by 1)`;
+    const cogs = await many(
+      `with ${COST}
+       select to_char(u.used_at at time zone '${TZ}', 'YYYY-MM-DD') as day, sum(u.qty * c.unit)::float as cogs
+         from stock_usage u join cost c on c.item_id = u.item_id
+        where u.used_at between $1 and $2
+        group by 1 order by 1`,
+      p
+    );
+    const daily = await one(
+      `with ${COST}
+       select coalesce(sum(i.per_day * c.unit), 0)::float as uah from stock_items i join cost c on c.item_id = i.id where i.active`
+    );
+    // Закупки й інші витрати — за днем отримання, окремо матеріали, CAPEX і OPEX.
+    const spend = await many(
+      `select to_char(p.received_at at time zone '${TZ}', 'YYYY-MM-DD') as day,
+              coalesce(sum(l.cost_uah) filter (where l.kind = 'material'), 0)::float as material,
+              coalesce(sum(l.cost_uah) filter (where l.kind = 'capex'), 0)::float as capex,
+              coalesce(sum(l.cost_uah) filter (where l.kind = 'opex'), 0)::float as opex
+         from stock_purchases p join stock_purchase_lines l on l.purchase_id = p.id
+        where p.received_at between $1 and $2
+        group by 1 order by 1`,
+      p
+    );
+    // Вартість запасів на кінець кожної доби — з журналу залишків.
+    const stockValue = await many(
+      `with ${COST}
+       select d.day::text as day, sum(greatest(d.book_qty, 0) * c.unit)::float as value
+         from stock_daily d join cost c on c.item_id = d.item_id
+        where d.book_qty is not null and d.day between ($1::timestamptz at time zone '${TZ}')::date and ($2::timestamptz at time zone '${TZ}')::date
+        group by 1 order by 1`,
+      p
+    );
+    // Окупність — з самого початку, а не за обраний період: скільки
+    // валового прибутку мінус OPEX уже повернуло вкладене в CAPEX.
+    const ever = await one(
+      `with ${COST}
+       select (select coalesce(sum(total_sum), 0) from receipts where receipt_in_stats(id))::float as revenue,
+              (select coalesce(sum(u.qty * c.unit), 0) from stock_usage u join cost c on c.item_id = u.item_id)::float as cogs,
+              (select coalesce(sum(cost_uah), 0) from stock_purchase_lines where kind = 'capex')::float as capex,
+              (select coalesce(sum(cost_uah), 0) from stock_purchase_lines where kind = 'opex')::float as opex,
+              (select min(fiscal_date) from receipts) as since`
+    );
+    const days = Math.max(1, Math.round((new Date(to) - new Date(from)) / DAY));
+    const cogsSum = cogs.reduce((s, r) => s + r.cogs, 0) + daily.uah * days;
+    const spendSum = (k) => spend.reduce((s, r) => s + r[k], 0);
+    return {
+      from, to, totals: {
+        ...totals,
+        cogs: cogsSum,
+        gross: totals.revenue - cogsSum,
+        material: spendSum("material"), capex: spendSum("capex"), opex: spendSum("opex"),
+        stock_value: stockValue.at(-1)?.value ?? null,
+        daily_cost: daily.uah,
+      },
+      revenue, by_hour: byHour, by_weekday: byWeekday, cogs, spend, stock_value: stockValue, ever,
+    };
   });
 }

@@ -33,6 +33,10 @@ import { Order } from "./screens/Order.jsx";
 import { Users } from "./screens/Users.jsx";
 import { User } from "./screens/User.jsx";
 import { Purchases } from "./screens/Purchases.jsx";
+import { Stock } from "./screens/Stock.jsx";
+import { StockCounts } from "./screens/StockCounts.jsx";
+import { StockPurchases } from "./screens/StockPurchases.jsx";
+import { StockCatalog } from "./screens/StockCatalog.jsx";
 import { Video } from "./screens/Video.jsx";
 
 const I = {
@@ -55,6 +59,7 @@ const I = {
   broadcast: "M4 10v4h3l5 4V6l-5 4H4zm12-2a6 6 0 0 1 0 8m-2-6a3 3 0 0 1 0 4",
   finance: "M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H3V7zm0 0 13-3v3m1 6.5h.01",
   players: "M6 11h4M8 9v4m7-1h.01M18 10h.01M7 6h10a5 5 0 0 1 0 10h-1l-2-2h-4l-2 2H7A5 5 0 0 1 7 6z",
+  stock: "M3 7l9-4 9 4v10l-9 4-9-4V7zm0 0 9 4 9-4M12 11v10",
 };
 
 // Меню: [маршрут, назва, іконка, лічильник, вкладки]. Вкладки — свої
@@ -69,6 +74,7 @@ const MENU = [
   ]],
   ["кавʼярня", [
     ["receipts", "Покупки", I.cart, null, [["receipts", "чеки"], ["receipts/attempts", "невдалі спроби"]]],
+    ["stock", "Залишки", I.stock, null, [["stock", "залишки"], ["stock/counts", "інвентаризації"], ["stock/purchases", "закупки"], ["stock/catalog", "матеріали й рецепти"]]],
     ["prices", "Меню", I.price, null, [["prices", "ціни"], ["promos", "акції"], ["deployments", "деплойменти"]]],
     ["orders", "Замовлення", I.orders, "orders_open"],
   ]],
@@ -88,7 +94,7 @@ const ITEMS = MENU.flatMap(([, items]) => items);
 const owns = (item, name) => item[0] === name || Boolean(item[4]?.some(([route]) => route === name));
 
 // Екрани з двома частинами в імені; решта — «екран/аргумент» (users/42).
-const SCREENS = new Set(["video/events", "players/economy", "players/app", "receipts/attempts"]);
+const SCREENS = new Set(["video/events", "players/economy", "players/app", "receipts/attempts", "stock/counts", "stock/purchases", "stock/catalog"]);
 // Адреси до 18.10.2026 — на нові місця: закладки й посилання в старих
 // повідомленнях мають відкривати те саме, а не дашборд здоровʼя.
 const ALIASES = {
@@ -139,6 +145,10 @@ function Screen({ name, arg, counts }) {
     case "users": return arg ? <User id={arg} /> : <Users />;
     case "receipts": return <Purchases tab="receipts" />;
     case "receipts/attempts": return <Purchases tab="attempts" />;
+    case "stock": return <Stock />;
+    case "stock/counts": return <StockCounts arg={arg} />;
+    case "stock/purchases": return <StockPurchases arg={arg} />;
+    case "stock/catalog": return <StockCatalog />;
     case "video": case "video/events": return <Video tab={name.split("/")[1] ?? "segments"} />;
     default: return <Health />;
   }

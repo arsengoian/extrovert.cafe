@@ -13,6 +13,7 @@
 // Overseer, а не api: перевірка — це фонова робота, і робити її в процесі,
 // який відповідає гравцям, означає ділити з ними таймаути.
 import { presign } from "@extrovert/lib/r2.js";
+import { STOCK, stockStatus } from "@extrovert/lib/stock.js";
 import { checkWebhook, silenceLimit } from "./checks.js";
 
 const TIMEOUT_MS = 8000;
@@ -92,6 +93,23 @@ async function components(pool, redis) {
   );
   const hours = receipts.last ? (Date.now() - new Date(receipts.last).getTime()) / 3600_000 : null;
   out.push(["receipts", hours !== null && hours < 24, receipts.last ? `останній чек ${hours.toFixed(1)} год тому` : "чеків ще не було"]);
+
+  // Запаси (docs/stock.md): з імовірністю 90 % вистачить на STOCK.coverDays
+  // днів — по кожному матеріалу з нормою витрати й відомим залишком. Тим
+  // самим stockStatus рахує екран «Залишки». Обліку ще немає (ні закупки, ні
+  // інвентаризації) — немає й рядка, а не вічне червоне.
+  // Помилка тут не має зупиняти решту проб компонентів — лише цей рядок.
+  const stock = await stockStatus(pool)
+    .then((all) => all.filter((i) => i.status === "ok" || i.status === "low"))
+    .catch((e) => { out.push(["stock", false, `не вдалось порахувати: ${e.message.slice(0, 100)}`]); return []; });
+  if (stock.length) {
+    const days = (i) => (i.cover_days_p90 === null ? Infinity : i.cover_days_p90);
+    const low = stock.filter((i) => i.status === "low").sort((a, b) => days(a) - days(b));
+    const shortest = [...stock].sort((a, b) => days(a) - days(b))[0];
+    out.push(["stock", low.length === 0, low.length
+      ? low.slice(0, 3).map((i) => `${i.name} — на ${Math.floor(days(i))} дн.`).join("; ")
+      : Number.isFinite(days(shortest)) ? `найменше — ${shortest.name}, на ${Math.floor(days(shortest))} дн.` : `усього понад рік (≥ ${STOCK.coverDays} дн.)`]);
+  }
 
   return out;
 }

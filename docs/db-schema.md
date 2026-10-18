@@ -160,6 +160,7 @@ erDiagram
         text tunnel_pubkey "публічний ключ тунелю, малина реєструє сама"
         timestamptz tunnel_key_at
         timestamptz last_seen_at "остання телеметрія"
+        timestamptz video_upload_paused_at "пауза заливки відео з адмінки (video.md); null — заливка працює"
         timestamptz created_at
     }
     USERS {
@@ -318,7 +319,7 @@ erDiagram
     DEVICE_TELEMETRY {
         bigserial id PK
         text point_id FK
-        text source "pi|jetinno|camera"
+        text source "pi|jetinno|camera|kernel — помилки ядра малини, подією (raspberry-pi.md)"
         text idem_key UK "малина ретраїть зі збереженим ключем"
         timestamptz measured_at
         jsonb metrics
@@ -1087,6 +1088,104 @@ ER-діаграму не винесені: звʼязків немає свід�
 | `analytics_events` | подія: `at`, `user_id` (без FK — insert пачками має бути дешевим), `ip` (inet), `type` (`nav` / `api` / `qr`), `payload` jsonb: для nav — `screen`, `from`, `platform`; для api — `method`, шаблон `route`, `status`, `ms`; для qr (застосунок відкрили з QR, 12.10.2026) — `pos`, `via` (`sticker` / `bonus`), `platform` | 90 діб; IP видалених акаунтів затирає scheduler |
 | `analytics_daily` | денні відра за київським днем: `(day, metric, dim) → value`, лише те, що складається між днями | без обмеження |
 | `analytics_window` | готові зрізи за 1/7/30 діб: унікальні люди, сесії, воронки, перцентилі — те, що з денних не виводиться; перераховується цілком раз на 10 хв | перезаписується |
+
+### Облік залишків (18.10.2026)
+
+Матеріали, закупки, інвентаризації й рецепти версіями; витрата — за кожним
+замовленням машини, журнал — по доби. Як рахується й чому так — `stock.md`.
+
+```mermaid
+erDiagram
+    STOCK_ITEMS ||--o{ STOCK_PURCHASE_LINES : "закуплено"
+    STOCK_PURCHASES ||--|{ STOCK_PURCHASE_LINES : "рядки"
+    STOCK_COUNTS ||--|{ STOCK_COUNT_LINES : "рядки"
+    STOCK_ITEMS ||--o{ STOCK_COUNT_LINES : "пораховано"
+    STOCK_LOCATIONS ||--o{ STOCK_COUNT_LINES : "де"
+    POINTS ||--o{ STOCK_LOCATIONS : "полиці й бункери"
+    RECIPE_VERSIONS ||--|{ RECIPE_LINES : "рядки"
+    STOCK_ITEMS ||--o{ RECIPE_LINES : "у напої"
+    MACHINE_ORDERS ||--o{ STOCK_USAGE : "витрата замовлення"
+    RECIPE_VERSIONS ||--o{ STOCK_USAGE : "за версією"
+    STOCK_ITEMS ||--o{ STOCK_DAILY : "журнал"
+
+    STOCK_ITEMS {
+        text id PK "coffee, milk, cup_l"
+        text name
+        text unit "g|ml|pcs"
+        numeric pack_size "скільки в упаковці"
+        text pack_name
+        text kind "ingredient|packaging|consumable"
+        numeric per_day "витрата незалежно від продажів"
+        int canister UK "бункер Jetinno: імпорт рецептів пише сюди"
+        int sort_order
+        boolean active
+    }
+    STOCK_LOCATIONS {
+        text id PK "warehouse, kyiv-01:shelf, kyiv-01:machine"
+        text name
+        text point_id FK
+        text kind "warehouse|shelf|machine"
+    }
+    STOCK_PURCHASES {
+        bigserial id PK
+        timestamptz received_at
+        text supplier
+        text doc
+        text created_by
+    }
+    STOCK_PURCHASE_LINES {
+        bigserial id PK
+        bigint purchase_id FK
+        text kind "material|capex|opex"
+        text item_id FK "лише для material"
+        text category "для capex і opex"
+        numeric qty "у базових одиницях"
+        numeric cost_uah
+    }
+    STOCK_COUNTS {
+        bigserial id PK
+        timestamptz counted_at "джерело правди на цю мить"
+        text created_by
+        timestamptz updated_at "правити можна лише останню"
+    }
+    STOCK_COUNT_LINES {
+        bigint count_id PK
+        text item_id PK
+        text location_id PK
+        numeric qty
+    }
+    RECIPE_VERSIONS {
+        bigserial id PK
+        timestamptz valid_from UK "чинна до наступної"
+        text source "machine|admin"
+        jsonb products "назви продуктів машини"
+    }
+    RECIPE_LINES {
+        bigint version_id PK
+        int product_id PK "0 — на кожен напій"
+        text item_id PK
+        numeric qty
+        numeric take_rate "частка тих, хто бере"
+    }
+    STOCK_USAGE {
+        bigint machine_order_id PK
+        text item_id PK
+        bigint recipe_version_id FK
+        timestamptz used_at
+        numeric qty "очікувана: кількість × частка"
+        numeric var "дисперсія: кількість² × p(1−p)"
+    }
+    STOCK_DAILY {
+        date day PK
+        text item_id PK
+        timestamptz as_of "кінець доби чи мить перерахунку"
+        numeric book_qty "розрахунковий залишок; null — невідомо"
+        numeric used_qty
+        jsonb forecast "сукупні середнє й дисперсія на 30 діб"
+        numeric cover_days
+        numeric cover_days_p90
+    }
+```
 
 ---
 
