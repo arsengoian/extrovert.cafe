@@ -174,6 +174,11 @@ export function Problem({ ctx }) {
           onClose={ctx.pop}
         >
           <div className="result-note">Ми читаємо все, що сюди приходить. Опрацюємо ASAP!</div>
+          {/* Відповісти на скаргу з адмінки нема куди: форма одностороння
+              (власник, 18.10.2026). Хто чекає відповіді — у бот підтримки. */}
+          <div className="result-note" style={{ display: "block" }}>
+            Відповісти тут ми не зможемо — для зворотного звʼязку напиши в <button className="doc-link" onClick={() => ctx.support()}>підтримку</button>.
+          </div>
         </ResultPopup>
       )}
     </div>
