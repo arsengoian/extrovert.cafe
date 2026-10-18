@@ -197,16 +197,56 @@ export function usePage(...resetOn) {
 // віддає api (paging.js: page, per, total). Після переходу повертаємо екран
 // до початку таблиці, якщо він уже під верхнім краєм: інакше нова сторінка
 // відкривалась би з кінця, там, де стояв перемикач.
+//
+// Номери — десять найближчих сторінок і завжди перша й остання (власник,
+// 18.10.2026: відео з сотнями сторінок «вперед-назад» не перегорнеш). На
+// телефоні лишаються сусіди на дві в кожен бік (.pager-far ховає решту), а
+// для стрибка далеко — поле «до сторінки».
+const PAGER_WINDOW = 10;
+export function pagerWindow(page, pages, size = PAGER_WINDOW) {
+  const start = Math.max(1, Math.min(page - Math.floor((size - 1) / 2), pages - size + 1));
+  const end = Math.min(pages, start + size - 1);
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
 export function Pager({ info, onPage, busy = false, note = null }) {
   const ref = useRef(null);
+  const [jump, setJump] = useState("");
   if (!info) return note;
   const pages = Math.max(1, Math.ceil(info.total / info.per));
   const from = info.total ? (info.page - 1) * info.per + 1 : 0;
   const to = Math.min(info.total, info.page * info.per);
   const goTo = (n) => {
-    onPage(Math.min(pages, Math.max(1, n)));
+    const next = Math.min(pages, Math.max(1, n));
+    if (next !== info.page) onPage(next);
     const top = ref.current?.closest(".table-card, .threads, .card");
     if (top && top.getBoundingClientRect().top < 0) top.scrollIntoView({ block: "start" });
+  };
+  // Перша, остання й вікно; «…» — де номери не йдуть підряд. На телефоні
+  // далекі номери сховані, тож там, де сховане не прикрите звичайною «…»,
+  // стоїть своя, видима лише на телефоні (.pager-gap-m).
+  const shown = [...new Set([1, ...pagerWindow(info.page, pages), pages])].sort((a, b) => a - b);
+  const far = (n) => Math.abs(n - info.page) > 2 && n !== 1 && n !== pages;
+  const items = [];
+  shown.forEach((n, i) => {
+    if (i > 0 && n - shown[i - 1] > 1) items.push(<span key={`g${n}`} className="pager-gap">…</span>);
+    items.push(
+      <button key={n} className={`btn small pager-num${n === info.page ? " on" : ""}${far(n) ? " pager-far" : ""}`}
+              disabled={busy} aria-current={n === info.page ? "page" : undefined} onClick={() => goTo(n)}>
+        {n}
+      </button>
+    );
+    const next = far(n) ? undefined : shown.slice(i + 1).find((m) => !far(m));
+    const run = next === undefined ? [] : shown.filter((m) => m >= n && m <= next);
+    if (run.length > 2 && run.every((m, j) => j === 0 || m - run[j - 1] === 1)) {
+      items.push(<span key={`m${n}`} className="pager-gap pager-gap-m">…</span>);
+    }
+  });
+  const submit = (e) => {
+    e.preventDefault();
+    const n = parseInt(jump, 10);
+    if (Number.isFinite(n)) goTo(n);
+    setJump("");
   };
   return (
     <div className="pager" ref={ref}>
@@ -216,11 +256,16 @@ export function Pager({ info, onPage, busy = false, note = null }) {
       </span>
       {pages > 1 && (
         <span className="pager-btns">
-          <button className="btn small" disabled={busy || info.page <= 1} onClick={() => goTo(1)} aria-label="перша сторінка">«</button>
-          <button className="btn small" disabled={busy || info.page <= 1} onClick={() => goTo(info.page - 1)}>‹ назад</button>
-          <span className="pager-at">{busy ? "…" : `${info.page} / ${pages}`}</span>
-          <button className="btn small" disabled={busy || info.page >= pages} onClick={() => goTo(info.page + 1)}>далі ›</button>
-          <button className="btn small" disabled={busy || info.page >= pages} onClick={() => goTo(pages)} aria-label="остання сторінка">»</button>
+          <button className="btn small" disabled={busy || info.page <= 1} onClick={() => goTo(info.page - 1)} aria-label="попередня сторінка">‹</button>
+          {items}
+          <button className="btn small" disabled={busy || info.page >= pages} onClick={() => goTo(info.page + 1)} aria-label="наступна сторінка">›</button>
+          {pages > PAGER_WINDOW && (
+            <form className="pager-jump" onSubmit={submit}>
+              <input type="number" min="1" max={pages} inputMode="numeric" value={jump} placeholder="№"
+                     aria-label={`до сторінки, 1–${pages}`} onChange={(e) => setJump(e.target.value)} />
+              <button className="btn small" disabled={busy || !jump}>→</button>
+            </form>
+          )}
         </span>
       )}
     </div>

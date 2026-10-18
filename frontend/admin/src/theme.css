@@ -291,8 +291,14 @@ select.cell-input { width: 170px }
 /* ── сторінки списків (ui.jsx, Pager) ───────────────────────────────── */
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap }
 .pager-info { font-variant-numeric: tabular-nums }
-.pager-btns { display: flex; align-items: center; gap: 4px }
-.pager-at { min-width: 54px; text-align: center; font-size: 11px; color: var(--ink); font-variant-numeric: tabular-nums }
+.pager-btns { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end }
+.pager-num { min-width: 28px; justify-content: center; font-variant-numeric: tabular-nums }
+.pager-num.on { background: var(--grad); border-color: transparent; color: var(--accent-ink); font-weight: 800 }
+.pager-num.on:disabled { opacity: 1 }
+.pager-gap { padding: 0 2px; color: var(--muted); font-size: 11px }
+.pager-gap-m { display: none }
+.pager-jump { display: flex; align-items: center; gap: 4px; margin-left: 6px }
+.pager-jump input { width: 56px; height: 24px; padding: 0 6px; border-radius: var(--radius-sm); background: var(--panel2); border: 1px solid var(--line); color: var(--ink); font-size: 11px; font-variant-numeric: tabular-nums }
 .threads-pager { padding: 8px 4px 2px; font-size: 11px; color: var(--muted) }
 .threads-pager .pager { flex-direction: column; align-items: stretch }
 
@@ -422,4 +428,6 @@ select.cell-input { width: 170px }
   .table-card.wide th, .table-card.wide td { padding: 7px 10px; font-size: 11px }
   .table-foot { padding: 8px 12px }
   .pager-btns .btn.small { padding: 0 7px }
+  .pager-far { display: none }
+  .pager-gap-m { display: inline }
 }
