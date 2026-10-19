@@ -18,6 +18,7 @@ import { budTargets, config, createAt, groupFor, moveTo, resolve, resolveDraft, 
 import { CounterChip, Dial, RangeRow, SkinGrid, Steps, ZOrderRow } from "./controls.jsx";
 import { Sparks } from "../ui/fx.jsx";
 import { useLandscape } from "../ui/landscape.js";
+import { useStageBottom } from "../ui/Popup.jsx";
 import { selectedPlantId } from "./selected.js";
 import { leaveHandoff } from "./handoff.js";
 import { toast } from "../ui/Net.jsx";
@@ -152,6 +153,26 @@ const Trash = () => (
   </svg>
 );
 
+// Підтвердження посадки — фон і картка одним порталом у .app, як усі
+// попапи (ui/Popup.jsx). Досі в портал ішов лише фон, а картка лишалась у
+// .stage: на iPhone прокрутка з -webkit-overflow-scrolling: touch робить
+// .stage окремим шаром, і картка разом із «Посадити» опинялась під фоном —
+// розмитий екран без кнопок (власник, 19.10.2026; так само ламався попап
+// імені 23.09.2026). Відступ знизу — від сцени, у мить відкриття: у
+// «незавершеній посадці» під екраном ще є меню, після «Продовжити» вже ні.
+function CareConfirm({ onCancel, children }) {
+  const bottom = useStageBottom(16);
+  const wide = useLandscape();
+  const host = document.querySelector(".app") ?? document.body;
+  return createPortal(
+    <>
+      <div className="sheet-backdrop" onClick={onCancel} />
+      <div className="care-card" style={wide ? undefined : { bottom }}>{children}</div>
+    </>,
+    host
+  );
+}
+
 export function Planting({ ctx, plantId, title, resume }) {
   const assets = usePlantAssets();
   const [data, setData] = useState(null);
@@ -169,8 +190,6 @@ export function Planting({ ctx, plantId, title, resume }) {
   const rootRef = useRef(null);
   const [box, setBox] = useState({ w: 390, h: 602 });
   const wide = useLandscape();
-  const [host, setHost] = useState(null);
-  useEffect(() => setHost(document.querySelector(".app")), []);
   // Щойно посаджений елемент: виростає з bounce, навколо — іскорки.
   const [pop, setPop] = useState(null);
   useEffect(() => {
@@ -660,24 +679,21 @@ export function Planting({ ctx, plantId, title, resume }) {
       )}
 
       {sheet === "confirm" && (
-        <>
-          {host && createPortal(<div className="sheet-backdrop" onClick={() => { setSheet("edit"); setSkipFg(false); }} />, host)}
-          <div className="care-card">
-            <div className="care-card-head">
-              <CareIcon need={need} h={47} />
-              <b>{what.forever}</b>
-            </div>
-            <p>Використати {unit} {CARE[need].of}? Після посадки {what.move} вже не можна.</p>
-            <div className="care-card-row">
-              <span>{CARE[need].stock}</span>
-              <b>{supplyLeft} {CARE[need].unit} → {Math.max(0, supplyLeft - 1)} {CARE[need].unit}</b>
-            </div>
-            <div className="care-card-btns">
-              <button onClick={() => { setSheet("edit"); setSkipFg(false); }}>Ще ні</button>
-              <button disabled={busy || supplyLeft < 1} onClick={commit}>{busy ? "Саджаємо…" : "Посадити"}</button>
-            </div>
+        <CareConfirm onCancel={() => { setSheet("edit"); setSkipFg(false); }}>
+          <div className="care-card-head">
+            <CareIcon need={need} h={47} />
+            <b>{what.forever}</b>
           </div>
-        </>
+          <p>Використати {unit} {CARE[need].of}? Після посадки {what.move} вже не можна.</p>
+          <div className="care-card-row">
+            <span>{CARE[need].stock}</span>
+            <b>{supplyLeft} {CARE[need].unit} → {Math.max(0, supplyLeft - 1)} {CARE[need].unit}</b>
+          </div>
+          <div className="care-card-btns">
+            <button onClick={() => { setSheet("edit"); setSkipFg(false); }}>Ще ні</button>
+            <button disabled={busy || supplyLeft < 1} onClick={commit}>{busy ? "Саджаємо…" : "Посадити"}</button>
+          </div>
+        </CareConfirm>
       )}
     </div>
   );
