@@ -16,6 +16,10 @@
  * Чого в скрипті немає зовсім — помилок ядра (17.10.2026): їх читає окремий
  * потік і шле, щойно вони з'явились (розділ «ядро» нижче). У пробі скрипта
  * kernel_errors завжди null.
+ *
+ * Той самий бінарник із --sdwatch — сторож SD-картки (19.10.2026, розділ
+ * «сторож картки»): окремий процес від root, а не режим телеметрії, але
+ * в релізі він їде цим файлом, щоб не чіпати збірку в CI.
  */
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
@@ -35,6 +39,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
+#include <sys/mman.h>
+#include <sys/reboot.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -43,6 +50,7 @@
 #include <sys/timex.h>
 #include <sys/un.h>
 #include <sys/wait.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -797,6 +805,48 @@ static void json_str(char *out, size_t n, const char *s) {   /* рядок дл�
     out[o] = 0;
 }
 
+/* Відповідь api — у буфер (потрібна лише дозволу сторожа картки). */
+typedef struct { char *b; size_t n, len; } KResp;
+static size_t k_keep(char *d, size_t s, size_t n, void *u) {
+    KResp *r = u; size_t z = s * n;
+    if (r && r->len + 1 < r->n) {
+        size_t c = z < r->n - 1 - r->len ? z : r->n - 1 - r->len;
+        memcpy(r->b + r->len, d, c); r->len += c; r->b[r->len] = 0;
+    }
+    return z;
+}
+
+/* POST проби з потоку ядра: адреса й сертифікати — з памʼяті. → HTTP-код,
+ * або −1, якщо до api не достукались. resp (може бути NULL) — тіло відповіді. */
+static long k_post(const char *tok, const char *body, char *resp, size_t rn) {
+    char url[1024], auth[1200];
+    snprintf(url, sizeof url, "%s/points/%s/telemetry", API, POINT);
+    snprintf(auth, sizeof auth, "authorization: Bearer %s", tok);
+    struct curl_slist *h = curl_slist_append(NULL, auth);
+    h = curl_slist_append(h, "content-type: application/json");
+    KResp r = { resp, rn, 0 };
+    if (resp && rn) resp[0] = 0;
+    curl_easy_reset(K_H);
+    curl_easy_setopt(K_H, CURLOPT_URL, url);
+    curl_easy_setopt(K_H, CURLOPT_HTTPHEADER, h);
+    curl_easy_setopt(K_H, CURLOPT_POSTFIELDS, body);
+    curl_easy_setopt(K_H, CURLOPT_TIMEOUT, 20L);
+    curl_easy_setopt(K_H, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(K_H, CURLOPT_WRITEFUNCTION, resp ? k_keep : sink);
+    if (resp) curl_easy_setopt(K_H, CURLOPT_WRITEDATA, &r);
+    if (K_RESOLVE) curl_easy_setopt(K_H, CURLOPT_RESOLVE, K_RESOLVE);
+    if (CA_N) {
+        curl_easy_setopt(K_H, CURLOPT_CAINFO, NULL);
+        curl_easy_setopt(K_H, CURLOPT_CAPATH, NULL);
+        curl_easy_setopt(K_H, CURLOPT_SSL_CTX_FUNCTION, ca_ctx);
+    }
+    CURLcode rc = curl_easy_perform(K_H);
+    long code = 0; curl_easy_getinfo(K_H, CURLINFO_RESPONSE_CODE, &code);
+    curl_slist_free_all(h);
+    if (rc == CURLE_COULDNT_CONNECT) k_resolve();   /* раптом api переїхав на іншу адресу */
+    return rc == CURLE_OK ? code : -1;
+}
+
 /* Невідправлені рядки — однією пробою. → 0, якщо їх більше слати не треба. */
 static int k_send(void) {
     char tok[sizeof K_TOKEN];
@@ -818,29 +868,8 @@ static int k_send(void) {
     }
     snprintf(body + o, sizeof body - o, "]}}]}");
 
-    char url[1024], auth[1200];
-    snprintf(url, sizeof url, "%s/points/%s/telemetry", API, POINT);
-    snprintf(auth, sizeof auth, "authorization: Bearer %s", tok);
-    struct curl_slist *h = curl_slist_append(NULL, auth);
-    h = curl_slist_append(h, "content-type: application/json");
-    curl_easy_reset(K_H);
-    curl_easy_setopt(K_H, CURLOPT_URL, url);
-    curl_easy_setopt(K_H, CURLOPT_HTTPHEADER, h);
-    curl_easy_setopt(K_H, CURLOPT_POSTFIELDS, body);
-    curl_easy_setopt(K_H, CURLOPT_TIMEOUT, 20L);
-    curl_easy_setopt(K_H, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(K_H, CURLOPT_WRITEFUNCTION, sink);
-    if (K_RESOLVE) curl_easy_setopt(K_H, CURLOPT_RESOLVE, K_RESOLVE);
-    if (CA_N) {
-        curl_easy_setopt(K_H, CURLOPT_CAINFO, NULL);
-        curl_easy_setopt(K_H, CURLOPT_CAPATH, NULL);
-        curl_easy_setopt(K_H, CURLOPT_SSL_CTX_FUNCTION, ca_ctx);
-    }
-    CURLcode rc = curl_easy_perform(K_H);
-    long code = 0; curl_easy_getinfo(K_H, CURLINFO_RESPONSE_CODE, &code);
-    curl_slist_free_all(h);
-    if (rc == CURLE_COULDNT_CONNECT) k_resolve();   /* раптом api переїхав на іншу адресу */
-    if (rc != CURLE_OK) return -1;
+    long code = k_post(tok, body, NULL, 0);
+    if (code < 0) return -1;
     if (code >= 200 && code < 300) {
         pthread_mutex_lock(&K_MU); K_SENT = K_PEND[K_PEND_N - 1].seq; pthread_mutex_unlock(&K_MU);
         return 0;
@@ -852,12 +881,60 @@ static long long mono_ms(void) {
     struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t);
     return t.tv_sec * 1000LL + t.tv_nsec / 1000000;
 }
+/* ── дозвіл сторожу картки ─────────────────────────────────────────────
+ * Сторож (--sdwatch нижче) пише свій стан у SD_STATE, а дозволу на
+ * перезавантаження питає цей потік: у нього адреса й сертифікати api вже в
+ * памʼяті, а в сторожа мережі немає зовсім. Обидва файли — у /dev/shm
+ * (RAM), картки тут ніхто не торкається. */
+#define SD_STATE "/dev/shm/extrovert-sdwatch"
+#define SD_GO    "/dev/shm/extrovert-sdwatch.go"
+#define SD_LOCK  "/dev/shm/extrovert-sdwatch.lock"
+
+/* → 1 дозволено, 0 відмова (ліміт на добу), −1 не достукались. */
+static int sd_ask(const char *reason, int test) {
+    char tok[sizeof K_TOKEN];
+    pthread_mutex_lock(&K_MU); snprintf(tok, sizeof tok, "%s", K_TOKEN); pthread_mutex_unlock(&K_MU);
+    if (!tok[0]) return -1;
+    char now[32], esc[400], msg[300], body[2048], resp[512];
+    iso_utc(time(NULL), now, sizeof now);
+    snprintf(msg, sizeof msg, "сторож картки: %s%s", test ? "перевірка зв'язку" : reason, test ? "" : " — прошу перезавантаження");
+    json_str(esc, sizeof esc, msg);
+    char why[220]; json_str(why, sizeof why, test ? "test" : reason);
+    double up = uptime_now();
+    /* Рядком у lines — щоб запит було видно в «Помилках ядра» на сторінці точки. */
+    snprintf(body, sizeof body,
+        "{\"samples\":[{\"source\":\"kernel\",\"measured_at\":\"%s\",\"idem_key\":\"sdreq:%.8s:%lld\","
+        "\"metrics\":{\"uptime_s\":%.0f,\"boot_id\":\"%s\",\"sd_dead\":true,\"sd_test\":%s,\"sd_reason\":\"%s\","
+        "\"lines\":[{\"t\":%.3f,\"lvl\":2,\"seq\":0,\"msg\":\"%s\"}]}}]}",
+        now, K_BOOT, mono_ms(), up, K_BOOT, test ? "true" : "false", why, up, esc);
+    long code = k_post(tok, body, resp, sizeof resp);
+    if (code < 200 || code >= 300) return -1;
+    return strstr(resp, "\"reboot\":true") ? 1 : 0;
+}
+
+static void sd_check(long long now) {
+    static char seen[200];      /* стан, про який уже спитали */
+    static long long next;      /* коли перепитати */
+    char st[200];
+    if (read_file(SD_STATE, st, sizeof st) <= 0) return;
+    st[strcspn(st, "\n")] = 0;
+    int test = !strcmp(st, "test");
+    if (!test && strncmp(st, "dead ", 5)) { seen[0] = 0; return; }   /* ok, tested — питати нема про що */
+    if (!strcmp(st, seen) && now < next) return;
+    int r = sd_ask(test ? "" : st + 5, test);
+    snprintf(seen, sizeof seen, "%s", st);
+    /* Не достукались — за 30 с; відмова (ліміт) — за 10 хв, раптом звільниться. */
+    next = now + (r < 0 ? 30000 : r ? 3600000 : 600000);
+    if (r > 0) write_atomic(SD_GO, test ? "test\n" : "go\n");
+}
+
 static void *k_main(void *arg) {
     (void)arg;
     long long due = 0, last = -100000;
     for (;;) {
         int fresh = k_drain();
         long long now = mono_ms();
+        sd_check(now);
         /* Нова помилка — шлемо за секунду (за нею часто йде ціла низка),
          * але не частіше ніж раз на 5 с; не вийшло — повтор за 30 с. */
         if (fresh && K_PEND_N) {
@@ -873,7 +950,9 @@ static void *k_main(void *arg) {
         }
         if (KMSG_FILE) { struct timespec ts = { 0, 200000000L }; nanosleep(&ts, NULL); continue; }   /* poll на файлі завжди «готовий» */
         struct pollfd p = { KMSG_FD, POLLIN, 0 };
-        poll(&p, 1, due ? (int)(due - now) : 60000);
+        /* Не довше 5 с: стан сторожа картки теж треба помітити вчасно. */
+        long long wait = due ? due - now : 5000;
+        poll(&p, 1, (int)(wait < 5000 ? wait : 5000));
     }
     return NULL;
 }
@@ -932,6 +1011,173 @@ static void kernel_tick(void) {
     if (count > logged) { logf_("ядро: помилок від старту %ld (+%ld), остання: %s", count, count - logged, last); logged = count; }
 }
 
+/* ── сторож картки: bin/telemetry --sdwatch (19.10.2026) ─────────────────
+ * Коли SD-картка вмирає, ядро, мережа й цей файл у памʼяті живуть далі, а
+ * точка — «зомбі» до ручного вимкнення (raspberry-pi.md, «Сторож картки»).
+ * Перезавантажити її тієї миті нічим із картки: ні reboot, ні sudo вже не
+ * прочитати. Тому сторож стартує ще на здоровій картці від root
+ * (telemetry.sh, sudo -n), закріплює себе в памʼяті (mlockall) і далі
+ * картку не читає зовсім — крім самої перевірки раз на SD_EVERY_S: чи
+ * розділ даних не перемонтовано «лише читання» (/proc/mounts — це ядро) і
+ * чи читається перший сектор картки повз кеш (O_DIRECT, дескриптор
+ * відкрито ще на здоровій).
+ *
+ * Перезавантажує лише з дозволу api: ліміт на добу живе в базі сервера, а
+ * не на картці (власник, 17.10.2026: лічильник на картці, яка не пише, не
+ * росте — і ребут стає вічним). Немає дозволу чи звʼязку — сторож нічого не
+ * робить. Тривога лише на переході «була здорова → вмерла»: з картою, що
+ * вже на старті була негодна, сторож мовчить. Перевірка ланцюжка без
+ * ребуту — SIGUSR1: стан «test», потік ядра питає api, api відповідає, у
+ * стані — «tested».
+ *
+ * Новий сторож (новий реліз) знімає старого через замок і стає на його
+ * місце; не стартував — старий лишається. */
+#define SD_EVERY_S 10
+#define SD_HANG_S  20
+
+static volatile sig_atomic_t SD_TEST_REQ = 0;
+static void on_usr1(int s) { (void)s; SD_TEST_REQ = 1; }
+
+static struct { int fd; void *buf; volatile long long started, done; volatile int err; } SDP = { -1, NULL, 0, 0, 0 };
+
+static void *sd_probe_main(void *arg) {
+    (void)arg;
+    for (;;) {
+        SDP.started = mono_ms();
+        ssize_t k = pread(SDP.fd, SDP.buf, 4096, 0);
+        SDP.err = k == 4096 ? 0 : k < 0 ? errno : EIO;
+        SDP.done = mono_ms();
+        sleep(SD_EVERY_S);
+    }
+    return NULL;
+}
+
+/* Розділ, змонтований у mnt: 1 — на запис, 0 — лише читання, −1 — немає. */
+static const char *SD_MOUNTS = "/proc/mounts";
+static int sd_mount(const char *mnt, char *dev, size_t dn) {
+    static char b[16384];
+    if (read_file(SD_MOUNTS, b, sizeof b) <= 0) return -1;
+    char *save = NULL;
+    for (char *line = strtok_r(b, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
+        char d[256], m[256], t[64], o[256];
+        if (sscanf(line, "%255s %255s %63s %255s", d, m, t, o) != 4 || strcmp(m, mnt)) continue;
+        if (dev) snprintf(dev, dn, "%s", d);
+        return strncmp(o, "rw", 2) == 0;
+    }
+    return -1;
+}
+
+static void sd_state(const char *fmt, ...) {
+    char b[300]; va_list ap; va_start(ap, fmt); vsnprintf(b, sizeof b - 1, fmt, ap); va_end(ap);
+    strcat(b, "\n");
+    write_atomic(SD_STATE, b);
+    syslog(LOG_WARNING, "%s", b);
+}
+
+static int sdwatch_main(int argc, char **argv) {
+    const char *mnt = "/home/pi/extrovert", *dev_override = NULL;
+    int dry = 0;
+    for (int i = 2; i < argc; i++) {
+        if (!strcmp(argv[i], "--mount") && i + 1 < argc) mnt = argv[++i];
+        /* Для перевірки на ПК: замість ребуту — стан «dry», замість картки —
+         * звичайний файл і підставний список монтувань. */
+        else if (!strcmp(argv[i], "--dry")) dry = 1;
+        else if (!strcmp(argv[i], "--dev") && i + 1 < argc) dev_override = argv[++i];
+        else if (!strcmp(argv[i], "--mounts") && i + 1 < argc) SD_MOUNTS = argv[++i];
+    }
+    if (geteuid() != 0 && !dry) { fprintf(stderr, "sdwatch: потрібен root\n"); return 1; }
+    char dev[256];
+    if (sd_mount(mnt, dev, sizeof dev) != 1) { fprintf(stderr, "sdwatch: %s не на запис — сторож не стартує\n", mnt); return 1; }
+    /* Уся картка, а не розділ: /dev/mmcblk0p8 → /dev/mmcblk0. */
+    char disk[256]; snprintf(disk, sizeof disk, "%s", dev_override ? dev_override : dev);
+    char *mm = strstr(disk, "mmcblk");
+    if (mm) { char *q = strchr(mm, 'p'); if (q && q[1] >= '0' && q[1] <= '9') *q = 0; }
+    SDP.fd = open(disk, O_RDONLY | (dev_override ? 0 : O_DIRECT) | O_CLOEXEC);
+    if (SDP.fd < 0) { fprintf(stderr, "sdwatch: %s не відкривається: %s\n", disk, strerror(errno)); return 1; }
+    if (posix_memalign(&SDP.buf, 4096, 4096) != 0) return 1;
+
+    /* Один сторож: новий знімає старого (пид — у замку). */
+    int lk = open(SD_LOCK, O_RDWR | O_CREAT | O_CLOEXEC, 0644);
+    if (lk < 0) return 1;
+    if (flock(lk, LOCK_EX | LOCK_NB) != 0) {
+        char b[32] = {0};
+        if (pread(lk, b, sizeof b - 1, 0) > 0 && atoi(b) > 1) kill(atoi(b), SIGTERM);
+        int ok = 0;
+        for (int i = 0; i < 50 && !ok; i++) { usleep(100000); ok = flock(lk, LOCK_EX | LOCK_NB) == 0; }
+        if (!ok) { fprintf(stderr, "sdwatch: старий сторож не відпускає замок\n"); return 1; }
+    }
+
+    /* У демона: батько повертає керування sudo й telemetry.sh. Замок —
+     * на відкритому файлі, тож переходить нащадку. */
+    pid_t pid = fork();
+    if (pid < 0) return 1;
+    if (pid > 0) _exit(0);
+    setsid();
+    pid = fork();
+    if (pid < 0) _exit(1);
+    if (pid > 0) _exit(0);
+    if (chdir("/") != 0) {}
+    int nul = open("/dev/null", O_RDWR);
+    if (nul >= 0) { dup2(nul, 0); dup2(nul, 1); dup2(nul, 2); if (nul > 2) close(nul); }
+    char b[32]; int n = snprintf(b, sizeof b, "%d\n", getpid());
+    if (ftruncate(lk, 0) != 0 || pwrite(lk, b, (size_t)n, 0) != n) {}
+    openlog("extrovert-sdwatch", LOG_PID, LOG_DAEMON);
+    int oom = open("/proc/self/oom_score_adj", O_WRONLY | O_CLOEXEC);   /* OOM-кілер сторожа не чіпає */
+    if (oom >= 0) { if (write(oom, "-1000", 5) != 5) {} close(oom); }
+
+    struct sigaction sa = {0};
+    sa.sa_handler = on_term; sigaction(SIGTERM, &sa, NULL); sigaction(SIGINT, &sa, NULL);
+    sa.sa_handler = on_usr1; sigaction(SIGUSR1, &sa, NULL);
+    signal(SIGPIPE, SIG_IGN);
+
+    /* Усе, що треба далі, уже в памʼяті — і там лишається. */
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) != 0) syslog(LOG_WARNING, "mlockall: %s", strerror(errno));
+    pthread_t t; pthread_attr_t a;
+    pthread_attr_init(&a);
+    pthread_attr_setstacksize(&a, 64 * 1024);   /* MCL_FUTURE закріпив би й типові 8 МБ стеку */
+    pthread_attr_setdetachstate(&a, PTHREAD_CREATE_DETACHED);
+    if (pthread_create(&t, &a, sd_probe_main, NULL) != 0) { syslog(LOG_ERR, "потік перевірки не стартував"); return 1; }
+    pthread_attr_destroy(&a);
+    unlink(SD_GO);
+    sd_state("ok %s %s", disk, dry ? "dry" : "armed");
+
+    int armed = 0, dead = 0;
+    char reason[200] = "";
+    while (!STOPPING) {
+        sleep(1);
+        long long now = mono_ms();
+        if (SD_TEST_REQ) { SD_TEST_REQ = 0; if (!dead) sd_state("test"); }
+        if (!dead) {
+            int rw = sd_mount(mnt, NULL, 0);
+            long long st = SDP.started, dn = SDP.done;
+            int hung = st > dn && now - st > SD_HANG_S * 1000;
+            int err = dn >= st ? SDP.err : 0;
+            if (rw == 1 && !hung && !err && dn > 0) armed = 1;
+            else if (armed && (rw != 1 || hung || err)) {
+                snprintf(reason, sizeof reason, "%s",
+                         rw == 0 ? "розділ даних перемонтовано лише для читання" : rw < 0 ? "розділ даних зник"
+                         : hung ? "картка не відповідає 20 с" : strerror(err));
+                dead = 1;
+                sd_state("dead %s", reason);
+            }
+        }
+        char g[32];
+        if (read_file(SD_GO, g, sizeof g) > 0) {
+            unlink(SD_GO);
+            if (!strncmp(g, "test", 4)) sd_state("tested");
+            else if (!strncmp(g, "go", 2) && dead) {
+                syslog(LOG_CRIT, "картка мертва (%s), api дозволив — перезавантажуємо", reason);
+                if (dry) { sd_state("dry %s", reason); dead = 0; armed = 0; continue; }
+                /* Без sync: на мертвій картці він став би назавжди. */
+                reboot(RB_AUTOBOOT);
+                syslog(LOG_ERR, "reboot: %s", strerror(errno));
+            }
+        }
+    }
+    sd_state("stopped");
+    return 0;
+}
+
 /* NTP-синхронізація — те саме, що «NTP synchronized: yes» у timedatectl
  * (systemd бере його з adjtimex), без D-Bus і без процесу. */
 static int clock_ntp_ok(void) {
@@ -939,7 +1185,8 @@ static int clock_ntp_ok(void) {
     return adjtimex(&tx) >= 0 && !(tx.status & STA_UNSYNC);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+    if (argc > 1 && !strcmp(argv[1], "--sdwatch")) return sdwatch_main(argc, argv);
     setvbuf(stdout, NULL, _IOLBF, 0);
     ROOT = env_or("EXTROVERT_ROOT", "/home/pi/extrovert");
     static char st[512]; snprintf(st, sizeof st, "%s/state", ROOT);

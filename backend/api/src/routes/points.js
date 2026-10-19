@@ -17,6 +17,34 @@ import { restoreAcked } from "@extrovert/lib/deployments.js";
 
 const MAX_BATCH = 200;
 
+// Сторож SD-картки на малині (bin/telemetry --sdwatch) просить дозволу
+// перезавантажитись, коли картка вмерла (docs/raspberry-pi.md, «Сторож
+// картки»). Ліміт — тут, у базі: на картці, яка не пише, лічильник не ріс би
+// (власник, 17.10.2026). 0 — сторож ніколи не отримає дозволу.
+const REBOOTS_PER_DAY = Number(process.env.POINT_REBOOTS_PER_DAY ?? 3);
+
+async function rebootPermit(point, m) {
+  const boot = String(m.boot_id ?? "").slice(0, 64) || null;
+  const reason = String(m.sd_reason ?? "").slice(0, 200) || null;
+  if (m.sd_test === true) {
+    await query("insert into point_reboots (point_id, boot_id, reason, test, granted) values ($1, $2, $3, true, true)", [point, boot, reason]);
+    return true;
+  }
+  // Повтор із того самого завантаження (відповідь загубилась у дорозі) —
+  // та сама відповідь, а не ще один ребут із ліміту.
+  if (boot) {
+    const prev = await query(
+      "select granted from point_reboots where point_id = $1 and boot_id = $2 and not test and granted limit 1", [point, boot]);
+    if (prev.rowCount) return true;
+  }
+  const used = await query(
+    `select count(*)::int as n from point_reboots
+      where point_id = $1 and granted and not test and requested_at > now() - interval '24 hours'`, [point]);
+  const granted = REBOOTS_PER_DAY > 0 && used.rows[0].n < REBOOTS_PER_DAY;
+  await query("insert into point_reboots (point_id, boot_id, reason, granted) values ($1, $2, $3, $4)", [point, boot, reason, granted]);
+  return granted;
+}
+
 // Токен точки: sub = point:<id>. Роль не перевіряємо — цей токен нічого
 // іншого не відкриває (ws.js так само дивиться лише на канал).
 export function pointFromRequest(req) {
@@ -153,6 +181,7 @@ export default async function routes(app) {
     if (!batch.length || batch.length > MAX_BATCH) fail(400, "bad_batch");
 
     let written = 0;
+    let reboot;
     for (const sample of batch) {
       const source = String(sample?.source ?? "pi");
       // kernel — помилки з лога ядра малини, окремою пробою, щойно сталися
@@ -171,11 +200,12 @@ export default async function routes(app) {
         [authorized, source, idem, measured.toISOString(), JSON.stringify(metrics)]
       );
       written += res.rowCount;
+      if (source === "kernel" && metrics.sd_dead === true) reboot = await rebootPermit(authorized, metrics);
     }
 
     // Точка «жива», поки шле телеметрію — саме на це дивиться overseer і
     // дашборд здоровʼя.
     await query("update points set last_seen_at = now() where id = $1", [authorized]);
-    return { accepted: batch.length, written };
+    return { accepted: batch.length, written, ...(reboot === undefined ? {} : { reboot }) };
   });
 }

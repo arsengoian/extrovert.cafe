@@ -134,6 +134,7 @@ erDiagram
     MENU_DEPLOYMENTS ||--o| POINT_DISCOUNTS : "знижене меню знижки"
     MENU_DEPLOYMENTS ||--|{ MENU_DEPLOYMENT_TARGETS : "куди котимо"
     POINTS ||--o{ DEVICE_TELEMETRY : "що шле залізо"
+    POINTS ||--o{ POINT_REBOOTS : "дозволи сторожу картки"
     POINTS ||--o{ MACHINE_ORDERS : "замовлення з кавомашини"
     DRINKS ||--o{ POINT_DISCOUNTS : "знижка на один напій"
     USERS ||--o{ USER_IDENTITIES : "пошта / google"
@@ -324,6 +325,15 @@ erDiagram
         timestamptz measured_at
         jsonb metrics
         timestamptz received_at
+    }
+    POINT_REBOOTS {
+        bigserial id PK
+        text point_id FK
+        text boot_id "завантаження малини: повтор із нього — та сама відповідь"
+        text reason "що побачив сторож картки (raspberry-pi.md)"
+        boolean test "перевірка ланцюжка без ребуту; у ліміт не йде"
+        boolean granted "дозволено; ліміт — POINT_REBOOTS_PER_DAY за 24 год"
+        timestamptz requested_at
     }
     MACHINE_ORDERS {
         bigserial id PK

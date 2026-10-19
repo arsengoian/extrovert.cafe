@@ -1248,6 +1248,40 @@ ALTER SEQUENCE public.point_discounts_id_seq OWNED BY public.point_discounts.id;
 
 
 --
+-- Name: point_reboots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.point_reboots (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    boot_id text,
+    reason text,
+    test boolean DEFAULT false NOT NULL,
+    granted boolean NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: point_reboots_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.point_reboots_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: point_reboots_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.point_reboots_id_seq OWNED BY public.point_reboots.id;
+
+
+--
 -- Name: points; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2591,6 +2625,13 @@ ALTER TABLE ONLY public.point_discounts ALTER COLUMN id SET DEFAULT nextval('pub
 
 
 --
+-- Name: point_reboots id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_reboots ALTER COLUMN id SET DEFAULT nextval('public.point_reboots_id_seq'::regclass);
+
+
+--
 -- Name: problem_reports id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3107,6 +3148,14 @@ ALTER TABLE ONLY public.plants
 
 ALTER TABLE ONLY public.point_discounts
     ADD CONSTRAINT point_discounts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: point_reboots point_reboots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_reboots
+    ADD CONSTRAINT point_reboots_pkey PRIMARY KEY (id);
 
 
 --
@@ -3809,6 +3858,13 @@ CREATE INDEX point_discounts_point_id_status_id_idx ON public.point_discounts US
 
 
 --
+-- Name: point_reboots_point_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX point_reboots_point_idx ON public.point_reboots USING btree (point_id, requested_at DESC);
+
+
+--
 -- Name: problem_reports_status_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4411,6 +4467,14 @@ ALTER TABLE ONLY public.point_discounts
 
 
 --
+-- Name: point_reboots point_reboots_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_reboots
+    ADD CONSTRAINT point_reboots_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
 -- Name: problem_reports problem_reports_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4919,4 +4983,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261017100000'),
     ('20261017100100'),
     ('20261018100000'),
-    ('20261018200000');
+    ('20261018200000'),
+    ('20261019100000');

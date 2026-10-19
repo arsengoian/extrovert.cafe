@@ -48,6 +48,32 @@ PING_HOST="${TELEMETRY_PING_HOST:-api.extrovert.cafe}"
 # TELEMETRY_IMPL=sh у config/env повертає цей скрипт (відкат без релізу:
 # правка config/env + touch state/restart.telemetry).
 TELEMETRY_BIN="$(dirname "$0")/../bin/telemetry"
+
+# Сторож SD-картки (19.10.2026, docs/raspberry-pi.md, «Сторож картки»):
+# той самий бінарник із --sdwatch, від root і демоном. Стартує тут, поки
+# картка здорова: коли вона вмре, ні sudo, ні reboot уже не прочитати, а
+# сторож на той час давно закріплений у памʼяті. Перезавантажує лише з
+# дозволу api, а дозволу питає потік ядра bin/telemetry — тож сторожа без
+# C-телеметрії не буває. SDWATCH=0 у config/env — вимкнути.
+#
+# Власним scope systemd, а не дитиною компонента: extrovert.service має
+# KillMode=mixed, і будь-який перезапуск стеку (новий компонент, Restart=
+# always після падіння супервізора на мертвій картці) убивав би сторожа
+# разом з усіма — якраз тоді, коли він потрібен. Scope живе в /run, тобто в
+# RAM: картку для цього патчити не треба. Новий реліз підміняє старого
+# сторожа через замок у /dev/shm.
+if [ "${TELEMETRY_IMPL:-c}" = c ] && [ -x "$TELEMETRY_BIN" ] && [ "${SDWATCH:-1}" = 1 ]; then
+    _bin="$(cd "$(dirname "$TELEMETRY_BIN")" && pwd)/telemetry"
+    if _out=$(sudo -n systemd-run --scope --description="extrovert SD card watchdog" \
+                  "$_bin" --sdwatch --mount "$EXTROVERT_ROOT" 2>&1); then
+        log "сторож картки стоїть (окремий scope)"
+    elif _out2=$(sudo -n "$_bin" --sdwatch --mount "$EXTROVERT_ROOT" 2>&1); then
+        log "сторож картки стоїть, але без scope (перезапуск стеку його зніме): $_out"
+    else
+        log "сторож картки не стартував: $_out / $_out2"
+    fi
+fi
+
 if [ "${TELEMETRY_IMPL:-c}" = c ] && [ -x "$TELEMETRY_BIN" ]; then
     export POINT API_URL="$API" WS_TOKEN_FILE="$TOKEN_FILE" TELEMETRY_PERIOD_S="$PERIOD" \
         TELEMETRY_PING_HOST="$PING_HOST" RECORDER_BUF="${RECORDER_BUF-/mnt/buf}" \
