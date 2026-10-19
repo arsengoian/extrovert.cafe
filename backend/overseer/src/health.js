@@ -14,7 +14,7 @@
 // який відповідає гравцям, означає ділити з ними таймаути.
 import { presign } from "@extrovert/lib/r2.js";
 import { STOCK, stockStatus } from "@extrovert/lib/stock.js";
-import { checkWebhook, silenceLimit } from "./checks.js";
+import { PERIOD_SQL, checkWebhook, silenceLimit } from "./checks.js";
 
 const TIMEOUT_MS = 8000;
 // Місяць із запасом: адмінка вміє показати смужки за місяць (27.09.2026),
@@ -169,10 +169,7 @@ export async function sampleHealth({ pool, redis, log }) {
             t.period_s
        from points p
        left join lateral (
-         select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
-           from (select measured_at from device_telemetry
-                  where point_id = p.id and source = 'pi'
-                  order by measured_at desc limit 10) recent) t on true
+         ${PERIOD_SQL}) t on true
       where p.status = 'live'`
   );
   for (const p of points) {

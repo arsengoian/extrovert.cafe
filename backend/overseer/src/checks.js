@@ -17,18 +17,31 @@ const SILENT_FLOOR_MIN = 3;    // швидше однаково не дізна�
 const SILENT_CEIL_MIN = 20;    // довше мовчання — це вже точно не «проба спізнилась»
 const SILENT_DEFAULT_MIN = 15; // ритму ще не знаємо (перша доба точки)
 
-// Ритм точки: середній проміжок між останніми пробами. `lateral` — щоб
-// рахувати по кожній точці окремо й не тягти всю таблицю.
+// Ритм — МЕДІАНА проміжків між десятьма останніми пробами, а не середнє
+// (19.10.2026). Середнє тягнула одна-єдина перерва: точка оживає після
+// блекауту чи «зомбі», серед десяти останніх проб є ще та, що до перерви,
+// — і «ритм» виходить у години, поріг упирається в стелю 20 хв. А SD-картка
+// вмирала якраз за кілька хвилин після старту, тож власник дізнавався про
+// це лише за 20 хв (скарга 19.10.2026). Медіані одна довга перерва байдужа.
+// Проміжки ≤ 0 (годинник із fake-hwclock до NTP) — не ритм.
+// Вставляється лятералем, де точка — p.
+export const PERIOD_SQL = `
+  select percentile_cont(0.5) within group (order by gap) as period_s
+    from (select extract(epoch from (measured_at - lag(measured_at) over (order by measured_at))) as gap
+            from (select measured_at from device_telemetry
+                   where point_id = p.id and source = 'pi'
+                   order by measured_at desc limit 10) recent) g
+   where gap > 0`;
+
+// Ритм точки — PERIOD_SQL вище. `lateral` — щоб рахувати по кожній точці
+// окремо й не тягти всю таблицю.
 const POINTS_SQL = `
   select p.id, p.name, p.last_seen_at,
          extract(epoch from (now() - p.last_seen_at)) / 60 as silent_minutes,
          t.period_s
     from points p
     left join lateral (
-      select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
-        from (select measured_at from device_telemetry
-               where point_id = p.id and source = 'pi'
-               order by measured_at desc limit 10) recent) t on true
+      ${PERIOD_SQL}) t on true
    where p.status = 'live'`;
 
 // Два періоди плюс хвилина, а не три плюс хвилина (25.09.2026). Телеметрія
@@ -199,10 +212,7 @@ export async function checkDevices(pool) {
           where point_id = p.id and source = 'pi'
           order by measured_at desc limit 3) t on true
        left join lateral (
-         select extract(epoch from (max(measured_at) - min(measured_at))) / nullif(count(*) - 1, 0) as period_s
-           from (select measured_at from device_telemetry
-                  where point_id = p.id and source = 'pi'
-                  order by measured_at desc limit 10) recent) r on true
+         ${PERIOD_SQL}) r on true
       where p.status = 'live'`
   );
 
