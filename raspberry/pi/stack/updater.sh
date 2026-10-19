@@ -119,14 +119,61 @@ fetch_manifest() { # → 0 є новий маніфест / 1 без змін (3
 # Код повернення розрізняє, чия це вина: 1 — архів непридатний (sha, tar,
 # не наш реліз), повторювати марно; 2 — архів не доїхав, наступне коло
 # може бути вдалішим (note_fetch_failure).
+#
+# Архів качається й розпаковується в RAM (/dev/shm), а на картку реліз
+# лягає дозовано — UPDATE_WRITE_KBPS (19.10.2026). Того дня картка вмерла
+# посеред оновлення: перші ж помилки ядра — запис великого файлу шматками
+# по 32 КБ на розділ даних, тобто curl чи tar (raspberry-pi.md, «Сторож
+# картки»). Досі на картку йшов і архів (.part, ~11 МБ), і розпакований
+# реліз — усе на повній швидкості, у перші хвилини після старту. Тепер на
+# картку йде лише сам реліз, і не швидше за дозу.
+UPDATE_RAM="${UPDATE_RAM:-/dev/shm/extrovert-update}"
+UPDATE_WRITE_KBPS="${UPDATE_WRITE_KBPS:-256}"
+
+# Копія дерева з дозою запису: після кожних UPDATE_WRITE_KBPS — sync цього
+# розділу й секунда паузи; великий файл — шматками по дозі.
+slow_copy() { # slow_copy <звідки> <куди> → 0/1
+    _sc_src=$1; _sc_dst=$2
+    _sc_dose=$((UPDATE_WRITE_KBPS * 1024))
+    mkdir -p "$_sc_dst" || return 1
+    (cd "$_sc_src" && find . -type d) | while IFS= read -r _sc_d; do
+        mkdir -p "$_sc_dst/$_sc_d" || exit 1
+    done || return 1
+    (cd "$_sc_src" && find . ! -type d) | {
+        _sc_acc=0
+        while IFS= read -r _sc_f; do
+            if [ -L "$_sc_src/$_sc_f" ]; then cp -P "$_sc_src/$_sc_f" "$_sc_dst/$_sc_f" || exit 1; continue; fi
+            _sc_sz=$(stat -c %s "$_sc_src/$_sc_f") || exit 1
+            if [ "$_sc_sz" -gt "$_sc_dose" ]; then
+                : > "$_sc_dst/$_sc_f" || exit 1
+                _sc_i=0
+                while [ $((_sc_i * _sc_dose)) -lt "$_sc_sz" ]; do
+                    dd if="$_sc_src/$_sc_f" of="$_sc_dst/$_sc_f" bs="$_sc_dose" skip="$_sc_i" seek="$_sc_i" \
+                       count=1 conv=notrunc 2>/dev/null || exit 1
+                    _sc_i=$((_sc_i + 1))
+                    sync -f "$_sc_dst/$_sc_f"; sleep 1
+                done
+                chmod --reference="$_sc_src/$_sc_f" "$_sc_dst/$_sc_f" || exit 1
+                _sc_acc=0
+                continue
+            fi
+            cp -p "$_sc_src/$_sc_f" "$_sc_dst/$_sc_f" || exit 1
+            _sc_acc=$((_sc_acc + _sc_sz))
+            if [ "$_sc_acc" -ge "$_sc_dose" ]; then sync -f "$_sc_dst/$_sc_f"; sleep 1; _sc_acc=0; fi
+        done
+        sync -f "$_sc_dst"
+    }
+}
+
 stage_release() { # stage_release <реліз> <url> <sha256> → 0 / 1 / 2
     _rel=$1; _url=$2; _sum=$3
-    _part="$EXTROVERT_RELEASES/.$_rel.part"
+    _part="$UPDATE_RAM/$_rel.tar.gz"
+    _ram="$UPDATE_RAM/$_rel"
     _tmp="$EXTROVERT_RELEASES/.$_rel.tmp"
-    mkdir -p "$EXTROVERT_RELEASES"
-    rm -rf "$_part" "$_tmp"
+    mkdir -p "$EXTROVERT_RELEASES" "$UPDATE_RAM"
+    rm -rf "$_part" "$_ram" "$_tmp" "$EXTROVERT_RELEASES/.$_rel.part"
 
-    log "завантажую $_rel"
+    log "завантажую $_rel у RAM"
     # --retry-delay і -C - навмисно: канал на точці мобільний, обрив
     # посеред 20 МБ — очікувана ситуація, а не виняток.
     curl -fsS --max-time 900 --retry 5 --retry-delay 10 -C - \
@@ -143,15 +190,18 @@ stage_release() { # stage_release <реліз> <url> <sha256> → 0 / 1 / 2
         rm -f "$_part"; return 1
     fi
 
-    mkdir -p "$_tmp"
-    tar -xzf "$_part" -C "$_tmp" || { log "архів не розпакувався"; rm -rf "$_part" "$_tmp"; return 1; }
+    mkdir -p "$_ram"
+    tar -xzf "$_part" -C "$_ram" || { log "архів не розпакувався"; rm -rf "$_part" "$_ram"; return 1; }
     rm -f "$_part"
-    [ -f "$_tmp/stack/components.conf" ] || {
-        log "в архіві нема stack/components.conf — це не наш реліз"; rm -rf "$_tmp"; return 1; }
+    [ -f "$_ram/stack/components.conf" ] || {
+        log "в архіві нема stack/components.conf — це не наш реліз"; rm -rf "$_ram"; return 1; }
     # Біт виконання не завжди переживає дорогу: реліз пакується на ПК, а на
     # NTFS його немає взагалі. Без цього selftest відмовиться від цілком
     # нормального релізу ("нема bin/kiosk") і занесе його в bad.
-    chmod +x "$_tmp/bin/kiosk" "$_tmp/stack/"*.sh 2>/dev/null || true
+    chmod +x "$_ram/bin/kiosk" "$_ram/stack/"*.sh 2>/dev/null || true
+    log "кладу $_rel на картку, не швидше ${UPDATE_WRITE_KBPS} КБ/с"
+    slow_copy "$_ram" "$_tmp" || { log "не змогли записати реліз на картку"; rm -rf "$_ram" "$_tmp"; return 2; }
+    rm -rf "$_ram"
     rm -rf "${EXTROVERT_RELEASES:?}/$_rel"
     mv "$_tmp" "$EXTROVERT_RELEASES/$_rel" || { log "не змогли покласти реліз на місце"; return 1; }
     log "реліз $_rel розпаковано"
@@ -325,22 +375,61 @@ if components_changed && [ ! -f "$EXTROVERT_STATE/stack-restarted.$_rel_now" ]; 
     sudo -n systemctl --no-block restart extrovert || log "не вдалось попросити рестарт стеку"
 fi
 
+# Коли не оновлюватись (19.10.2026, власник):
+#  * перші UPDATE_MIN_UPTIME_S після старту (20 хв). Усі «зомбі» SD-картки
+#    сталися за 4–12 хв після ввімкнення, а 19.10 — посеред самого
+#    оновлення, яке щоразу й припадало на ці хвилини: апдейтер питав
+#    маніфест за 2–3 хв після старту. state/check-now цю межу обходить —
+#    це рішення людини;
+#  * поки в state/update.hold час (epoch) у майбутньому — пауза оновлень
+#    руками (`echo $(($(date +%s) + 48*3600)) > state/update.hold`).
+#    Її не обходить ніщо: зняти — видалити файл.
+HOLD_FILE="$EXTROVERT_STATE/update.hold"
+UPDATE_MIN_UPTIME_S="${UPDATE_MIN_UPTIME_S:-1200}"
+hold_reason() { # hold_reason <1, якщо check-now> → текст і 0, якщо зараз не оновлюємось
+    if [ -f "$HOLD_FILE" ]; then
+        _h=$(cat "$HOLD_FILE" 2>/dev/null)
+        case "$_h" in
+            ''|*[!0-9]*) ;;
+            *) [ "$(date +%s)" -lt "$_h" ] && { echo "пауза до $(date -d "@$_h" '+%d.%m %H:%M') (state/update.hold)"; return 0; } ;;
+        esac
+    fi
+    _up=$(cut -d. -f1 /proc/uptime)
+    if [ "$1" != 1 ] && [ "$_up" -lt "$UPDATE_MIN_UPTIME_S" ]; then
+        echo "минуло лише ${_up} с від старту, чекаємо ${UPDATE_MIN_UPTIME_S} с"; return 0
+    fi
+    return 1
+}
+
 LAST_FETCH=""     # попередній результат опитування маніфесту: пишемо лише зміни
+LAST_HOLD=""      # те саме для причин не оновлюватись
 while :; do
     # Джитер, щоб десяток точок не бив у R2 одночасно після спільного
     # блекауту. $$ як джерело — детерміновано в межах процесу й достатньо
     # різне між пристроями.
     _jitter=$(( $$ % 60 ))
     _slept=0
+    _forced=0
     while [ "$_slept" -lt $((UPDATE_PERIOD_S + _jitter)) ]; do
         sleep 5; _slept=$((_slept + 5))
         [ "$STOPPING" = "1" ] && exit 0
         if [ -f "$CHECK_NOW" ]; then
             rm -f "$CHECK_NOW"
             log "перевірка на вимогу (state/check-now)"
+            _forced=1
             break
         fi
     done
+
+    if _why=$(hold_reason "$_forced"); then
+        # Пишемо лише зміну виду причини, а не кожне коло (той самий знос
+        # картки, що й у LAST_FETCH нижче).
+        _kind=${_why%% *}
+        [ "$_kind" != "$LAST_HOLD" ] && log "оновлення відкладено: $_why"
+        LAST_HOLD=$_kind
+        continue
+    fi
+    LAST_HOLD=""
 
     _man="$EXTROVERT_STATE/.manifest.json"
     fetch_manifest "$_man"; _fm=$?
