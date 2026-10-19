@@ -44,13 +44,31 @@ const swayOf = (g) => (isLeaf(g) ? "leaf" : isBranch(g) ? "branch" : isFace(g) |
 // різниться колір. Тому суфікс настрою знімаємо перед пошуком:
 // leaves_batch_sad:leaf_skin1_sad.png → leaves_batch_normal:leaf_skin1_normal.png,
 // branch_skins_custom_withered:…_withered.png → branch_skins_custom:….png.
-function metaOf(sprites, group, sprite) {
-  if (!sprites || !group || !sprite) return null;
+function normalOf(group, sprite) {
   const g = group.replace(/_(very_sad|sad|withered)$/, "");
   const f = sprite.replace(/_(very_sad|sad|withered)\.png$/, ".png");
-  const gk = g === "leaves_batch" ? "leaves_batch_normal" : g;
-  const fk = /^leaf_skin\d+\.png$/.test(f) ? f.replace(".png", "_normal.png") : f;
-  return sprites[`${group}:${sprite}`] ?? sprites[`${gk}:${fk}`] ?? null;
+  return {
+    group: g === "leaves_batch" ? "leaves_batch_normal" : g,
+    sprite: /^leaf_skin\d+\.png$/.test(f) ? f.replace(".png", "_normal.png") : f,
+  };
+}
+
+function metaOf(sprites, group, sprite) {
+  if (!sprites || !group || !sprite) return null;
+  const n = normalOf(group, sprite);
+  return sprites[`${group}:${sprite}`] ?? sprites[`${n.group}:${n.sprite}`] ?? null;
+}
+
+// Сумний і зів'ялий варіанти намальовані не для кожного скіна: у листя —
+// 1–6 з 9, у гілок — 1 і 3 з 4. Без файла <img> лишався битим, і листок
+// просто зникав: зів'яле кавенятко зі скінами 7–9 стояло голе, а після
+// поливу листя «поверталось» (власник, 19.10.2026). Тоді беремо звичайний
+// спрайт — сумним його робить фільтр настрою, як і решту куща. Чи є файл,
+// видно з sizes.json; без нього нічого не підміняємо.
+function drawableOf(sizes, group, sprite) {
+  if (!sizes || !group || !sprite || sizes[`${group}/${sprite}`]) return { group, sprite };
+  const n = normalOf(group, sprite);
+  return n.group !== group && sizes[`${n.group}/${n.sprite}`] ? n : { group, sprite };
 }
 
 // Гойдання навколо КОРЕНЯ, а не кута (власник, 26.09.2026: «листки
@@ -253,8 +271,9 @@ export function Scene({ instances, layout, mood = "healthy", camera, idle, style
     // промальовувався (власник, 27.09.2026). Розміру немає (новий
     // спрайт, маніфест не оновили) — ховаємо картинку до завантаження:
     // краще з'явитись із запізненням, ніж підстрибнути.
-    const size = assets?.sizes?.[`${inst.group}/${inst.sprite}`];
-    const url = `/assets/sprites/${inst.group}/${inst.sprite}`;
+    const file = drawableOf(assets?.sizes, inst.group, inst.sprite);
+    const size = assets?.sizes?.[`${file.group}/${file.sprite}`];
+    const url = `/assets/sprites/${file.group}/${file.sprite}`;
     const h = size ? (w * size[1]) / size[0] : w;
     const mask = clipMaskOf(inst, w, h, instances, assets?.sizes);
     // Порив: деталі обличчя — з однією затримкою, щоб шари ока (ціле око,
