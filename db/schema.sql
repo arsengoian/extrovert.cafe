@@ -1258,7 +1258,9 @@ CREATE TABLE public.point_reboots (
     reason text,
     test boolean DEFAULT false NOT NULL,
     granted boolean NOT NULL,
-    requested_at timestamp with time zone DEFAULT now() NOT NULL
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    kind text DEFAULT 'soft'::text NOT NULL,
+    CONSTRAINT point_reboots_kind_check CHECK ((kind = ANY (ARRAY['soft'::text, 'power'::text])))
 );
 
 
@@ -1305,6 +1307,7 @@ CREATE TABLE public.points (
     tunnel_key_at timestamp with time zone,
     jetinno_vmc text,
     video_upload_paused_at timestamp with time zone,
+    power_plug_id text,
     CONSTRAINT points_id_check CHECK ((id ~ '^[a-z0-9][a-z0-9-]{1,30}$'::text)),
     CONSTRAINT points_machine_letter_check CHECK ((machine_letter ~ '^[a-z]$'::text)),
     CONSTRAINT points_status_check CHECK ((status = ANY (ARRAY['planned'::text, 'live'::text, 'paused'::text]))),
@@ -4984,4 +4987,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261017100100'),
     ('20261018100000'),
     ('20261018200000'),
-    ('20261019100000');
+    ('20261019100000'),
+    ('20261022100000');

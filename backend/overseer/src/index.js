@@ -17,6 +17,7 @@ import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
 import { checkDevices, checkMenuAcks, checkMenuCheckbox, checkPoints, checkReceiptPrices, checkWebhook, dailyReport, outageKind } from "./checks.js";
 import { ACK_DEADLINE_MIN } from "@extrovert/lib/deployments.js";
 import { sampleHealth } from "./health.js";
+import { checkPower } from "./power.js";
 import { checkServer, containerRestarts, sampleServer } from "./server.js";
 import { send } from "./telegram.js";
 
@@ -63,6 +64,14 @@ async function tick() {
     // уже лежить у базі (checks.js, outageKind).
     const why = await outageKind(pool, p.id);
     lines.push(`✅ ${p.name}: знову на звʼязку${why ? ` — ${why}` : ""}`);
+  }
+
+  // Малина мовчить, а світло на точці є — перезавантажити її живленням через
+  // розетку Tuya (power.js). Хмара Tuya лягла — решта обходу не має стати.
+  try {
+    lines.push(...(await checkPower(pool, { log })));
+  } catch (e) {
+    log.warn({ err: e.message }, "перевірка розеток Tuya впала");
   }
 
   // Поломки залізяки: монітор, живлення, картка, кіоск, диск, флешка,

@@ -34,12 +34,12 @@ async function rebootPermit(point, m) {
   // та сама відповідь, а не ще один ребут із ліміту.
   if (boot) {
     const prev = await query(
-      "select granted from point_reboots where point_id = $1 and boot_id = $2 and not test and granted limit 1", [point, boot]);
+      "select granted from point_reboots where point_id = $1 and boot_id = $2 and kind = 'soft' and not test and granted limit 1", [point, boot]);
     if (prev.rowCount) return true;
   }
   const used = await query(
     `select count(*)::int as n from point_reboots
-      where point_id = $1 and granted and not test and requested_at > now() - interval '24 hours'`, [point]);
+      where point_id = $1 and kind = 'soft' and granted and not test and requested_at > now() - interval '24 hours'`, [point]);
   const granted = REBOOTS_PER_DAY > 0 && used.rows[0].n < REBOOTS_PER_DAY;
   await query("insert into point_reboots (point_id, boot_id, reason, granted) values ($1, $2, $3, $4)", [point, boot, reason, granted]);
   return granted;
