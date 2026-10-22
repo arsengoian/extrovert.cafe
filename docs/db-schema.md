@@ -332,7 +332,7 @@ erDiagram
         text point_id FK
         text boot_id "завантаження малини: повтор із нього — та сама відповідь"
         text reason "що побачив сторож картки (raspberry-pi.md)"
-        text kind "soft — просить сторож картки; power — розетку вимикає overseer"
+        text kind "power — розетку вимикає overseer; soft — історія сторожа картки (прибраний 22.10.2026)"
         boolean test "перевірка ланцюжка без ребуту; у ліміт не йде"
         boolean granted "дозволено; ліміт — POINT_REBOOTS_PER_DAY за 24 год"
         timestamptz requested_at

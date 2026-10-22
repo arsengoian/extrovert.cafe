@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело fd508cc</p>
+  <p class="eyebrow">extrovert.cafe · джерело 164574a</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 23 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -1739,7 +1739,7 @@ erDiagram
         text point_id FK
         text boot_id &quot;завантаження малини: повтор із нього — та сама відповідь&quot;
         text reason &quot;що побачив сторож картки (raspberry-pi.md)&quot;
-        text kind &quot;soft — просить сторож картки; power — розетку вимикає overseer&quot;
+        text kind &quot;power — розетку вимикає overseer; soft — історія сторожа картки (прибраний 22.10.2026)&quot;
         boolean test &quot;перевірка ланцюжка без ребуту; у ліміт не йде&quot;
         boolean granted &quot;дозволено; ліміт — POINT_REBOOTS_PER_DAY за 24 год&quot;
         timestamptz requested_at
@@ -1830,7 +1830,7 @@ erDiagram
 </article>
 <article class="entity" id="t-point_reboots">
   <header><h4>point_reboots</h4><span class="entity-count">8 кол.</span></header>
-  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">boot_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">завантаження малини: повтор із нього — та сама відповідь</td></tr><tr><td class="c-name">reason</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">що побачив сторож картки (raspberry-pi.md)</td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">soft — просить сторож картки; power — розетку вимикає overseer</td></tr><tr><td class="c-name">test</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">перевірка ланцюжка без ребуту; у ліміт не йде</td></tr><tr><td class="c-name">granted</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">дозволено; ліміт — POINT_REBOOTS_PER_DAY за 24 год</td></tr><tr><td class="c-name">requested_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
+  <div class="cols"><table><tr><td class="c-name">id</td><td class="c-type">bigserial</td><td class="c-keys"><span class="key key-pk">PK</span></td><td class="c-note"></td></tr><tr><td class="c-name">point_id</td><td class="c-type">text</td><td class="c-keys"><span class="key key-fk">FK</span></td><td class="c-note"></td></tr><tr><td class="c-name">boot_id</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">завантаження малини: повтор із нього — та сама відповідь</td></tr><tr><td class="c-name">reason</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">що побачив сторож картки (raspberry-pi.md)</td></tr><tr><td class="c-name">kind</td><td class="c-type">text</td><td class="c-keys"></td><td class="c-note">power — розетку вимикає overseer; soft — історія сторожа картки (прибраний 22.10.2026)</td></tr><tr><td class="c-name">test</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">перевірка ланцюжка без ребуту; у ліміт не йде</td></tr><tr><td class="c-name">granted</td><td class="c-type">boolean</td><td class="c-keys"></td><td class="c-note">дозволено; ліміт — POINT_REBOOTS_PER_DAY за 24 год</td></tr><tr><td class="c-name">requested_at</td><td class="c-type">timestamptz</td><td class="c-keys"></td><td class="c-note"></td></tr></table></div>
   <ul class="rels"><li><span class="rel-card">← 1</span><a href="#t-points">points</a><span class="rel-label">дозволи сторожу картки</span></li></ul>
 </article>
 <article class="entity" id="t-machine_orders">
@@ -8109,7 +8109,15 @@ Pi 1, через який іде струм Wi-Fi адаптера й флешк
 14–15.10 малина пережила. Версії ті самі — контакт картки в перехіднику
 повнорозмірного слота або живлення (кавомашина на розігріві на тій самій
 лінії), — але «картка відпала й повернулась» більше схоже на контакт.</p>
-<p><strong>Сторож картки</strong> (19.10.2026). Поки картку не замінили, «зомбі» має хоча б
+<p><strong>Сторож картки</strong> (19.10.2026; <strong>прибраний 22.10.2026</strong>). Нижче — як він
+був улаштований і чому не допоміг: 21.10 картка відпала з шини зовсім, після
+м&#39;якого ребуту завантажувач її не побачив, і на екрані замість завислого
+меню (з яким автомат хоч продавав, лише без бонусів) лишився чорний екран
+(власник, 22.10.2026). Тепер api дозволу не дає (старий реліз, що ще питає,
+не перезавантажиться), <code>telemetry.sh</code> сторожа не запускає, а залишеного від
+попереднього релізу зупиняє. Знеструмлює малину overseer через розетку Tuya
+(«Перезавантаження живленням» нижче).</p>
+<p>Поки картку не замінили, «зомбі» має хоча б
 сам себе перезавантажувати, а не чекати на людину з розеткою. Звичайний
 watchdog тут не допомагає: systemd живе в RAM і далі годує апаратний
 таймер, а <code>reboot</code> чи <code>sudo</code> з мертвої картки вже не прочитати. Тому
@@ -16030,7 +16038,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел fd508cc — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 164574a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>

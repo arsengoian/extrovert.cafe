@@ -49,29 +49,15 @@ PING_HOST="${TELEMETRY_PING_HOST:-api.extrovert.cafe}"
 # правка config/env + touch state/restart.telemetry).
 TELEMETRY_BIN="$(dirname "$0")/../bin/telemetry"
 
-# Сторож SD-картки (19.10.2026, docs/raspberry-pi.md, «Сторож картки»):
-# той самий бінарник із --sdwatch, від root і демоном. Стартує тут, поки
-# картка здорова: коли вона вмре, ні sudo, ні reboot уже не прочитати, а
-# сторож на той час давно закріплений у памʼяті. Перезавантажує лише з
-# дозволу api, а дозволу питає потік ядра bin/telemetry — тож сторожа без
-# C-телеметрії не буває. SDWATCH=0 у config/env — вимкнути.
-#
-# Власним scope systemd, а не дитиною компонента: extrovert.service має
-# KillMode=mixed, і будь-який перезапуск стеку (новий компонент, Restart=
-# always після падіння супервізора на мертвій картці) убивав би сторожа
-# разом з усіма — якраз тоді, коли він потрібен. Scope живе в /run, тобто в
-# RAM: картку для цього патчити не треба. Новий реліз підміняє старого
-# сторожа через замок у /dev/shm.
-if [ "${TELEMETRY_IMPL:-c}" = c ] && [ -x "$TELEMETRY_BIN" ] && [ "${SDWATCH:-1}" = 1 ]; then
-    _bin="$(cd "$(dirname "$TELEMETRY_BIN")" && pwd)/telemetry"
-    if _out=$(sudo -n systemd-run --scope --description="extrovert SD card watchdog" \
-                  "$_bin" --sdwatch --mount "$EXTROVERT_ROOT" 2>&1); then
-        log "сторож картки стоїть (окремий scope)"
-    elif _out2=$(sudo -n "$_bin" --sdwatch --mount "$EXTROVERT_ROOT" 2>&1); then
-        log "сторож картки стоїть, але без scope (перезапуск стеку його зніме): $_out"
-    else
-        log "сторож картки не стартував: $_out / $_out2"
-    fi
+# Сторож SD-картки (bin/telemetry --sdwatch, 19–22.10.2026) прибраний:
+# картка відпадала з шини зовсім, м'який ребут її не оживляв, а замість
+# завислого меню лишався чорний екран (docs/raspberry-pi.md, «Сторож
+# картки»). Сторож із попереднього релізу живе у власному scope й переживає
+# перезапуск компонента — зупиняємо його тут, щоб не тримав памʼять до
+# наступного ребуту. Дозволу він однаково вже не отримає (api).
+# [t] — щоб шаблон не збігся з командним рядком самого sudo/pkill.
+if pgrep -f '[t]elemetry --sdwatch' >/dev/null 2>&1; then
+    sudo -n pkill -f '[t]elemetry --sdwatch' && log "зупинив сторожа картки зі старого релізу"
 fi
 
 if [ "${TELEMETRY_IMPL:-c}" = c ] && [ -x "$TELEMETRY_BIN" ]; then
