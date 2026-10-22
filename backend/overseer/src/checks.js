@@ -409,6 +409,36 @@ export async function checkReceiptPrices(pool) {
   });
 }
 
+// Активні несправності й попередження кавомашини з журналу порталу Jetinno
+// (scheduler/jobs/jetinno.js, раз на 30 хв). До 22.10.2026 overseer машину
+// не перевіряв зовсім: про ERROR:7B00 («Низька витрата води при варінні
+// кави») власник дізнався з порталу, а не від нас. Стан — набір кодів:
+// новий код — алерт, усе очищено — ✅. Проба старша за дві години чи без
+// сесії порталу — мовчимо: це не «несправностей немає», а «не знаємо».
+export async function checkMachines(pool) {
+  const { rows } = await pool.query(
+    `select p.id, p.name, t.metrics
+       from points p
+       join lateral (
+         select metrics, measured_at from device_telemetry
+          where point_id = p.id and source = 'jetinno'
+          order by measured_at desc limit 1) t on true
+      where p.status = 'live' and t.measured_at > now() - interval '2 hours'`
+  );
+  return rows
+    .filter((r) => r.metrics?.session !== false && Array.isArray(r.metrics?.fault_codes))
+    .map((r) => {
+      const codes = r.metrics.fault_codes;
+      return {
+        key: r.id,
+        state: codes.length ? codes.map((c) => String(c).split(" ")[0]).sort().join(",") : "ok",
+        text: codes.length
+          ? `☕ ${r.name}, кавомашина: ${codes.join("; ")}`
+          : `✅ ${r.name}: кавомашина без несправностей`,
+      };
+    });
+}
+
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {

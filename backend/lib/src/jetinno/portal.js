@@ -122,8 +122,14 @@ export function portalClient({ redis, env = process.env } = {}) {
   async function commandLog(vmc, limit = 20) {
     return parseCommandLog(await get(`/record_control?vmc_no=${vmc}&perPage=${limit}&page=1`));
   }
-  async function faults(vmc, { year = new Date().getFullYear() } = {}) {
-    return parseFaults(await get(`/error?vmc_no=${vmc}&data_type=&is_set=&dateyear=${year}&perPage=1000&page=1`));
+  // data_type: 0 — «Дані за місяць» (свіжі записи, з ними й активні), 1 —
+  // «Історичні дані» за dateyear (архів). Досі тут стояв порожній data_type,
+  // і портал віддавав архів: за 2026 рік — лише квітневі записи, а жодної
+  // несправності точки ми не бачили. 22.10.2026 машина стала з ERROR:7B00
+  // («Низька витрата води»), а телеметрія показувала «без несправностей».
+  async function faults(vmc, { history = false, year = new Date().getFullYear() } = {}) {
+    const range = history ? `data_type=1&dateyear=${year}` : "data_type=0";
+    return parseFaults(await get(`/error?vmc_no=${vmc}&${range}&is_set=&perPage=1000&page=1`));
   }
   async function orders(vmc, month) {
     const csv = await get(`/order?vmc_no=${vmc}&datemonth=${month}&export=1`);

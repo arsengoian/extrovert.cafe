@@ -110,7 +110,7 @@ footer{max-width:1320px;margin:0 auto;padding:20px;color:var(--ink-faint);font-s
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <header class="top"><div class="top-in">
-  <p class="eyebrow">extrovert.cafe · джерело 164574a</p>
+  <p class="eyebrow">extrovert.cafe · джерело 28cb027</p>
   <h1>Карта даних і документації</h1>
   <p>Уся чинна документація проєкту однією сторінкою: 23 документи у 4 групах, від схеми Postgres і карти сервісів до економіки гри й деплою на малину. Склад і порядок задає реєстр <code>docs/README.md</code>. Текст сюди не копіюється: сторінка збирається з markdown командою <code>npm run docs:map</code>.</p>
 </div></header>
@@ -4936,8 +4936,8 @@ base64</strong>, шле <code>/dologin</code> з <code>JETINNO_LOGIN</code>/<cod
 </thead>
 <tbody><tr>
 <td><code>/error</code></td>
-<td>несправності: код, опис, тип, стан, коли виникла й очищена, тривалість</td>
-<td><code>data_type</code>, <code>dateyear</code>, <code>daterange</code>, <code>vmc_no</code>, <code>error_code</code>, <code>is_set</code>, <code>like</code>, <code>vmc_model</code></td>
+<td>несправності: код, опис, тип, стан, коли виникла й очищена, тривалість. <strong><code>data_type=0</code> — «Дані за місяць» (свіжі, з ними й активні), <code>1</code> — «Історичні дані» за <code>dateyear</code></strong>; порожній віддає архів</td>
+<td><code>data_type</code>, <code>dateyear</code>, <code>daterange</code>, <code>vmc_no</code>, <code>error_code</code>, <code>is_set</code> (<code>1</code> не очищені, <code>0</code> очищені), <code>like</code>, <code>vmc_model</code></td>
 </tr>
 <tr>
 <td><code>/supply</code></td>
@@ -5157,8 +5157,8 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 </tr>
 <tr>
 <td>несправності</td>
-<td>картка машини (<code>#table-error</code>, <code>#table-warning</code>), <code>/error</code></td>
-<td>читання перевірено, несправностей поки не було</td>
+<td><code>/error?data_type=0</code></td>
+<td><strong>працює</strong> з 22.10.2026; до того запит ішов без <code>data_type</code> і бачив лише архів (див. нижче)</td>
 </tr>
 <tr>
 <td>ціна напою</td>
@@ -5307,8 +5307,13 @@ Upload Product, Update Password. <code>productlock</code>, <code>productunlock</
 <p>Кожен прохід (усе — читанням, нічого на машину):</p>
 <ul>
 <li><strong>онлайн</strong> (<code>/ajax/get_device</code>: <code>is_connected</code>, <code>last_login</code>/<code>last_logout</code>);</li>
-<li><strong>несправності й попередження</strong> — кількість і коди (картка машини
-<code>#table-error</code>/<code>#table-warning</code> або <code>/error</code>);</li>
+<li><strong>несправності й попередження</strong> — кількість і коди (<code>/error?data_type=0</code>).
+До 22.10.2026 запит ішов із порожнім <code>data_type</code>, і портал віддавав архів
+«Історичні дані»: за 2026 рік — лише квітневі записи з заводу. Того дня
+машина стала з ERROR:7B00 («Низька витрата води при варінні кави»), а
+телеметрія показувала «без несправностей». Тепер активні коди йдуть і в
+адмінку, і в Telegram (overseer, <code>checkMachines</code>: новий код — алерт, усе
+очищено — ✅);</li>
 <li><strong>залишки інгредієнтів</strong> — чи є дефіцит (<code>supply_count</code>, <code>/supply</code>);</li>
 <li><strong>звірка замовлень за вікно</strong> (крок 4): скільки карткових замовлень у
 машині, скільки чеків у нас (<code>receipts</code>), чи сходяться; розбіжність —
@@ -16038,7 +16043,7 @@ Tapo.</p>
 </section>
 </main>
 </div>
-<footer>Хеш джерел 164574a — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
+<footer>Хеш джерел 28cb027 — якщо він не збігається з поточними доками, сторінка застаріла.</footer>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
 <script>mermaid.initialize({ startOnLoad: true, securityLevel: "strict" });</script>
 <script>
