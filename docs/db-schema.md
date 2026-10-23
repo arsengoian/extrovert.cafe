@@ -139,6 +139,8 @@ erDiagram
     DRINKS ||--o{ POINT_DISCOUNTS : "знижка на один напій"
     USERS ||--o{ USER_IDENTITIES : "пошта / google"
     RECEIPTS ||--o{ RECEIPT_ITEMS : "позиції чека"
+    RECEIPTS ||--o{ RECEIPT_RETURNS : "повернення продажу"
+    POINTS ||--o{ RECEIPT_RETURNS : "де повернули"
     RECEIPTS ||--o| BONUS_GRANTS : "нарахування за чек"
     DRINKS ||--o{ RECEIPT_ITEMS : "slot"
     USERS ||--o{ BONUS_GRANTS : "хто заредімив"
@@ -226,9 +228,21 @@ erDiagram
         jsonb payments
         text tax_url "сторінка чека в ДПС"
         text source "webhook|poll - хто записав першим"
-        jsonb raw
+        jsonb raw "лише фіскалізований продаж (type SELL, status DONE) — з 23.10.2026"
         timestamptz created_at
         timestamptz updated_at
+    }
+    RECEIPT_RETURNS {
+        bigserial id PK
+        text point_id FK
+        uuid checkbox_receipt_id UK
+        bigint receipt_id FK "продаж: related_receipt_id або RRN і сума"
+        text fiscal_code
+        timestamptz fiscal_date "виручка зменшується в цей день"
+        numeric total_sum
+        text rrn "карткова транзакція"
+        text source "webhook|poll|migration"
+        jsonb raw
     }
     RECEIPT_ITEMS {
         bigserial id PK

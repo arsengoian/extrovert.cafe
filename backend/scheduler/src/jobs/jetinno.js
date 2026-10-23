@@ -94,7 +94,7 @@ const ORDER_GRACE_S = 10 * 60;
 const RECEIPT_GRACE_S = 45 * 60;
 async function reconcile(client, point) {
   const { rows: orders } = await client.query(
-    `select pay_type, extract(epoch from purchased_at)::float8 as t from machine_orders
+    `select pay_type, status, extract(epoch from purchased_at)::float8 as t from machine_orders
       where point_id = $1 and pay_type in ('mdb_cashless', 'mdb_cash')
         and purchased_at > now() - interval '24 hours' - make_interval(secs => $2)
       order by purchased_at`,
@@ -131,6 +131,10 @@ async function reconcile(client, point) {
     card_no_receipt_24h: noReceipt,
     receipts_no_order_24h: noOrder,
     reconcile_ok: noReceipt === 0 && noOrder === 0,
+    // Замовлення, які машина позначила «Неуспішно», — напій не видано
+    // (22.10.2026: лате без води). Чи повернули гроші, стежить overseer
+    // (checkFailedOrders); тут — лише скільки їх за добу.
+    orders_failed_24h: orders.filter((o) => o.status && o.status !== "Успішно" && inDay(o.t)).length,
   };
 }
 

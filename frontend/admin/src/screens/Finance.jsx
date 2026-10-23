@@ -84,7 +84,7 @@ export function Finance() {
 
       <div className="grid k3" style={{ marginBottom: 12 }}>
         <Kpi label="Виручка" value={fmt.uah(totals.revenue)}
-             note={`${fmt.int(totals.receipts)} чеків, середній ${totals.receipts ? fmt.uah(totals.revenue / totals.receipts) : "—"}, за добу ${fmt.uah(totals.revenue / days)}`} />
+             note={`${fmt.int(totals.receipts)} чеків, середній ${totals.receipts ? fmt.uah(totals.revenue / totals.receipts) : "—"}, за добу ${fmt.uah(totals.revenue / days)}${totals.refunds ? `; за вирахуванням ${fmt.int(totals.refunds)} ${totals.refunds === 1 ? "повернення" : "повернень"} на ${fmt.uah(totals.refund_uah)}` : ""}`} />
         <Kpi label="Собівартість" value={fmt.uah(totals.cogs)} note={`${pct(totals.cogs, totals.revenue)} виручки; матеріали за рецептами × середня ціна закупки`} />
         <Kpi label="Валовий прибуток" value={fmt.uah(totals.gross)} tone={totals.gross < 0 ? "bad" : ""} note={`маржа ${pct(totals.gross, totals.revenue)}`} />
       </div>
@@ -158,6 +158,7 @@ export function Finance() {
           { key: "day", title: "доба", render: (r) => fmt.dayFull(`${r.day}T12:00:00`) },
           { key: "point_name", title: "точка" },
           { key: "receipts", title: "чеків", num: true, render: (r) => fmt.int(r.receipts) },
+          { key: "refund_uah", title: "повернення", num: true, render: (r) => (r.refunds ? `${fmt.int(r.refunds)} · ${fmt.uah(r.refund_uah)}` : "—") },
           { key: "sum_uah", title: "виручка", num: true, render: (r) => fmt.uah(r.sum_uah) },
         ]}
         rows={[...data.revenue].reverse()}

@@ -119,6 +119,15 @@ CREATE FUNCTION public.receipt_in_stats(rid bigint) RETURNS boolean
 
 
 --
+-- Name: receipt_return_in_stats(bigint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.receipt_return_in_stats(rid bigint) RETURNS boolean
+    LANGUAGE sql STABLE
+    AS $$ select coalesce((select receipt_in_stats(r.receipt_id) from receipt_returns r where r.id = rid and r.receipt_id is not null), true) $$;
+
+
+--
 -- Name: rehome_notices(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -938,6 +947,26 @@ CREATE TABLE public.opex_rates (
 
 
 --
+-- Name: receipt_returns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.receipt_returns (
+    id bigint NOT NULL,
+    point_id text NOT NULL,
+    checkbox_receipt_id uuid NOT NULL,
+    receipt_id bigint,
+    fiscal_code text,
+    fiscal_date timestamp with time zone NOT NULL,
+    total_sum numeric(12,2) NOT NULL,
+    rrn text,
+    source text NOT NULL,
+    raw jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT receipt_returns_source_check CHECK ((source = ANY (ARRAY['webhook'::text, 'poll'::text, 'migration'::text])))
+);
+
+
+--
 -- Name: receipts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -977,6 +1006,12 @@ CREATE VIEW public.opex_auto AS
             'tax'::text AS kind,
             r.total AS base
            FROM r
+        UNION ALL
+         SELECT ((rr.fiscal_date AT TIME ZONE 'Europe/Kyiv'::text))::date AS timezone,
+            rr.point_id,
+            'tax'::text,
+            (- rr.total_sum)
+           FROM public.receipt_returns rr
         UNION ALL
          SELECT r.day,
             r.point_id,
@@ -1516,6 +1551,25 @@ CREATE SEQUENCE public.receipt_items_id_seq
 --
 
 ALTER SEQUENCE public.receipt_items_id_seq OWNED BY public.receipt_items.id;
+
+
+--
+-- Name: receipt_returns_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.receipt_returns_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: receipt_returns_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.receipt_returns_id_seq OWNED BY public.receipt_returns.id;
 
 
 --
@@ -2670,6 +2724,13 @@ ALTER TABLE ONLY public.receipt_items ALTER COLUMN id SET DEFAULT nextval('publi
 
 
 --
+-- Name: receipt_returns id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_returns ALTER COLUMN id SET DEFAULT nextval('public.receipt_returns_id_seq'::regclass);
+
+
+--
 -- Name: receipts id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -3231,6 +3292,22 @@ ALTER TABLE ONLY public.quiz_profile_responses
 
 ALTER TABLE ONLY public.receipt_items
     ADD CONSTRAINT receipt_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: receipt_returns receipt_returns_checkbox_receipt_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_returns
+    ADD CONSTRAINT receipt_returns_checkbox_receipt_id_key UNIQUE (checkbox_receipt_id);
+
+
+--
+-- Name: receipt_returns receipt_returns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_returns
+    ADD CONSTRAINT receipt_returns_pkey PRIMARY KEY (id);
 
 
 --
@@ -3917,6 +3994,20 @@ CREATE INDEX receipt_items_system_code_idx ON public.receipt_items USING btree (
 
 
 --
+-- Name: receipt_returns_date_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX receipt_returns_date_idx ON public.receipt_returns USING btree (fiscal_date);
+
+
+--
+-- Name: receipt_returns_receipt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX receipt_returns_receipt_idx ON public.receipt_returns USING btree (receipt_id);
+
+
+--
 -- Name: receipts_fiscal_date_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4534,6 +4625,22 @@ ALTER TABLE ONLY public.receipt_items
 
 
 --
+-- Name: receipt_returns receipt_returns_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_returns
+    ADD CONSTRAINT receipt_returns_point_id_fkey FOREIGN KEY (point_id) REFERENCES public.points(id);
+
+
+--
+-- Name: receipt_returns receipt_returns_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.receipt_returns
+    ADD CONSTRAINT receipt_returns_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id) ON DELETE SET NULL;
+
+
+--
 -- Name: receipts receipts_point_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4988,4 +5095,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261018100000'),
     ('20261018200000'),
     ('20261019100000'),
-    ('20261022100000');
+    ('20261022100000'),
+    ('20261023100000');

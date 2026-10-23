@@ -114,10 +114,22 @@ export function Purchases({ tab = "receipts" }) {
                   {(r.items ?? []).map((i) => `${i.name}${i.bonus ? " (бонусний)" : ""} ×${Number(i.qty)}`).join(", ")
                     || r.drink || <span className="muted">—</span>}
                   {!r.in_stats && <small><Badge>тест / власник</Badge></small>}
+                  {/* Машина позначила замовлення «Неуспішно» — напій не видано
+                      (22.10.2026: лате без води, ERROR:7B00). */}
+                  {r.order_status && r.order_status !== "Успішно" && (
+                    <small><Badge tone="bad">машина не видала{r.fault ? ` · ${r.fault}` : ""}</Badge></small>
+                  )}
                 </span>
               ),
             },
-            { key: "total_sum", title: "сума", num: true, render: (r) => fmt.uah(r.total_sum) },
+            {
+              key: "total_sum", title: "сума", num: true, render: (r) => (
+                <span>
+                  {fmt.uah(r.total_sum)}
+                  {r.refund && <small><Badge tone="warn">повернуто {fmt.time(r.refund.at)}</Badge></small>}
+                </span>
+              ),
+            },
             {
               key: "moments", title: "вибір → оплата → готово", render: (r) => (
                 <span title={`вибір ${hhmmss(r.selected)} · оплата ${hhmmss(r.fiscal_date)} · готово ${hhmmss(r.done)}`}>

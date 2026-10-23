@@ -288,7 +288,17 @@ export default async function routes(app) {
                  from receipt_items i where i.receipt_id = r.id) as items,
               b.status as bonus_status, b.coins_yellow as bonus_coins, b.redeemed_at,
               u.id as redeemed_by, u.nickname as redeemed_nickname, u.stats_excluded as redeemed_excluded,
-              o.purchased_at as done, o.product_id, d.name as drink,
+              o.purchased_at as done, o.product_id, d.name as drink, o.status as order_status,
+              -- Невдале замовлення машини («Неуспішно») — і що вона казала про
+              -- себе найближчою пробою порталу після нього (ERROR:7B00…).
+              case when o.status is not null and o.status <> 'Успішно' then
+                (select coalesce(t.metrics -> 'fault_codes' ->> 0, t.metrics -> 'faults_recent_24h' ->> 0)
+                   from device_telemetry t
+                  where t.point_id = r.point_id and t.source = 'jetinno'
+                    and t.measured_at between o.purchased_at and o.purchased_at + interval '60 minutes'
+                  order by t.measured_at limit 1) end as fault,
+              (select json_build_object('at', rr.fiscal_date, 'sum', rr.total_sum::float, 'tax_url', rr.raw ->> 'tax_url')
+                 from receipt_returns rr where rr.receipt_id = r.id order by rr.fiscal_date limit 1) as refund,
               case when ltrim(o.order_no, '\`') ~ '^\\d{14}'
                    then (to_timestamp(left(ltrim(o.order_no, '\`'), 14), 'YYYYMMDDHH24MISS')
                          at time zone current_setting('TimeZone')) at time zone '${TZ}' end as selected,
@@ -364,34 +374,57 @@ export default async function routes(app) {
     if (!requireAdmin(req, reply)) return;
     const { from, to } = range(req.query, 30);
     const p = [from, to];
+    // Виручка — продажі мінус повернення (receipt_returns, 23.10.2026):
+    // повернення зменшує виручку в день повернення. Досі воно лежало серед
+    // чеків зі знаком плюс — зіпсоване лате 22.10 дало +120 ₴ замість −60.
     const revenue = await many(
-      `select to_char(r.fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, r.point_id,
-              coalesce(pt.name, r.point_id) as point_name,
-              sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r left join points pt on pt.id = r.point_id
-        where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
-        group by 1, 2, 3 order by 1`,
+      `with s as (
+         select to_char(r.fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, r.point_id,
+                sum(r.total_sum) as sales, count(*)::int as receipts
+           from receipts r
+          where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+          group by 1, 2
+       ), rf as (
+         select to_char(rr.fiscal_date at time zone '${TZ}', 'YYYY-MM-DD') as day, rr.point_id,
+                sum(rr.total_sum) as refunds, count(*)::int as refunds_n
+           from receipt_returns rr
+          where rr.fiscal_date between $1 and $2 and receipt_return_in_stats(rr.id)
+          group by 1, 2
+       )
+       select day, point_id, coalesce(pt.name, point_id) as point_name,
+              (coalesce(s.sales, 0) - coalesce(rf.refunds, 0))::float as sum_uah,
+              coalesce(s.receipts, 0) as receipts,
+              coalesce(rf.refunds, 0)::float as refund_uah, coalesce(rf.refunds_n, 0) as refunds
+         from s full join rf using (day, point_id)
+         left join points pt on pt.id = point_id
+        order by day`,
       p
     );
     // Дохід за годиною дня й за днем тижня — два зрізи того самого чека.
-    // Київський час: «о восьмій ранку» має означати восьму в залі.
+    // Київський час: «о восьмій ранку» має означати восьму в залі. Без
+    // повернутих продажів: вони не відповідають на «коли купують».
+    const SOLD = `r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+                  and not exists (select 1 from receipt_returns rr where rr.receipt_id = r.id)`;
     const byHour = await many(
       `select extract(hour from r.fiscal_date at time zone '${TZ}')::int as hour,
               sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+         from receipts r where ${SOLD}
         group by 1 order by 1`,
       p
     );
     const byWeekday = await many(
       `select extract(isodow from r.fiscal_date at time zone '${TZ}')::int as weekday,
               sum(r.total_sum)::float as sum_uah, count(*)::int as receipts
-         from receipts r where r.fiscal_date between $1 and $2 and receipt_in_stats(r.id)
+         from receipts r where ${SOLD}
         group by 1 order by 1`,
       p
     );
     const totals = await one(
-      `select coalesce(sum(total_sum), 0)::float as revenue, count(*)::int as receipts
-         from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)`,
+      `select (coalesce((select sum(total_sum) from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id)), 0)
+               - coalesce((select sum(total_sum) from receipt_returns rr where fiscal_date between $1 and $2 and receipt_return_in_stats(rr.id)), 0))::float as revenue,
+              (select count(*) from receipts where fiscal_date between $1 and $2 and receipt_in_stats(id))::int as receipts,
+              (select count(*) from receipt_returns rr where fiscal_date between $1 and $2 and receipt_return_in_stats(rr.id))::int as refunds,
+              coalesce((select sum(total_sum) from receipt_returns rr where fiscal_date between $1 and $2 and receipt_return_in_stats(rr.id)), 0)::float as refund_uah`,
       p
     );
 
@@ -463,7 +496,8 @@ export default async function routes(app) {
     const LINES = `stock_purchase_lines l join stock_purchases p on p.id = l.purchase_id`;
     const ever = await one(
       `with ${COST}
-       select (select coalesce(sum(total_sum), 0) from receipts where receipt_in_stats(id))::float as revenue,
+       select ((select coalesce(sum(total_sum), 0) from receipts where receipt_in_stats(id))
+               - (select coalesce(sum(total_sum), 0) from receipt_returns rr where receipt_return_in_stats(rr.id)))::float as revenue,
               (select coalesce(sum(u.qty * c.unit), 0) from stock_usage u join cost c on c.item_id = u.item_id)::float as cogs,
               (select coalesce(sum(l.cost_uah), 0) from ${LINES} where l.kind = 'capex' and p.received_at <= now())::float as capex,
               (select coalesce(sum(l.cost_uah), 0) from ${LINES} where l.kind = 'opex' and p.received_at <= now())::float as opex,

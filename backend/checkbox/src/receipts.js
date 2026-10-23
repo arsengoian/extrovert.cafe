@@ -53,7 +53,61 @@ async function discountAround(client, pointId, fiscalDate) {
   return rows[0] ? Number(rows[0].uah) : 0;
 }
 
+// Повернення (receipt.type = RETURN) — у receipt_returns, з посиланням на
+// продаж: за related_receipt_id, а коли його немає (так приходить
+// фіскалізоване повернення з кабінету Checkbox) — за RRN карткової
+// транзакції й сумою. Ні позицій, ні бонусу, ні події кіоску: досі
+// повернення йшло тим самим шляхом, що й продаж, і 22.10.2026 дало +120 ₴
+// виручки, бонус і QR на екрані за зіпсоване лате (docs/checkbox.md,
+// «Повернення»).
+async function ingestReturn(receipt, { source, log }) {
+  const client = await pool.connect();
+  try {
+    const pointId = await pointFor(client, receipt);
+    if (!pointId) throw new Error("немає жодної точки — нікуди записати повернення");
+    const rrn = (receipt.payments ?? []).find((p) => p?.rrn)?.rrn ?? null;
+    const sum = uah(receipt.total_sum);
+    const { rows: [sale] } = await client.query(
+      `select id from receipts
+        where checkbox_receipt_id::text = $1
+           or ($2::text is not null and payments -> 0 ->> 'rrn' = $2 and total_sum = $3)
+        order by checkbox_receipt_id::text = $1 desc, fiscal_date desc
+        limit 1`,
+      [receipt.related_receipt_id ?? "", rrn, sum]
+    );
+    const { rows } = await client.query(
+      `insert into receipt_returns (point_id, checkbox_receipt_id, receipt_id, fiscal_code, fiscal_date, total_sum, rrn, source, raw)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       on conflict (checkbox_receipt_id) do nothing
+       returning id`,
+      [pointId, receipt.id, sale?.id ?? null, receipt.fiscal_code ?? null, receipt.fiscal_date ?? new Date().toISOString(),
+       sum, rrn, source, JSON.stringify(receipt)]
+    );
+    if (!rows.length) return { duplicate: true };
+    log?.info("повернення прийнято", { receipt: receipt.id, source, sum, sale: sale?.id ?? null });
+    return { duplicate: false, returnId: rows[0].id, receiptId: sale?.id ?? null };
+  } finally {
+    client.release();
+  }
+}
+
 export async function ingest(receipt, { source, log }) {
+  // Факт — лише фіскалізований чек. Чернетка (CREATED тощо) не лягає в базу
+  // зовсім: коли фіскалізується, прийде знову — вебхуком чи опитуванням із
+  // перекриттям, — і тоді вже ляже. 22.10.2026 повернення, що так і не
+  // фіскалізувалось, лежало в receipts як справжній чек.
+  const status = receipt.status ?? "DONE";
+  if (status !== "DONE") {
+    log?.info("чек ще не фіскалізований — пропускаю", { receipt: receipt.id, status, source });
+    return { duplicate: true, skipped: status };
+  }
+  const type = receipt.type ?? "SELL";
+  if (type === "RETURN") return ingestReturn(receipt, { source, log });
+  if (type !== "SELL") {
+    log?.info("чек не продажу й не повернення — пропускаю", { receipt: receipt.id, type, source });
+    return { duplicate: true, skipped: type };
+  }
+
   const client = await pool.connect();
   try {
     await client.query("begin");

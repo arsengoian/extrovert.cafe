@@ -14,7 +14,7 @@ import { onShutdown } from "@extrovert/lib/shutdown.js";
 import { makeLog } from "@extrovert/lib/log.js";
 import { initErrors } from "@extrovert/lib/errors.js";
 import { every, heartbeat, withLock } from "@extrovert/lib/jobs.js";
-import { checkDevices, checkMachines, checkMenuAcks, checkMenuCheckbox, checkPoints, checkReceiptPrices, checkWebhook, dailyReport, outageKind } from "./checks.js";
+import { checkDevices, checkFailedOrders, checkMachines, checkMenuAcks, checkMenuCheckbox, checkPoints, checkReceiptPrices, checkWebhook, dailyReport, outageKind } from "./checks.js";
 import { ACK_DEADLINE_MIN } from "@extrovert/lib/deployments.js";
 import { sampleHealth } from "./health.js";
 import { checkPower } from "./power.js";
@@ -84,6 +84,11 @@ async function tick() {
   // Несправності кавомашини з порталу Jetinno (checks.js, checkMachines).
   for (const m of await checkMachines(pool)) {
     if (await changed(`machine:${m.key}`, m.state)) lines.push(m.text);
+  }
+
+  // Напій не видано, а гроші списано — і коли їх повернули (checkFailedOrders).
+  for (const f of await checkFailedOrders(pool)) {
+    if (await changed(`failed-order:${f.key}`, f.state)) lines.push(f.text);
   }
 
   // Нове меню не зʼявилось на екрані: кіоск не підтвердив за кілька хвилин.

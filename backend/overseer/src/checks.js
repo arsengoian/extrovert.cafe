@@ -439,6 +439,47 @@ export async function checkMachines(pool) {
     });
 }
 
+// Напій не видано, а гроші списано (власник, 23.10.2026). Машина сама
+// позначає таке замовлення «Неуспішно» (22.10 о 16:43: лате без води,
+// ERROR:7B00), а чек на нього каса вже пробила. Пара «замовлення — чек» —
+// як у звірці (scheduler/jobs/jetinno.js): та сама сума, найближчий чек у
+// межах 10 хв. Повернуто — є receipt_returns на цей чек. Несправність — з
+// першої проби порталу після замовлення (вона з того ж проходу, що й саме
+// замовлення). Лише карткові: готівку машина віддає сама.
+export async function checkFailedOrders(pool) {
+  const { rows } = await pool.query(
+    `select o.order_no, o.purchased_at, o.price_uah::float as price, p.name,
+            (select i.name from receipt_items i where i.receipt_id = r.id order by i.id limit 1) as drink,
+            exists (select 1 from receipt_returns rr where rr.receipt_id = r.id) as refunded,
+            (select coalesce(t.metrics -> 'fault_codes' ->> 0, t.metrics -> 'faults_recent_24h' ->> 0)
+               from device_telemetry t
+              where t.point_id = o.point_id and t.source = 'jetinno'
+                and t.measured_at between o.purchased_at and o.purchased_at + interval '60 minutes'
+              order by t.measured_at limit 1) as fault
+       from machine_orders o
+       join points p on p.id = o.point_id
+       join lateral (
+         select r.id from receipts r
+          where r.point_id = o.point_id and r.total_sum = o.price_uah
+            and r.fiscal_date between o.purchased_at - interval '10 minutes' and o.purchased_at + interval '10 minutes'
+          order by abs(extract(epoch from r.fiscal_date - o.purchased_at)) limit 1) r on true
+      where p.status = 'live' and o.status <> 'Успішно' and o.pay_type = 'mdb_cashless'
+        and o.purchased_at > now() - interval '3 days'`
+  );
+  const at = (t) => new Date(t).toLocaleTimeString("uk-UA", { timeZone: "Europe/Kyiv", hour: "2-digit", minute: "2-digit" });
+  const uah = (n) => `${Number(n).toLocaleString("uk-UA", { maximumFractionDigits: 2 })} ₴`;
+  return rows.map((o) => {
+    const what = `${o.drink ?? "напій"} за ${uah(o.price)} о ${at(o.purchased_at)}`;
+    return {
+      key: o.order_no,
+      state: o.refunded ? "ok" : "unrefunded",
+      text: o.refunded
+        ? `✅ ${o.name}: гроші за ${what} повернуто`
+        : `☕ ${o.name}: машина не видала ${what}${o.fault ? ` (${o.fault})` : ""} — гроші списано, поверніть у Checkbox`,
+    };
+  });
+}
+
 // Точка «жива», поки шле телеметрію. Порівнюємо з last_seen_at, який
 // оновлює api на кожен пінг малини.
 export async function checkPoints(pool) {
@@ -552,7 +593,13 @@ export async function checkWebhook() {
 // власник інакше йшов би дивитись у базу руками.
 export async function dailyReport(pool) {
   const { rows: [sales] } = await pool.query(
-    `select count(*)::int as receipts, coalesce(sum(total_sum), 0) as sum
+    `select count(*)::int as receipts, coalesce(sum(total_sum), 0) as sum,
+            (select count(*)::int from receipt_returns rr
+              where rr.fiscal_date >= date_trunc('day', now() - interval '1 day')
+                and rr.fiscal_date <  date_trunc('day', now()) and receipt_return_in_stats(rr.id)) as refunds,
+            (select coalesce(sum(total_sum), 0) from receipt_returns rr
+              where rr.fiscal_date >= date_trunc('day', now() - interval '1 day')
+                and rr.fiscal_date <  date_trunc('day', now()) and receipt_return_in_stats(rr.id)) as refund_sum
        from receipts
       where fiscal_date >= date_trunc('day', now() - interval '1 day')
         and fiscal_date <  date_trunc('day', now())
@@ -583,7 +630,7 @@ export async function dailyReport(pool) {
   const share = bonuses.granted ? Math.round((bonuses.redeemed / bonuses.granted) * 100) : 0;
   return [
     "<b>Учора</b>",
-    `Чеків: ${sales.receipts} на ${Number(sales.sum).toFixed(2)} ₴`,
+    `Чеків: ${sales.receipts} на ${Number(sales.sum).toFixed(2)} ₴${sales.refunds ? `, повернень: ${sales.refunds} на ${Number(sales.refund_sum).toFixed(2)} ₴` : ""}`,
     `Бонуси: видано ${bonuses.granted}, забрали ${bonuses.redeemed} (${share}%)`,
     `Нових гравців: ${players.new_players}`,
     `Відкритих замовлень: ${orders.open}`,
