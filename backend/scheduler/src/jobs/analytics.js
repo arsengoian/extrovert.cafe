@@ -70,7 +70,7 @@ export async function flushAnalytics({ pool, redis }) {
 }
 
 // qr — застосунок відкрили з QR (api: src/analytics.js, client: src/qr.js).
-const TYPES = new Set(["nav", "api", "qr"]);
+const TYPES = new Set(["nav", "api", "qr", "utm"]);
 
 // ── зрізи ───────────────────────────────────────────────────────────────
 // Події проміжку [$1, $2) без адмінки й точок; who — людина: акаунт, а
@@ -88,7 +88,7 @@ const EV = `
       from analytics_events e
      where e.at >= $1 and e.at < $2
        and (e.user_id is null or e.user_id not in (select id from users where stats_excluded))
-       and (e.type in ('nav', 'qr') or (e.payload->>'route') !~ '${NOT_CLIENT}')
+       and (e.type in ('nav', 'qr', 'utm') or (e.payload->>'route') !~ '${NOT_CLIENT}')
   )`;
 
 // Сесії: події однієї людини з паузами не довшими за SESSION_GAP. Рахуємо
@@ -169,6 +169,41 @@ async function sliceMetrics(pool, from, to) {
     put("qr_accounts", r.dim, r.accounts);
     put("qr_bonus", r.dim, r.bonus);
     put("qr_repeat", r.dim, r.again);
+  }
+
+  // UTM (власник, 24.10.2026): заходи за посиланнями з мітками
+  // (client/src/utm.js) — за джерелом (dim — utm_source; без нього, але з
+  // кліком реклами — «реклама fb») і за посиланням цілком (усі мітки через
+  // « · »). Нові акаунти, бонуси й повернення — тих, у кого мітки записані в
+  // акаунт (users.metadata.utm, POST /me/utm: лише щойно створеним).
+  const src = (j) => `coalesce(${j}->>'source', case when ${j} ? 'click' then 'реклама ' || (${j}->>'click') end, '—')`;
+  const link = (j) => `coalesce(nullif(concat_ws(' · ', ${j}->>'source', ${j}->>'medium', ${j}->>'campaign', ${j}->>'content', ${j}->>'term'), ''),
+                                case when ${j} ? 'click' then 'реклама ' || (${j}->>'click') end, '—')`;
+  for (const r of await q(`with ${EV} select ${src("payload")} as dim, count(*) as n, count(distinct who) as people from ev where type = 'utm' group by 1`)) {
+    put("utm_visits", r.dim, r.n);
+    put("utm_people", r.dim, r.people);
+  }
+  for (const r of await q(`with ${EV} select ${link("payload")} as dim, count(*) as n, count(distinct who) as people from ev where type = 'utm' group by 1`)) {
+    put("utm_link_visits", r.dim, r.n);
+    put("utm_link_people", r.dim, r.people);
+  }
+  const utmFunnel = (dimSql) => q(`
+    select ${dimSql} as dim, count(*) as accounts,
+           count(*) filter (where b.n >= 1) as bonus, count(*) filter (where b.n >= 2) as again
+      from users u
+      left join lateral (select count(*) as n from bonus_grants g
+                          where g.redeemed_by = u.id and g.status = 'redeemed') b on true
+     where u.created_at >= $1 and u.created_at < $2 and not u.stats_excluded and u.metadata ? 'utm'
+     group by 1`);
+  for (const r of await utmFunnel(src("(u.metadata->'utm')"))) {
+    put("utm_accounts", r.dim, r.accounts);
+    put("utm_bonus", r.dim, r.bonus);
+    put("utm_repeat", r.dim, r.again);
+  }
+  for (const r of await utmFunnel(link("(u.metadata->'utm')"))) {
+    put("utm_link_accounts", r.dim, r.accounts);
+    put("utm_link_bonus", r.dim, r.bonus);
+    put("utm_link_repeat", r.dim, r.again);
   }
 
   // Сесії
@@ -304,7 +339,8 @@ async function retention(pool) {
 }
 
 // У денні відра — лише те, що складається між днями або має сенс на день.
-const DAILY = new Set(["users", "guests", "views", "requests", "signups", "sessions", "api_5xx", "screen_views", "action_count", "qr_scans", "qr_signups"]);
+const DAILY = new Set(["users", "guests", "views", "requests", "signups", "sessions", "api_5xx", "screen_views", "action_count", "qr_scans", "qr_signups",
+  "utm_visits", "utm_accounts"]);
 
 async function writeRows(pool, table, keyCol, keyVal, rows) {
   const client = await pool.connect();

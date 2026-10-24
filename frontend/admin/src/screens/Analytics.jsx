@@ -60,6 +60,17 @@ const dayList = (n) => {
 };
 const valueOn = (daily, metric, day, dim = "") => daily.find((r) => r.metric === metric && r.dim === dim && r.day === day)?.value ?? 0;
 
+// Сума метрики по всіх розрізах — за вікно чи за день.
+const sum = (obj = {}) => Object.values(obj).reduce((s, v) => s + Number(v || 0), 0);
+const sumOn = (daily, metric, day) => daily.filter((r) => r.metric === metric && r.day === day).reduce((s, r) => s + Number(r.value || 0), 0);
+// Джерела UTM на графіку — п'ять найчастіших за всі дні з денних відер.
+const UTM_COLORS = ["#FE810B", "#5AA9FF", "#B07CFF", "#3FBF6F", "#FFB020"];
+const utmSources = (daily) => {
+  const by = {};
+  for (const r of daily) if (r.metric === "utm_visits") by[r.dim] = (by[r.dim] ?? 0) + Number(r.value || 0);
+  return Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([dim]) => dim);
+};
+
 // Денні відра → ряд графіка.
 const series = (daily, days, metric, name, color, dim = "") => ({
   name, color,
@@ -192,6 +203,49 @@ export function Analytics() {
         </Card>
         <Card title="Нові акаунти з наклейки по днях" note={`останні ${Math.max(days, 14)} днів`}>
           <Columns items={trendDays.map((day) => ({ label: fmt.day(`${day}T12:00:00`), value: valueOn(daily, "qr_signups", day) }))} every={days > 14 ? 5 : 2} />
+        </Card>
+      </div>
+
+      {/* UTM (власник, 24.10.2026): заходи за посиланнями з мітками — з
+          Instagram (?utm_source=ig&utm_medium=social&utm_content=link_in_bio)
+          та інших. Захід рахує застосунок (client/src/utm.js); акаунти,
+          бонуси й повернення — тих, у кого мітки записались в акаунт при
+          реєстрації (users.metadata.utm). */}
+      <h2 className="section-title">Звідки приходять (UTM)</h2>
+      <div className="grid k3">
+        <Kpi label="Заходів за посиланнями з мітками" value={fmt.int(sum(w.utm_visits))}
+             note={`людей: ${fmt.int(sum(w.utm_people))}`} />
+        <Kpi label="Нових акаунтів з міток" value={fmt.int(sum(w.utm_accounts))}
+             note={`з ${fmt.int(one("signups"))} нових за період · мітки пишуться в акаунт при реєстрації`} />
+        <Kpi label="Найбільше приводить" value={top(w.utm_visits, 1)[0]?.label ?? "—"}
+             note={top(w.utm_visits, 1)[0] ? `${fmt.int(top(w.utm_visits, 1)[0].value)} заходів` : "заходів з мітками ще не було"} />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <Table
+          columns={[
+            { key: "label", title: "посилання (source · medium · campaign · content · term)" },
+            { key: "visits", title: "заходів", num: true, render: (r) => fmt.int(r.visits) },
+            { key: "people", title: "людей", num: true, render: (r) => fmt.int(r.people) },
+            { key: "accounts", title: "акаунтів", num: true, render: (r) => `${fmt.int(r.accounts)} · ${pct(r.accounts, r.people)}` },
+            { key: "bonus", title: "забрали бонус", num: true, render: (r) => `${fmt.int(r.bonus)} · ${pct(r.bonus, r.accounts)}` },
+            { key: "repeat", title: "повернулись по другий", num: true, render: (r) => `${fmt.int(r.repeat)} · ${pct(r.repeat, r.bonus)}` },
+          ]}
+          rows={[...new Set([...Object.keys(w.utm_link_visits ?? {}), ...Object.keys(w.utm_link_accounts ?? {})])]
+            .map((dim) => ({
+              id: dim, label: dim,
+              visits: w.utm_link_visits?.[dim] ?? 0, people: w.utm_link_people?.[dim] ?? 0,
+              accounts: w.utm_link_accounts?.[dim] ?? 0, bonus: w.utm_link_bonus?.[dim] ?? 0, repeat: w.utm_link_repeat?.[dim] ?? 0,
+            }))
+            .sort((a, b) => b.visits - a.visits || b.accounts - a.accounts)}
+          empty="за цей період заходів за посиланнями з мітками не було"
+        />
+      </div>
+      <div className="grid k2" style={{ marginTop: 12 }}>
+        <Card title="Заходи з міток по днях" note={`за джерелом (utm_source), останні ${Math.max(days, 14)} днів`}>
+          <Line series={utmSources(daily).map((dim, i) => series(daily, trendDays, "utm_visits", dim, UTM_COLORS[i % UTM_COLORS.length], dim))} />
+        </Card>
+        <Card title="Нові акаунти з міток по днях" note={`останні ${Math.max(days, 14)} днів`}>
+          <Columns items={trendDays.map((day) => ({ label: fmt.day(`${day}T12:00:00`), value: sumOn(daily, "utm_accounts", day) }))} every={days > 14 ? 5 : 2} />
         </Card>
       </div>
 

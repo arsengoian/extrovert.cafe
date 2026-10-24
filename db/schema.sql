@@ -203,7 +203,7 @@ CREATE TABLE public.analytics_events (
     ip inet,
     type text NOT NULL,
     payload jsonb,
-    CONSTRAINT analytics_events_type_check CHECK ((type = ANY (ARRAY['nav'::text, 'api'::text, 'qr'::text])))
+    CONSTRAINT analytics_events_type_check CHECK ((type = ANY (ARRAY['nav'::text, 'api'::text, 'qr'::text, 'utm'::text])))
 );
 
 
@@ -5096,4 +5096,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261018200000'),
     ('20261019100000'),
     ('20261022100000'),
-    ('20261023100000');
+    ('20261023100000'),
+    ('20261024100000');

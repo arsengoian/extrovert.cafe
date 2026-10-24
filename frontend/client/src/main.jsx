@@ -9,6 +9,7 @@ import { initErrors } from "./errors.js";
 import { initClarity } from "./clarity.js";
 import { trackScreen } from "./analytics.js";
 import { takeQrPos } from "./qr.js";
+import { takeUtm } from "./utm.js";
 import { Crash } from "./ui/Crash.jsx";
 import "./theme.css";
 
@@ -23,6 +24,8 @@ installTapFx();
 // ?p= із QR (наклейка чи бонус на кіоску) — забираємо ПЕРШИМ, до будь-якого
 // replaceState нижче: шлях бонусу далі переписується на «/» разом із query.
 takeQrPos();
+// UTM-мітки посилання з Instagram та інших (utm.js) — так само, до replaceState.
+takeUtm();
 
 // Два шляхи поза звичайним застосунком. Роутера немає (див. app.jsx), тож
 // розбираємо їх тут, до монтування:

@@ -9,7 +9,7 @@ import { economy } from "../economy.js";
 import { flushNotices } from "../notify.js";
 import { pickFaceSet } from "../faceSets.js";
 import { FEATURES } from "../features.js";
-import { QR_POS } from "../analytics.js";
+import { QR_POS, utmOf } from "../analytics.js";
 
 // Змінювати нікнейм з профілю — раз на 30 днів (попап «Змінити нікнейм»).
 const NICKNAME_COOLDOWN_MS = 30 * 864e5;
@@ -219,6 +219,27 @@ export async function nicknameRoutes(app) {
                                   || jsonb_strip_nulls(jsonb_build_object('qr_pos', $2::text, 'qr_via', $3::text))
         where id = $1 and not coalesce(metadata ? 'qr_pos', false)`,
       [user.id, pos, via]
+    );
+    return { saved: res.rowCount > 0 };
+  });
+
+  // UTM-мітки, з якими людина прийшла (client/src/utm.js, власник
+  // 24.10.2026), — у users.metadata.utm, один раз і лише щойно створеному
+  // акаунту (добу запасу): так в акаунті лишається, звідки людина прийшла
+  // до реєстрації. Заходи наявних гравців за такими посиланнями — події
+  // `utm` в analytics_events, акаунт вони не чіпають. landed_at — коли
+  // людина вперше відкрила посилання (час телефона, не пізніше за наш).
+  app.post("/me/utm", async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+    const utm = utmOf(req.body);
+    if (!utm) return reply.code(400).send({ error: "bad_utm" });
+    const at = new Date(req.body?.landed_at);
+    const landed = Number.isNaN(+at) ? new Date() : new Date(Math.min(+at, Date.now()));
+    const res = await query(
+      `update users set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('utm', $2::jsonb)
+        where id = $1 and not coalesce(metadata ? 'utm', false) and created_at > now() - interval '1 day'`,
+      [user.id, JSON.stringify({ ...utm, landed_at: landed.toISOString() })]
     );
     return { saved: res.rowCount > 0 };
   });

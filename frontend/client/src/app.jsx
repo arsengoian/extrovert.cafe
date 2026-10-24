@@ -27,6 +27,7 @@ import { ResultPopup } from "./ui/Popup.jsx";
 import { clearBonuses, dropBonus, isStashed, stashBonus, stashedBonuses } from "./bonusStash.js";
 import { beans as beansText } from "./ui/plural.js";
 import { reportQrPos } from "./qr.js";
+import { reportUtm } from "./utm.js";
 import "./theme.js";
 
 const TAB_KEY = "extrovert.tab";
@@ -59,6 +60,8 @@ export function App({ bonusToken = null, returningFromPayment = false, login = n
   useEffect(() => { setErrorUser(me?.id); clarityUser(me?.id); }, [me?.id]);
   // Точка з QR, що привела людину (qr.js), — в акаунт, щойно він відомий.
   useEffect(() => { if (me?.id) reportQrPos(); }, [me?.id]);
+  // UTM-мітки, з якими людина прийшла (utm.js), — в щойно створений акаунт.
+  useEffect(() => { if (me?.id) reportUtm(); }, [me?.id]);
   // Макет куща й розміри спрайтів — щойно відомо, що людина в акаунті, а не
   // коли відкриється кавенятко: інакше спрайти чекали ще й на ці файли.
   useEffect(() => { if (me) loadPlantAssets().catch(() => {}); }, [Boolean(me)]);

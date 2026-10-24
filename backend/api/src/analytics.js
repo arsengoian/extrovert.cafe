@@ -80,6 +80,21 @@ const SCREEN = /^[A-Za-z][A-Za-z0-9_:/-]{0,39}$/;
 export const QR_POS = /^[A-Za-z0-9_-]{1,16}$/;
 const screenOf = (v) => (typeof v === "string" && SCREEN.test(v) ? v : null);
 
+// UTM-мітки посилання (client/src/utm.js, власник 24.10.2026): короткий
+// текст без службових символів, як і на клієнті; click — лише назва мережі,
+// сам fbclid/gclid ми не беремо.
+const UTM_FIELDS = ["source", "medium", "campaign", "content", "term"];
+const UTM_CLICKS = new Set(["fb", "google", "tiktok"]);
+export function utmOf(e) {
+  const out = {};
+  for (const f of UTM_FIELDS) {
+    const s = String(e?.[f] ?? "").trim().toLowerCase();
+    if (s && s.length <= 64 && /^[\p{L}\p{N} _.+-]+$/u.test(s)) out[f] = s;
+  }
+  if (UTM_CLICKS.has(e?.click)) out.click = e.click;
+  return Object.keys(out).length ? out : null;
+}
+
 // Навігація з фронтенду: застосунок шле пачку раз на кілька секунд (і
 // при згортанні вкладки). Хто й звідки — визначаємо ми: user_id лише з
 // підписаного токена, адреса — з X-Real-IP, а не з полів тіла, тож
@@ -113,6 +128,13 @@ export default async function routes(app) {
           type: "qr",
           payload: { pos, via: e.via === "bonus" ? "bonus" : "sticker", platform },
         });
+        continue;
+      }
+      // Застосунок відкрили за посиланням з UTM-мітками — кожен такий захід
+      // (client/src/utm.js); в акаунт мітки пише окремо POST /me/utm.
+      if (e?.type === "utm") {
+        const utm = utmOf(e);
+        if (utm) track({ at: now - ago, user_id: userId, ip, type: "utm", payload: { ...utm, platform } });
         continue;
       }
       if (e?.type !== "nav") continue;

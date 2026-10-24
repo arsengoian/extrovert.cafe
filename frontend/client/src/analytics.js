@@ -48,6 +48,12 @@ export function trackQr(pos, via) {
   timer ??= setTimeout(flush, FLUSH_MS);
 }
 
+/** Застосунок відкрили за посиланням з UTM-мітками (utm.js). */
+export function trackUtm(utm) {
+  queue.push({ type: "utm", ...utm, t: Date.now() });
+  timer ??= setTimeout(flush, FLUSH_MS);
+}
+
 if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") flush(); });
   window.addEventListener("pagehide", flush);
